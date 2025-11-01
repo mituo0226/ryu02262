@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運命の扉 - あなたの未来が変わる時</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="top-page">
+    <div class="background-image"></div>
+    <div class="particles"></div>
+    
+    <div class="content-wrapper">
+        <div class="logo-container">
+            <img src="photo/rogo.png" alt="ロゴ" class="logo-fade-in" id="logo">
+        </div>
+        
+        <div class="text-container">
+            <p class="text-fade-in text-line-1">未来が変わる大きなきっかけになる時</p>
+            <p class="text-fade-in text-line-2">今のままで満足なのか?変化を受け入れたいのか?</p>
+            <p class="text-fade-in text-line-3">その選択によってこれから先の人生が変わります。</p>
+            <p class="text-fade-in text-line-4">人生を変える判断をする時、一歩踏み出すことができるか</p>
+            <p class="text-fade-in text-line-5">後はあなた次第･･･</p>
+        </div>
+        
+        <div class="button-container">
+            <a href="main.html" class="fate-button fade-in-button" id="fateButton">運命の扉を開く</a>
+        </div>
+    </div>
+
+    <script>
+        // ロゴのフェードイン（ページ読み込み直後）
+        window.addEventListener('load', () => {
+            const logo = document.getElementById('logo');
+            setTimeout(() => {
+                logo.style.opacity = '1';
+            }, 300);
+        });
+
+        // テキストの順次フェードイン
+        const textLines = document.querySelectorAll('.text-fade-in');
+        textLines.forEach((line, index) => {
+            line.style.animationDelay = `${1.5 + index * 0.8}s`;
+        });
+
+        // ボタンのフェードイン
+        const button = document.getElementById('fateButton');
+        setTimeout(() => {
+            button.style.opacity = '1';
+            button.style.transform = 'translateY(0)';
+        }, 6000);
+
+        // パーティクルエフェクト
+        function createParticle() {
+            const particles = document.querySelector('.particles');
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            const size = Math.random() * 4 + 2;
+            const x = Math.random() * 100;
+            const duration = Math.random() * 20 + 10;
+            const delay = Math.random() * 5;
+            
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = x + '%';
+            particle.style.animationDuration = duration + 's';
+            particle.style.animationDelay = delay + 's';
+            
+            particles.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, (duration + delay) * 1000);
+        }
+
+        // パーティクルを定期的に生成
+        setInterval(createParticle, 2000);
+
+        // ボタンホバーエフェクト
+        const fateButton = document.getElementById('fateButton');
+        fateButton.addEventListener('mouseenter', () => {
+            fateButton.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4)';
+        });
+        fateButton.addEventListener('mouseleave', () => {
+            fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
+        });
+    </script>
+</body>
+</html>
+

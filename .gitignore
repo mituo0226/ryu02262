@@ -1,0 +1,19 @@
+# バックアップファイル
+*.backup.html
+*.backup.css
+
+# システムファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# エディタファイル
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ログファイル
+*.log
+

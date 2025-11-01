@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>楓（かえで） - 運命の扉</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="detail-page">
+    <div class="detail-content">
+        <img src="photo/kaede.png" alt="楓" class="detail-photo">
+        <h1>楓（かえで）</h1>
+        <div class="message-box">
+            <p>力は、誰かを守るためのもの。安心して話せる場所でありたいと思っています。いまの気持ちを、そのまま聞かせてください。</p>
+        </div>
+        <a href="#" class="entrust-button" onclick="return false;">この鑑定士に運命を委ねる</a>
+    </div>
+
+    <script>
+        // ページ読み込み時のアニメーション強化
+        window.addEventListener('load', () => {
+            const photo = document.querySelector('.detail-photo');
+            photo.style.animation = 'photoGlow 3s ease-in-out infinite';
+        });
+    </script>
+</body>
+</html>
+

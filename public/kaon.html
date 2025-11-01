@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三崎花音 - 運命の扉</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="detail-page">
+    <div class="detail-content">
+        <img src="photo/kaon.png" alt="三崎花音" class="detail-photo">
+        <h1>三崎花音（みさき かおん）</h1>
+        <div class="message-box">
+            <p>未来は一つではありません。いま選べる小さな一歩を、一緒に見つけていきましょう。</p>
+        </div>
+        <a href="#" class="entrust-button" onclick="return false;">この鑑定士に運命を委ねる</a>
+    </div>
+
+    <script>
+        // ページ読み込み時のアニメーション強化
+        window.addEventListener('load', () => {
+            const photo = document.querySelector('.detail-photo');
+            photo.style.animation = 'photoGlow 3s ease-in-out infinite';
+        });
+    </script>
+</body>
+</html>
+

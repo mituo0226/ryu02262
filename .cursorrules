@@ -1,0 +1,39 @@
+# プロジェクト制作ルール
+
+## ページ制作の順序（重要）
+
+1. **最初に `public/index.html` で制作**
+   - CSSファイル（`public/styles.css`）を使用可能
+   - 通常のWebサイトとして制作
+   - Cloudflareなどでの公開を想定
+
+2. **その後、`index-no-css.html` でCSSなし版を制作**
+   - `public/index.html` の内容をベースにする
+   - すべてのスタイルをインラインスタイル（style属性）に変換
+   - `<style>`タグや`<link rel="stylesheet">`は使用禁止
+   - 外部CSSファイルの参照は禁止
+   - マッチングサイト内システム用（CSSが使えない環境）
+
+## ファイル構成
+
+```
+public/
+├── index.html      # CSSあり版（メイン）
+├── styles.css      # スタイルシート
+├── photo/          # 画像フォルダ
+│   ├── rogo.png
+│   ├── kaede.png
+│   ├── kaon.png
+│   ├── yukino.png
+│   └── sora.png
+└── noncss/
+    └── index.html  # CSSなし版（未使用の場合は空）
+
+index-no-css.html   # CSSなし版（ルート）
+```
+
+## 注意事項
+
+- `public/index.html` を先に制作・更新する
+- `index-no-css.html` は `public/index.html` の内容を基に作成
+- CSSあり版を変更したら、必ずCSSなし版も同期して更新する
