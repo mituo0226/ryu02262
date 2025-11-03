@@ -1260,35 +1260,6 @@ body {
         font-size: 30px;
     }
 
-    /* スマートフォン用フッターボタン */
-    .mobile-footer-button {
-        display: block;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        padding: 15px 20px;
-        background: linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 1) 100%);
-        border-top: 2px solid rgba(138, 43, 226, 0.6);
-        box-shadow: 0 -5px 30px rgba(138, 43, 226, 0.3);
-        z-index: 999;
-        backdrop-filter: blur(10px);
-    }
-
-    .mobile-footer-button .consult-button {
-        width: 100%;
-        max-width: none;
-        margin: 0;
-        padding: 18px 30px;
-        font-size: 20px;
-        border-radius: 30px;
-    }
-
-    /* PCではフッターボタン非表示 */
-    .mobile-footer-button {
-        display: none;
-    }
 }
 
 /* スマートフォンでのみフッターボタンを表示 */
