@@ -216,7 +216,8 @@
         finalButtonContainer.style.bottom = window.innerWidth <= 768 ? 'calc(20px + env(safe-area-inset-bottom, 0px))' : '150px';
         // Androidではsafe-areaが0になることが多いため、少し持ち上げる
         if (/Android/i.test(navigator.userAgent) && window.innerWidth <= 768) {
-            finalButtonContainer.style.bottom = '56px';
+            // 端末のナビゲーションバーに被らないよう、少し余裕を持たせる
+            finalButtonContainer.style.bottom = '72px';
             messageFlow.style.top = '40%';
         }
         finalButtonContainer.style.left = '50%';
