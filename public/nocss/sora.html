@@ -5,62 +5,503 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>水野ソラ - 運命の扉</title>
 </head>
-<body style="margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif; background: #0a0a0a; min-height: 100vh; position: relative; overflow-x: hidden;">
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 0; overflow: hidden;">
-        <img src="../photo/sora.png" alt="水野ソラ" id="heroImage" style="width: 100%; height: 100%; object-fit: cover; object-position: center; transform: scale(1.1); opacity: 0; transition: transform 1.5s ease-out, opacity 1.5s ease-out; filter: brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, 0.6));">
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(10, 10, 10, 0.3) 0%, rgba(10, 10, 10, 0.7) 60%, rgba(10, 10, 10, 0.95) 100%); z-index: 1;"></div>
-        <div class="floating-particles" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2;"></div>
+<body>
+    <div id="backgroundParticles">
+        <div id="floatingParticles"></div>
     </div>
 
-    <div style="position: relative; z-index: 3; padding: 80vh 20px 60px; max-width: 900px; margin: 0 auto;">
-        <div class="name-section fade-in-up" style="text-align: center; margin-bottom: 50px; opacity: 0; transform: translateY(30px); transition: opacity 1s ease-out, transform 1s ease-out;">
-            <h1 style="font-size: 48px; color: #fff; font-weight: bold; text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4); margin-bottom: 15px; letter-spacing: 2px;">水野ソラ<span style="font-size: 28px; color: #e8d5ff; font-weight: normal; display: block; margin-top: 10px;">（みずの そら）</span></h1>
-            <div style="width: 100px; height: 3px; background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.8), transparent); margin: 20px auto; box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);"></div>
+    <div id="detailContentWrapper">
+        <div id="nameSectionV2">
+            <h1 id="nameH1">水野ソラ<span id="nameSubtitle">（みずの そら）</span></h1>
+            <div id="nameDivider"></div>
+            <p id="nameInfo">1998年8月1日生まれ　寅 | 神奈川県横浜市出身</p>
         </div>
 
-        <div class="profile-section fade-in-up" style="margin-bottom: 40px; opacity: 0; transform: translateY(50px); transition: opacity 1s ease-out, transform 1s ease-out;">
-            <div style="background: rgba(30, 10, 50, 0.85); border: 2px solid rgba(138, 43, 226, 0.4); border-radius: 20px; padding: 40px; backdrop-filter: blur(10px); box-shadow: 0 10px 40px rgba(138, 43, 226, 0.2);">
-                <h2 style="font-size: 24px; color: #e8d5ff; margin-bottom: 20px; text-shadow: 0 0 10px rgba(138, 43, 226, 0.5); border-left: 4px solid rgba(138, 43, 226, 0.8); padding-left: 15px;">プロフィール</h2>
-                <p style="font-size: 18px; line-height: 2; color: #d4c4e8; text-align: left;">
-                    他者の心の動きに敏感で、鍛錬を重ねる中で"前に進むための視点の切り替え"を支援するスタイルに到達。<br>
-                    等身大の言葉で、必要な一歩に光を当てる鑑定士。
-                </p>
+        <div id="imageContainer">
+            <img src="../photo/sora.png" alt="水野ソラ" id="mainImage">
+            <p id="imageHint">画像をクリックして拡大表示</p>
+            <div id="buttonSection1" class="button-section-v2">
+                <a href="sora-back.html" class="consult-button">鑑定に進む</a>
             </div>
         </div>
 
-        <div class="message-section fade-in-up" style="margin-bottom: 50px; opacity: 0; transform: translateY(50px); transition: opacity 1s ease-out, transform 1s ease-out;">
-            <div style="background: rgba(138, 43, 226, 0.1); border: 2px solid rgba(138, 43, 226, 0.5); border-radius: 20px; padding: 50px 40px; backdrop-filter: blur(10px); position: relative; box-shadow: 0 10px 40px rgba(138, 43, 226, 0.3);">
-                <div style="font-size: 80px; color: rgba(138, 43, 226, 0.3); position: absolute; top: 20px; left: 30px; font-family: serif; line-height: 1;">"</div>
-                <p style="font-size: 22px; line-height: 2; color: #fff; text-shadow: 0 0 10px rgba(138, 43, 226, 0.3); position: relative; z-index: 1;">
-                    むずかしい話でなくて大丈夫。<br>
-                    小さな違和感やモヤモヤから、一緒にほどいていきましょう。
+        <div id="contentSections">
+            <div id="profileSectionV2">
+                <h2>プロフィール</h2>
+                <p>
+                    物心がついた時から、人の心が読める能力が備わっており、その後、家族や友人たちから特徴能力の持ち主だということを知らされ、本人も自覚して、能力を高めるための訓練を続けることになる。<br><br>
+                    その後、その人の未来や運命を鑑定するカウンセリングに興味を持ち、専門家を通じて楓と知り合い、弟子入りし、修行を続けている最中である。<br><br>
+                    若き天才鑑定士と世間では噂されている、また美しい容姿から芸能関係者にも関心を持たれ、スカウトされたから鑑定の道に進むことを優先し、現在は鑑定士として行動している。
                 </p>
-                <div style="font-size: 80px; color: rgba(138, 43, 226, 0.3); position: absolute; bottom: 20px; right: 30px; font-family: serif; line-height: 1; transform: rotate(180deg);">"</div>
+            </div>
+            <div id="buttonSection2" class="button-section-v2">
+                <a href="sora-back.html" class="consult-button">鑑定に進む</a>
+            </div>
+
+            <div id="messageSectionV2">
+                <div id="quoteMark1">"</div>
+                <p>
+                    現在はまだ修行中のみですが、いろいろな人の心を読み解くことにより、自分自身の人生への経験にもなると思い、鑑定をすることにしました。<br><br>
+                    この番組以外での鑑定はしていません。普段は普通の会社員として仕事をしています。もし興味があったらいつでもご連絡ください。よろしくお願いいたします。
+                </p>
+                <div id="quoteMark2">"</div>
+            </div>
+            <div id="buttonSection3" class="button-section-v2">
+                <a href="sora-back.html" class="consult-button">鑑定に進む</a>
+            </div>
+
+            <div id="backButtonSection" class="button-section-v2 back-button-section">
+                <a href="main.html" class="back-button">鑑定士一覧に戻る</a>
             </div>
         </div>
+    </div>
 
-        <div class="button-section fade-in-up" style="text-align: center; opacity: 0; transform: translateY(50px); transition: opacity 1s ease-out, transform 1s ease-out;">
-            <a href="#" onclick="return false;" style="display: inline-flex; align-items: center; gap: 15px; padding: 20px 50px; font-size: 24px; color: #fff; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9)); border: 3px solid rgba(138, 43, 226, 0.8); border-radius: 50px; text-decoration: none; transition: all 0.5s ease; box-shadow: 0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3); position: relative; overflow: hidden; cursor: pointer;">
-                <span style="position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.3); transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s;"></span>
-                <span style="position: relative; z-index: 1;">この鑑定士に運命を委ねる</span>
-                <span style="position: relative; z-index: 1; font-size: 28px; transition: transform 0.3s ease;">→</span>
-            </a>
-        </div>
+    <!-- 全画面画像モーダル -->
+    <div id="imageModal">
+        <span id="closeModal">&times;</span>
+        <img src="../photo/sora.png" alt="水野ソラ" id="modalImage">
+    </div>
+
+    <!-- スマートフォン用フッターボタン -->
+    <div id="mobileFooterButton">
+        <a href="sora-back.html" class="consult-button">鑑定に進む</a>
     </div>
 
     <script>
-        // ヒーロー画像のズームインエフェクト
-        window.addEventListener('load', () => {
-            const heroImage = document.getElementById('heroImage');
-            setTimeout(() => {
-                heroImage.style.transform = 'scale(1)';
-                heroImage.style.opacity = '1';
-            }, 200);
+        // 全体的なスタイル設定
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.boxSizing = 'border-box';
+        document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
+        document.body.style.background = 'linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)';
+        document.body.style.minHeight = '100vh';
+        document.body.style.padding = window.innerWidth <= 768 ? '20px 15px' : window.innerWidth >= 1024 ? '60px 40px' : '20px';
+        document.body.style.position = 'relative';
+
+        // 背景パーティクル
+        const backgroundParticles = document.getElementById('backgroundParticles');
+        backgroundParticles.style.position = 'fixed';
+        backgroundParticles.style.top = '0';
+        backgroundParticles.style.left = '0';
+        backgroundParticles.style.width = '100%';
+        backgroundParticles.style.height = '100%';
+        backgroundParticles.style.pointerEvents = 'none';
+        backgroundParticles.style.zIndex = '0';
+        backgroundParticles.style.overflow = 'hidden';
+
+        const floatingParticles = document.getElementById('floatingParticles');
+        floatingParticles.style.position = 'absolute';
+        floatingParticles.style.top = '0';
+        floatingParticles.style.left = '0';
+        floatingParticles.style.width = '100%';
+        floatingParticles.style.height = '100%';
+        floatingParticles.style.pointerEvents = 'none';
+
+        // コンテンツラッパー
+        const detailContentWrapper = document.getElementById('detailContentWrapper');
+        detailContentWrapper.style.position = 'relative';
+        detailContentWrapper.style.zIndex = '1';
+        detailContentWrapper.style.maxWidth = '1200px';
+        detailContentWrapper.style.margin = '0 auto';
+        
+        if (window.innerWidth >= 1024) {
+            detailContentWrapper.style.display = 'grid';
+            detailContentWrapper.style.gridTemplateColumns = '1fr 2fr';
+            detailContentWrapper.style.gap = '60px';
+            detailContentWrapper.style.alignItems = 'start';
+        }
+
+        // 名前セクション
+        const nameSectionV2 = document.getElementById('nameSectionV2');
+        nameSectionV2.style.textAlign = 'center';
+        nameSectionV2.style.marginBottom = window.innerWidth >= 1024 ? '40px' : '30px';
+        nameSectionV2.style.opacity = '0';
+        nameSectionV2.style.transform = 'translateY(30px)';
+        nameSectionV2.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+        
+        if (window.innerWidth >= 1024) {
+            nameSectionV2.style.gridColumn = '1 / -1';
+        }
+
+        setTimeout(() => {
+            nameSectionV2.style.opacity = '1';
+            nameSectionV2.style.transform = 'translateY(0)';
+        }, 500);
+
+        const nameH1 = document.getElementById('nameH1');
+        nameH1.style.fontSize = window.innerWidth <= 768 ? '32px' : window.innerWidth >= 1024 ? '52px' : '42px';
+        nameH1.style.color = '#fff';
+        nameH1.style.fontWeight = 'bold';
+        nameH1.style.textShadow = '0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4)';
+        nameH1.style.marginBottom = '10px';
+        nameH1.style.letterSpacing = '2px';
+
+        const nameSubtitle = document.getElementById('nameSubtitle');
+        nameSubtitle.style.fontSize = window.innerWidth <= 768 ? '20px' : window.innerWidth >= 1024 ? '28px' : '24px';
+        nameSubtitle.style.color = '#e8d5ff';
+        nameSubtitle.style.fontWeight = 'normal';
+        nameSubtitle.style.display = 'block';
+        nameSubtitle.style.marginTop = '8px';
+
+        const nameDivider = document.getElementById('nameDivider');
+        nameDivider.style.width = '120px';
+        nameDivider.style.height = '3px';
+        nameDivider.style.background = 'linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.8), transparent)';
+        nameDivider.style.margin = '20px auto';
+        nameDivider.style.boxShadow = '0 0 10px rgba(138, 43, 226, 0.6)';
+
+        const nameInfo = document.getElementById('nameInfo');
+        nameInfo.style.fontSize = '16px';
+        nameInfo.style.color = '#d4c4e8';
+        nameInfo.style.marginTop = '15px';
+        nameInfo.style.opacity = '0.9';
+
+        // 画像コンテナ
+        const imageContainer = document.getElementById('imageContainer');
+        imageContainer.style.textAlign = 'center';
+        imageContainer.style.marginBottom = '30px';
+        imageContainer.style.opacity = '0';
+        imageContainer.style.transform = 'translateY(30px)';
+        imageContainer.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+        
+        if (window.innerWidth >= 1024) {
+            imageContainer.style.position = 'sticky';
+            imageContainer.style.top = '100px';
+            imageContainer.style.marginBottom = '0';
+        }
+
+        setTimeout(() => {
+            imageContainer.style.opacity = '1';
+            imageContainer.style.transform = 'translateY(0)';
+        }, 300);
+
+        const mainImage = document.getElementById('mainImage');
+        mainImage.style.width = window.innerWidth <= 768 ? '250px' : window.innerWidth >= 1024 ? '350px' : '280px';
+        mainImage.style.height = window.innerWidth <= 768 ? '250px' : window.innerWidth >= 1024 ? '350px' : '280px';
+        mainImage.style.objectFit = 'cover';
+        mainImage.style.borderRadius = '20px';
+        mainImage.style.border = '3px solid rgba(138, 43, 226, 0.6)';
+        mainImage.style.cursor = 'pointer';
+        mainImage.style.transition = 'all 0.3s ease';
+        mainImage.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.4), 0 10px 40px rgba(138, 43, 226, 0.2)';
+        mainImage.style.display = 'inline-block';
+
+        mainImage.addEventListener('mouseenter', () => {
+            mainImage.style.transform = 'scale(1.05)';
+            mainImage.style.boxShadow = '0 0 40px rgba(138, 43, 226, 0.8), 0 15px 60px rgba(138, 43, 226, 0.4)';
+            mainImage.style.borderColor = 'rgba(138, 43, 226, 0.9)';
         });
+
+        mainImage.addEventListener('mouseleave', () => {
+            mainImage.style.transform = 'scale(1)';
+            mainImage.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.4), 0 10px 40px rgba(138, 43, 226, 0.2)';
+            mainImage.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+        });
+
+        const imageHint = document.getElementById('imageHint');
+        imageHint.style.marginTop = '15px';
+        imageHint.style.fontSize = window.innerWidth <= 768 ? '12px' : '14px';
+        imageHint.style.color = '#d4c4e8';
+        imageHint.style.opacity = '0.8';
+        imageHint.style.textAlign = 'center';
+
+        // プロフィールセクション
+        const profileSectionV2 = document.getElementById('profileSectionV2');
+        profileSectionV2.style.background = 'rgba(30, 10, 50, 0.85)';
+        profileSectionV2.style.border = '2px solid rgba(138, 43, 226, 0.4)';
+        profileSectionV2.style.borderRadius = '20px';
+        profileSectionV2.style.padding = window.innerWidth <= 768 ? '25px 20px' : window.innerWidth >= 1024 ? '40px' : '30px';
+        profileSectionV2.style.marginBottom = window.innerWidth >= 1024 ? '40px' : '30px';
+        profileSectionV2.style.backdropFilter = 'blur(10px)';
+        profileSectionV2.style.boxShadow = '0 10px 40px rgba(138, 43, 226, 0.2)';
+        profileSectionV2.style.opacity = '0';
+        profileSectionV2.style.transform = 'translateY(30px)';
+        profileSectionV2.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+
+        if (window.innerWidth >= 1024) {
+            const contentSections = document.getElementById('contentSections');
+            contentSections.style.gridColumn = '2';
+        }
+
+        setTimeout(() => {
+            profileSectionV2.style.opacity = '1';
+            profileSectionV2.style.transform = 'translateY(0)';
+        }, 700);
+
+        const profileH2 = profileSectionV2.querySelector('h2');
+        profileH2.style.fontSize = window.innerWidth <= 768 ? '20px' : '22px';
+        profileH2.style.color = '#e8d5ff';
+        profileH2.style.marginBottom = '20px';
+        profileH2.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.5)';
+        profileH2.style.borderLeft = '4px solid rgba(138, 43, 226, 0.8)';
+        profileH2.style.paddingLeft = '15px';
+
+        const profileP = profileSectionV2.querySelector('p');
+        profileP.style.fontSize = window.innerWidth <= 768 ? '15px' : '17px';
+        profileP.style.lineHeight = window.innerWidth <= 768 ? '1.8' : '2';
+        profileP.style.color = '#d4c4e8';
+        profileP.style.textAlign = 'left';
+
+        // メッセージセクション
+        const messageSectionV2 = document.getElementById('messageSectionV2');
+        messageSectionV2.style.background = 'rgba(138, 43, 226, 0.1)';
+        messageSectionV2.style.border = '2px solid rgba(138, 43, 226, 0.5)';
+        messageSectionV2.style.borderRadius = '20px';
+        messageSectionV2.style.padding = window.innerWidth <= 768 ? '30px 20px' : window.innerWidth >= 1024 ? '50px 40px' : '40px 30px';
+        messageSectionV2.style.marginBottom = window.innerWidth >= 1024 ? '40px' : '30px';
+        messageSectionV2.style.backdropFilter = 'blur(10px)';
+        messageSectionV2.style.position = 'relative';
+        messageSectionV2.style.boxShadow = '0 10px 40px rgba(138, 43, 226, 0.3)';
+        messageSectionV2.style.opacity = '0';
+        messageSectionV2.style.transform = 'translateY(30px)';
+        messageSectionV2.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+
+        setTimeout(() => {
+            messageSectionV2.style.opacity = '1';
+            messageSectionV2.style.transform = 'translateY(0)';
+        }, 900);
+
+        const quoteMark1 = document.getElementById('quoteMark1');
+        quoteMark1.style.fontSize = window.innerWidth <= 768 ? '50px' : '70px';
+        quoteMark1.style.color = 'rgba(138, 43, 226, 0.3)';
+        quoteMark1.style.position = 'absolute';
+        quoteMark1.style.top = window.innerWidth <= 768 ? '10px' : '15px';
+        quoteMark1.style.left = window.innerWidth <= 768 ? '15px' : '25px';
+        quoteMark1.style.fontFamily = 'serif';
+        quoteMark1.style.lineHeight = '1';
+
+        const quoteMark2 = document.getElementById('quoteMark2');
+        quoteMark2.style.fontSize = window.innerWidth <= 768 ? '50px' : '70px';
+        quoteMark2.style.color = 'rgba(138, 43, 226, 0.3)';
+        quoteMark2.style.position = 'absolute';
+        quoteMark2.style.bottom = window.innerWidth <= 768 ? '10px' : '15px';
+        quoteMark2.style.right = window.innerWidth <= 768 ? '15px' : '25px';
+        quoteMark2.style.transform = 'rotate(180deg)';
+        quoteMark2.style.fontFamily = 'serif';
+        quoteMark2.style.lineHeight = '1';
+
+        const messageP = messageSectionV2.querySelector('p');
+        messageP.style.fontSize = window.innerWidth <= 768 ? '17px' : '20px';
+        messageP.style.lineHeight = window.innerWidth <= 768 ? '1.8' : '2';
+        messageP.style.color = '#fff';
+        messageP.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.3)';
+        messageP.style.position = 'relative';
+        messageP.style.zIndex = '1';
+        messageP.style.textAlign = 'center';
+
+        // ボタンセクション
+        function styleButtonSection(sectionId, delay) {
+            const section = document.getElementById(sectionId);
+            section.style.textAlign = 'center';
+            section.style.margin = '30px 0';
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(30px)';
+            section.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            
+            setTimeout(() => {
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, delay);
+
+            // PCでは特定のボタンを非表示
+            if (window.innerWidth >= 1024) {
+                if (sectionId === 'buttonSection1' || sectionId === 'buttonSection2') {
+                    section.style.display = 'none';
+                }
+            }
+
+            const button = section.querySelector('.consult-button');
+            if (button) {
+                button.style.display = 'inline-block';
+                button.style.padding = window.innerWidth <= 768 ? '15px 40px' : '18px 50px';
+                button.style.fontSize = window.innerWidth <= 768 ? '18px' : '22px';
+                button.style.color = '#fff';
+                button.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9))';
+                button.style.border = '3px solid rgba(138, 43, 226, 0.8)';
+                button.style.borderRadius = '50px';
+                button.style.textDecoration = 'none';
+                button.style.transition = 'all 0.5s ease';
+                button.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3)';
+                button.style.position = 'relative';
+                button.style.overflow = 'hidden';
+                button.style.cursor = 'pointer';
+                if (window.innerWidth <= 768) {
+                    button.style.width = '100%';
+                    button.style.maxWidth = '300px';
+                }
+
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'translateY(-5px) scale(1.05)';
+                    button.style.boxShadow = '0 0 40px rgba(138, 43, 226, 0.8), 0 0 80px rgba(138, 43, 226, 0.4)';
+                });
+
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'translateY(0) scale(1)';
+                    button.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3)';
+                });
+            }
+        }
+
+        styleButtonSection('buttonSection1', 1100);
+        styleButtonSection('buttonSection2', 1100);
+        styleButtonSection('buttonSection3', 1100);
+
+        // 戻るボタン
+        const backButtonSection = document.getElementById('backButtonSection');
+        backButtonSection.style.marginTop = '40px';
+        backButtonSection.style.opacity = '0';
+        backButtonSection.style.transform = 'translateY(30px)';
+        backButtonSection.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+
+        setTimeout(() => {
+            backButtonSection.style.opacity = '1';
+            backButtonSection.style.transform = 'translateY(0)';
+        }, 1300);
+
+        const backButton = backButtonSection.querySelector('.back-button');
+        backButton.style.display = 'inline-block';
+        backButton.style.padding = '15px 40px';
+        backButton.style.fontSize = '18px';
+        backButton.style.color = '#e8d5ff';
+        backButton.style.background = 'transparent';
+        backButton.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+        backButton.style.borderRadius = '50px';
+        backButton.style.textDecoration = 'none';
+        backButton.style.transition = 'all 0.5s ease';
+        backButton.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.3)';
+        backButton.style.position = 'relative';
+        backButton.style.overflow = 'hidden';
+        backButton.style.cursor = 'pointer';
+
+        backButton.addEventListener('mouseenter', () => {
+            backButton.style.background = 'rgba(138, 43, 226, 0.2)';
+            backButton.style.borderColor = 'rgba(138, 43, 226, 0.9)';
+            backButton.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.5)';
+            backButton.style.transform = 'translateY(-3px)';
+        });
+
+        backButton.addEventListener('mouseleave', () => {
+            backButton.style.background = 'transparent';
+            backButton.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+            backButton.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.3)';
+            backButton.style.transform = 'translateY(0)';
+        });
+
+        // 画像モーダル
+        const imageModal = document.getElementById('imageModal');
+        imageModal.style.display = 'none';
+        imageModal.style.position = 'fixed';
+        imageModal.style.top = '0';
+        imageModal.style.left = '0';
+        imageModal.style.width = '100%';
+        imageModal.style.height = '100%';
+        imageModal.style.background = 'rgba(0, 0, 0, 0.95)';
+        imageModal.style.zIndex = '1000';
+        imageModal.style.alignItems = 'center';
+        imageModal.style.justifyContent = 'center';
+
+        const closeModal = document.getElementById('closeModal');
+        closeModal.style.position = 'absolute';
+        closeModal.style.top = window.innerWidth <= 768 ? '10px' : '20px';
+        closeModal.style.right = window.innerWidth <= 768 ? '15px' : '30px';
+        closeModal.style.fontSize = window.innerWidth <= 768 ? '30px' : '40px';
+        closeModal.style.color = '#fff';
+        closeModal.style.cursor = 'pointer';
+        closeModal.style.background = 'rgba(138, 43, 226, 0.3)';
+        closeModal.style.borderRadius = '50%';
+        closeModal.style.width = window.innerWidth <= 768 ? '40px' : '50px';
+        closeModal.style.height = window.innerWidth <= 768 ? '40px' : '50px';
+        closeModal.style.display = 'flex';
+        closeModal.style.alignItems = 'center';
+        closeModal.style.justifyContent = 'center';
+        closeModal.style.transition = 'all 0.3s ease';
+        closeModal.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+
+        closeModal.addEventListener('mouseenter', () => {
+            closeModal.style.background = 'rgba(138, 43, 226, 0.6)';
+            closeModal.style.transform = 'rotate(90deg)';
+        });
+
+        closeModal.addEventListener('mouseleave', () => {
+            closeModal.style.background = 'rgba(138, 43, 226, 0.3)';
+            closeModal.style.transform = 'rotate(0deg)';
+        });
+
+        const modalImage = document.getElementById('modalImage');
+        modalImage.style.maxWidth = window.innerWidth <= 768 ? '95%' : '90%';
+        modalImage.style.maxHeight = window.innerWidth <= 768 ? '85vh' : '90vh';
+        modalImage.style.objectFit = 'contain';
+        modalImage.style.borderRadius = '10px';
+        modalImage.style.boxShadow = '0 0 50px rgba(138, 43, 226, 0.6)';
+
+        mainImage.addEventListener('click', () => {
+            imageModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeModal.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+            document.body.style.overflow = '';
+        });
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && imageModal.style.display === 'flex') {
+                imageModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+
+        // スマートフォン用フッターボタン
+        const mobileFooterButton = document.getElementById('mobileFooterButton');
+        if (window.innerWidth <= 768) {
+            mobileFooterButton.style.display = 'block';
+            document.body.style.paddingBottom = '100px';
+        } else {
+            mobileFooterButton.style.display = 'none';
+        }
+
+        mobileFooterButton.style.position = 'fixed';
+        mobileFooterButton.style.bottom = '0';
+        mobileFooterButton.style.left = '0';
+        mobileFooterButton.style.right = '0';
+        mobileFooterButton.style.width = '100%';
+        mobileFooterButton.style.padding = '15px 20px';
+        mobileFooterButton.style.background = 'linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 1) 100%)';
+        mobileFooterButton.style.borderTop = '2px solid rgba(138, 43, 226, 0.6)';
+        mobileFooterButton.style.boxShadow = '0 -5px 30px rgba(138, 43, 226, 0.3)';
+        mobileFooterButton.style.zIndex = '999';
+        mobileFooterButton.style.backdropFilter = 'blur(10px)';
+
+        const footerButton = mobileFooterButton.querySelector('.consult-button');
+        footerButton.style.width = '100%';
+        footerButton.style.maxWidth = 'none';
+        footerButton.style.margin = '0 auto';
+        footerButton.style.padding = '18px 30px';
+        footerButton.style.fontSize = '20px';
+        footerButton.style.borderRadius = '30px';
+        footerButton.style.textAlign = 'center';
+        footerButton.style.display = 'flex';
+        footerButton.style.alignItems = 'center';
+        footerButton.style.justifyContent = 'center';
+
+        // スマホでは通常のボタンを非表示
+        if (window.innerWidth <= 768) {
+            document.querySelectorAll('.button-section-v2').forEach(section => {
+                if (section !== backButtonSection) {
+                    section.style.display = 'none';
+                }
+            });
+        }
 
         // パーティクルエフェクト
         function createFloatingParticle() {
-            const container = document.querySelector('.floating-particles');
             const particle = document.createElement('div');
             
             const size = Math.random() * 3 + 1;
@@ -71,18 +512,19 @@
             particle.style.position = 'absolute';
             particle.style.background = 'rgba(138, 43, 226, 0.5)';
             particle.style.borderRadius = '50%';
+            particle.style.boxShadow = '0 0 8px rgba(138, 43, 226, 0.8)';
             particle.style.width = size + 'px';
             particle.style.height = size + 'px';
             particle.style.left = x + '%';
             particle.style.bottom = '-10px';
-            particle.style.boxShadow = '0 0 8px rgba(138, 43, 226, 0.8)';
             particle.style.opacity = '0';
             
-            container.appendChild(particle);
+            floatingParticles.appendChild(particle);
             
             setTimeout(() => {
                 let currentY = 0;
                 let currentOpacity = 0;
+                let currentScale = 0;
                 const startTime = Date.now();
                 const animationDuration = duration * 1000;
                 
@@ -92,6 +534,7 @@
                     
                     if (progress < 1) {
                         currentY = progress * (window.innerHeight + 20);
+                        currentScale = progress;
                         if (progress < 0.1) {
                             currentOpacity = progress * 10;
                         } else if (progress > 0.9) {
@@ -100,7 +543,7 @@
                             currentOpacity = 1;
                         }
                         
-                        particle.style.transform = `translateY(-${currentY}px) scale(${progress})`;
+                        particle.style.transform = `translateY(-${currentY}px) scale(${currentScale})`;
                         particle.style.opacity = currentOpacity;
                         requestAnimationFrame(animate);
                     } else {
@@ -108,53 +551,13 @@
                     }
                 }
                 
-                setTimeout(() => {
-                    animate();
-                }, delay * 1000);
-            }, 0);
+                animate();
+            }, delay * 1000);
         }
 
         setInterval(createFloatingParticle, 1500);
 
-        // スクロール時のフェードイン
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.fade-in-up').forEach(el => {
-            observer.observe(el);
-        });
-
-        // ボタンホバーエフェクト
-        const button = document.querySelector('.button-section a');
-        const buttonGlow = button.querySelector('span:first-child');
-        const buttonArrow = button.querySelector('span:last-child');
-        
-        button.addEventListener('mouseenter', () => {
-            button.style.transform = 'translateY(-3px) scale(1.02)';
-            buttonGlow.style.width = '400px';
-            buttonGlow.style.height = '400px';
-            buttonArrow.style.transform = 'translateX(5px)';
-        });
-        button.addEventListener('mouseleave', () => {
-            button.style.transform = 'translateY(0) scale(1)';
-            buttonGlow.style.width = '0';
-            buttonGlow.style.height = '0';
-            buttonArrow.style.transform = 'translateX(0)';
-        });
-
         // 画像のグローエフェクト
-        const heroImage = document.getElementById('heroImage');
         let glowIntensity = 0.4;
         let glowDirection = 1;
         
@@ -167,85 +570,49 @@
                 glowIntensity = 0.4;
                 glowDirection = 1;
             }
-            heroImage.style.filter = `brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, ${glowIntensity}))`;
+            mainImage.style.boxShadow = `0 0 25px rgba(138, 43, 226, ${glowIntensity}), 0 10px 40px rgba(138, 43, 226, ${glowIntensity * 0.5})`;
         }, 100);
 
-        // 初期アニメーション
-        setTimeout(() => {
-            document.querySelector('.name-section').style.opacity = '1';
-            document.querySelector('.name-section').style.transform = 'translateY(0)';
-        }, 500);
-
-        setTimeout(() => {
-            document.querySelector('.profile-section').style.opacity = '1';
-            document.querySelector('.profile-section').style.transform = 'translateY(0)';
-        }, 800);
-
-        setTimeout(() => {
-            document.querySelector('.message-section').style.opacity = '1';
-            document.querySelector('.message-section').style.transform = 'translateY(0)';
-        }, 1100);
-
-        setTimeout(() => {
-            document.querySelector('.button-section').style.opacity = '1';
-            document.querySelector('.button-section').style.transform = 'translateY(0)';
-        }, 1400);
-
         // レスポンシブ対応
-        if (window.innerWidth <= 768) {
-            const heroImage = document.getElementById('heroImage');
-            if (heroImage) {
-                heroImage.style.objectPosition = 'center top';
+        window.addEventListener('resize', () => {
+            document.body.style.padding = window.innerWidth <= 768 ? '20px 15px' : window.innerWidth >= 1024 ? '60px 40px' : '20px';
+            
+            if (window.innerWidth >= 1024) {
+                detailContentWrapper.style.display = 'grid';
+                detailContentWrapper.style.gridTemplateColumns = '1fr 2fr';
+                detailContentWrapper.style.gap = '60px';
+                detailContentWrapper.style.alignItems = 'start';
+                nameSectionV2.style.gridColumn = '1 / -1';
+                imageContainer.style.position = 'sticky';
+                imageContainer.style.top = '100px';
+                const contentSections = document.getElementById('contentSections');
+                contentSections.style.gridColumn = '2';
+                document.getElementById('buttonSection1').style.display = 'none';
+                document.getElementById('buttonSection2').style.display = 'none';
+            } else {
+                detailContentWrapper.style.display = 'block';
+                nameSectionV2.style.gridColumn = 'auto';
+                imageContainer.style.position = 'static';
+                const contentSections = document.getElementById('contentSections');
+                contentSections.style.gridColumn = 'auto';
             }
 
-            const nameSection = document.querySelector('.name-section h1');
-            if (nameSection) {
-                nameSection.style.fontSize = '36px';
+            if (window.innerWidth <= 768) {
+                mobileFooterButton.style.display = 'block';
+                document.body.style.paddingBottom = '100px';
+                document.querySelectorAll('.button-section-v2').forEach(section => {
+                    if (section !== backButtonSection) {
+                        section.style.display = 'none';
+                    }
+                });
+            } else {
+                mobileFooterButton.style.display = 'none';
+                document.body.style.paddingBottom = '';
+                document.querySelectorAll('.button-section-v2').forEach(section => {
+                    section.style.display = 'block';
+                });
             }
-
-            const nameSubtitle = nameSection.querySelector('span');
-            if (nameSubtitle) {
-                nameSubtitle.style.fontSize = '20px';
-            }
-
-            const profileCard = document.querySelector('.profile-section > div');
-            if (profileCard) {
-                profileCard.style.padding = '25px 20px';
-            }
-
-            const sectionTitle = profileCard.querySelector('h2');
-            if (sectionTitle) {
-                sectionTitle.style.fontSize = '20px';
-            }
-
-            const profileText = profileCard.querySelector('p');
-            if (profileText) {
-                profileText.style.fontSize = '16px';
-                profileText.style.lineHeight = '1.8';
-            }
-
-            const messageCard = document.querySelector('.message-section > div');
-            if (messageCard) {
-                messageCard.style.padding = '35px 25px';
-            }
-
-            const quoteMark = messageCard.querySelectorAll('div');
-            quoteMark.forEach(qm => {
-                qm.style.fontSize = '60px';
-            });
-
-            const messageText = messageCard.querySelector('p');
-            if (messageText) {
-                messageText.style.fontSize = '18px';
-                messageText.style.lineHeight = '1.8';
-            }
-
-            const button = document.querySelector('.button-section a');
-            if (button) {
-                button.style.padding = '15px 35px';
-                button.style.fontSize = '20px';
-            }
-        }
+        });
     </script>
 </body>
 </html>
