@@ -9,7 +9,16 @@
 <body class="back-transition-page">
     <div class="image-transition-container">
         <img src="photo/sora.png" alt="水野ソラ" class="fortune-teller-image-back" id="fortuneImage">
-        <img src="photo/back.png" alt="背景" class="back-image" id="backImage">
+        <video 
+            src="photo/back.mp4" 
+            class="back-video" 
+            id="backVideo"
+            playsinline
+            webkit-playsinline
+            autoplay
+            muted
+            preload="auto"
+        ></video>
         
         <div class="message-flow">
             <p>あなたの心の迷いを<br>鑑定士に打ち明けてください</p>
@@ -19,6 +28,35 @@
             <a href="#" class="talk-button" onclick="return false;">水野ソラに話しかける</a>
         </div>
     </div>
+
+    <script>
+        const backVideo = document.getElementById('backVideo');
+        
+        // iPhoneでの動画表示制限を回避するための設定
+        backVideo.setAttribute('playsinline', 'true');
+        backVideo.setAttribute('webkit-playsinline', 'true');
+        backVideo.setAttribute('x5-video-player-type', 'h5');
+        backVideo.setAttribute('x5-video-player-fullscreen', 'true');
+        backVideo.setAttribute('x5-video-orientation', 'portrait');
+        
+        // 動画が終了したら停止状態を維持（ループしない）
+        backVideo.addEventListener('ended', () => {
+            backVideo.pause();
+        });
+
+        // 動画の読み込み完了を待つ
+        backVideo.addEventListener('loadedmetadata', () => {
+            backVideo.play().catch(err => {
+                console.log('自動再生がブロックされました:', err);
+            });
+        });
+
+        // 動画の再生を強制
+        setTimeout(() => {
+            backVideo.play().catch(err => {
+                console.log('動画再生エラー:', err);
+            });
+        }, 2500);
+    </script>
 </body>
 </html>
-
