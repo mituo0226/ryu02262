@@ -6,62 +6,63 @@
     <title>水野ソラ - 運命の扉</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="detail-page-new">
-    <div class="hero-image-container">
-        <img src="photo/sora.png" alt="水野ソラ" class="hero-image" id="heroImage">
-        <div class="hero-overlay"></div>
+<body class="detail-page-new-v2">
+    <div class="background-particles">
         <div class="floating-particles"></div>
     </div>
 
-    <div class="content-wrapper-new">
-        <div class="name-section fade-in-up" style="animation-delay: 0.5s;">
-            <h1 class="fortune-teller-name">水野ソラ<span class="name-subtitle">（みずの そら）</span></h1>
-            <div class="divider-glow"></div>
+    <div class="detail-content-wrapper">
+        <div class="name-section-v2">
+            <h1>水野ソラ<span class="name-subtitle">（みずの そら）</span></h1>
+            <div class="name-divider"></div>
         </div>
 
-        <div class="profile-section fade-in-up" style="animation-delay: 0.8s;">
-            <div class="profile-card">
-                <h2 class="section-title">プロフィール</h2>
-                <p class="profile-text">
+        <div class="image-container">
+            <img src="photo/sora.png" alt="水野ソラ" class="clickable-image" id="mainImage">
+            <p class="image-hint">画像をクリックして拡大表示</p>
+            <div class="button-section-v2">
+                <a href="#" class="consult-button" onclick="return false;">鑑定に進む</a>
+            </div>
+        </div>
+
+        <div class="content-sections">
+            <div class="profile-section-v2">
+                <h2>プロフィール</h2>
+                <p>
                     他者の心の動きに敏感で、鍛錬を重ねる中で"前に進むための視点の切り替え"を支援するスタイルに到達。<br>
                     等身大の言葉で、必要な一歩に光を当てる鑑定士。
                 </p>
             </div>
-        </div>
+            <div class="button-section-v2">
+                <a href="#" class="consult-button" onclick="return false;">鑑定に進む</a>
+            </div>
 
-        <div class="message-section fade-in-up" style="animation-delay: 1.1s;">
-            <div class="message-card">
+            <div class="message-section-v2">
                 <div class="quote-mark">"</div>
-                <p class="message-text">
+                <p>
                     むずかしい話でなくて大丈夫。<br>
                     小さな違和感やモヤモヤから、一緒にほどいていきましょう。
                 </p>
                 <div class="quote-mark quote-mark-end">"</div>
             </div>
-        </div>
-
-        <div class="button-section fade-in-up" style="animation-delay: 1.4s;">
-            <a href="#" class="entrust-button-new" onclick="return false;">
-                <span class="button-glow"></span>
-                <span class="button-text">この鑑定士に運命を委ねる</span>
-                <span class="button-arrow">→</span>
-            </a>
+            <div class="button-section-v2">
+                <a href="#" class="consult-button" onclick="return false;">鑑定に進む</a>
+            </div>
         </div>
     </div>
 
-    <script>
-        // ヒーロー画像のズームインエフェクト
-        window.addEventListener('load', () => {
-            const heroImage = document.getElementById('heroImage');
-            setTimeout(() => {
-                heroImage.style.transform = 'scale(1)';
-                heroImage.style.opacity = '1';
-            }, 200);
-        });
+    <!-- 全画面画像モーダル -->
+    <div class="image-modal" id="imageModal">
+        <span class="close-modal" id="closeModal">&times;</span>
+        <img src="photo/sora.png" alt="水野ソラ" class="modal-image" id="modalImage">
+    </div>
 
+    <script>
         // パーティクルエフェクト
         function createFloatingParticle() {
             const container = document.querySelector('.floating-particles');
+            if (!container) return;
+            
             const particle = document.createElement('div');
             particle.className = 'particle-item';
             
@@ -85,36 +86,38 @@
 
         setInterval(createFloatingParticle, 1500);
 
-        // スクロール時のフェードイン
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
+        // 画像クリックでモーダル表示
+        const mainImage = document.getElementById('mainImage');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const closeModal = document.getElementById('closeModal');
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.fade-in-up').forEach(el => {
-            observer.observe(el);
+        mainImage.addEventListener('click', () => {
+            imageModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
         });
 
-        // ボタンホバーエフェクト
-        const button = document.querySelector('.entrust-button-new');
-        button.addEventListener('mouseenter', () => {
-            button.style.transform = 'translateY(-3px) scale(1.02)';
+        closeModal.addEventListener('click', () => {
+            imageModal.classList.remove('active');
+            document.body.style.overflow = '';
         });
-        button.addEventListener('mouseleave', () => {
-            button.style.transform = 'translateY(0) scale(1)';
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // ESCキーで閉じる
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && imageModal.classList.contains('active')) {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         });
 
         // 画像のグローエフェクト
-        const heroImage = document.getElementById('heroImage');
         let glowIntensity = 0.4;
         let glowDirection = 1;
         
@@ -127,7 +130,7 @@
                 glowIntensity = 0.4;
                 glowDirection = 1;
             }
-            heroImage.style.filter = `brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, ${glowIntensity}))`;
+            mainImage.style.boxShadow = `0 0 25px rgba(138, 43, 226, ${glowIntensity}), 0 10px 40px rgba(138, 43, 226, ${glowIntensity * 0.5})`;
         }, 100);
     </script>
 </body>
