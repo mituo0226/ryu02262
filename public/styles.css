@@ -572,7 +572,6 @@ body {
     position: absolute;
     background: rgba(138, 43, 226, 0.5);
     border-radius: 50%;
-    animation: particleFloat linear infinite;
     box-shadow: 0 0 8px rgba(138, 43, 226, 0.8);
 }
 
@@ -850,6 +849,10 @@ body {
     z-index: 1;
     max-width: 1200px;
     margin: 0 auto;
+}
+
+.content-sections {
+    position: relative;
 }
 
 /* 画像コンテナ - 小さく表示 */
@@ -1131,19 +1134,20 @@ body {
         align-items: start;
     }
 
+    .name-section-v2 {
+        grid-column: 1 / -1;
+        margin-bottom: 40px;
+    }
+
     .image-container {
         position: sticky;
         top: 100px;
+        margin-bottom: 0;
     }
 
     .clickable-image {
         width: 350px;
         height: 350px;
-    }
-
-    .name-section-v2 {
-        grid-column: 1 / -1;
-        margin-bottom: 40px;
     }
 
     .name-section-v2 h1 {
@@ -1152,6 +1156,10 @@ body {
 
     .name-section-v2 .name-subtitle {
         font-size: 28px;
+    }
+
+    .content-sections {
+        grid-column: 2;
     }
 
     .profile-section-v2,
