@@ -184,7 +184,7 @@
         // message-flow
         const messageFlow = document.getElementById('messageFlow');
         messageFlow.style.position = 'absolute';
-        messageFlow.style.top = '50%';
+        messageFlow.style.top = window.innerWidth <= 768 ? '42%' : '50%';
         messageFlow.style.left = '50%';
         messageFlow.style.transform = 'translate(-50%, -50%)';
         messageFlow.style.zIndex = '10';
@@ -214,6 +214,11 @@
         const finalButtonContainer = document.getElementById('finalButtonContainer');
         finalButtonContainer.style.position = 'absolute';
         finalButtonContainer.style.bottom = window.innerWidth <= 768 ? 'calc(20px + env(safe-area-inset-bottom, 0px))' : '150px';
+        // Androidではsafe-areaが0になることが多いため、少し持ち上げる
+        if (/Android/i.test(navigator.userAgent) && window.innerWidth <= 768) {
+            finalButtonContainer.style.bottom = '56px';
+            messageFlow.style.top = '40%';
+        }
         finalButtonContainer.style.left = '50%';
         finalButtonContainer.style.transform = 'translateX(-50%)';
         finalButtonContainer.style.zIndex = '10';
