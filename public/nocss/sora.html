@@ -5,84 +5,247 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>水野ソラ - 運命の扉</title>
 </head>
-<body style="margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif; background: linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%); min-height: 100vh; padding: 40px 20px; display: flex; align-items: center; justify-content: center;">
-    <div class="detail-content" style="max-width: 800px; width: 100%; text-align: center; opacity: 0;">
-        <img src="../photo/sora.png" alt="水野ソラ" class="detail-photo" style="width: 250px; height: 250px; object-fit: cover; border-radius: 50%; border: 4px solid rgba(138, 43, 226, 0.6); margin-bottom: 40px; filter: drop-shadow(0 0 25px rgba(138, 43, 226, 0.6)); box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);">
-        <h1 style="font-size: 36px; color: #e8d5ff; margin-bottom: 30px; text-shadow: 0 0 15px rgba(138, 43, 226, 0.5);">水野ソラ（みずの そら）</h1>
-        <div class="message-box" style="background: rgba(30, 10, 50, 0.8); border: 2px solid rgba(138, 43, 226, 0.4); border-radius: 20px; padding: 40px; margin-bottom: 50px; backdrop-filter: blur(10px); position: relative; overflow: hidden;">
-            <p style="font-size: 22px; line-height: 2; color: #e8d5ff; position: relative; z-index: 1; text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);">むずかしい話でなくて大丈夫。小さな違和感やモヤモヤから、一緒にほどいていきましょう。</p>
+<body style="margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif; background: #0a0a0a; min-height: 100vh; position: relative; overflow-x: hidden;">
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 0; overflow: hidden;">
+        <img src="../photo/sora.png" alt="水野ソラ" id="heroImage" style="width: 100%; height: 100%; object-fit: cover; object-position: center; transform: scale(1.1); opacity: 0; transition: transform 1.5s ease-out, opacity 1.5s ease-out; filter: brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, 0.6));">
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(10, 10, 10, 0.3) 0%, rgba(10, 10, 10, 0.7) 60%, rgba(10, 10, 10, 0.95) 100%); z-index: 1;"></div>
+        <div class="floating-particles" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2;"></div>
+    </div>
+
+    <div style="position: relative; z-index: 3; padding: 80vh 20px 60px; max-width: 900px; margin: 0 auto;">
+        <div class="name-section fade-in-up" style="text-align: center; margin-bottom: 50px; opacity: 0; transform: translateY(30px); transition: opacity 1s ease-out, transform 1s ease-out;">
+            <h1 style="font-size: 48px; color: #fff; font-weight: bold; text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4); margin-bottom: 15px; letter-spacing: 2px;">水野ソラ<span style="font-size: 28px; color: #e8d5ff; font-weight: normal; display: block; margin-top: 10px;">（みずの そら）</span></h1>
+            <div style="width: 100px; height: 3px; background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.8), transparent); margin: 20px auto; box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);"></div>
         </div>
-        <a href="#" class="entrust-button" onclick="return false;" style="display: inline-block; padding: 20px 60px; font-size: 24px; color: #fff; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9)); border: 3px solid rgba(138, 43, 226, 0.8); border-radius: 50px; text-decoration: none; transition: all 0.5s ease; box-shadow: 0 0 25px rgba(138, 43, 226, 0.6), 0 0 50px rgba(138, 43, 226, 0.3); position: relative; overflow: hidden; cursor: pointer;">この鑑定士に運命を委ねる</a>
+
+        <div class="profile-section fade-in-up" style="margin-bottom: 40px; opacity: 0; transform: translateY(50px); transition: opacity 1s ease-out, transform 1s ease-out;">
+            <div style="background: rgba(30, 10, 50, 0.85); border: 2px solid rgba(138, 43, 226, 0.4); border-radius: 20px; padding: 40px; backdrop-filter: blur(10px); box-shadow: 0 10px 40px rgba(138, 43, 226, 0.2);">
+                <h2 style="font-size: 24px; color: #e8d5ff; margin-bottom: 20px; text-shadow: 0 0 10px rgba(138, 43, 226, 0.5); border-left: 4px solid rgba(138, 43, 226, 0.8); padding-left: 15px;">プロフィール</h2>
+                <p style="font-size: 18px; line-height: 2; color: #d4c4e8; text-align: left;">
+                    他者の心の動きに敏感で、鍛錬を重ねる中で"前に進むための視点の切り替え"を支援するスタイルに到達。<br>
+                    等身大の言葉で、必要な一歩に光を当てる鑑定士。
+                </p>
+            </div>
+        </div>
+
+        <div class="message-section fade-in-up" style="margin-bottom: 50px; opacity: 0; transform: translateY(50px); transition: opacity 1s ease-out, transform 1s ease-out;">
+            <div style="background: rgba(138, 43, 226, 0.1); border: 2px solid rgba(138, 43, 226, 0.5); border-radius: 20px; padding: 50px 40px; backdrop-filter: blur(10px); position: relative; box-shadow: 0 10px 40px rgba(138, 43, 226, 0.3);">
+                <div style="font-size: 80px; color: rgba(138, 43, 226, 0.3); position: absolute; top: 20px; left: 30px; font-family: serif; line-height: 1;">"</div>
+                <p style="font-size: 22px; line-height: 2; color: #fff; text-shadow: 0 0 10px rgba(138, 43, 226, 0.3); position: relative; z-index: 1;">
+                    むずかしい話でなくて大丈夫。<br>
+                    小さな違和感やモヤモヤから、一緒にほどいていきましょう。
+                </p>
+                <div style="font-size: 80px; color: rgba(138, 43, 226, 0.3); position: absolute; bottom: 20px; right: 30px; font-family: serif; line-height: 1; transform: rotate(180deg);">"</div>
+            </div>
+        </div>
+
+        <div class="button-section fade-in-up" style="text-align: center; opacity: 0; transform: translateY(50px); transition: opacity 1s ease-out, transform 1s ease-out;">
+            <a href="#" onclick="return false;" style="display: inline-flex; align-items: center; gap: 15px; padding: 20px 50px; font-size: 24px; color: #fff; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9)); border: 3px solid rgba(138, 43, 226, 0.8); border-radius: 50px; text-decoration: none; transition: all 0.5s ease; box-shadow: 0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3); position: relative; overflow: hidden; cursor: pointer;">
+                <span style="position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.3); transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s;"></span>
+                <span style="position: relative; z-index: 1;">この鑑定士に運命を委ねる</span>
+                <span style="position: relative; z-index: 1; font-size: 28px; transition: transform 0.3s ease;">→</span>
+            </a>
+        </div>
     </div>
 
     <script>
-        // ページ読み込み時のアニメーション
+        // ヒーロー画像のズームインエフェクト
         window.addEventListener('load', () => {
-            const content = document.querySelector('.detail-content');
-            const photo = document.querySelector('.detail-photo');
+            const heroImage = document.getElementById('heroImage');
+            setTimeout(() => {
+                heroImage.style.transform = 'scale(1)';
+                heroImage.style.opacity = '1';
+            }, 200);
+        });
+
+        // パーティクルエフェクト
+        function createFloatingParticle() {
+            const container = document.querySelector('.floating-particles');
+            const particle = document.createElement('div');
+            
+            const size = Math.random() * 3 + 1;
+            const x = Math.random() * 100;
+            const duration = Math.random() * 15 + 10;
+            const delay = Math.random() * 2;
+            
+            particle.style.position = 'absolute';
+            particle.style.background = 'rgba(138, 43, 226, 0.5)';
+            particle.style.borderRadius = '50%';
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = x + '%';
+            particle.style.bottom = '-10px';
+            particle.style.boxShadow = '0 0 8px rgba(138, 43, 226, 0.8)';
+            particle.style.opacity = '0';
+            
+            container.appendChild(particle);
             
             setTimeout(() => {
-                content.style.opacity = '1';
-                content.style.transition = 'opacity 1.5s ease-out';
-            }, 100);
-
-            // 写真のグローアニメーション
-            let glowDirection = 1;
-            setInterval(() => {
-                const currentBoxShadow = photo.style.boxShadow || '0 0 20px rgba(138, 43, 226, 0.4)';
-                const opacity = parseFloat(currentBoxShadow.match(/rgba\(138, 43, 226, ([\d.]+)\)/)?.[1] || '0.4');
-                let newOpacity = opacity + (glowDirection * 0.02);
-                if (newOpacity >= 0.8) {
-                    newOpacity = 0.8;
-                    glowDirection = -1;
-                } else if (newOpacity <= 0.4) {
-                    newOpacity = 0.4;
-                    glowDirection = 1;
+                let currentY = 0;
+                let currentOpacity = 0;
+                const startTime = Date.now();
+                const animationDuration = duration * 1000;
+                
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / animationDuration;
+                    
+                    if (progress < 1) {
+                        currentY = progress * (window.innerHeight + 20);
+                        if (progress < 0.1) {
+                            currentOpacity = progress * 10;
+                        } else if (progress > 0.9) {
+                            currentOpacity = (1 - progress) * 10;
+                        } else {
+                            currentOpacity = 1;
+                        }
+                        
+                        particle.style.transform = `translateY(-${currentY}px) scale(${progress})`;
+                        particle.style.opacity = currentOpacity;
+                        requestAnimationFrame(animate);
+                    } else {
+                        particle.remove();
+                    }
                 }
-                photo.style.boxShadow = `0 0 40px rgba(138, 43, 226, ${newOpacity})`;
-            }, 100);
+                
+                setTimeout(() => {
+                    animate();
+                }, delay * 1000);
+            }, 0);
+        }
 
-            // ボタンホバーエフェクト
-            const button = document.querySelector('.entrust-button');
-            button.addEventListener('mouseenter', () => {
-                button.style.transform = 'translateY(-5px) scale(1.05)';
-                button.style.boxShadow = '0 0 35px rgba(138, 43, 226, 0.8), 0 0 70px rgba(138, 43, 226, 0.4)';
+        setInterval(createFloatingParticle, 1500);
+
+        // スクロール時のフェードイン
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
             });
-            button.addEventListener('mouseleave', () => {
-                button.style.transform = 'translateY(0) scale(1)';
-                button.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.6), 0 0 50px rgba(138, 43, 226, 0.3)';
-            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            observer.observe(el);
         });
+
+        // ボタンホバーエフェクト
+        const button = document.querySelector('.button-section a');
+        const buttonGlow = button.querySelector('span:first-child');
+        const buttonArrow = button.querySelector('span:last-child');
+        
+        button.addEventListener('mouseenter', () => {
+            button.style.transform = 'translateY(-3px) scale(1.02)';
+            buttonGlow.style.width = '400px';
+            buttonGlow.style.height = '400px';
+            buttonArrow.style.transform = 'translateX(5px)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateY(0) scale(1)';
+            buttonGlow.style.width = '0';
+            buttonGlow.style.height = '0';
+            buttonArrow.style.transform = 'translateX(0)';
+        });
+
+        // 画像のグローエフェクト
+        const heroImage = document.getElementById('heroImage');
+        let glowIntensity = 0.4;
+        let glowDirection = 1;
+        
+        setInterval(() => {
+            glowIntensity += glowDirection * 0.02;
+            if (glowIntensity >= 0.8) {
+                glowIntensity = 0.8;
+                glowDirection = -1;
+            } else if (glowIntensity <= 0.4) {
+                glowIntensity = 0.4;
+                glowDirection = 1;
+            }
+            heroImage.style.filter = `brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, ${glowIntensity}))`;
+        }, 100);
+
+        // 初期アニメーション
+        setTimeout(() => {
+            document.querySelector('.name-section').style.opacity = '1';
+            document.querySelector('.name-section').style.transform = 'translateY(0)';
+        }, 500);
+
+        setTimeout(() => {
+            document.querySelector('.profile-section').style.opacity = '1';
+            document.querySelector('.profile-section').style.transform = 'translateY(0)';
+        }, 800);
+
+        setTimeout(() => {
+            document.querySelector('.message-section').style.opacity = '1';
+            document.querySelector('.message-section').style.transform = 'translateY(0)';
+        }, 1100);
+
+        setTimeout(() => {
+            document.querySelector('.button-section').style.opacity = '1';
+            document.querySelector('.button-section').style.transform = 'translateY(0)';
+        }, 1400);
 
         // レスポンシブ対応
         if (window.innerWidth <= 768) {
-            const photo = document.querySelector('.detail-photo');
-            if (photo) {
-                photo.style.width = '200px';
-                photo.style.height = '200px';
+            const heroImage = document.getElementById('heroImage');
+            if (heroImage) {
+                heroImage.style.objectPosition = 'center top';
             }
 
-            const h1 = document.querySelector('h1');
-            if (h1) h1.style.fontSize = '26px';
-
-            const messageBox = document.querySelector('.message-box');
-            if (messageBox) {
-                messageBox.style.padding = '30px 20px';
+            const nameSection = document.querySelector('.name-section h1');
+            if (nameSection) {
+                nameSection.style.fontSize = '36px';
             }
 
-            const p = document.querySelector('.message-box p');
-            if (p) {
-                p.style.fontSize = '18px';
-                p.style.lineHeight = '1.8';
+            const nameSubtitle = nameSection.querySelector('span');
+            if (nameSubtitle) {
+                nameSubtitle.style.fontSize = '20px';
             }
 
-            const button = document.querySelector('.entrust-button');
+            const profileCard = document.querySelector('.profile-section > div');
+            if (profileCard) {
+                profileCard.style.padding = '25px 20px';
+            }
+
+            const sectionTitle = profileCard.querySelector('h2');
+            if (sectionTitle) {
+                sectionTitle.style.fontSize = '20px';
+            }
+
+            const profileText = profileCard.querySelector('p');
+            if (profileText) {
+                profileText.style.fontSize = '16px';
+                profileText.style.lineHeight = '1.8';
+            }
+
+            const messageCard = document.querySelector('.message-section > div');
+            if (messageCard) {
+                messageCard.style.padding = '35px 25px';
+            }
+
+            const quoteMark = messageCard.querySelectorAll('div');
+            quoteMark.forEach(qm => {
+                qm.style.fontSize = '60px';
+            });
+
+            const messageText = messageCard.querySelector('p');
+            if (messageText) {
+                messageText.style.fontSize = '18px';
+                messageText.style.lineHeight = '1.8';
+            }
+
+            const button = document.querySelector('.button-section a');
             if (button) {
-                button.style.padding = '15px 40px';
+                button.style.padding = '15px 35px';
                 button.style.fontSize = '20px';
             }
         }
     </script>
 </body>
 </html>
-
