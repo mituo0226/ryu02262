@@ -18,9 +18,10 @@
             autoplay
             muted
             preload="auto"
+            loop
         ></video>
         
-        <div class="message-flow">
+        <div class="message-flow" id="messageFlow">
             <p id="messageText"></p>
         </div>
 
@@ -32,6 +33,7 @@
     <script>
         const backVideo = document.getElementById('backVideo');
         const messageText = document.getElementById('messageText');
+        const messageFlow = document.getElementById('messageFlow');
         
         // iPhoneでの動画表示制限を回避するための設定
         backVideo.setAttribute('playsinline', 'true');
@@ -40,11 +42,9 @@
         backVideo.setAttribute('x5-video-player-fullscreen', 'true');
         backVideo.setAttribute('x5-video-orientation', 'portrait');
         
-        // 動画が終了したら停止状態を維持（ループしない）
-        backVideo.addEventListener('ended', () => {
-            backVideo.pause();
-        });
-
+        // 動画のループ設定
+        backVideo.loop = true;
+        
         // 動画の読み込み完了を待つ
         backVideo.addEventListener('loadedmetadata', () => {
             backVideo.play().catch(err => {
@@ -60,7 +60,7 @@
         }, 2000);
 
         // タイプライターエフェクト
-        const fullText = 'あなたの心の迷いを\n鑑定士に打ち明けてください';
+        const fullText = 'あなたの心の迷いを\n\n鑑定師に 打ち明けなさい';
         let currentIndex = 0;
         
         function typeWriter() {
@@ -78,8 +78,9 @@
             }
         }
 
-        // 7秒後にタイプライター開始
+        // 7秒後にタイプライター開始と吹き出し表示
         setTimeout(() => {
+            messageFlow.classList.add('show');
             typeWriter();
         }, 7000);
     </script>
