@@ -1488,6 +1488,11 @@ body {
     margin: 0;
     padding: 0;
     line-height: 1.8;
+    font-size: 28px;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.5);
+    letter-spacing: 2px;
+    font-weight: 300;
 }
 
 .message-flow p .typewriter-text {
@@ -1503,26 +1508,6 @@ body {
     51%, 100% {
         border-right-color: transparent;
     }
-}
-
-@keyframes messageFadeIn {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, -40%);
-    }
-    100% {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-    }
-}
-
-.message-flow p {
-    font-size: 28px;
-    color: #fff;
-    text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.5);
-    line-height: 2;
-    letter-spacing: 2px;
-    font-weight: 300;
 }
 
 .final-button-container {
