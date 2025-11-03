@@ -1483,7 +1483,9 @@ body {
 }
 
 .talk-button {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 25px 60px;
     font-size: 26px;
     color: #fff;
@@ -1496,6 +1498,9 @@ body {
     position: relative;
     overflow: hidden;
     cursor: pointer;
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
 }
 
 .talk-button::before {
@@ -1539,6 +1544,8 @@ body {
         padding: 20px 50px;
         font-size: 22px;
         width: 100%;
+        max-width: 100%;
+        text-align: center;
     }
 }
 
