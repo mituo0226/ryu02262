@@ -1121,6 +1121,36 @@ body {
     box-shadow: 0 0 40px rgba(138, 43, 226, 0.8), 0 0 80px rgba(138, 43, 226, 0.4);
 }
 
+/* 戻るボタン */
+.back-button {
+    display: inline-block;
+    padding: 15px 40px;
+    font-size: 18px;
+    color: #e8d5ff;
+    background: transparent;
+    border: 2px solid rgba(138, 43, 226, 0.6);
+    border-radius: 50px;
+    text-decoration: none;
+    transition: all 0.5s ease;
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    background: rgba(138, 43, 226, 0.2);
+    border-color: rgba(138, 43, 226, 0.9);
+    box-shadow: 0 0 25px rgba(138, 43, 226, 0.5);
+    transform: translateY(-3px);
+}
+
+.back-button-section {
+    margin-top: 40px;
+    opacity: 0;
+    animation: fadeInUp 1s ease-out 1.3s forwards;
+}
+
 /* スマートフォン用フッターボタン（基本スタイル） */
 .mobile-footer-button {
     display: none;
