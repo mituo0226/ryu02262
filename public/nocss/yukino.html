@@ -482,18 +482,22 @@
         mobileFooterButton.style.boxShadow = '0 -5px 30px rgba(138, 43, 226, 0.3)';
         mobileFooterButton.style.zIndex = '999';
         mobileFooterButton.style.backdropFilter = 'blur(10px)';
+        mobileFooterButton.style.boxSizing = 'border-box';
 
         const footerButton = mobileFooterButton.querySelector('.consult-button');
-        footerButton.style.width = '100%';
-        footerButton.style.maxWidth = 'none';
-        footerButton.style.margin = '0 auto';
-        footerButton.style.padding = '18px 30px';
-        footerButton.style.fontSize = '20px';
-        footerButton.style.borderRadius = '30px';
-        footerButton.style.textAlign = 'center';
-        footerButton.style.display = 'flex';
-        footerButton.style.alignItems = 'center';
-        footerButton.style.justifyContent = 'center';
+        if (footerButton) {
+            footerButton.style.width = '100%';
+            footerButton.style.maxWidth = 'none';
+            footerButton.style.margin = '0';
+            footerButton.style.padding = '18px 30px';
+            footerButton.style.fontSize = '20px';
+            footerButton.style.borderRadius = '30px';
+            footerButton.style.textAlign = 'center';
+            footerButton.style.display = 'flex';
+            footerButton.style.alignItems = 'center';
+            footerButton.style.justifyContent = 'center';
+            footerButton.style.boxSizing = 'border-box';
+        }
 
         // スマホでは通常のボタンを非表示
         if (window.innerWidth <= 768) {

@@ -213,18 +213,23 @@
         // final-button-container
         const finalButtonContainer = document.getElementById('finalButtonContainer');
         finalButtonContainer.style.position = 'absolute';
-        finalButtonContainer.style.bottom = window.innerWidth <= 768 ? '100px' : '150px';
+        finalButtonContainer.style.bottom = window.innerWidth <= 768 ? '20px' : '150px';
         finalButtonContainer.style.left = '50%';
         finalButtonContainer.style.transform = 'translateX(-50%)';
         finalButtonContainer.style.zIndex = '10';
         finalButtonContainer.style.opacity = '0';
-        finalButtonContainer.style.background = 'rgba(0, 0, 0, 0.5)';
-        finalButtonContainer.style.padding = window.innerWidth <= 768 ? '15px' : '20px';
-        finalButtonContainer.style.borderRadius = '20px';
-        finalButtonContainer.style.backdropFilter = 'blur(10px)';
-        finalButtonContainer.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.5)';
-        finalButtonContainer.style.width = window.innerWidth <= 768 ? '90%' : 'auto';
-        finalButtonContainer.style.maxWidth = window.innerWidth <= 768 ? '350px' : 'none';
+        finalButtonContainer.style.background = 'transparent';
+        finalButtonContainer.style.padding = '0';
+        finalButtonContainer.style.borderRadius = '0';
+        finalButtonContainer.style.backdropFilter = 'none';
+        finalButtonContainer.style.boxShadow = 'none';
+        finalButtonContainer.style.width = window.innerWidth <= 768 ? 'calc(100% - 40px)' : 'auto';
+        finalButtonContainer.style.maxWidth = window.innerWidth <= 768 ? 'calc(100% - 40px)' : '400px';
+        finalButtonContainer.style.paddingLeft = '0';
+        finalButtonContainer.style.paddingRight = '0';
+        finalButtonContainer.style.marginLeft = 'auto';
+        finalButtonContainer.style.marginRight = 'auto';
+        finalButtonContainer.style.boxSizing = 'border-box';
 
         // ボタンフェードインアニメーション（9秒後に開始）
         let buttonContainerOpacity = 0;
@@ -261,8 +266,8 @@
         talkButton.style.display = 'inline-flex';
         talkButton.style.alignItems = 'center';
         talkButton.style.justifyContent = 'center';
-        talkButton.style.padding = window.innerWidth <= 768 ? '18px 40px' : '25px 60px';
-        talkButton.style.fontSize = window.innerWidth <= 768 ? '20px' : '26px';
+        talkButton.style.padding = window.innerWidth <= 768 ? '18px 20px' : '25px 60px';
+        talkButton.style.fontSize = window.innerWidth <= 768 ? '18px' : '26px';
         talkButton.style.color = '#fff';
         talkButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95))';
         talkButton.style.border = '3px solid rgba(138, 43, 226, 0.9)';
@@ -276,6 +281,7 @@
         talkButton.style.textAlign = 'center';
         talkButton.style.width = '100%';
         talkButton.style.maxWidth = window.innerWidth <= 768 ? '100%' : '400px';
+        talkButton.style.boxSizing = 'border-box';
 
         talkButton.addEventListener('mouseenter', () => {
             talkButton.style.transform = 'translateY(-5px) scale(1.05)';
