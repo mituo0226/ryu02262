@@ -538,3 +538,310 @@ body {
     }
 }
 
+/* 新しい個別ページデザイン */
+.detail-page-new {
+    background: #0a0a0a;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.hero-image-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.1);
+    opacity: 0;
+    transition: transform 1.5s ease-out, opacity 1.5s ease-out;
+    filter: brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, 0.6));
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.3) 0%, rgba(10, 10, 10, 0.7) 60%, rgba(10, 10, 10, 0.95) 100%);
+    z-index: 1;
+}
+
+.floating-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.particle-item {
+    position: absolute;
+    background: rgba(138, 43, 226, 0.5);
+    border-radius: 50%;
+    animation: particleFloat linear infinite;
+    box-shadow: 0 0 8px rgba(138, 43, 226, 0.8);
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100vh) scale(1);
+        opacity: 0;
+    }
+}
+
+.content-wrapper-new {
+    position: relative;
+    z-index: 3;
+    padding: 80vh 20px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.name-section {
+    text-align: center;
+    margin-bottom: 50px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.fortune-teller-name {
+    font-size: 48px;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4);
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+}
+
+.name-subtitle {
+    font-size: 28px;
+    color: #e8d5ff;
+    font-weight: normal;
+    display: block;
+    margin-top: 10px;
+}
+
+.divider-glow {
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.8), transparent);
+    margin: 20px auto;
+    box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);
+}
+
+.fade-in-up {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.profile-section {
+    margin-bottom: 40px;
+}
+
+.profile-card {
+    background: rgba(30, 10, 50, 0.85);
+    border: 2px solid rgba(138, 43, 226, 0.4);
+    border-radius: 20px;
+    padding: 40px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 40px rgba(138, 43, 226, 0.2);
+}
+
+.section-title {
+    font-size: 24px;
+    color: #e8d5ff;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+    border-left: 4px solid rgba(138, 43, 226, 0.8);
+    padding-left: 15px;
+}
+
+.profile-text {
+    font-size: 18px;
+    line-height: 2;
+    color: #d4c4e8;
+    text-align: left;
+}
+
+.message-section {
+    margin-bottom: 50px;
+}
+
+.message-card {
+    background: rgba(138, 43, 226, 0.1);
+    border: 2px solid rgba(138, 43, 226, 0.5);
+    border-radius: 20px;
+    padding: 50px 40px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    box-shadow: 0 10px 40px rgba(138, 43, 226, 0.3);
+}
+
+.quote-mark {
+    font-size: 80px;
+    color: rgba(138, 43, 226, 0.3);
+    position: absolute;
+    top: 20px;
+    left: 30px;
+    font-family: serif;
+    line-height: 1;
+}
+
+.quote-mark-end {
+    top: auto;
+    left: auto;
+    bottom: 20px;
+    right: 30px;
+    transform: rotate(180deg);
+}
+
+.message-text {
+    font-size: 22px;
+    line-height: 2;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+.button-section {
+    text-align: center;
+}
+
+.entrust-button-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 50px;
+    font-size: 24px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
+    border: 3px solid rgba(138, 43, 226, 0.8);
+    border-radius: 50px;
+    text-decoration: none;
+    transition: all 0.5s ease;
+    box-shadow: 0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.button-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.entrust-button-new:hover .button-glow {
+    width: 400px;
+    height: 400px;
+}
+
+.button-text {
+    position: relative;
+    z-index: 1;
+}
+
+.button-arrow {
+    position: relative;
+    z-index: 1;
+    font-size: 28px;
+    transition: transform 0.3s ease;
+}
+
+.entrust-button-new:hover .button-arrow {
+    transform: translateX(5px);
+}
+
+.entrust-button-new:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.8), 0 0 80px rgba(138, 43, 226, 0.4);
+}
+
+@media (max-width: 768px) {
+    .content-wrapper-new {
+        padding: 70vh 15px 40px;
+    }
+    
+    .fortune-teller-name {
+        font-size: 36px;
+    }
+    
+    .name-subtitle {
+        font-size: 20px;
+    }
+    
+    .profile-card {
+        padding: 25px 20px;
+    }
+    
+    .section-title {
+        font-size: 20px;
+    }
+    
+    .profile-text {
+        font-size: 16px;
+        line-height: 1.8;
+    }
+    
+    .message-card {
+        padding: 35px 25px;
+    }
+    
+    .quote-mark {
+        font-size: 60px;
+        top: 15px;
+        left: 20px;
+    }
+    
+    .quote-mark-end {
+        bottom: 15px;
+        right: 20px;
+    }
+    
+    .message-text {
+        font-size: 18px;
+        line-height: 1.8;
+    }
+    
+    .entrust-button-new {
+        padding: 15px 35px;
+        font-size: 20px;
+    }
+    
+    .hero-image {
+        object-position: center top;
+    }
+}
+

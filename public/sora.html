@@ -6,23 +6,129 @@
     <title>水野ソラ - 運命の扉</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="detail-page">
-    <div class="detail-content">
-        <img src="photo/sora.png" alt="水野ソラ" class="detail-photo">
-        <h1>水野ソラ（みずの そら）</h1>
-        <div class="message-box">
-            <p>むずかしい話でなくて大丈夫。小さな違和感やモヤモヤから、一緒にほどいていきましょう。</p>
+<body class="detail-page-new">
+    <div class="hero-image-container">
+        <img src="photo/sora.png" alt="水野ソラ" class="hero-image" id="heroImage">
+        <div class="hero-overlay"></div>
+        <div class="floating-particles"></div>
+    </div>
+
+    <div class="content-wrapper-new">
+        <div class="name-section fade-in-up" style="animation-delay: 0.5s;">
+            <h1 class="fortune-teller-name">水野ソラ<span class="name-subtitle">（みずの そら）</span></h1>
+            <div class="divider-glow"></div>
         </div>
-        <a href="#" class="entrust-button" onclick="return false;">この鑑定士に運命を委ねる</a>
+
+        <div class="profile-section fade-in-up" style="animation-delay: 0.8s;">
+            <div class="profile-card">
+                <h2 class="section-title">プロフィール</h2>
+                <p class="profile-text">
+                    他者の心の動きに敏感で、鍛錬を重ねる中で"前に進むための視点の切り替え"を支援するスタイルに到達。<br>
+                    等身大の言葉で、必要な一歩に光を当てる鑑定士。
+                </p>
+            </div>
+        </div>
+
+        <div class="message-section fade-in-up" style="animation-delay: 1.1s;">
+            <div class="message-card">
+                <div class="quote-mark">"</div>
+                <p class="message-text">
+                    むずかしい話でなくて大丈夫。<br>
+                    小さな違和感やモヤモヤから、一緒にほどいていきましょう。
+                </p>
+                <div class="quote-mark quote-mark-end">"</div>
+            </div>
+        </div>
+
+        <div class="button-section fade-in-up" style="animation-delay: 1.4s;">
+            <a href="#" class="entrust-button-new" onclick="return false;">
+                <span class="button-glow"></span>
+                <span class="button-text">この鑑定士に運命を委ねる</span>
+                <span class="button-arrow">→</span>
+            </a>
+        </div>
     </div>
 
     <script>
-        // ページ読み込み時のアニメーション強化
+        // ヒーロー画像のズームインエフェクト
         window.addEventListener('load', () => {
-            const photo = document.querySelector('.detail-photo');
-            photo.style.animation = 'photoGlow 3s ease-in-out infinite';
+            const heroImage = document.getElementById('heroImage');
+            setTimeout(() => {
+                heroImage.style.transform = 'scale(1)';
+                heroImage.style.opacity = '1';
+            }, 200);
         });
+
+        // パーティクルエフェクト
+        function createFloatingParticle() {
+            const container = document.querySelector('.floating-particles');
+            const particle = document.createElement('div');
+            particle.className = 'particle-item';
+            
+            const size = Math.random() * 3 + 1;
+            const x = Math.random() * 100;
+            const duration = Math.random() * 15 + 10;
+            const delay = Math.random() * 2;
+            
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = x + '%';
+            particle.style.animationDuration = duration + 's';
+            particle.style.animationDelay = delay + 's';
+            
+            container.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, (duration + delay) * 1000);
+        }
+
+        setInterval(createFloatingParticle, 1500);
+
+        // スクロール時のフェードイン
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            observer.observe(el);
+        });
+
+        // ボタンホバーエフェクト
+        const button = document.querySelector('.entrust-button-new');
+        button.addEventListener('mouseenter', () => {
+            button.style.transform = 'translateY(-3px) scale(1.02)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateY(0) scale(1)';
+        });
+
+        // 画像のグローエフェクト
+        const heroImage = document.getElementById('heroImage');
+        let glowIntensity = 0.4;
+        let glowDirection = 1;
+        
+        setInterval(() => {
+            glowIntensity += glowDirection * 0.02;
+            if (glowIntensity >= 0.8) {
+                glowIntensity = 0.8;
+                glowDirection = -1;
+            } else if (glowIntensity <= 0.4) {
+                glowIntensity = 0.4;
+                glowDirection = 1;
+            }
+            heroImage.style.filter = `brightness(0.7) drop-shadow(0 0 30px rgba(138, 43, 226, ${glowIntensity}))`;
+        }, 100);
     </script>
 </body>
 </html>
-
