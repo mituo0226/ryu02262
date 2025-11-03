@@ -213,7 +213,7 @@
         // final-button-container
         const finalButtonContainer = document.getElementById('finalButtonContainer');
         finalButtonContainer.style.position = 'absolute';
-        finalButtonContainer.style.bottom = window.innerWidth <= 768 ? '20px' : '150px';
+        finalButtonContainer.style.bottom = window.innerWidth <= 768 ? 'calc(20px + env(safe-area-inset-bottom, 0px))' : '150px';
         finalButtonContainer.style.left = '50%';
         finalButtonContainer.style.transform = 'translateX(-50%)';
         finalButtonContainer.style.zIndex = '10';

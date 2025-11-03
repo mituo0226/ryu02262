@@ -473,11 +473,11 @@
         }
 
         mobileFooterButton.style.position = 'fixed';
-        mobileFooterButton.style.bottom = '0';
+        mobileFooterButton.style.bottom = 'env(safe-area-inset-bottom, 0px)';
         mobileFooterButton.style.left = '0';
         mobileFooterButton.style.right = '0';
         mobileFooterButton.style.width = '100%';
-        mobileFooterButton.style.padding = '15px 20px';
+        mobileFooterButton.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
         mobileFooterButton.style.background = 'linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 1) 100%)';
         mobileFooterButton.style.borderTop = '2px solid rgba(138, 43, 226, 0.6)';
         mobileFooterButton.style.boxShadow = '0 -5px 30px rgba(138, 43, 226, 0.3)';
