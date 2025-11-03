@@ -1233,6 +1233,25 @@ body {
     .message-section-v2 {
         padding: 50px 40px;
     }
+
+    /* PCでは画像の下とプロフィールの下のボタンを非表示 */
+    .image-container .button-section-v2 {
+        display: none !important;
+    }
+
+    .profile-section-v2 + .button-section-v2 {
+        display: none !important;
+    }
+
+    /* 最後のボタン（メッセージの下）のみ表示 */
+    .message-section-v2 + .button-section-v2 {
+        display: block !important;
+    }
+
+    /* 戻るボタンセクションも表示 */
+    .back-button-section {
+        display: block !important;
+    }
 }
 
 /* タブレット用レイアウト */
