@@ -5,69 +5,162 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>運命の扉</title>
 </head>
-<body style="margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif; overflow-x: hidden; color: #f5f5f5; position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a0a0a;">
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url('../photo/top.png'); background-size: cover; background-position: center; background-repeat: no-repeat; opacity: 0.4; z-index: 0;"></div>
-    <div class="particles" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"></div>
+<body>
+    <div id="backgroundImage"></div>
+    <div id="particles"></div>
     
-    <div style="position: relative; z-index: 2; text-align: center; padding: 20px; max-width: 900px; margin: 0 auto;">
-        <div style="margin-bottom: 40px;">
-            <img src="../photo/rogo.png" alt="ロゴ" id="logo" style="max-width: 300px; width: 100%; height: auto; opacity: 0; transition: opacity 2s ease-in-out; filter: drop-shadow(0 0 20px rgba(138, 43, 226, 0.6));">
+    <div id="contentWrapper">
+        <div id="logoContainer">
+            <img src="../photo/rogo.png" alt="ロゴ" id="logo">
         </div>
         
-        <div style="margin-bottom: 60px;">
-            <p class="text-line-1" style="font-size: 24px; line-height: 2; color: #e8d5ff; opacity: 0; transform: translateY(30px); text-shadow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3); margin-bottom: 15px;">未来が変わる大きなきっかけになる時</p>
-            <p class="text-line-2" style="font-size: 24px; line-height: 2; color: #e8d5ff; opacity: 0; transform: translateY(30px); text-shadow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3); margin-bottom: 15px;">今のままで満足なのか？変化を受け入れたいのか？</p>
-            <p class="text-line-3" style="font-size: 24px; line-height: 2; color: #e8d5ff; opacity: 0; transform: translateY(30px); text-shadow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3); margin-bottom: 15px;">その選択によってこれから先の人生が変わります。</p>
-            <p class="text-line-4" style="font-size: 24px; line-height: 2; color: #e8d5ff; opacity: 0; transform: translateY(30px); text-shadow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3); margin-bottom: 15px;">人生を変える判断をする時、一歩踏み出すことができるか</p>
-            <p class="text-line-5" style="font-size: 24px; line-height: 2; color: #e8d5ff; opacity: 0; transform: translateY(30px); text-shadow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3); margin-bottom: 15px;">後はあなた次第…</p>
+        <div id="textContainer">
+            <p id="textLine1">未来が変わる大きなきっかけになる時</p>
+            <p id="textLine2">今のままで満足なのか？変化を受け入れたいのか？</p>
+            <p id="textLine3">その選択によってこれから先の人生が変わります。</p>
+            <p id="textLine4">人生を変える判断をする時、一歩踏み出すことができるか</p>
+            <p id="textLine5">後はあなた次第…</p>
         </div>
         
-        <div style="margin-top: 40px;">
-            <a href="main.html" id="fateButton" style="display: inline-block; padding: 20px 60px; font-size: 24px; color: #fff; background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8)); border: 2px solid rgba(138, 43, 226, 0.6); border-radius: 50px; text-decoration: none; opacity: 0; transform: translateY(30px); transition: all 0.5s ease; box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3); position: relative; overflow: hidden;">運命の扉を開く</a>
+        <div id="buttonContainer">
+            <a href="main.html" id="fateButton">運命の扉を開く</a>
         </div>
     </div>
 
     <script>
-        // アニメーション関数
-        function animateText(element, delay) {
+        // 全体的なスタイル設定
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.boxSizing = 'border-box';
+        document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
+        document.body.style.overflowX = 'hidden';
+        document.body.style.color = '#f5f5f5';
+        document.body.style.position = 'relative';
+        document.body.style.minHeight = '100vh';
+        document.body.style.display = 'flex';
+        document.body.style.alignItems = 'center';
+        document.body.style.justifyContent = 'center';
+        document.body.style.background = '#0a0a0a';
+
+        // 背景画像
+        const backgroundImage = document.getElementById('backgroundImage');
+        backgroundImage.style.position = 'fixed';
+        backgroundImage.style.top = '0';
+        backgroundImage.style.left = '0';
+        backgroundImage.style.width = '100%';
+        backgroundImage.style.height = '100%';
+        backgroundImage.style.backgroundImage = "url('../photo/top.png')";
+        backgroundImage.style.backgroundSize = 'cover';
+        backgroundImage.style.backgroundPosition = 'center';
+        backgroundImage.style.backgroundRepeat = 'no-repeat';
+        backgroundImage.style.opacity = '0.4';
+        backgroundImage.style.zIndex = '0';
+
+        // パーティクルコンテナ
+        const particles = document.getElementById('particles');
+        particles.style.position = 'fixed';
+        particles.style.top = '0';
+        particles.style.left = '0';
+        particles.style.width = '100%';
+        particles.style.height = '100%';
+        particles.style.pointerEvents = 'none';
+        particles.style.zIndex = '1';
+
+        // コンテンツラッパー
+        const contentWrapper = document.getElementById('contentWrapper');
+        contentWrapper.style.position = 'relative';
+        contentWrapper.style.zIndex = '2';
+        contentWrapper.style.textAlign = 'center';
+        contentWrapper.style.padding = '20px';
+        contentWrapper.style.maxWidth = '900px';
+        contentWrapper.style.margin = '0 auto';
+
+        // ロゴコンテナ
+        const logoContainer = document.getElementById('logoContainer');
+        logoContainer.style.marginBottom = '40px';
+
+        // ロゴ
+        const logo = document.getElementById('logo');
+        logo.style.maxWidth = '300px';
+        logo.style.width = '100%';
+        logo.style.height = 'auto';
+        logo.style.opacity = '0';
+        logo.style.transition = 'opacity 2s ease-in-out';
+        logo.style.filter = 'drop-shadow(0 0 20px rgba(138, 43, 226, 0.6))';
+
+        // テキストコンテナ
+        const textContainer = document.getElementById('textContainer');
+        textContainer.style.marginBottom = '60px';
+
+        // テキスト行のスタイル設定関数
+        function styleTextLine(element, delay) {
+            element.style.fontSize = window.innerWidth <= 768 ? '16px' : '24px';
+            element.style.lineHeight = window.innerWidth <= 768 ? '1.8' : '2';
+            element.style.color = '#e8d5ff';
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(30px)';
+            element.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3)';
+            element.style.marginBottom = '15px';
+            element.style.transition = 'opacity 1.5s ease-out, transform 1.5s ease-out';
+            
             setTimeout(() => {
                 element.style.opacity = '1';
                 element.style.transform = 'translateY(0)';
-                element.style.transition = 'opacity 1.5s ease-out, transform 1.5s ease-out';
             }, delay);
         }
 
-        // ロゴのフェードイン（ページ読み込み直後）
+        // テキスト行をスタイル適用
+        styleTextLine(document.getElementById('textLine1'), 1500);
+        styleTextLine(document.getElementById('textLine2'), 2300);
+        styleTextLine(document.getElementById('textLine3'), 3100);
+        styleTextLine(document.getElementById('textLine4'), 3900);
+        styleTextLine(document.getElementById('textLine5'), 4700);
+
+        // ボタンコンテナ
+        const buttonContainer = document.getElementById('buttonContainer');
+        buttonContainer.style.marginTop = '40px';
+
+        // ボタン
+        const fateButton = document.getElementById('fateButton');
+        fateButton.style.display = 'inline-block';
+        fateButton.style.padding = window.innerWidth <= 768 ? '15px 40px' : '20px 60px';
+        fateButton.style.fontSize = window.innerWidth <= 768 ? '18px' : '24px';
+        fateButton.style.color = '#fff';
+        fateButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8))';
+        fateButton.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+        fateButton.style.borderRadius = '50px';
+        fateButton.style.textDecoration = 'none';
+        fateButton.style.opacity = '0';
+        fateButton.style.transform = 'translateY(30px)';
+        fateButton.style.transition = 'all 0.5s ease';
+        fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
+        fateButton.style.position = 'relative';
+        fateButton.style.overflow = 'hidden';
+
+        setTimeout(() => {
+            fateButton.style.opacity = '1';
+            fateButton.style.transform = 'translateY(0)';
+        }, 6000);
+
+        // ボタンホバーエフェクト
+        fateButton.addEventListener('mouseenter', () => {
+            fateButton.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4)';
+            fateButton.style.transform = 'translateY(-5px) scale(1.05)';
+        });
+        fateButton.addEventListener('mouseleave', () => {
+            fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
+            fateButton.style.transform = 'translateY(0) scale(1)';
+        });
+
+        // ロゴのフェードイン
         window.addEventListener('load', () => {
-            const logo = document.getElementById('logo');
             setTimeout(() => {
                 logo.style.opacity = '1';
             }, 300);
         });
 
-        // テキストの順次フェードイン
-        const textLine1 = document.querySelector('.text-line-1');
-        const textLine2 = document.querySelector('.text-line-2');
-        const textLine3 = document.querySelector('.text-line-3');
-        const textLine4 = document.querySelector('.text-line-4');
-        const textLine5 = document.querySelector('.text-line-5');
-
-        animateText(textLine1, 1500);
-        animateText(textLine2, 2300);
-        animateText(textLine3, 3100);
-        animateText(textLine4, 3900);
-        animateText(textLine5, 4700);
-
-        // ボタンのフェードイン
-        const button = document.getElementById('fateButton');
-        setTimeout(() => {
-            button.style.opacity = '1';
-            button.style.transform = 'translateY(0)';
-        }, 6000);
-
         // パーティクルエフェクト
         function createParticle() {
-            const particles = document.querySelector('.particles');
             const particle = document.createElement('div');
             
             const size = Math.random() * 4 + 2;
@@ -91,6 +184,7 @@
             setTimeout(() => {
                 let currentY = 0;
                 let currentOpacity = 0;
+                let currentScale = 0;
                 const startTime = Date.now();
                 const animationDuration = duration * 1000;
                 
@@ -100,6 +194,7 @@
                     
                     if (progress < 1) {
                         currentY = progress * (window.innerHeight + 20);
+                        currentScale = progress;
                         if (progress < 0.1) {
                             currentOpacity = progress * 10;
                         } else if (progress > 0.9) {
@@ -108,7 +203,7 @@
                             currentOpacity = 1;
                         }
                         
-                        particle.style.transform = `translateY(-${currentY}px) scale(${progress})`;
+                        particle.style.transform = `translateY(-${currentY}px) scale(${currentScale})`;
                         particle.style.opacity = currentOpacity;
                         requestAnimationFrame(animate);
                     } else {
@@ -116,40 +211,37 @@
                     }
                 }
                 
-                setTimeout(() => {
-                    animate();
-                }, delay * 1000);
-            }, 0);
+                animate();
+            }, delay * 1000);
         }
 
         // パーティクルを定期的に生成
         setInterval(createParticle, 2000);
 
-        // ボタンホバーエフェクト
-        const fateButton = document.getElementById('fateButton');
-        fateButton.addEventListener('mouseenter', () => {
-            fateButton.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4)';
-            fateButton.style.transform = 'translateY(-5px) scale(1.05)';
-        });
-        fateButton.addEventListener('mouseleave', () => {
-            fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
-            fateButton.style.transform = 'translateY(0) scale(1)';
-        });
-
         // レスポンシブ対応
-        if (window.innerWidth <= 768) {
-            const logo = document.getElementById('logo');
-            logo.style.maxWidth = '200px';
+        window.addEventListener('resize', () => {
+            const textLines = [document.getElementById('textLine1'), document.getElementById('textLine2'), 
+                             document.getElementById('textLine3'), document.getElementById('textLine4'), 
+                             document.getElementById('textLine5')];
             
-            const textLines = document.querySelectorAll('[class^="text-line"]');
-            textLines.forEach(line => {
-                line.style.fontSize = '16px';
-                line.style.lineHeight = '1.8';
-            });
-            
-            fateButton.style.padding = '15px 40px';
-            fateButton.style.fontSize = '18px';
-        }
+            if (window.innerWidth <= 768) {
+                logo.style.maxWidth = '200px';
+                textLines.forEach(line => {
+                    line.style.fontSize = '16px';
+                    line.style.lineHeight = '1.8';
+                });
+                fateButton.style.padding = '15px 40px';
+                fateButton.style.fontSize = '18px';
+            } else {
+                logo.style.maxWidth = '300px';
+                textLines.forEach(line => {
+                    line.style.fontSize = '24px';
+                    line.style.lineHeight = '2';
+                });
+                fateButton.style.padding = '20px 60px';
+                fateButton.style.fontSize = '24px';
+            }
+        });
     </script>
 </body>
 </html>
