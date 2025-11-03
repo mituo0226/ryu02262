@@ -1140,11 +1140,13 @@ body {
 .mobile-footer-button .consult-button {
     width: 100%;
     max-width: none;
-    margin: 0;
+    margin: 0 auto;
     padding: 18px 30px;
     font-size: 20px;
     border-radius: 30px;
     text-align: center;
+    display: flex;
+    align-items: center;
     justify-content: center;
 }
 
