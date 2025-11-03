@@ -1389,12 +1389,16 @@ body {
     object-position: center;
     opacity: 1;
     z-index: 1;
-    animation: fadeOutFortune 2s ease-out 0.5s forwards;
+    animation: fadeOutOverlap 3s ease-out 0.5s forwards;
 }
 
-@keyframes fadeOutFortune {
+@keyframes fadeOutOverlap {
     0% {
         opacity: 1;
+        z-index: 1;
+    }
+    50% {
+        opacity: 0.5;
         z-index: 1;
     }
     100% {
@@ -1412,7 +1416,22 @@ body {
     opacity: 0;
     transform: scale(1);
     z-index: 2;
-    animation: fadeInZoomOut 4s ease-out 2.5s forwards;
+    animation: fadeInZoomOutOverlap 4s ease-out 2s forwards;
+}
+
+@keyframes fadeInZoomOutOverlap {
+    0% {
+        opacity: 0;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1.5);
+    }
 }
 
 .back-image {
@@ -1449,13 +1468,31 @@ body {
     transform: translate(-50%, -50%);
     z-index: 10;
     text-align: center;
-    opacity: 0;
-    animation: messageFadeIn 1.5s ease-out 7s forwards;
+    opacity: 1;
     background: rgba(0, 0, 0, 0.5);
     padding: 30px 40px;
     border-radius: 20px;
     backdrop-filter: blur(10px);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.message-flow p {
+    opacity: 0;
+    animation: messageFadeIn 1s ease-out 7s forwards;
+}
+
+.message-flow p .typewriter-text {
+    border-right: 2px solid rgba(138, 43, 226, 0.8);
+    animation: blinkCursor 0.8s step-end infinite;
+}
+
+@keyframes blinkCursor {
+    0%, 50% {
+        border-right-color: rgba(138, 43, 226, 0.8);
+    }
+    51%, 100% {
+        border-right-color: transparent;
+    }
 }
 
 @keyframes messageFadeIn {

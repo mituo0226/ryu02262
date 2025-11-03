@@ -21,7 +21,7 @@
         ></video>
         
         <div class="message-flow">
-            <p>あなたの心の迷いを<br>鑑定士に打ち明けてください</p>
+            <p id="messageText"></p>
         </div>
 
         <div class="final-button-container">
@@ -31,6 +31,7 @@
 
     <script>
         const backVideo = document.getElementById('backVideo');
+        const messageText = document.getElementById('messageText');
         
         // iPhoneでの動画表示制限を回避するための設定
         backVideo.setAttribute('playsinline', 'true');
@@ -56,7 +57,31 @@
             backVideo.play().catch(err => {
                 console.log('動画再生エラー:', err);
             });
-        }, 2500);
+        }, 2000);
+
+        // タイプライターエフェクト
+        const fullText = 'あなたの心の迷いを\n鑑定士に打ち明けてください';
+        let currentIndex = 0;
+        
+        function typeWriter() {
+            if (currentIndex < fullText.length) {
+                if (fullText[currentIndex] === '\n') {
+                    messageText.innerHTML += '<br>';
+                } else {
+                    messageText.innerHTML += fullText[currentIndex];
+                }
+                currentIndex++;
+                setTimeout(typeWriter, 100);
+            } else {
+                // タイプライター完了後、カーソルを追加
+                messageText.classList.add('typewriter-text');
+            }
+        }
+
+        // 7秒後にタイプライター開始
+        setTimeout(() => {
+            typeWriter();
+        }, 7000);
     </script>
 </body>
 </html>
