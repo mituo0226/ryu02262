@@ -1369,15 +1369,18 @@ body {
     object-fit: cover;
     object-position: center;
     opacity: 1;
+    z-index: 1;
     animation: fadeOutFortune 2s ease-out 0.5s forwards;
 }
 
 @keyframes fadeOutFortune {
     0% {
         opacity: 1;
+        z-index: 1;
     }
     100% {
         opacity: 0;
+        z-index: 0;
     }
 }
 
@@ -1389,6 +1392,7 @@ body {
     object-position: center;
     opacity: 0;
     transform: scale(1);
+    z-index: 2;
     animation: fadeInZoomOut 4s ease-out 2.5s forwards;
 }
 
