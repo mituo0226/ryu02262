@@ -467,7 +467,7 @@
         const mobileFooterButton = document.getElementById('mobileFooterButton');
         if (window.innerWidth <= 768) {
             mobileFooterButton.style.display = 'block';
-            document.body.style.paddingBottom = '100px';
+            document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
         } else {
             mobileFooterButton.style.display = 'none';
         }
@@ -481,7 +481,7 @@
         mobileFooterButton.style.background = 'linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 1) 100%)';
         mobileFooterButton.style.borderTop = '2px solid rgba(138, 43, 226, 0.6)';
         mobileFooterButton.style.boxShadow = '0 -5px 30px rgba(138, 43, 226, 0.3)';
-        mobileFooterButton.style.zIndex = '999';
+        mobileFooterButton.style.zIndex = '9999';
         mobileFooterButton.style.backdropFilter = 'blur(10px)';
         mobileFooterButton.style.boxSizing = 'border-box';
 
@@ -608,7 +608,7 @@
 
             if (window.innerWidth <= 768) {
                 mobileFooterButton.style.display = 'block';
-                document.body.style.paddingBottom = '100px';
+                document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
                 document.querySelectorAll('.button-section-v2').forEach(section => {
                     if (section !== backButtonSection) {
                         section.style.display = 'none';
