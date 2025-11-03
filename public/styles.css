@@ -1144,6 +1144,8 @@ body {
     padding: 18px 30px;
     font-size: 20px;
     border-radius: 30px;
+    text-align: center;
+    justify-content: center;
 }
 
 /* PC用レイアウト */
@@ -1298,13 +1300,13 @@ body {
         padding-bottom: 100px;
     }
 
-    /* スマホでは通常のボタンセクションは非表示または調整 */
+    /* スマホでは通常のボタンセクションはすべて非表示 */
     .button-section-v2 {
-        margin-bottom: 20px;
+        display: none !important;
     }
 
     .image-container .button-section-v2 {
-        display: none;
+        display: none !important;
     }
 }
 
