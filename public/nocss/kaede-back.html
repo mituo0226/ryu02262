@@ -307,8 +307,9 @@
         // タイプライターエフェクト
         const fullText = 'あなたの心の迷いを\n\n鑑定師に 打ち明けなさい';
         let currentIndex = 0;
+        let typewriterComplete = false;
         
-        function typeWriter() {
+        function typeWriter(onComplete) {
             if (currentIndex < fullText.length) {
                 if (fullText[currentIndex] === '\n') {
                     messageText.innerHTML += '<br>';
@@ -316,7 +317,7 @@
                     messageText.innerHTML += fullText[currentIndex];
                 }
                 currentIndex++;
-                setTimeout(typeWriter, 100);
+                setTimeout(() => typeWriter(onComplete), 100);
             } else {
                 // タイプライター完了後、カーソルを追加
                 messageText.style.borderRight = '2px solid rgba(138, 43, 226, 0.8)';
@@ -328,6 +329,12 @@
                     cursorVisible = !cursorVisible;
                     messageText.style.borderRightColor = cursorVisible ? 'rgba(138, 43, 226, 0.8)' : 'transparent';
                 }, 400);
+                
+                typewriterComplete = true;
+                // タイプライター完了後にボタンを表示
+                if (onComplete && typeof onComplete === 'function') {
+                    onComplete();
+                }
             }
         }
 
@@ -335,7 +342,19 @@
         setTimeout(() => {
             messageFlow.style.opacity = '1';
             messageFlow.style.visibility = 'visible';
-            typeWriter();
+            typeWriter(() => {
+                // タイプライター完了後にボタンを表示する関数
+                if (window.showMobileButton && typeof window.showMobileButton === 'function') {
+                    window.showMobileButton();
+                } else {
+                    // フォールバック: showMobileButtonがまだ定義されていない場合、少し待ってから再試行
+                    setTimeout(() => {
+                        if (window.showMobileButton && typeof window.showMobileButton === 'function') {
+                            window.showMobileButton();
+                        }
+                    }, 500);
+                }
+            });
         }, 7000);
 
         // スマートフォン用フッターボタン（モバイル端末のみ）
@@ -393,18 +412,19 @@
                 mobileFooterButton.style.padding = '16px 20px';
             }
 
-            // 9秒後にフッターボタンをフェードイン
-            setTimeout(() => {
+            // ボタンを表示する関数（タイプライター完了後に呼び出される）
+            function showMobileButton() {
+                // 確実に表示されるように設定
+                mobileTalkButton.style.visibility = 'visible';
+                mobileTalkButton.style.display = 'flex';
+                mobileFooterButton.style.display = 'block';
+                
                 let mobileButtonOpacity = 0;
                 let mobileButtonY = 20;
                 const mobileButtonStartTime = Date.now();
                 
                 function animateMobileButtonFadeIn() {
                     const elapsed = Date.now() - mobileButtonStartTime;
-                    if (elapsed < 0) {
-                        requestAnimationFrame(animateMobileButtonFadeIn);
-                        return;
-                    }
                     
                     const duration = 1500;
                     const progress = Math.min(elapsed / duration, 1);
@@ -417,11 +437,22 @@
                     
                     if (progress < 1) {
                         requestAnimationFrame(animateMobileButtonFadeIn);
+                    } else {
+                        // アニメーション完了後、確実に表示されるように
+                        mobileTalkButton.style.opacity = '1';
+                        mobileTalkButton.style.visibility = 'visible';
+                        mobileTalkButton.style.display = 'flex';
                     }
                 }
                 
-                requestAnimationFrame(animateMobileButtonFadeIn);
-            }, 9000);
+                // 少し遅延を入れてからアニメーション開始（Androidでの確実な表示のため）
+                setTimeout(() => {
+                    requestAnimationFrame(animateMobileButtonFadeIn);
+                }, 300);
+            }
+
+            // グローバルスコープに保存（タイプライター完了時に呼び出せるように）
+            window.showMobileButton = showMobileButton;
         }
 
         // レスポンシブ対応
