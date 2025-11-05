@@ -85,8 +85,9 @@
         // fortune-teller-image-back
         const fortuneImage = document.getElementById('fortuneImage');
         if (isMobile) {
-            // モバイル: 画面いっぱい
-            fortuneImage.style.position = 'absolute';
+            // モバイル: 画面いっぱい（kaede.htmlのモーダルと同じアプローチ）
+            // position: fixedで親要素に依存せず、直接ビューポートを参照
+            fortuneImage.style.position = 'fixed';
             fortuneImage.style.top = '0';
             fortuneImage.style.left = '0';
             fortuneImage.style.width = '100vw';
