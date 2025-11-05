@@ -368,40 +368,32 @@
         }
 
         mobileFooterButton.style.position = 'fixed';
-        mobileFooterButton.style.bottom = '0';
+        mobileFooterButton.style.bottom = 'env(safe-area-inset-bottom, 0px)';
         mobileFooterButton.style.left = '0';
         mobileFooterButton.style.right = '0';
         mobileFooterButton.style.width = '100%';
-        mobileFooterButton.style.padding = '16px 20px';
+        mobileFooterButton.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
         mobileFooterButton.style.background = 'transparent';
         mobileFooterButton.style.borderTop = 'none';
         mobileFooterButton.style.boxShadow = 'none';
         mobileFooterButton.style.zIndex = '9999';
         mobileFooterButton.style.backdropFilter = 'none';
         mobileFooterButton.style.boxSizing = 'border-box';
-
-        // Android端末での安全領域対応
-        if (window.innerWidth <= 768) {
-            // パディングボトムに安全領域を追加
-            mobileFooterButton.style.paddingBottom = 'calc(16px + env(safe-area-inset-bottom, 0px))';
-            mobileFooterButton.style.paddingTop = '16px';
-            mobileFooterButton.style.paddingLeft = '20px';
-            mobileFooterButton.style.paddingRight = '20px';
-        }
+        mobileFooterButton.style.maxWidth = '100%';
 
         const mobileTalkButton = document.getElementById('mobileTalkButton');
         if (mobileTalkButton) {
             mobileTalkButton.style.width = '100%';
-            mobileTalkButton.style.maxWidth = 'none';
+            mobileTalkButton.style.maxWidth = '100%';
             mobileTalkButton.style.margin = '0';
             mobileTalkButton.style.padding = '18px 30px';
+            mobileTalkButton.style.boxSizing = 'border-box';
             mobileTalkButton.style.fontSize = '20px';
             mobileTalkButton.style.borderRadius = '30px';
             mobileTalkButton.style.textAlign = 'center';
             mobileTalkButton.style.display = 'flex';
             mobileTalkButton.style.alignItems = 'center';
             mobileTalkButton.style.justifyContent = 'center';
-            mobileTalkButton.style.boxSizing = 'border-box';
             mobileTalkButton.style.color = '#fff';
             mobileTalkButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9))';
             mobileTalkButton.style.border = '3px solid rgba(138, 43, 226, 0.8)';
@@ -464,12 +456,17 @@
                 document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
                 finalButtonContainer.style.display = 'none';
                 
-                // 安全領域対応
-                mobileFooterButton.style.bottom = '0';
-                mobileFooterButton.style.paddingBottom = 'calc(16px + env(safe-area-inset-bottom, 0px))';
-                mobileFooterButton.style.paddingTop = '16px';
-                mobileFooterButton.style.paddingLeft = '20px';
-                mobileFooterButton.style.paddingRight = '20px';
+                mobileFooterButton.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+                mobileFooterButton.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
+                mobileFooterButton.style.width = '100%';
+                mobileFooterButton.style.maxWidth = '100%';
+                
+                // ボタンの幅を確実に収める
+                if (mobileTalkButton) {
+                    mobileTalkButton.style.width = '100%';
+                    mobileTalkButton.style.maxWidth = '100%';
+                    mobileTalkButton.style.boxSizing = 'border-box';
+                }
             } else {
                 mobileFooterButton.style.display = 'none';
                 document.body.style.paddingBottom = '';
