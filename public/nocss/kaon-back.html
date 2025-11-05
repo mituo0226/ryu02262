@@ -368,17 +368,26 @@
         }
 
         mobileFooterButton.style.position = 'fixed';
-        mobileFooterButton.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+        mobileFooterButton.style.bottom = '0';
         mobileFooterButton.style.left = '0';
         mobileFooterButton.style.right = '0';
         mobileFooterButton.style.width = '100%';
-        mobileFooterButton.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
+        mobileFooterButton.style.padding = '16px 20px';
         mobileFooterButton.style.background = 'transparent';
         mobileFooterButton.style.borderTop = 'none';
         mobileFooterButton.style.boxShadow = 'none';
         mobileFooterButton.style.zIndex = '9999';
         mobileFooterButton.style.backdropFilter = 'none';
         mobileFooterButton.style.boxSizing = 'border-box';
+
+        // Android端末での安全領域対応
+        if (window.innerWidth <= 768) {
+            // パディングボトムに安全領域を追加
+            mobileFooterButton.style.paddingBottom = 'calc(16px + env(safe-area-inset-bottom, 0px))';
+            mobileFooterButton.style.paddingTop = '16px';
+            mobileFooterButton.style.paddingLeft = '20px';
+            mobileFooterButton.style.paddingRight = '20px';
+        }
 
         const mobileTalkButton = document.getElementById('mobileTalkButton');
         if (mobileTalkButton) {
@@ -404,12 +413,6 @@
             mobileTalkButton.style.cursor = 'pointer';
             mobileTalkButton.style.fontWeight = 'bold';
             mobileTalkButton.style.opacity = '0';
-
-            // Android向けの位置調整
-            if (/Android/i.test(navigator.userAgent) && window.innerWidth <= 768) {
-                mobileFooterButton.style.bottom = '20px';
-                mobileFooterButton.style.padding = '16px 20px';
-            }
 
             // ボタンを表示する関数（タイプライター完了後に呼び出される）
             function showMobileButton() {
@@ -461,10 +464,12 @@
                 document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
                 finalButtonContainer.style.display = 'none';
                 
-                if (/Android/i.test(navigator.userAgent)) {
-                    mobileFooterButton.style.bottom = '20px';
-                    mobileFooterButton.style.padding = '16px 20px';
-                }
+                // 安全領域対応
+                mobileFooterButton.style.bottom = '0';
+                mobileFooterButton.style.paddingBottom = 'calc(16px + env(safe-area-inset-bottom, 0px))';
+                mobileFooterButton.style.paddingTop = '16px';
+                mobileFooterButton.style.paddingLeft = '20px';
+                mobileFooterButton.style.paddingRight = '20px';
             } else {
                 mobileFooterButton.style.display = 'none';
                 document.body.style.paddingBottom = '';
