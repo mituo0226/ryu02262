@@ -35,17 +35,32 @@
         const isiPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         const fortuneTellerName = '笹岡雪乃';
 
+        // html要素のスタイル
+        document.documentElement.style.margin = '0';
+        document.documentElement.style.padding = '0';
+        document.documentElement.style.width = '100%';
+        document.documentElement.style.height = '100%';
+        document.documentElement.style.overflow = 'hidden';
+
         // bodyスタイル
         document.body.style.margin = '0';
         document.body.style.padding = '0';
         document.body.style.boxSizing = 'border-box';
         document.body.style.background = '#0a0a0a';
-        document.body.style.minHeight = '100vh';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
         document.body.style.position = 'relative';
         document.body.style.overflow = 'hidden';
-        document.body.style.display = 'flex';
-        document.body.style.alignItems = 'center';
-        document.body.style.justifyContent = 'center';
+        if (isMobile) {
+            // モバイル: flexboxを無効化して画面いっぱいに表示
+            document.body.style.display = 'block';
+            document.body.style.minHeight = '100dvh';
+        } else {
+            document.body.style.display = 'flex';
+            document.body.style.alignItems = 'center';
+            document.body.style.justifyContent = 'center';
+            document.body.style.minHeight = '100vh';
+        }
         document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
 
         // image-transition-container
@@ -70,16 +85,16 @@
         // fortune-teller-image-back
         const fortuneImage = document.getElementById('fortuneImage');
         if (isMobile) {
-            // モバイル: 画面いっぱい（iPhoneと同じ設定）
+            // モバイル: 画面いっぱい
             fortuneImage.style.position = 'absolute';
             fortuneImage.style.top = '0';
             fortuneImage.style.left = '0';
-            fortuneImage.style.width = '100%';
-            fortuneImage.style.height = '100%';
-            fortuneImage.style.minWidth = '100%';
-            fortuneImage.style.minHeight = '100%';
-            fortuneImage.style.maxWidth = '100%';
-            fortuneImage.style.maxHeight = '100%';
+            fortuneImage.style.width = '100vw';
+            fortuneImage.style.height = '100dvh';
+            fortuneImage.style.minWidth = '100vw';
+            fortuneImage.style.minHeight = '100dvh';
+            fortuneImage.style.maxWidth = '100vw';
+            fortuneImage.style.maxHeight = '100dvh';
             fortuneImage.style.objectFit = 'cover';
             fortuneImage.style.objectPosition = 'center';
         } else {
