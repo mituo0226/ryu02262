@@ -62,10 +62,21 @@
         if (isMobile) {
             // モバイル: 画面いっぱい
             fortuneImage.style.position = 'absolute';
+            fortuneImage.style.top = '0';
+            fortuneImage.style.left = '0';
             fortuneImage.style.width = '100%';
             fortuneImage.style.height = '100%';
+            fortuneImage.style.minWidth = '100%';
+            fortuneImage.style.minHeight = '100%';
+            fortuneImage.style.maxWidth = '100%';
+            fortuneImage.style.maxHeight = '100%';
             fortuneImage.style.objectFit = 'cover';
             fortuneImage.style.objectPosition = 'center';
+            // Android端末で確実に画面いっぱいに表示
+            if (isAndroid) {
+                fortuneImage.style.width = '100vw';
+                fortuneImage.style.height = '100vh';
+            }
         } else {
             // PC: 画面中心に適度な大きさ
             fortuneImage.style.position = 'absolute';
@@ -81,6 +92,7 @@
         }
         fortuneImage.style.opacity = '1';
         fortuneImage.style.zIndex = '1';
+        fortuneImage.style.boxSizing = 'border-box';
 
         // フェードアウトアニメーション（5秒、0.5秒後に開始）
         let fortuneImageOpacity = 1;
