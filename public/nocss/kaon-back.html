@@ -85,19 +85,19 @@
         // fortune-teller-image-back
         const fortuneImage = document.getElementById('fortuneImage');
         if (isMobile) {
-            // モバイル: 画面いっぱい（kaede.htmlのモーダルと同じアプローチ）
+            // モバイル: 画面いっぱい（Android端末の縦横比の違いに対応）
             // position: fixedで親要素に依存せず、直接ビューポートを参照
             fortuneImage.style.position = 'fixed';
             fortuneImage.style.top = '0';
             fortuneImage.style.left = '0';
-            fortuneImage.style.width = '100vw';
-            fortuneImage.style.height = '100dvh';
-            fortuneImage.style.minWidth = '100vw';
-            fortuneImage.style.minHeight = '100dvh';
-            fortuneImage.style.maxWidth = '100vw';
-            fortuneImage.style.maxHeight = '100dvh';
+            // 固定サイズではなく、親要素（ビューポート）のサイズに合わせる
+            // これにより、Android端末の異なる縦横比にも対応できる
+            fortuneImage.style.width = '100%';
+            fortuneImage.style.height = '100%';
             fortuneImage.style.objectFit = 'cover';
             fortuneImage.style.objectPosition = 'center';
+            // 画像の縦横比を維持しつつ、画面いっぱいに表示
+            // coverは画像を拡大縮小してコンテナを埋めるが、縦横比は維持される
         } else {
             // PC: 画面中心に適度な大きさ
             fortuneImage.style.position = 'absolute';
