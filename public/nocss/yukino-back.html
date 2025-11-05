@@ -86,18 +86,17 @@
         const fortuneImage = document.getElementById('fortuneImage');
         if (isMobile) {
             // モバイル: 画面いっぱい（Android端末の縦横比の違いに対応）
-            // position: fixedで親要素に依存せず、直接ビューポートを参照
-            fortuneImage.style.position = 'fixed';
+            // position: absoluteで親要素（imageTransitionContainer）を基準にする
+            // 親要素が既に100vw/100dvhを持っているので、子要素は%で親要素に合わせる
+            fortuneImage.style.position = 'absolute';
             fortuneImage.style.top = '0';
             fortuneImage.style.left = '0';
-            // 固定サイズではなく、親要素（ビューポート）のサイズに合わせる
-            // これにより、Android端末の異なる縦横比にも対応できる
             fortuneImage.style.width = '100%';
             fortuneImage.style.height = '100%';
             fortuneImage.style.objectFit = 'cover';
             fortuneImage.style.objectPosition = 'center';
-            // 画像の縦横比を維持しつつ、画面いっぱいに表示
-            // coverは画像を拡大縮小してコンテナを埋めるが、縦横比は維持される
+            // 画像の縦横比を維持しつつ、親要素を完全にカバー
+            // 親要素が既に画面いっぱい（100vw/100dvh）なので、子要素も画面いっぱいになる
         } else {
             // PC: 画面中心に適度な大きさ
             fortuneImage.style.position = 'absolute';
