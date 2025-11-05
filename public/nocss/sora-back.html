@@ -2,7 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>水野ソラへの導き - 運命の扉</title>
 </head>
 <body>
@@ -47,15 +50,20 @@
         document.body.style.padding = '0';
         document.body.style.boxSizing = 'border-box';
         document.body.style.background = '#0a0a0a';
-        document.body.style.width = '100%';
-        document.body.style.height = '100%';
-        document.body.style.position = 'relative';
         document.body.style.overflow = 'hidden';
         if (isMobile) {
-            // モバイル: flexboxを無効化して画面いっぱいに表示
+            // モバイル: flexboxを無効化して画面いっぱいに表示（Android全画面対応）
+            document.body.style.position = 'fixed';
+            document.body.style.top = '0';
+            document.body.style.left = '0';
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
             document.body.style.display = 'block';
             document.body.style.minHeight = '100dvh';
         } else {
+            document.body.style.position = 'relative';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
             document.body.style.display = 'flex';
             document.body.style.alignItems = 'center';
             document.body.style.justifyContent = 'center';
