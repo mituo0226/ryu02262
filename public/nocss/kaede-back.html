@@ -28,6 +28,11 @@
         </div>
     </div>
 
+    <!-- スマートフォン用フッターボタン -->
+    <div id="mobileFooterButton">
+        <a href="#" id="mobileTalkButton" onclick="return false;">楓に話しかける</a>
+    </div>
+
     <script>
         // bodyスタイル
         document.body.style.margin = '0';
@@ -332,6 +337,110 @@
             messageFlow.style.visibility = 'visible';
             typeWriter();
         }, 7000);
+
+        // スマートフォン用フッターボタン（モバイル端末のみ）
+        const mobileFooterButton = document.getElementById('mobileFooterButton');
+        if (window.innerWidth <= 768) {
+            mobileFooterButton.style.display = 'block';
+            document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
+            // モバイルではfinalButtonContainerを非表示
+            finalButtonContainer.style.display = 'none';
+        } else {
+            mobileFooterButton.style.display = 'none';
+        }
+
+        mobileFooterButton.style.position = 'fixed';
+        mobileFooterButton.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+        mobileFooterButton.style.left = '0';
+        mobileFooterButton.style.right = '0';
+        mobileFooterButton.style.width = '100%';
+        mobileFooterButton.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
+        mobileFooterButton.style.background = 'transparent';
+        mobileFooterButton.style.borderTop = 'none';
+        mobileFooterButton.style.boxShadow = 'none';
+        mobileFooterButton.style.zIndex = '9999';
+        mobileFooterButton.style.backdropFilter = 'none';
+        mobileFooterButton.style.boxSizing = 'border-box';
+
+        const mobileTalkButton = document.getElementById('mobileTalkButton');
+        if (mobileTalkButton) {
+            mobileTalkButton.style.width = '100%';
+            mobileTalkButton.style.maxWidth = 'none';
+            mobileTalkButton.style.margin = '0';
+            mobileTalkButton.style.padding = '18px 30px';
+            mobileTalkButton.style.fontSize = '20px';
+            mobileTalkButton.style.borderRadius = '30px';
+            mobileTalkButton.style.textAlign = 'center';
+            mobileTalkButton.style.display = 'flex';
+            mobileTalkButton.style.alignItems = 'center';
+            mobileTalkButton.style.justifyContent = 'center';
+            mobileTalkButton.style.boxSizing = 'border-box';
+            mobileTalkButton.style.color = '#fff';
+            mobileTalkButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9))';
+            mobileTalkButton.style.border = '3px solid rgba(138, 43, 226, 0.8)';
+            mobileTalkButton.style.textDecoration = 'none';
+            mobileTalkButton.style.transition = 'all 0.5s ease';
+            mobileTalkButton.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3)';
+            mobileTalkButton.style.position = 'relative';
+            mobileTalkButton.style.overflow = 'hidden';
+            mobileTalkButton.style.cursor = 'pointer';
+            mobileTalkButton.style.fontWeight = 'bold';
+            mobileTalkButton.style.opacity = '0';
+
+            // Android向けの位置調整
+            if (/Android/i.test(navigator.userAgent) && window.innerWidth <= 768) {
+                mobileFooterButton.style.bottom = '20px';
+                mobileFooterButton.style.padding = '16px 20px';
+            }
+
+            // 9秒後にフッターボタンをフェードイン
+            setTimeout(() => {
+                let mobileButtonOpacity = 0;
+                let mobileButtonY = 20;
+                const mobileButtonStartTime = Date.now();
+                
+                function animateMobileButtonFadeIn() {
+                    const elapsed = Date.now() - mobileButtonStartTime;
+                    if (elapsed < 0) {
+                        requestAnimationFrame(animateMobileButtonFadeIn);
+                        return;
+                    }
+                    
+                    const duration = 1500;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    mobileButtonOpacity = progress;
+                    mobileButtonY = 20 * (1 - progress);
+                    
+                    mobileTalkButton.style.opacity = mobileButtonOpacity;
+                    mobileTalkButton.style.transform = `translateY(${mobileButtonY}px)`;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animateMobileButtonFadeIn);
+                    }
+                }
+                
+                requestAnimationFrame(animateMobileButtonFadeIn);
+            }, 9000);
+        }
+
+        // レスポンシブ対応
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                mobileFooterButton.style.display = 'block';
+                document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
+                finalButtonContainer.style.display = 'none';
+                
+                if (/Android/i.test(navigator.userAgent)) {
+                    mobileFooterButton.style.bottom = '20px';
+                    mobileFooterButton.style.padding = '16px 20px';
+                }
+            } else {
+                mobileFooterButton.style.display = 'none';
+                document.body.style.paddingBottom = '';
+                finalButtonContainer.style.display = 'block';
+            }
+        });
     </script>
 </body>
 </html>
