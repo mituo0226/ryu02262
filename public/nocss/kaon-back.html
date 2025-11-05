@@ -203,7 +203,12 @@
         // message-flow
         const messageFlow = document.getElementById('messageFlow');
         messageFlow.style.position = 'absolute';
-        messageFlow.style.top = '50%';
+        // Android端末ではメッセージを少し上に配置してボタンとの間隔を確保
+        if (isMobile && isAndroid) {
+            messageFlow.style.top = '40%';
+        } else {
+            messageFlow.style.top = '50%';
+        }
         messageFlow.style.left = '50%';
         messageFlow.style.transform = 'translate(-50%, -50%)';
         messageFlow.style.zIndex = '10';
@@ -234,12 +239,18 @@
         if (isMobile) {
             // モバイル: 画面下部に固定
             finalButtonContainer.style.position = 'fixed';
-            finalButtonContainer.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+            // Android端末ではボタンを少し下に配置してメッセージとの間隔を確保
+            if (isAndroid) {
+                finalButtonContainer.style.bottom = '20px';
+                finalButtonContainer.style.padding = '16px 20px';
+            } else {
+                finalButtonContainer.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+                finalButtonContainer.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
+            }
             finalButtonContainer.style.left = '0';
             finalButtonContainer.style.right = '0';
             finalButtonContainer.style.width = '100%';
             finalButtonContainer.style.maxWidth = '100%';
-            finalButtonContainer.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
             finalButtonContainer.style.background = 'transparent';
             finalButtonContainer.style.boxSizing = 'border-box';
         } else {
