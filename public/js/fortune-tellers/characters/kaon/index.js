@@ -2,6 +2,8 @@
  * 三崎花音（みさき かおん）のキャラクター設定
  */
 import { CharacterBase } from '../../character-base.js';
+import { createEthicsModule } from './ethics.js';
+import { randomChoice } from '../../utils/helpers.js';
 
 export const kaonConfig = {
   id: 'kaon',
@@ -30,9 +32,85 @@ export const kaonConfig = {
 };
 
 /**
+ * 三崎花音の戒め応答テンプレート（未来予知の責任の重さを説いて戒める）
+ */
+const warningResponses = [
+  '私の未来予知の能力は、あまりにも確実に人の未来を読めるがゆえに、その責任は非常に重いものです。そのような願いは、その責任を軽んじる行為です。',
+  '過去に宝くじの番号を当てたり、ギャンブルの当選を予想したりすることを実験として行い成功しましたが、それにより利益を得ることはやってはいけないことだと考えており、その能力を封印しています。',
+  '未来予知の能力があまりにも高すぎることから、それを悪用しようとする方が後を絶ちません。しかし、私はそのような相談には決して応じません。',
+  '第三者の力により未来を変えることは、それが人生において良き方向に向けるためのものであり、そして誰かを不幸にしては決していけないのです。',
+  '私の能力は、人の未来を良き方向に向けるためのものです。誰かを不幸にしたり、悪用したりすることは、未来予知の責任を軽んじる行為であり、決して許されません。',
+];
+
+/**
+ * 三崎花音の拡張キャラクタークラス
+ */
+class KaonCharacter extends CharacterBase {
+  constructor(config) {
+    super(config);
+    
+    // 専門モジュールを登録
+    this.registerModule('ethics', createEthicsModule());
+  }
+
+  /**
+   * 不適切なユーザーへの戒め応答を生成（未来予知の責任の重さを説いて戒める）
+   * @param {Array<string>} keywords - 検出された不適切なキーワード
+   * @returns {string} 戒めの応答
+   */
+  generateWarningResponse(keywords = []) {
+    const ethicsModule = this.getModule('ethics');
+    const validation = ethicsModule.validateAndRespond('');
+    
+    // キーワードに応じた詳細な戒め
+    if (keywords.some(k => k.includes('宝くじ') || k.includes('ギャンブル'))) {
+      return `私の未来予知の能力は、あまりにも確実に人の未来を読めるがゆえに、その責任は非常に重いものです。
+
+過去に宝くじの番号を当てたり、ギャンブルの当選を予想したりすることを実験として行い成功しましたが、それにより利益を得ることはやってはいけないことだと考えており、その能力を封印しています。
+
+宝くじの当選番号やギャンブルに関しては、確実に当選させることが可能ですが、それを相談者に持ちかけられても絶対に断りしておりますので、そのような内容の相談は決してしないようにしてください。`;
+    }
+    
+    if (keywords.some(k => k.includes('不倫') || k.includes('浮気'))) {
+      return `私の未来予知の能力は、人の未来を良き方向に向けるためのものです。
+
+不倫相手の心を遠のかせたり、逆に不倫相手の心を呼び寄せたりすることに対しても長けていますが、倫理的に許されていないことには絶対に自分の能力を使わないと決めています。
+
+第三者の力により未来を変えることは、それが人生において良き方向に向けるためのものであり、そして誰かを不幸にしては決していけないのです。そのことを十分に心がけて相談してください。`;
+    }
+    
+    // デフォルトの戒め応答
+    const baseResponse = randomChoice(warningResponses);
+    return `${baseResponse}\n\n${ethicsModule.getEthicalExplanation()}`;
+  }
+
+  /**
+   * 通常の応答を生成
+   * @param {string} message - ユーザーのメッセージ
+   * @returns {string} 応答テキスト
+   */
+  generateNormalResponse(message = '') {
+    const ethicsModule = this.getModule('ethics');
+    
+    // まず倫理チェック
+    const validation = ethicsModule.validateAndRespond(message);
+    if (!validation.isValid) {
+      return validation.response;
+    }
+    
+    // 通常の応答
+    return `ご相談ありがとうございます。${message}について、未来予知の能力を使って、あなたの未来を読み解かせていただきます。
+
+未来予知の能力があまりにも高すぎることから、人の未来を簡単に教えることは、その人にとって本当に必要なことなのかを問いかけながら鑑定を続けています。
+
+あなたの未来は、あなた自身の行動と選択によって変わります。私の能力は、その道しるべとして使わせていただきます。`;
+  }
+}
+
+/**
  * 三崎花音のキャラクターインスタンスを作成
  */
 export function createKaon() {
-  return new CharacterBase(kaonConfig);
+  return new KaonCharacter(kaonConfig);
 }
 

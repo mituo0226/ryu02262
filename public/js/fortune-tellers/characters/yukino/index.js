@@ -2,6 +2,9 @@
  * 笹岡雪乃（ささおか ゆきの）のキャラクター設定
  */
 import { CharacterBase } from '../../character-base.js';
+import { createAstrologyModule } from './astrology.js';
+import { createTarotModule } from './tarot.js';
+import { randomChoice } from '../../utils/helpers.js';
 
 export const yukinoConfig = {
   id: 'yukino',
@@ -30,9 +33,78 @@ export const yukinoConfig = {
 };
 
 /**
+ * 笹岡雪乃の戒め応答テンプレート（修行で培った信念で諭す）
+ */
+const warningResponses = [
+  '高野山での修行を通じて、私は学びました。そのような願いは、愛の力がない限り、運命は好転しない。これは、宇宙全体の真理であります。',
+  '恐山での修行と、高野山での修行を通じて、私は確信しました。そのような願いは、自分の力で立ち上がる勇気と行動力がない限り、実現することはありません。',
+  '修行で培った信念として、私は申し上げます。そのようなご相談は、宇宙全体の真理に反するものです。愛と誠実さこそが、運命を好転させる力です。',
+  '私の修行を通じて学んだことは、誰かを不幸にしてまで叶える願いは、決して良い結果をもたらさないということです。',
+  '高野山での修行で、私は楓様から学びました。そのような願いは、悪用される危険をはらむものであり、決して扱うことはできません。',
+];
+
+/**
+ * 笹岡雪乃の拡張キャラクタークラス
+ */
+class YukinoCharacter extends CharacterBase {
+  constructor(config) {
+    super(config);
+    
+    // 専門モジュールを登録
+    this.registerModule('astrology', createAstrologyModule());
+    this.registerModule('tarot', createTarotModule());
+  }
+
+  /**
+   * 不適切なユーザーへの戒め応答を生成（修行で培った信念で諭す）
+   * @param {Array<string>} keywords - 検出された不適切なキーワード
+   * @returns {string} 戒めの応答
+   */
+  generateWarningResponse(keywords = []) {
+    const baseResponse = randomChoice(warningResponses);
+    
+    // キーワードに応じた追加の戒め
+    if (keywords.some(k => k.includes('宝くじ') || k.includes('ギャンブル'))) {
+      return `${baseResponse}\n\n修行を通じて学んだことは、宝くじやギャンブルで得た利益は、真の幸福をもたらさないということです。自分の力で立ち上がる勇気と行動力こそが、運命を好転させるのです。`;
+    }
+    
+    if (keywords.some(k => k.includes('不倫') || k.includes('浮気'))) {
+      return `${baseResponse}\n\n愛の力がない限り、運命は好転しません。誰かを不幸にしてまで叶える願いは、宇宙全体の真理に反するものです。`;
+    }
+    
+    return baseResponse;
+  }
+
+  /**
+   * 通常の応答を生成
+   * @param {string} message - ユーザーのメッセージ
+   * @returns {string} 応答テキスト
+   */
+  generateNormalResponse(message = '') {
+    const astrologyModule = this.getModule('astrology');
+    const tarotModule = this.getModule('tarot');
+    
+    const lowerMessage = message.toLowerCase();
+    
+    // タロット占いのリクエスト
+    if (lowerMessage.includes('タロット') || lowerMessage.includes('占い') || lowerMessage.includes('カード')) {
+      return tarotModule.generateReading(message);
+    }
+    
+    // 占星術のリクエスト
+    if (lowerMessage.includes('星座') || lowerMessage.includes('占星術') || lowerMessage.includes('星')) {
+      return astrologyModule.generateResponse(message);
+    }
+    
+    // デフォルトの応答
+    return `ご相談ありがとうございます。${message}について、タロットカードや占星術の力を借りて、あなたの運命を読み解かせていただきます。\n\n${tarotModule.generateReading(message)}`;
+  }
+}
+
+/**
  * 笹岡雪乃のキャラクターインスタンスを作成
  */
 export function createYukino() {
-  return new CharacterBase(yukinoConfig);
+  return new YukinoCharacter(yukinoConfig);
 }
 
