@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鑑定士チャット - サンプル</title>
+    <style>
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .character-selector {
+            margin-bottom: 20px;
+        }
+        .character-selector label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .character-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .message.user {
+            background-color: #e3f2fd;
+            text-align: right;
+        }
+        .message.character {
+            background-color: #f1f8e9;
+        }
+        .message.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .message.warning {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+        .message-header {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .input-area button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .input-area button:hover {
+            background-color: #45a049;
+        }
+        .input-area button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>鑑定士チャット</h1>
+        
+        <div class="character-selector">
+            <label for="characterSelect">鑑定士を選択:</label>
+            <select id="characterSelect">
+                <option value="kaede">楓（かえで）</option>
+                <option value="yukino">笹岡雪乃（ささおか ゆきの）</option>
+                <option value="sora">水野ソラ（みずの そら）</option>
+                <option value="kaon">三崎花音（みさき かおん）</option>
+            </select>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="メッセージを入力..." maxlength="1000">
+            <button id="sendButton" onclick="sendMessage()">送信</button>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const characterSelect = document.getElementById('characterSelect');
+        const sendButton = document.getElementById('sendButton');
+
+        // Enterキーで送信
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            const character = characterSelect.value;
+
+            if (!message) {
+                return;
+            }
+
+            // ユーザーメッセージを表示
+            addMessage('user', message, 'あなた');
+
+            // 入力欄をクリア
+            messageInput.value = '';
+            sendButton.disabled = true;
+
+            // ローディング表示
+            const loadingId = addMessage('loading', '応答を生成中...', '');
+
+            try {
+                const response = await fetch('/api/consult', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        character: character
+                    })
+                });
+
+                // ローディングメッセージを削除
+                removeMessage(loadingId);
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    // エラーメッセージを表示
+                    addMessage('error', data.error || 'エラーが発生しました', 'システム');
+                    return;
+                }
+
+                // 応答を表示
+                if (data.isInappropriate) {
+                    // 不適切な発言への警告
+                    addMessage('warning', data.message, data.characterName, {
+                        detectedKeywords: data.detectedKeywords
+                    });
+                } else {
+                    // 通常の応答
+                    addMessage('character', data.message, data.characterName);
+                }
+
+            } catch (error) {
+                // ローディングメッセージを削除
+                removeMessage(loadingId);
+                
+                // エラーメッセージを表示
+                addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        function addMessage(type, text, sender, metadata = {}) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.textContent = sender ? `${sender}` : '';
+            messageDiv.appendChild(headerDiv);
+
+            const textDiv = document.createElement('div');
+            textDiv.textContent = text;
+            messageDiv.appendChild(textDiv);
+
+            // 不適切なキーワードが検出された場合
+            if (metadata.detectedKeywords && metadata.detectedKeywords.length > 0) {
+                const keywordsDiv = document.createElement('div');
+                keywordsDiv.style.marginTop = '5px';
+                keywordsDiv.style.fontSize = '12px';
+                keywordsDiv.style.color = '#e65100';
+                keywordsDiv.textContent = `検出されたキーワード: ${metadata.detectedKeywords.join(', ')}`;
+                messageDiv.appendChild(keywordsDiv);
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // ローディングメッセージの場合はIDを返す
+            if (type === 'loading') {
+                return messageDiv;
+            }
+        }
+
+        function removeMessage(messageElement) {
+            if (messageElement && messageElement.parentNode) {
+                messageElement.parentNode.removeChild(messageElement);
+            }
+        }
+    </script>
+</body>
+</html>
+

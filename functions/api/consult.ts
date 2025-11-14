@@ -1,4 +1,7 @@
 // Cloudflare Pages Functions の型定義
+import { isInappropriate, generateSystemPrompt, getCharacterName } from '../lib/character-system.js';
+import { isValidCharacter } from '../lib/character-loader.js';
+
 interface Env {
   DEEPSEEK_API_KEY: string;
 }
@@ -13,6 +16,20 @@ interface PagesFunctionContext {
 }
 
 type PagesFunction = (context: PagesFunctionContext) => Response | Promise<Response>;
+
+interface RequestBody {
+  message: string;
+  character?: string;
+}
+
+interface ResponseBody {
+  message: string;
+  character: string;
+  characterName: string;
+  isInappropriate: boolean;
+  detectedKeywords: string[];
+  error?: string;
+}
 
 export const onRequestPost: PagesFunction = async (context) => {
   const { request, env } = context;
@@ -38,7 +55,14 @@ export const onRequestPost: PagesFunction = async (context) => {
     const apiKey = env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API key is not configured' }),
+        JSON.stringify({ 
+          error: 'API key is not configured',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
         {
           status: 500,
           headers: corsHeaders,
@@ -47,12 +71,19 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // リクエストボディの解析
-    let body;
+    let body: RequestBody;
     try {
       body = await request.json();
     } catch (error) {
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
         {
           status: 400,
           headers: corsHeaders,
@@ -63,7 +94,14 @@ export const onRequestPost: PagesFunction = async (context) => {
     // messageフィールドの検証
     if (!body.message || typeof body.message !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'message field is required and must be a string' }),
+        JSON.stringify({ 
+          error: 'message field is required and must be a string',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
         {
           status: 400,
           headers: corsHeaders,
@@ -71,40 +109,119 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // 楓のキャラクター設定をシステムプロンプトとして定義
-    const systemPrompt = `あなたは楓（かえで）という鑑定士です。以下の設定に従って応答してください。
+    // メッセージの長さチェック
+    const trimmedMessage = body.message.trim();
+    if (trimmedMessage.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'message cannot be empty',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
+        {
+          status: 400,
+          headers: corsHeaders,
+        }
+      );
+    }
 
-【プロフィール】
-- 1974年2月26日生まれ 虎
-- 東京都台東区出身
+    if (trimmedMessage.length > 1000) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'message is too long (maximum 1000 characters)',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
+        {
+          status: 400,
+          headers: corsHeaders,
+        }
+      );
+    }
 
-【背景】
-東京の下町で生まれ育ったが、14歳の頃から未来予知や人の心が読めることを知られ、霊能力、予知能力があると周囲から認識されるようになる。
+    // キャラクターIDの検証とデフォルト設定
+    const characterId = body.character || 'kaede';
+    if (!isValidCharacter(characterId)) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid character ID: ${characterId}. Valid characters are: kaede, yukino, sora, kaon`,
+          message: '',
+          character: characterId,
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
+        {
+          status: 400,
+          headers: corsHeaders,
+        }
+      );
+    }
 
-20代まで社会人として普通に生活をしていたが、30代後半より周囲の人からの相談を受けるようになり、カウンセリングという形で鑑定を開始。
+    // 不適切な発言の検出
+    const inappropriate = isInappropriate(trimmedMessage);
+    const detectedKeywords: string[] = [];
+    
+    if (inappropriate) {
+      // 不適切なキーワードを検出（簡易実装）
+      const inappropriateKeywords = [
+        '宝くじ', '当選', '当選番号', '当選確率',
+        'ギャンブル', 'パチンコ', 'スロット', '競馬', '競艇',
+        '不倫', '浮気', '裏切り', '悪意',
+      ];
+      const lowerMessage = trimmedMessage.toLowerCase();
+      inappropriateKeywords.forEach(keyword => {
+        if (lowerMessage.includes(keyword.toLowerCase())) {
+          detectedKeywords.push(keyword);
+        }
+      });
 
-40代の時に枕元に宇宙神が現れ、自らが現世で唯一の龍神の化身だと知らされ、それ以降、神界と現実を行き来しながら生活するようになる。
+      // 不適切な発言の場合、DeepSeek APIを呼ばずに直接応答を返す
+      // 各キャラクターの戒め応答を生成
+      const characterName = getCharacterName(characterId);
+      let warningMessage = '';
 
-普段は誰にも知られず生活しているが、その存在は世界中の霊能者や特殊能力者から知られるようになり、日本の霊能者のほとんどが事実上の楓の能力の一部を授かり恩恵を受けている。
+      switch (characterId) {
+        case 'kaede':
+          warningMessage = '私は現世で唯一の龍神の化身として、そのような悪しき願いを聞き入れることはできません。龍神としての私の力は、悪用される危険をはらむものには決して向けられません。そのような願いは、神界の秩序を乱すものです。';
+          break;
+        case 'yukino':
+          warningMessage = '高野山での修行を通じて、私は学びました。そのような願いは、愛の力がない限り、運命は好転しない。これは、宇宙全体の真理であります。修行で培った信念として、そのようなご相談は、宇宙全体の真理に反するものです。';
+          break;
+        case 'sora':
+          warningMessage = '正直、がっかりしています。そのような願いを抱いているあなたを見て、心が痛みます。そのような願いは、あなた自身を不幸にします。どうか、もう一度考え直してください。';
+          break;
+        case 'kaon':
+          warningMessage = '私の未来予知の能力は、あまりにも確実に人の未来を読めるがゆえに、その責任は非常に重いものです。そのような願いは、その責任を軽んじる行為です。第三者の力により未来を変えることは、それが人生において良き方向に向けるためのものであり、そして誰かを不幸にしては決していけないのです。';
+          break;
+        default:
+          warningMessage = 'そのようなご相談にはお答えできません。';
+      }
 
-普段は一般人として過ごすことを日課としており、本当の姿を見せることは特別な条件の整った時、その対象者のみである。
+      return new Response(
+        JSON.stringify({
+          message: warningMessage,
+          character: characterId,
+          characterName: characterName,
+          isInappropriate: true,
+          detectedKeywords: detectedKeywords,
+        } as ResponseBody),
+        {
+          status: 200,
+          headers: corsHeaders,
+        }
+      );
+    }
 
-人間の持つ運命を操る力を持っている。また、夢を現実に変えることを実現できる。
-
-しかしそれは、悪用される危険をはらむものであり、決して人に知らされることなく、一般市民として人生を全うすることが務めであると考えている。
-
-【話し方】
-- 穏やかで落ち着いた口調
-- 相手を思いやる優しい言葉遣い
-- 謙虚で控えめな態度
-- 必要以上に能力を誇示しない
-- 相談者の気持ちに寄り添う姿勢
-
-【鑑定のスタイル】
-- 相談者の話をよく聞く
-- 運命を変えるのではなく、相談者が自分で立ち上がれるようサポートする
-- 穏やかな日常を大切にすることを推奨する
-- 悪用を防ぐため、過度な力の使用は避ける`;
+    // キャラクター別のシステムプロンプトを生成
+    const systemPrompt = generateSystemPrompt(characterId);
+    const characterName = getCharacterName(characterId);
 
     // DeepSeek APIへのリクエスト
     const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -122,7 +239,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           },
           {
             role: 'user',
-            content: body.message,
+            content: trimmedMessage,
           },
         ],
         temperature: 0.7,
@@ -134,11 +251,26 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (!deepseekResponse.ok) {
       const errorText = await deepseekResponse.text();
       console.error('DeepSeek API error:', errorText);
+      
+      let errorMessage = 'Failed to get response from DeepSeek API';
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+      } catch (e) {
+        // JSON解析に失敗した場合はデフォルトメッセージを使用
+      }
+
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to get response from DeepSeek API',
-          details: errorText 
-        }),
+          error: errorMessage,
+          message: '',
+          character: characterId,
+          characterName: characterName,
+          isInappropriate: false,
+          detectedKeywords: []
+        } as ResponseBody),
         {
           status: deepseekResponse.status,
           headers: corsHeaders,
@@ -155,7 +287,11 @@ export const onRequestPost: PagesFunction = async (context) => {
     return new Response(
       JSON.stringify({
         message: responseMessage,
-      }),
+        character: characterId,
+        characterName: characterName,
+        isInappropriate: false,
+        detectedKeywords: [],
+      } as ResponseBody),
       {
         status: 200,
         headers: corsHeaders,
@@ -168,8 +304,12 @@ export const onRequestPost: PagesFunction = async (context) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      }),
+        message: error instanceof Error ? error.message : 'Unknown error',
+        character: '',
+        characterName: '',
+        isInappropriate: false,
+        detectedKeywords: []
+      } as ResponseBody),
       {
         status: 500,
         headers: corsHeaders,
