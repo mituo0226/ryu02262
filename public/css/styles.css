@@ -1151,6 +1151,106 @@ body {
     animation: fadeInUp 1s ease-out 1.3s forwards;
 }
 
+/* チャット開始ボタン */
+.chat-button-section {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.chat-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px 40px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
+    border: 2px solid rgba(138, 43, 226, 0.7);
+    border-radius: 50px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(138, 43, 226, 0.5), 0 0 40px rgba(138, 43, 226, 0.3);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.chat-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.chat-button:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+.chat-button:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 6px 30px rgba(138, 43, 226, 0.7), 0 0 60px rgba(138, 43, 226, 0.4);
+    border-color: rgba(138, 43, 226, 1);
+}
+
+.chat-button:active {
+    transform: translateY(-1px) scale(1);
+}
+
+.chat-button-icon {
+    font-size: 20px;
+}
+
+/* クイックチャットボタン（メインページ用） */
+.quick-chat-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.85), rgba(75, 0, 130, 0.85));
+    border: 2px solid rgba(138, 43, 226, 0.6);
+    border-radius: 30px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 15px rgba(138, 43, 226, 0.4);
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.quick-chat-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(138, 43, 226, 0.6);
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95));
+}
+
+.quick-chat-button-icon {
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .chat-button {
+        padding: 15px 30px;
+        font-size: 16px;
+    }
+    
+    .quick-chat-button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
 /* スマートフォン用フッターボタン（基本スタイル） */
 .mobile-footer-button {
     display: none;

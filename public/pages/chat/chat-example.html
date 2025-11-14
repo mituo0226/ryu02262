@@ -10,13 +10,41 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            min-height: 100vh;
         }
         .chat-container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(138, 43, 226, 0.3);
+        }
+        .current-character-display {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.1));
+            border: 2px solid rgba(138, 43, 226, 0.3);
             border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .current-character-display img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(138, 43, 226, 0.5);
+            object-fit: cover;
+        }
+        .current-character-info h3 {
+            margin: 0;
+            color: #8a2be2;
+            font-size: 20px;
+        }
+        .current-character-info p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 14px;
         }
         .character-selector {
             margin-bottom: 20px;
@@ -25,34 +53,59 @@
             display: block;
             margin-bottom: 10px;
             font-weight: bold;
+            color: #333;
         }
         .character-selector select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
             font-size: 16px;
+            background: white;
+            transition: border-color 0.3s;
+        }
+        .character-selector select:focus {
+            outline: none;
+            border-color: #8a2be2;
+        }
+        .character-selector select.selected {
+            border-color: #8a2be2;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.05), rgba(75, 0, 130, 0.05));
         }
         .messages {
             height: 400px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
             background-color: #fafafa;
         }
         .message {
             margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .message.user {
             background-color: #e3f2fd;
             text-align: right;
+            margin-left: 20%;
         }
         .message.character {
             background-color: #f1f8e9;
+            margin-right: 20%;
+        }
+        .message.welcome {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.1));
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            text-align: center;
+            font-weight: 500;
+            color: #8a2be2;
         }
         .message.error {
             background-color: #ffebee;
@@ -66,6 +119,7 @@
             font-size: 12px;
             color: #666;
             margin-bottom: 5px;
+            font-weight: 600;
         }
         .input-area {
             display: flex;
@@ -73,26 +127,38 @@
         }
         .input-area input {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
             font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .input-area input:focus {
+            outline: none;
+            border-color: #8a2be2;
         }
         .input-area button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(138, 43, 226, 0.3);
         }
         .input-area button:hover {
-            background-color: #45a049;
+            background: linear-gradient(135deg, #9b3be3, #5b0093);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
         }
         .input-area button:disabled {
-            background-color: #cccccc;
+            background: #cccccc;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         .loading {
             text-align: center;
@@ -103,7 +169,16 @@
 </head>
 <body>
     <div class="chat-container">
-        <h1>鑑定士チャット</h1>
+        <h1 style="text-align: center; color: #8a2be2; margin-bottom: 20px;">🔮 鑑定士チャット</h1>
+        
+        <!-- 現在の鑑定士表示 -->
+        <div class="current-character-display" id="currentCharacterDisplay" style="display: none;">
+            <img id="characterImage" src="" alt="">
+            <div class="current-character-info">
+                <h3 id="characterNameDisplay"></h3>
+                <p id="characterStatus">現在の鑑定士</p>
+            </div>
+        </div>
         
         <div class="character-selector">
             <label for="characterSelect">鑑定士を選択:</label>
@@ -128,6 +203,81 @@
         const messageInput = document.getElementById('messageInput');
         const characterSelect = document.getElementById('characterSelect');
         const sendButton = document.getElementById('sendButton');
+        const currentCharacterDisplay = document.getElementById('currentCharacterDisplay');
+        const characterImage = document.getElementById('characterImage');
+        const characterNameDisplay = document.getElementById('characterNameDisplay');
+        const characterStatus = document.getElementById('characterStatus');
+
+        // 鑑定士情報のマップ
+        const characterInfo = {
+            kaede: { name: '楓（かえで）', image: '../../photo/kaede.png' },
+            yukino: { name: '笹岡雪乃（ささおか ゆきの）', image: '../../photo/yukino.png' },
+            sora: { name: '水野ソラ（みずの そら）', image: '../../photo/sora.png' },
+            kaon: { name: '三崎花音（みさき かおん）', image: '../../photo/kaon.png' }
+        };
+
+        // ウェルカムメッセージ
+        const welcomeMessages = {
+            kaede: 'こんにちは。楓と申します。穏やかな日常を何より大切にしながら、あなたのお話を聞かせていただきます。どのようなご相談でしょうか？',
+            yukino: 'こんにちは。笹岡雪乃です。タロットカードや占星術の力を借りて、あなたの運命を読み解かせていただきます。どのようなご相談でしょうか？',
+            sora: 'こんにちは。水野ソラです。まだ修行中の身ですが、あなたの心を読み解きながら、一緒に考えていきましょう。どのようなご相談でしょうか？',
+            kaon: 'こんにちは。三崎花音です。未来予知の能力を使って、あなたの未来を読み解かせていただきます。どのようなご相談でしょうか？'
+        };
+
+        // URLパラメータから鑑定士IDを取得
+        function getCharacterFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const character = urlParams.get('character');
+            const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+            
+            if (character && validCharacters.includes(character)) {
+                return character;
+            }
+            return 'kaede'; // デフォルト
+        }
+
+        // 鑑定士を設定
+        function setCurrentCharacter(characterId) {
+            if (!characterInfo[characterId]) {
+                characterId = 'kaede';
+            }
+            
+            characterSelect.value = characterId;
+            characterSelect.classList.add('selected');
+            
+            // 現在の鑑定士表示を更新
+            const info = characterInfo[characterId];
+            characterImage.src = info.image;
+            characterImage.alt = info.name;
+            characterNameDisplay.textContent = info.name;
+            characterStatus.textContent = '現在の鑑定士';
+            currentCharacterDisplay.style.display = 'flex';
+            
+            // ウェルカムメッセージを表示
+            showWelcomeMessage(characterId);
+        }
+
+        // ウェルカムメッセージを表示
+        function showWelcomeMessage(characterId) {
+            const welcomeMsg = welcomeMessages[characterId] || welcomeMessages.kaede;
+            addMessage('welcome', welcomeMsg, characterInfo[characterId].name);
+        }
+
+        // ページ読み込み時の処理
+        window.addEventListener('DOMContentLoaded', () => {
+            const character = getCharacterFromURL();
+            setCurrentCharacter(character);
+        });
+
+        // 鑑定士選択が変更されたとき
+        characterSelect.addEventListener('change', (e) => {
+            const newCharacter = e.target.value;
+            setCurrentCharacter(newCharacter);
+            // URLを更新（履歴に追加しない）
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('character', newCharacter);
+            window.history.replaceState({}, '', newUrl);
+        });
 
         // Enterキーで送信
         messageInput.addEventListener('keypress', (e) => {
