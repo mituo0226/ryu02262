@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運命を変える4人の鑑定士</title>
+</head>
+<body>
+    <header id="mainHeader">
+        <img src="/freefiles/wall/kaede/rogo.png" alt="ロゴ" id="headerLogo">
+        <h1 id="headerTitle">運命を変える4人の鑑定士</h1>
+    </header>
+
+    <main>
+        <div id="fortuneTellersGrid">
+            <!-- 楓 -->
+            <div class="fortune-teller-card" id="card1">
+                <img src="/freefiles/wall/kaede/kaede.png" alt="楓" class="fortune-teller-photo">
+                <h2>楓（かえで）</h2>
+                <p>静かな日常を何より大切にしながら、必要な人にだけ力を向ける鑑定士。14歳で霊的な感受性に気づき、30代後半から相談に応じるようになる。派手さよりも誠実さ。目の前の一人が自力で立ち上がれるよう伴走する。</p>
+                <a href="[[URL /free/c/kaede]]" class="consult-button">楓を選ぶ</a>
+            </div>
+
+            <!-- 三崎花音 -->
+            <div class="fortune-teller-card" id="card2">
+                <img src="/freefiles/wall/kaede/kaon.png" alt="三崎花音" class="fortune-teller-photo">
+                <h2>三崎花音（みさき かおん）</h2>
+                <p>ユタの系譜に生まれ、幼少期から研鑽を重ねる。未来の"流れ"を読み、人の心の結び目をほどくことを得意とする。倫理を最優先に、誰かを不幸にしてまで叶える願いは扱わない。</p>
+                <a href="[[URL /free/c/kaon]]" class="consult-button">三崎花音を選ぶ</a>
+            </div>
+
+            <!-- 笹岡雪乃 -->
+            <div class="fortune-teller-card" id="card3">
+                <img src="/freefiles/wall/kaede/yukino.png" alt="笹岡雪乃" class="fortune-teller-photo">
+                <h2>笹岡雪乃（ささおか ゆきの）</h2>
+                <p>霊的素養に恵まれ、宗教学の探究と修行を経て、心に寄り添う鑑定を行う。輪廻の視点を踏まえつつも、地に足のついた助言を重んじる。肩書きより実践、言葉より行動。</p>
+                <a href="[[URL /free/c/yukino]]" class="consult-button">笹岡雪乃を選ぶ</a>
+            </div>
+
+            <!-- 水野ソラ -->
+            <div class="fortune-teller-card" id="card4">
+                <img src="/freefiles/wall/kaede/sora.png" alt="水野ソラ" class="fortune-teller-photo">
+                <h2>水野ソラ（みずの そら）</h2>
+                <p>他者の心の動きに敏感で、鍛錬を重ねる中で"前に進むための視点の切り替え"を支援するスタイルに到達。等身大の言葉で、必要な一歩に光を当てる。</p>
+                <a href="[[URL /free/c/sora]]" class="consult-button">水野ソラを選ぶ</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 全体的なスタイル設定
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.boxSizing = 'border-box';
+        document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
+        document.body.style.background = 'linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)';
+        document.body.style.minHeight = '100vh';
+        document.body.style.padding = '20px';
+
+        // ヘッダー
+        const mainHeader = document.getElementById('mainHeader');
+        mainHeader.style.textAlign = 'center';
+        mainHeader.style.padding = '40px 20px';
+        mainHeader.style.position = 'relative';
+
+        const headerLogo = document.getElementById('headerLogo');
+        headerLogo.style.maxWidth = '120px';
+        headerLogo.style.width = '100%';
+        headerLogo.style.height = 'auto';
+        headerLogo.style.marginBottom = '20px';
+        headerLogo.style.filter = 'drop-shadow(0 0 15px rgba(138, 43, 226, 0.6))';
+
+        const headerTitle = document.getElementById('headerTitle');
+        headerTitle.style.fontSize = window.innerWidth <= 768 ? '22px' : '32px';
+        headerTitle.style.color = '#e8d5ff';
+        headerTitle.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.5)';
+        headerTitle.style.marginTop = '20px';
+
+        // グリッド
+        const fortuneTellersGrid = document.getElementById('fortuneTellersGrid');
+        fortuneTellersGrid.style.maxWidth = '1200px';
+        fortuneTellersGrid.style.margin = '0 auto';
+        fortuneTellersGrid.style.display = 'grid';
+        fortuneTellersGrid.style.gridTemplateColumns = window.innerWidth >= 1024 ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(280px, 1fr))';
+        fortuneTellersGrid.style.gap = '30px';
+        fortuneTellersGrid.style.padding = '40px 20px';
+
+        // カードのスタイル設定関数
+        function styleCard(card, delay) {
+            card.style.background = 'rgba(30, 10, 50, 0.7)';
+            card.style.border = '2px solid rgba(138, 43, 226, 0.3)';
+            card.style.borderRadius = '20px';
+            card.style.padding = '30px';
+            card.style.textAlign = 'center';
+            card.style.transition = 'all 0.5s ease';
+            card.style.position = 'relative';
+            card.style.overflow = 'hidden';
+            card.style.backdropFilter = 'blur(10px)';
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(50px)';
+
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+                card.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            }, delay);
+
+            // ホバーエフェクト
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-10px)';
+                card.style.borderColor = 'rgba(138, 43, 226, 0.8)';
+                card.style.boxShadow = '0 10px 40px rgba(138, 43, 226, 0.4)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.style.borderColor = 'rgba(138, 43, 226, 0.3)';
+                card.style.boxShadow = 'none';
+            });
+
+            // 写真
+            const photo = card.querySelector('.fortune-teller-photo');
+            photo.style.width = window.innerWidth <= 768 ? '150px' : '200px';
+            photo.style.height = window.innerWidth <= 768 ? '150px' : '200px';
+            photo.style.objectFit = 'cover';
+            photo.style.borderRadius = '50%';
+            photo.style.border = '3px solid rgba(138, 43, 226, 0.5)';
+            photo.style.marginBottom = '20px';
+            photo.style.filter = 'drop-shadow(0 0 15px rgba(138, 43, 226, 0.4))';
+            photo.style.transition = 'all 0.5s ease';
+
+            card.addEventListener('mouseenter', () => {
+                photo.style.transform = 'scale(1.1)';
+                photo.style.borderColor = 'rgba(138, 43, 226, 0.9)';
+                photo.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                photo.style.transform = 'scale(1)';
+                photo.style.borderColor = 'rgba(138, 43, 226, 0.5)';
+                photo.style.boxShadow = 'none';
+            });
+
+            // h2
+            const h2 = card.querySelector('h2');
+            h2.style.fontSize = window.innerWidth <= 768 ? '22px' : '28px';
+            h2.style.color = '#e8d5ff';
+            h2.style.marginBottom = '15px';
+            h2.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.4)';
+
+            // p
+            const p = card.querySelector('p');
+            p.style.fontSize = window.innerWidth <= 768 ? '14px' : '16px';
+            p.style.color = '#d4c4e8';
+            p.style.lineHeight = '1.8';
+            p.style.marginBottom = '25px';
+            p.style.minHeight = window.innerWidth <= 768 ? '60px' : '80px';
+
+            // ボタン
+            const button = card.querySelector('.consult-button');
+            button.style.display = 'inline-block';
+            button.style.padding = window.innerWidth <= 768 ? '10px 25px' : '12px 30px';
+            button.style.fontSize = window.innerWidth <= 768 ? '16px' : '18px';
+            button.style.color = '#fff';
+            button.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8))';
+            button.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+            button.style.borderRadius = '30px';
+            button.style.textDecoration = 'none';
+            button.style.transition = 'all 0.4s ease';
+            button.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.4)';
+            button.style.position = 'relative';
+            button.style.overflow = 'hidden';
+
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-3px)';
+                button.style.boxShadow = '0 5px 25px rgba(138, 43, 226, 0.6)';
+                button.style.borderColor = 'rgba(138, 43, 226, 0.9)';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(0)';
+                button.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.4)';
+                button.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+            });
+        }
+
+        // カードをスタイル適用
+        styleCard(document.getElementById('card1'), 200);
+        styleCard(document.getElementById('card2'), 400);
+        styleCard(document.getElementById('card3'), 600);
+        styleCard(document.getElementById('card4'), 800);
+
+        // レスポンシブ対応
+        window.addEventListener('resize', () => {
+            headerTitle.style.fontSize = window.innerWidth <= 768 ? '22px' : '32px';
+            fortuneTellersGrid.style.gridTemplateColumns = window.innerWidth >= 1024 ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(280px, 1fr))';
+            
+            const cards = document.querySelectorAll('.fortune-teller-card');
+            cards.forEach(card => {
+                const photo = card.querySelector('.fortune-teller-photo');
+                photo.style.width = window.innerWidth <= 768 ? '150px' : '200px';
+                photo.style.height = window.innerWidth <= 768 ? '150px' : '200px';
+                
+                const h2 = card.querySelector('h2');
+                h2.style.fontSize = window.innerWidth <= 768 ? '22px' : '28px';
+                
+                const p = card.querySelector('p');
+                p.style.fontSize = window.innerWidth <= 768 ? '14px' : '16px';
+                p.style.minHeight = window.innerWidth <= 768 ? '60px' : '80px';
+                
+                const button = card.querySelector('.consult-button');
+                button.style.padding = window.innerWidth <= 768 ? '10px 25px' : '12px 30px';
+                button.style.fontSize = window.innerWidth <= 768 ? '16px' : '18px';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>笹岡雪乃 - 運命の扉</title>
+</head>
+<body>
+    <div id="backgroundParticles">
+        <div id="floatingParticles"></div>
+    </div>
+
+    <div id="detailContentWrapper">
+        <div id="nameSectionV2">
+            <h1 id="nameH1">笹岡雪乃<span id="nameSubtitle">（ささおか ゆきの）</span></h1>
+            <div id="nameDivider"></div>
+            <p id="nameInfo">1988年12月20日生まれ　辰 | 青森県弘前市出身</p>
+        </div>
+
+        <div id="imageContainer">
+            <img src="/freefiles/wall/kaede/yukino.png" alt="笹岡雪乃" id="mainImage">
+            <p id="imageHint">画像をクリックして拡大表示</p>
+            <div id="buttonSection1" class="button-section-v2">
+                <a href="[[URL /free/c/yukinpback]]" class="consult-button">鑑定に進む</a>
+            </div>
+        </div>
+
+        <div id="contentSections">
+            <div id="profileSectionV2">
+                <h2>プロフィール</h2>
+                <p>
+                    幼少の頃より青森県にある恐山のイタコである祖母と生活をし、口寄せによる霊界との交信をできる能力を持っていた。<br><br>
+                    その後、青森県内の大学で宗教学を専攻し、主に仏教の世界に深い信仰心を持っている。<br><br>
+                    大学を卒業後、高野山の総本山この地にて修行を積む。その中で、楓の存在を知り共感を得て弟子入りを志願。<br><br>
+                    しばらくは東京で活動していたが、現在、青森県に戻り、深い霊性や人生を立て直したい相談者が訪れた時のみ、霊能力により鑑定を行っている。
+                </p>
+            </div>
+            <div id="buttonSection2" class="button-section-v2">
+                <a href="[[URL /free/c/yukinpback]]" class="consult-button">鑑定に進む</a>
+            </div>
+
+            <div id="messageSectionV2">
+                <div id="quoteMark1">"</div>
+                <p>
+                    深い悩みや自分の運命に対する戸惑いがある方はご連絡ください。<br><br>
+                    誰にでも、輪廻転生により、前世と来世があり、その中を行き来する中で、ご先祖様やお守りしている神様の存在を知ることで、先が見えることがあります。<br><br>
+                    私は、備わった霊能力により、相談者を霊視し、これから先の運命をアドバイスすることができます。<br><br>
+                    しかしながら、最後は自分の力で立ち上がる勇気と行動力がない限り、人生を立て直すことは難しく、そして愛の力がない限り、運命は好転しない。これは、宇宙全体の真理であります。<br><br>
+                    身近な話題から、どんなことでも良いので、人生相談を承ります。よろしくお願いいたします。
+                </p>
+                <div id="quoteMark2">"</div>
+            </div>
+            <div id="buttonSection3" class="button-section-v2">
+                <a href="[[URL /free/c/yukinpback]]" class="consult-button">鑑定に進む</a>
+            </div>
+
+            <div id="backButtonSection" class="button-section-v2 back-button-section">
+                <a href="[[URL /free/c/main]]" class="back-button">鑑定士一覧に戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全画面画像モーダル -->
+    <div id="imageModal">
+        <span id="closeModal">&times;</span>
+        <img src="/freefiles/wall/kaede/yukino.png" alt="笹岡雪乃" id="modalImage">
+    </div>
+
+    <!-- スマートフォン用フッターボタン -->
+    <div id="mobileFooterButton">
+        <a href="[[URL /free/c/yukinpback]]" class="consult-button">鑑定に進む</a>
+    </div>
+
+    <script>
+        // 全体的なスタイル設定
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.boxSizing = 'border-box';
+        document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
+        document.body.style.background = 'linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)';
+        document.body.style.minHeight = '100vh';
+        document.body.style.padding = window.innerWidth <= 768 ? '20px 15px' : window.innerWidth >= 1024 ? '60px 40px' : '20px';
+        document.body.style.position = 'relative';
+
+        // 背景パーティクル
+        const backgroundParticles = document.getElementById('backgroundParticles');
+        backgroundParticles.style.position = 'fixed';
+        backgroundParticles.style.top = '0';
+        backgroundParticles.style.left = '0';
+        backgroundParticles.style.width = '100%';
+        backgroundParticles.style.height = '100%';
+        backgroundParticles.style.pointerEvents = 'none';
+        backgroundParticles.style.zIndex = '0';
+        backgroundParticles.style.overflow = 'hidden';
+
+        const floatingParticles = document.getElementById('floatingParticles');
+        floatingParticles.style.position = 'absolute';
+        floatingParticles.style.top = '0';
+        floatingParticles.style.left = '0';
+        floatingParticles.style.width = '100%';
+        floatingParticles.style.height = '100%';
+        floatingParticles.style.pointerEvents = 'none';
+
+        // コンテンツラッパー
+        const detailContentWrapper = document.getElementById('detailContentWrapper');
+        detailContentWrapper.style.position = 'relative';
+        detailContentWrapper.style.zIndex = '1';
+        detailContentWrapper.style.maxWidth = '1200px';
+        detailContentWrapper.style.margin = '0 auto';
+        
+        if (window.innerWidth >= 1024) {
+            detailContentWrapper.style.display = 'grid';
+            detailContentWrapper.style.gridTemplateColumns = '1fr 2fr';
+            detailContentWrapper.style.gap = '60px';
+            detailContentWrapper.style.alignItems = 'start';
+        }
+
+        // 名前セクション
+        const nameSectionV2 = document.getElementById('nameSectionV2');
+        nameSectionV2.style.textAlign = 'center';
+        nameSectionV2.style.marginBottom = window.innerWidth >= 1024 ? '40px' : '30px';
+        nameSectionV2.style.opacity = '0';
+        nameSectionV2.style.transform = 'translateY(30px)';
+        nameSectionV2.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+        
+        if (window.innerWidth >= 1024) {
+            nameSectionV2.style.gridColumn = '1 / -1';
+        }
+
+        setTimeout(() => {
+            nameSectionV2.style.opacity = '1';
+            nameSectionV2.style.transform = 'translateY(0)';
+        }, 500);
+
+        const nameH1 = document.getElementById('nameH1');
+        nameH1.style.fontSize = window.innerWidth <= 768 ? '32px' : window.innerWidth >= 1024 ? '52px' : '42px';
+        nameH1.style.color = '#fff';
+        nameH1.style.fontWeight = 'bold';
+        nameH1.style.textShadow = '0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4)';
+        nameH1.style.marginBottom = '10px';
+        nameH1.style.letterSpacing = '2px';
+
+        const nameSubtitle = document.getElementById('nameSubtitle');
+        nameSubtitle.style.fontSize = window.innerWidth <= 768 ? '20px' : window.innerWidth >= 1024 ? '28px' : '24px';
+        nameSubtitle.style.color = '#e8d5ff';
+        nameSubtitle.style.fontWeight = 'normal';
+        nameSubtitle.style.display = 'block';
+        nameSubtitle.style.marginTop = '8px';
+
+        const nameDivider = document.getElementById('nameDivider');
+        nameDivider.style.width = '120px';
+        nameDivider.style.height = '3px';
+        nameDivider.style.background = 'linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.8), transparent)';
+        nameDivider.style.margin = '20px auto';
+        nameDivider.style.boxShadow = '0 0 10px rgba(138, 43, 226, 0.6)';
+
+        const nameInfo = document.getElementById('nameInfo');
+        nameInfo.style.fontSize = '16px';
+        nameInfo.style.color = '#d4c4e8';
+        nameInfo.style.marginTop = '15px';
+        nameInfo.style.opacity = '0.9';
+
+        // 画像コンテナ
+        const imageContainer = document.getElementById('imageContainer');
+        imageContainer.style.textAlign = 'center';
+        imageContainer.style.marginBottom = '30px';
+        imageContainer.style.opacity = '0';
+        imageContainer.style.transform = 'translateY(30px)';
+        imageContainer.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+        
+        if (window.innerWidth >= 1024) {
+            imageContainer.style.position = 'sticky';
+            imageContainer.style.top = '100px';
+            imageContainer.style.marginBottom = '0';
+        }
+
+        setTimeout(() => {
+            imageContainer.style.opacity = '1';
+            imageContainer.style.transform = 'translateY(0)';
+        }, 300);
+
+        const mainImage = document.getElementById('mainImage');
+        mainImage.style.width = window.innerWidth <= 768 ? '250px' : window.innerWidth >= 1024 ? '350px' : '280px';
+        mainImage.style.height = window.innerWidth <= 768 ? '250px' : window.innerWidth >= 1024 ? '350px' : '280px';
+        mainImage.style.objectFit = 'cover';
+        mainImage.style.borderRadius = '20px';
+        mainImage.style.border = '3px solid rgba(138, 43, 226, 0.6)';
+        mainImage.style.cursor = 'pointer';
+        mainImage.style.transition = 'all 0.3s ease';
+        mainImage.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.4), 0 10px 40px rgba(138, 43, 226, 0.2)';
+        mainImage.style.display = 'inline-block';
+
+        mainImage.addEventListener('mouseenter', () => {
+            mainImage.style.transform = 'scale(1.05)';
+            mainImage.style.boxShadow = '0 0 40px rgba(138, 43, 226, 0.8), 0 15px 60px rgba(138, 43, 226, 0.4)';
+            mainImage.style.borderColor = 'rgba(138, 43, 226, 0.9)';
+        });
+
+        mainImage.addEventListener('mouseleave', () => {
+            mainImage.style.transform = 'scale(1)';
+            mainImage.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.4), 0 10px 40px rgba(138, 43, 226, 0.2)';
+            mainImage.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+        });
+
+        const imageHint = document.getElementById('imageHint');
+        imageHint.style.marginTop = '15px';
+        imageHint.style.fontSize = window.innerWidth <= 768 ? '12px' : '14px';
+        imageHint.style.color = '#d4c4e8';
+        imageHint.style.opacity = '0.8';
+        imageHint.style.textAlign = 'center';
+
+        // プロフィールセクション
+        const profileSectionV2 = document.getElementById('profileSectionV2');
+        profileSectionV2.style.background = 'rgba(30, 10, 50, 0.85)';
+        profileSectionV2.style.border = '2px solid rgba(138, 43, 226, 0.4)';
+        profileSectionV2.style.borderRadius = '20px';
+        profileSectionV2.style.padding = window.innerWidth <= 768 ? '25px 20px' : window.innerWidth >= 1024 ? '40px' : '30px';
+        profileSectionV2.style.marginBottom = window.innerWidth >= 1024 ? '40px' : '30px';
+        profileSectionV2.style.backdropFilter = 'blur(10px)';
+        profileSectionV2.style.boxShadow = '0 10px 40px rgba(138, 43, 226, 0.2)';
+        profileSectionV2.style.opacity = '0';
+        profileSectionV2.style.transform = 'translateY(30px)';
+        profileSectionV2.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+
+        if (window.innerWidth >= 1024) {
+            const contentSections = document.getElementById('contentSections');
+            contentSections.style.gridColumn = '2';
+        }
+
+        setTimeout(() => {
+            profileSectionV2.style.opacity = '1';
+            profileSectionV2.style.transform = 'translateY(0)';
+        }, 700);
+
+        const profileH2 = profileSectionV2.querySelector('h2');
+        profileH2.style.fontSize = window.innerWidth <= 768 ? '20px' : '22px';
+        profileH2.style.color = '#e8d5ff';
+        profileH2.style.marginBottom = '20px';
+        profileH2.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.5)';
+        profileH2.style.borderLeft = '4px solid rgba(138, 43, 226, 0.8)';
+        profileH2.style.paddingLeft = '15px';
+
+        const profileP = profileSectionV2.querySelector('p');
+        profileP.style.fontSize = window.innerWidth <= 768 ? '15px' : '17px';
+        profileP.style.lineHeight = window.innerWidth <= 768 ? '1.8' : '2';
+        profileP.style.color = '#d4c4e8';
+        profileP.style.textAlign = 'left';
+
+        // メッセージセクション
+        const messageSectionV2 = document.getElementById('messageSectionV2');
+        messageSectionV2.style.background = 'rgba(138, 43, 226, 0.1)';
+        messageSectionV2.style.border = '2px solid rgba(138, 43, 226, 0.5)';
+        messageSectionV2.style.borderRadius = '20px';
+        messageSectionV2.style.padding = window.innerWidth <= 768 ? '30px 20px' : window.innerWidth >= 1024 ? '50px 40px' : '40px 30px';
+        messageSectionV2.style.marginBottom = window.innerWidth >= 1024 ? '40px' : '30px';
+        messageSectionV2.style.backdropFilter = 'blur(10px)';
+        messageSectionV2.style.position = 'relative';
+        messageSectionV2.style.boxShadow = '0 10px 40px rgba(138, 43, 226, 0.3)';
+        messageSectionV2.style.opacity = '0';
+        messageSectionV2.style.transform = 'translateY(30px)';
+        messageSectionV2.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+
+        setTimeout(() => {
+            messageSectionV2.style.opacity = '1';
+            messageSectionV2.style.transform = 'translateY(0)';
+        }, 900);
+
+        const quoteMark1 = document.getElementById('quoteMark1');
+        quoteMark1.style.fontSize = window.innerWidth <= 768 ? '50px' : '70px';
+        quoteMark1.style.color = 'rgba(138, 43, 226, 0.3)';
+        quoteMark1.style.position = 'absolute';
+        quoteMark1.style.top = window.innerWidth <= 768 ? '10px' : '15px';
+        quoteMark1.style.left = window.innerWidth <= 768 ? '15px' : '25px';
+        quoteMark1.style.fontFamily = 'serif';
+        quoteMark1.style.lineHeight = '1';
+
+        const quoteMark2 = document.getElementById('quoteMark2');
+        quoteMark2.style.fontSize = window.innerWidth <= 768 ? '50px' : '70px';
+        quoteMark2.style.color = 'rgba(138, 43, 226, 0.3)';
+        quoteMark2.style.position = 'absolute';
+        quoteMark2.style.bottom = window.innerWidth <= 768 ? '10px' : '15px';
+        quoteMark2.style.right = window.innerWidth <= 768 ? '15px' : '25px';
+        quoteMark2.style.transform = 'rotate(180deg)';
+        quoteMark2.style.fontFamily = 'serif';
+        quoteMark2.style.lineHeight = '1';
+
+        const messageP = messageSectionV2.querySelector('p');
+        messageP.style.fontSize = window.innerWidth <= 768 ? '17px' : '20px';
+        messageP.style.lineHeight = window.innerWidth <= 768 ? '1.8' : '2';
+        messageP.style.color = '#fff';
+        messageP.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.3)';
+        messageP.style.position = 'relative';
+        messageP.style.zIndex = '1';
+        messageP.style.textAlign = 'center';
+
+        // ボタンセクション
+        function styleButtonSection(sectionId, delay) {
+            const section = document.getElementById(sectionId);
+            section.style.textAlign = 'center';
+            section.style.margin = '30px 0';
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(30px)';
+            section.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            
+            setTimeout(() => {
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, delay);
+
+            // PCでは特定のボタンを非表示
+            if (window.innerWidth >= 1024) {
+                if (sectionId === 'buttonSection1' || sectionId === 'buttonSection2') {
+                    section.style.display = 'none';
+                }
+            }
+
+            const button = section.querySelector('.consult-button');
+            if (button) {
+                button.style.display = 'inline-block';
+                button.style.padding = window.innerWidth <= 768 ? '15px 40px' : '18px 50px';
+                button.style.fontSize = window.innerWidth <= 768 ? '18px' : '22px';
+                button.style.color = '#fff';
+                button.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9))';
+                button.style.border = '3px solid rgba(138, 43, 226, 0.8)';
+                button.style.borderRadius = '50px';
+                button.style.textDecoration = 'none';
+                button.style.transition = 'all 0.5s ease';
+                button.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3)';
+                button.style.position = 'relative';
+                button.style.overflow = 'hidden';
+                button.style.cursor = 'pointer';
+                if (window.innerWidth <= 768) {
+                    button.style.width = '100%';
+                    button.style.maxWidth = '300px';
+                }
+
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'translateY(-5px) scale(1.05)';
+                    button.style.boxShadow = '0 0 40px rgba(138, 43, 226, 0.8), 0 0 80px rgba(138, 43, 226, 0.4)';
+                });
+
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'translateY(0) scale(1)';
+                    button.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3)';
+                });
+            }
+        }
+
+        styleButtonSection('buttonSection1', 1100);
+        styleButtonSection('buttonSection2', 1100);
+        styleButtonSection('buttonSection3', 1100);
+
+        // 戻るボタン
+        const backButtonSection = document.getElementById('backButtonSection');
+        backButtonSection.style.marginTop = '40px';
+        backButtonSection.style.opacity = '0';
+        backButtonSection.style.transform = 'translateY(30px)';
+        backButtonSection.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+
+        setTimeout(() => {
+            backButtonSection.style.opacity = '1';
+            backButtonSection.style.transform = 'translateY(0)';
+        }, 1300);
+
+        const backButton = backButtonSection.querySelector('.back-button');
+        backButton.style.display = 'inline-block';
+        backButton.style.padding = '15px 40px';
+        backButton.style.fontSize = '18px';
+        backButton.style.color = '#e8d5ff';
+        backButton.style.background = 'transparent';
+        backButton.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+        backButton.style.borderRadius = '50px';
+        backButton.style.textDecoration = 'none';
+        backButton.style.transition = 'all 0.5s ease';
+        backButton.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.3)';
+        backButton.style.position = 'relative';
+        backButton.style.overflow = 'hidden';
+        backButton.style.cursor = 'pointer';
+
+        backButton.addEventListener('mouseenter', () => {
+            backButton.style.background = 'rgba(138, 43, 226, 0.2)';
+            backButton.style.borderColor = 'rgba(138, 43, 226, 0.9)';
+            backButton.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.5)';
+            backButton.style.transform = 'translateY(-3px)';
+        });
+
+        backButton.addEventListener('mouseleave', () => {
+            backButton.style.background = 'transparent';
+            backButton.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+            backButton.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.3)';
+            backButton.style.transform = 'translateY(0)';
+        });
+
+        // 画像モーダル
+        const imageModal = document.getElementById('imageModal');
+        imageModal.style.display = 'none';
+        imageModal.style.position = 'fixed';
+        imageModal.style.top = '0';
+        imageModal.style.left = '0';
+        imageModal.style.width = '100%';
+        imageModal.style.height = '100%';
+        imageModal.style.background = 'rgba(0, 0, 0, 0.95)';
+        imageModal.style.zIndex = '1000';
+        imageModal.style.alignItems = 'center';
+        imageModal.style.justifyContent = 'center';
+
+        const closeModal = document.getElementById('closeModal');
+        closeModal.style.position = 'absolute';
+        closeModal.style.top = window.innerWidth <= 768 ? '10px' : '20px';
+        closeModal.style.right = window.innerWidth <= 768 ? '15px' : '30px';
+        closeModal.style.fontSize = window.innerWidth <= 768 ? '30px' : '40px';
+        closeModal.style.color = '#fff';
+        closeModal.style.cursor = 'pointer';
+        closeModal.style.background = 'rgba(138, 43, 226, 0.3)';
+        closeModal.style.borderRadius = '50%';
+        closeModal.style.width = window.innerWidth <= 768 ? '40px' : '50px';
+        closeModal.style.height = window.innerWidth <= 768 ? '40px' : '50px';
+        closeModal.style.display = 'flex';
+        closeModal.style.alignItems = 'center';
+        closeModal.style.justifyContent = 'center';
+        closeModal.style.transition = 'all 0.3s ease';
+        closeModal.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+
+        closeModal.addEventListener('mouseenter', () => {
+            closeModal.style.background = 'rgba(138, 43, 226, 0.6)';
+            closeModal.style.transform = 'rotate(90deg)';
+        });
+
+        closeModal.addEventListener('mouseleave', () => {
+            closeModal.style.background = 'rgba(138, 43, 226, 0.3)';
+            closeModal.style.transform = 'rotate(0deg)';
+        });
+
+        const modalImage = document.getElementById('modalImage');
+        modalImage.style.maxWidth = window.innerWidth <= 768 ? '95%' : '90%';
+        modalImage.style.maxHeight = window.innerWidth <= 768 ? '85vh' : '90vh';
+        modalImage.style.objectFit = 'contain';
+        modalImage.style.borderRadius = '10px';
+        modalImage.style.boxShadow = '0 0 50px rgba(138, 43, 226, 0.6)';
+
+        mainImage.addEventListener('click', () => {
+            imageModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeModal.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+            document.body.style.overflow = '';
+        });
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && imageModal.style.display === 'flex') {
+                imageModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+
+        // スマートフォン用フッターボタン
+        const mobileFooterButton = document.getElementById('mobileFooterButton');
+        if (window.innerWidth <= 768) {
+            mobileFooterButton.style.display = 'block';
+            document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
+        } else {
+            mobileFooterButton.style.display = 'none';
+        }
+
+        mobileFooterButton.style.position = 'fixed';
+        mobileFooterButton.style.bottom = 'env(safe-area-inset-bottom, 0px)';
+        mobileFooterButton.style.left = '0';
+        mobileFooterButton.style.right = '0';
+        mobileFooterButton.style.width = '100%';
+        mobileFooterButton.style.padding = 'calc(16px + env(safe-area-inset-bottom, 0px)) 20px';
+        mobileFooterButton.style.background = 'linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 1) 100%)';
+        mobileFooterButton.style.borderTop = '2px solid rgba(138, 43, 226, 0.6)';
+        mobileFooterButton.style.boxShadow = '0 -5px 30px rgba(138, 43, 226, 0.3)';
+        mobileFooterButton.style.zIndex = '9999';
+        mobileFooterButton.style.backdropFilter = 'blur(10px)';
+        mobileFooterButton.style.boxSizing = 'border-box';
+
+        const footerButton = mobileFooterButton.querySelector('.consult-button');
+        if (footerButton) {
+            footerButton.style.width = '100%';
+            footerButton.style.maxWidth = 'none';
+            footerButton.style.margin = '0';
+            footerButton.style.padding = '18px 30px';
+            footerButton.style.fontSize = '20px';
+            footerButton.style.borderRadius = '30px';
+            footerButton.style.textAlign = 'center';
+            footerButton.style.display = 'flex';
+            footerButton.style.alignItems = 'center';
+            footerButton.style.justifyContent = 'center';
+            footerButton.style.boxSizing = 'border-box';
+            footerButton.style.color = '#fff';
+            footerButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9))';
+            footerButton.style.border = '3px solid rgba(138, 43, 226, 0.8)';
+            footerButton.style.textDecoration = 'none';
+            footerButton.style.transition = 'all 0.5s ease';
+            footerButton.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.3)';
+            footerButton.style.position = 'relative';
+            footerButton.style.overflow = 'hidden';
+            footerButton.style.cursor = 'pointer';
+            footerButton.style.fontWeight = 'bold';
+        }
+
+        // スマホでは通常のボタンを非表示
+        if (window.innerWidth <= 768) {
+            document.querySelectorAll('.button-section-v2').forEach(section => {
+                if (section !== backButtonSection) {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        // パーティクルエフェクト
+        function createFloatingParticle() {
+            const particle = document.createElement('div');
+            
+            const size = Math.random() * 3 + 1;
+            const x = Math.random() * 100;
+            const duration = Math.random() * 15 + 10;
+            const delay = Math.random() * 2;
+            
+            particle.style.position = 'absolute';
+            particle.style.background = 'rgba(138, 43, 226, 0.5)';
+            particle.style.borderRadius = '50%';
+            particle.style.boxShadow = '0 0 8px rgba(138, 43, 226, 0.8)';
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = x + '%';
+            particle.style.bottom = '-10px';
+            particle.style.opacity = '0';
+            
+            floatingParticles.appendChild(particle);
+            
+            setTimeout(() => {
+                let currentY = 0;
+                let currentOpacity = 0;
+                let currentScale = 0;
+                const startTime = Date.now();
+                const animationDuration = duration * 1000;
+                
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / animationDuration;
+                    
+                    if (progress < 1) {
+                        currentY = progress * (window.innerHeight + 20);
+                        currentScale = progress;
+                        if (progress < 0.1) {
+                            currentOpacity = progress * 10;
+                        } else if (progress > 0.9) {
+                            currentOpacity = (1 - progress) * 10;
+                        } else {
+                            currentOpacity = 1;
+                        }
+                        
+                        particle.style.transform = `translateY(-${currentY}px) scale(${currentScale})`;
+                        particle.style.opacity = currentOpacity;
+                        requestAnimationFrame(animate);
+                    } else {
+                        particle.remove();
+                    }
+                }
+                
+                animate();
+            }, delay * 1000);
+        }
+
+        setInterval(createFloatingParticle, 1500);
+
+        // 画像のグローエフェクト
+        let glowIntensity = 0.4;
+        let glowDirection = 1;
+        
+        setInterval(() => {
+            glowIntensity += glowDirection * 0.02;
+            if (glowIntensity >= 0.8) {
+                glowIntensity = 0.8;
+                glowDirection = -1;
+            } else if (glowIntensity <= 0.4) {
+                glowIntensity = 0.4;
+                glowDirection = 1;
+            }
+            mainImage.style.boxShadow = `0 0 25px rgba(138, 43, 226, ${glowIntensity}), 0 10px 40px rgba(138, 43, 226, ${glowIntensity * 0.5})`;
+        }, 100);
+
+        // レスポンシブ対応
+        window.addEventListener('resize', () => {
+            document.body.style.padding = window.innerWidth <= 768 ? '20px 15px' : window.innerWidth >= 1024 ? '60px 40px' : '20px';
+            
+            if (window.innerWidth >= 1024) {
+                detailContentWrapper.style.display = 'grid';
+                detailContentWrapper.style.gridTemplateColumns = '1fr 2fr';
+                detailContentWrapper.style.gap = '60px';
+                detailContentWrapper.style.alignItems = 'start';
+                nameSectionV2.style.gridColumn = '1 / -1';
+                imageContainer.style.position = 'sticky';
+                imageContainer.style.top = '100px';
+                const contentSections = document.getElementById('contentSections');
+                contentSections.style.gridColumn = '2';
+                document.getElementById('buttonSection1').style.display = 'none';
+                document.getElementById('buttonSection2').style.display = 'none';
+            } else {
+                detailContentWrapper.style.display = 'block';
+                nameSectionV2.style.gridColumn = 'auto';
+                imageContainer.style.position = 'static';
+                const contentSections = document.getElementById('contentSections');
+                contentSections.style.gridColumn = 'auto';
+            }
+
+            if (window.innerWidth <= 768) {
+                mobileFooterButton.style.display = 'block';
+                document.body.style.paddingBottom = 'calc(110px + env(safe-area-inset-bottom, 0px))';
+                document.querySelectorAll('.button-section-v2').forEach(section => {
+                    if (section !== backButtonSection) {
+                        section.style.display = 'none';
+                    }
+                });
+            } else {
+                mobileFooterButton.style.display = 'none';
+                document.body.style.paddingBottom = '';
+                document.querySelectorAll('.button-section-v2').forEach(section => {
+                    section.style.display = 'block';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

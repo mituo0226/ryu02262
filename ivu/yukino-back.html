@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>笹岡雪乃への導き - 運命の扉</title>
+</head>
+<body>
+    <div id="imageTransitionContainer">
+        <img src="/freefiles/wall/kaede/yukino.png" alt="笹岡雪乃" id="fortuneImage">
+        <video 
+            src="/freefiles/wall/kaede/back.mp4" 
+            id="backVideo"
+            playsinline
+            webkit-playsinline
+            autoplay
+            muted
+            preload="auto"
+            loop
+        ></video>
+        
+        <div id="messageFlow">
+            <p id="messageText"></p>
+        </div>
+
+        <div id="finalButtonContainer">
+            <a href="[[URL /send/form?systemid=297967068]]" id="talkButton">笹岡雪乃に話しかける</a>
+        </div>
+    </div>
+
+    <script>
+        // デバイス判定
+        const isMobile = window.innerWidth <= 768;
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isiPhone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const fortuneTellerName = '笹岡雪乃';
+
+        // html要素のスタイル
+        document.documentElement.style.margin = '0';
+        document.documentElement.style.padding = '0';
+        document.documentElement.style.width = '100%';
+        document.documentElement.style.height = '100%';
+        document.documentElement.style.overflow = 'hidden';
+
+        // bodyスタイル
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.boxSizing = 'border-box';
+        document.body.style.background = '#0a0a0a';
+        document.body.style.overflow = 'hidden';
+        if (isMobile) {
+            // モバイル: flexboxを無効化して画面いっぱいに表示（Android全画面対応）
+            document.body.style.position = 'fixed';
+            document.body.style.top = '0';
+            document.body.style.left = '0';
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
+            document.body.style.display = 'block';
+            document.body.style.minHeight = '100dvh';
+        } else {
+            document.body.style.position = 'relative';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
+            document.body.style.display = 'flex';
+            document.body.style.alignItems = 'center';
+            document.body.style.justifyContent = 'center';
+            document.body.style.minHeight = '100vh';
+        }
+        document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
+
+        // image-transition-container
+        const imageTransitionContainer = document.getElementById('imageTransitionContainer');
+        imageTransitionContainer.style.position = 'relative';
+        if (isMobile) {
+            // モバイル: 画面いっぱい
+            imageTransitionContainer.style.position = 'fixed';
+            imageTransitionContainer.style.top = '0';
+            imageTransitionContainer.style.left = '0';
+            imageTransitionContainer.style.width = '100vw';
+            imageTransitionContainer.style.height = '100dvh'; // Android対応: dvh使用
+            imageTransitionContainer.style.display = 'block';
+        } else {
+            imageTransitionContainer.style.width = '100%';
+            imageTransitionContainer.style.height = '100vh';
+            imageTransitionContainer.style.display = 'flex';
+            imageTransitionContainer.style.alignItems = 'center';
+            imageTransitionContainer.style.justifyContent = 'center';
+        }
+
+        // fortune-teller-image-back
+        const fortuneImage = document.getElementById('fortuneImage');
+        if (isMobile) {
+            // モバイル: 画面いっぱい（Android端末の縦横比の違いに対応）
+            // position: absoluteで親要素（imageTransitionContainer）を基準にする
+            // 親要素が既に100vw/100dvhを持っているので、子要素は%で親要素に合わせる
+            fortuneImage.style.position = 'absolute';
+            fortuneImage.style.top = '0';
+            fortuneImage.style.left = '0';
+            fortuneImage.style.width = '100%';
+            fortuneImage.style.height = '100%';
+            fortuneImage.style.objectFit = 'cover';
+            fortuneImage.style.objectPosition = 'center';
+            // 画像の縦横比を維持しつつ、親要素を完全にカバー
+            // 親要素が既に画面いっぱい（100vw/100dvh）なので、子要素も画面いっぱいになる
+        } else {
+            // PC: 画面中心に適度な大きさ
+            fortuneImage.style.position = 'absolute';
+            fortuneImage.style.width = '60%';
+            fortuneImage.style.maxWidth = '800px';
+            fortuneImage.style.height = 'auto';
+            fortuneImage.style.maxHeight = '80vh';
+            fortuneImage.style.objectFit = 'contain';
+            fortuneImage.style.objectPosition = 'center';
+            fortuneImage.style.top = '50%';
+            fortuneImage.style.left = '50%';
+            fortuneImage.style.transform = 'translate(-50%, -50%)';
+        }
+        fortuneImage.style.opacity = '1';
+        fortuneImage.style.zIndex = '1';
+        fortuneImage.style.boxSizing = 'border-box';
+
+        // フェードアウトアニメーション（5秒、0.5秒後に開始）
+        let fortuneImageOpacity = 1;
+        let fortuneImageZIndex = 1;
+        const fortuneImageStartTime = Date.now();
+        
+        function animateFortuneImageFadeOut() {
+            const elapsed = Date.now() - fortuneImageStartTime - 500;
+            if (elapsed < 0) {
+                requestAnimationFrame(animateFortuneImageFadeOut);
+                return;
+            }
+            
+            const duration = 5000;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            if (progress <= 0.3) {
+                fortuneImageOpacity = 1 - (progress / 0.3) * 0.2;
+            } else if (progress <= 0.5) {
+                fortuneImageOpacity = 0.8 - ((progress - 0.3) / 0.2) * 0.2;
+            } else if (progress <= 0.7) {
+                fortuneImageOpacity = 0.6 - ((progress - 0.5) / 0.2) * 0.2;
+            } else if (progress <= 0.85) {
+                fortuneImageOpacity = 0.4 - ((progress - 0.7) / 0.15) * 0.2;
+            } else {
+                fortuneImageOpacity = 0.2 - ((progress - 0.85) / 0.15) * 0.2;
+                if (progress >= 1) {
+                    fortuneImageZIndex = 0;
+                }
+            }
+            
+            fortuneImage.style.opacity = fortuneImageOpacity;
+            fortuneImage.style.zIndex = fortuneImageZIndex;
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateFortuneImageFadeOut);
+            }
+        }
+        
+        setTimeout(() => {
+            requestAnimationFrame(animateFortuneImageFadeOut);
+        }, 500);
+
+        // back-video
+        const backVideo = document.getElementById('backVideo');
+        backVideo.style.position = 'absolute';
+        backVideo.style.width = '100%';
+        backVideo.style.height = '100%';
+        backVideo.style.objectFit = 'cover';
+        backVideo.style.objectPosition = 'center';
+        backVideo.style.opacity = '0';
+        backVideo.style.transform = 'scale(1)';
+        backVideo.style.zIndex = '2';
+
+        // iPhoneでの動画表示制限を回避
+        backVideo.setAttribute('playsinline', 'true');
+        backVideo.setAttribute('webkit-playsinline', 'true');
+        backVideo.setAttribute('x5-video-player-type', 'h5');
+        backVideo.setAttribute('x5-video-player-fullscreen', 'true');
+        backVideo.setAttribute('x5-video-orientation', 'portrait');
+        
+        backVideo.loop = true;
+        
+        backVideo.addEventListener('loadedmetadata', () => {
+            backVideo.play().catch(err => {
+                console.log('自動再生がブロックされました:', err);
+            });
+        });
+
+        setTimeout(() => {
+            backVideo.play().catch(err => {
+                console.log('動画再生エラー:', err);
+            });
+        }, 1000);
+
+        // フェードイン＋ズームアウトアニメーション（5.5秒、1秒後に開始）
+        let backVideoOpacity = 0;
+        let backVideoScale = 1;
+        const backVideoStartTime = Date.now();
+        
+        function animateBackVideoFadeInZoomOut() {
+            const elapsed = Date.now() - backVideoStartTime - 1000;
+            if (elapsed < 0) {
+                requestAnimationFrame(animateBackVideoFadeInZoomOut);
+                return;
+            }
+            
+            const duration = 5500;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            if (progress <= 0.2) {
+                backVideoOpacity = (progress / 0.2) * 0.3;
+                backVideoScale = 1;
+            } else if (progress <= 0.4) {
+                backVideoOpacity = 0.3 + ((progress - 0.2) / 0.2) * 0.3;
+                backVideoScale = 1;
+            } else if (progress <= 0.6) {
+                backVideoOpacity = 0.6 + ((progress - 0.4) / 0.2) * 0.2;
+                backVideoScale = 1 + ((progress - 0.4) / 0.2) * 0.1;
+            } else if (progress <= 0.8) {
+                backVideoOpacity = 0.8 + ((progress - 0.6) / 0.2) * 0.15;
+                backVideoScale = 1.1 + ((progress - 0.6) / 0.2) * 0.2;
+            } else {
+                backVideoOpacity = 0.95 + ((progress - 0.8) / 0.2) * 0.05;
+                backVideoScale = 1.3 + ((progress - 0.8) / 0.2) * 0.2;
+            }
+            
+            backVideo.style.opacity = backVideoOpacity;
+            backVideo.style.transform = `scale(${backVideoScale})`;
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateBackVideoFadeInZoomOut);
+            }
+        }
+        
+        setTimeout(() => {
+            requestAnimationFrame(animateBackVideoFadeInZoomOut);
+        }, 1000);
+
+        // message-flow
+        const messageFlow = document.getElementById('messageFlow');
+        messageFlow.style.position = 'absolute';
+        // モバイル端末ではメッセージを少し上に配置してボタンとの間隔を確保
+        if (isMobile) {
+            // ボタンが下部に固定されているため、メッセージを上部に配置
+            messageFlow.style.top = isAndroid ? '35%' : '40%';
+            messageFlow.style.maxHeight = '40vh';
+            messageFlow.style.overflowY = 'auto';
+        } else {
+            messageFlow.style.top = '50%';
+        }
+        messageFlow.style.left = '50%';
+        messageFlow.style.transform = 'translate(-50%, -50%)';
+        messageFlow.style.zIndex = '10';
+        messageFlow.style.textAlign = 'center';
+        messageFlow.style.opacity = '0';
+        messageFlow.style.visibility = 'hidden';
+        messageFlow.style.background = 'rgba(0, 0, 0, 0.7)';
+        messageFlow.style.padding = isMobile ? '25px 30px' : '30px 40px';
+        messageFlow.style.borderRadius = '20px';
+        messageFlow.style.backdropFilter = 'blur(10px)';
+        messageFlow.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.5)';
+        messageFlow.style.minWidth = isMobile ? '250px' : '300px';
+        messageFlow.style.maxWidth = isMobile ? '85%' : '500px';
+        messageFlow.style.boxSizing = 'border-box';
+
+        const messageText = document.getElementById('messageText');
+        messageText.style.margin = '0';
+        messageText.style.padding = '0';
+        messageText.style.lineHeight = '1.8';
+        messageText.style.fontSize = isMobile ? '18px' : '28px';
+        messageText.style.color = '#fff';
+        messageText.style.textShadow = '0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.5)';
+        messageText.style.letterSpacing = '2px';
+        messageText.style.fontWeight = '300';
+
+        // final-button-container
+        const finalButtonContainer = document.getElementById('finalButtonContainer');
+        if (isMobile) {
+            // モバイル: 画面下部に固定（画面内にしっかり表示されるように調整）
+            finalButtonContainer.style.position = 'fixed';
+            finalButtonContainer.style.bottom = '0';
+            finalButtonContainer.style.left = '0';
+            finalButtonContainer.style.right = '0';
+            finalButtonContainer.style.width = '100%';
+            finalButtonContainer.style.maxWidth = '100%';
+            finalButtonContainer.style.paddingTop = '20px';
+            finalButtonContainer.style.paddingLeft = '20px';
+            finalButtonContainer.style.paddingRight = '20px';
+            finalButtonContainer.style.paddingBottom = 'calc(20px + env(safe-area-inset-bottom, 0px))';
+            finalButtonContainer.style.background = 'linear-gradient(180deg, rgba(10, 10, 10, 0) 0%, rgba(10, 10, 10, 0.95) 30%, rgba(10, 10, 10, 1) 100%)';
+            finalButtonContainer.style.boxSizing = 'border-box';
+            finalButtonContainer.style.zIndex = '10';
+        } else {
+            // PC: 文字の下側
+            finalButtonContainer.style.position = 'absolute';
+            finalButtonContainer.style.bottom = '150px';
+            finalButtonContainer.style.left = '50%';
+            finalButtonContainer.style.transform = 'translateX(-50%)';
+            finalButtonContainer.style.background = 'rgba(0, 0, 0, 0.5)';
+            finalButtonContainer.style.padding = '20px';
+            finalButtonContainer.style.borderRadius = '20px';
+            finalButtonContainer.style.backdropFilter = 'blur(10px)';
+            finalButtonContainer.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.5)';
+            finalButtonContainer.style.zIndex = '10';
+        }
+        finalButtonContainer.style.opacity = '0';
+
+        // ボタンフェードインアニメーション（9秒後に開始）
+        let buttonContainerOpacity = 0;
+        let buttonContainerY = 20;
+        const buttonContainerStartTime = Date.now();
+        
+        function animateButtonContainerFadeIn() {
+            const elapsed = Date.now() - buttonContainerStartTime - 9000;
+            if (elapsed < 0) {
+                requestAnimationFrame(animateButtonContainerFadeIn);
+                return;
+            }
+            
+            const duration = 1500;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            buttonContainerOpacity = progress;
+            buttonContainerY = 20 * (1 - progress);
+            
+            finalButtonContainer.style.opacity = buttonContainerOpacity;
+            if (isMobile) {
+                finalButtonContainer.style.transform = `translateY(${buttonContainerY}px)`;
+            } else {
+                finalButtonContainer.style.transform = `translateX(-50%) translateY(${buttonContainerY}px)`;
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateButtonContainerFadeIn);
+            }
+        }
+        
+        setTimeout(() => {
+            requestAnimationFrame(animateButtonContainerFadeIn);
+        }, 9000);
+
+        // talk-button
+        const talkButton = document.getElementById('talkButton');
+        talkButton.style.display = 'inline-flex';
+        talkButton.style.alignItems = 'center';
+        talkButton.style.justifyContent = 'center';
+        talkButton.style.padding = isMobile ? '20px 30px' : '25px 60px';
+        talkButton.style.fontSize = isMobile ? '22px' : '26px';
+        talkButton.style.color = '#fff';
+        talkButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95))';
+        talkButton.style.border = '3px solid rgba(138, 43, 226, 0.9)';
+        talkButton.style.borderRadius = '50px';
+        talkButton.style.textDecoration = 'none';
+        talkButton.style.transition = 'all 0.5s ease';
+        talkButton.style.boxShadow = '0 0 40px rgba(138, 43, 226, 0.7), 0 0 80px rgba(138, 43, 226, 0.4)';
+        talkButton.style.position = 'relative';
+        talkButton.style.overflow = 'hidden';
+        talkButton.style.cursor = 'pointer';
+        talkButton.style.textAlign = 'center';
+        if (isMobile) {
+            // モバイル: 画面幅に合わせて、左右に余白を設ける
+            talkButton.style.width = 'calc(100% - 40px)';
+            talkButton.style.maxWidth = '100%';
+            talkButton.style.margin = '0 auto';
+            talkButton.style.display = 'flex';
+        } else {
+            talkButton.style.width = '100%';
+            talkButton.style.maxWidth = '400px';
+        }
+        talkButton.style.boxSizing = 'border-box';
+        talkButton.style.fontWeight = 'bold';
+        talkButton.style.minHeight = isMobile ? '56px' : 'auto';
+
+        // ホバーエフェクト（PCのみ）
+        if (!isMobile) {
+            talkButton.addEventListener('mouseenter', () => {
+                talkButton.style.transform = 'translateY(-5px) scale(1.05)';
+                talkButton.style.boxShadow = '0 0 50px rgba(138, 43, 226, 0.9), 0 0 100px rgba(138, 43, 226, 0.5)';
+            });
+
+            talkButton.addEventListener('mouseleave', () => {
+                talkButton.style.transform = 'translateY(0) scale(1)';
+                talkButton.style.boxShadow = '0 0 40px rgba(138, 43, 226, 0.7), 0 0 80px rgba(138, 43, 226, 0.4)';
+            });
+        } else {
+            // モバイル: タッチフィードバック
+            talkButton.addEventListener('touchstart', () => {
+                talkButton.style.transform = 'scale(0.98)';
+                talkButton.style.opacity = '0.9';
+            });
+            
+            talkButton.addEventListener('touchend', () => {
+                talkButton.style.transform = 'scale(1)';
+                talkButton.style.opacity = '1';
+            });
+        }
+
+        // タイプライターエフェクト
+        const fullText = 'あなたの心を打ち明けなさい';
+        let currentIndex = 0;
+        
+        function typeWriter() {
+            if (currentIndex < fullText.length) {
+                if (fullText[currentIndex] === '\n') {
+                    messageText.innerHTML += '<br>';
+                } else {
+                    messageText.innerHTML += fullText[currentIndex];
+                }
+                currentIndex++;
+                setTimeout(typeWriter, 100);
+            } else {
+                // タイプライター完了後、カーソルを追加
+                messageText.style.borderRight = '2px solid rgba(138, 43, 226, 0.8)';
+                messageText.style.paddingRight = '5px';
+                
+                // カーソル点滅アニメーション
+                let cursorVisible = true;
+                setInterval(() => {
+                    cursorVisible = !cursorVisible;
+                    messageText.style.borderRightColor = cursorVisible ? 'rgba(138, 43, 226, 0.8)' : 'transparent';
+                }, 400);
+            }
+        }
+
+        // 7秒後にタイプライター開始と吹き出し表示
+        setTimeout(() => {
+            messageFlow.style.opacity = '1';
+            messageFlow.style.visibility = 'visible';
+            typeWriter();
+        }, 7000);
+
+        // レスポンシブ対応
+        window.addEventListener('resize', () => {
+            const newIsMobile = window.innerWidth <= 768;
+            if (newIsMobile !== isMobile) {
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

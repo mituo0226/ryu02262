@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運命の扉</title>
+</head>
+<body>
+    <div id="backgroundImage"></div>
+    <div id="particles"></div>
+    
+    <div id="contentWrapper">
+        <div id="logoContainer">
+            <img src="/freefiles/wall/kaede/rogo.png" alt="ロゴ" id="logo">
+        </div>
+        
+        <div id="textContainer">
+            <p id="textLine1">未来が変わる大きなきっかけになる時</p>
+            <p id="textLine2">今のままで満足なのか？変化を受け入れたいのか？</p>
+            <p id="textLine3">その選択によってこれから先の人生が変わります。</p>
+            <p id="textLine4">人生を変える判断をする時、一歩踏み出すことができるか</p>
+            <p id="textLine5">後はあなた次第…</p>
+        </div>
+        
+        <div id="buttonContainer">
+            <a href="[[URL /free/c/main]]" id="fateButton">運命の扉を開く</a>
+        </div>
+    </div>
+
+    <script>
+        // 全体的なスタイル設定
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.boxSizing = 'border-box';
+        document.body.style.fontFamily = "'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif";
+        document.body.style.overflowX = 'hidden';
+        document.body.style.color = '#f5f5f5';
+        document.body.style.position = 'relative';
+        document.body.style.minHeight = '100vh';
+        document.body.style.display = 'flex';
+        document.body.style.alignItems = 'center';
+        document.body.style.justifyContent = 'center';
+        document.body.style.background = '#0a0a0a';
+
+        // 背景画像
+        const backgroundImage = document.getElementById('backgroundImage');
+        backgroundImage.style.position = 'fixed';
+        backgroundImage.style.top = '0';
+        backgroundImage.style.left = '0';
+        backgroundImage.style.width = '100%';
+        backgroundImage.style.height = '100%';
+        backgroundImage.style.backgroundImage = "url('/freefiles/wall/kaede/top.png')";
+        backgroundImage.style.backgroundSize = 'cover';
+        backgroundImage.style.backgroundPosition = 'center';
+        backgroundImage.style.backgroundRepeat = 'no-repeat';
+        backgroundImage.style.opacity = '0.4';
+        backgroundImage.style.zIndex = '0';
+
+        // パーティクルコンテナ
+        const particles = document.getElementById('particles');
+        particles.style.position = 'fixed';
+        particles.style.top = '0';
+        particles.style.left = '0';
+        particles.style.width = '100%';
+        particles.style.height = '100%';
+        particles.style.pointerEvents = 'none';
+        particles.style.zIndex = '1';
+
+        // コンテンツラッパー
+        const contentWrapper = document.getElementById('contentWrapper');
+        contentWrapper.style.position = 'relative';
+        contentWrapper.style.zIndex = '2';
+        contentWrapper.style.textAlign = 'center';
+        contentWrapper.style.padding = '20px';
+        contentWrapper.style.maxWidth = '900px';
+        contentWrapper.style.margin = '0 auto';
+
+        // ロゴコンテナ
+        const logoContainer = document.getElementById('logoContainer');
+        logoContainer.style.marginBottom = '40px';
+
+        // ロゴ
+        const logo = document.getElementById('logo');
+        logo.style.maxWidth = '300px';
+        logo.style.width = '100%';
+        logo.style.height = 'auto';
+        logo.style.opacity = '0';
+        logo.style.transition = 'opacity 2s ease-in-out';
+        logo.style.filter = 'drop-shadow(0 0 20px rgba(138, 43, 226, 0.6))';
+
+        // テキストコンテナ
+        const textContainer = document.getElementById('textContainer');
+        textContainer.style.marginBottom = '60px';
+
+        // テキスト行のスタイル設定関数
+        function styleTextLine(element, delay) {
+            element.style.fontSize = window.innerWidth <= 768 ? '16px' : '24px';
+            element.style.lineHeight = window.innerWidth <= 768 ? '1.8' : '2';
+            element.style.color = '#e8d5ff';
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(30px)';
+            element.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3)';
+            element.style.marginBottom = '15px';
+            element.style.transition = 'opacity 1.5s ease-out, transform 1.5s ease-out';
+            
+            setTimeout(() => {
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            }, delay);
+        }
+
+        // テキスト行をスタイル適用
+        styleTextLine(document.getElementById('textLine1'), 1500);
+        styleTextLine(document.getElementById('textLine2'), 2300);
+        styleTextLine(document.getElementById('textLine3'), 3100);
+        styleTextLine(document.getElementById('textLine4'), 3900);
+        styleTextLine(document.getElementById('textLine5'), 4700);
+
+        // ボタンコンテナ
+        const buttonContainer = document.getElementById('buttonContainer');
+        buttonContainer.style.marginTop = '40px';
+
+        // ボタン
+        const fateButton = document.getElementById('fateButton');
+        fateButton.style.display = 'inline-block';
+        fateButton.style.padding = window.innerWidth <= 768 ? '15px 40px' : '20px 60px';
+        fateButton.style.fontSize = window.innerWidth <= 768 ? '18px' : '24px';
+        fateButton.style.color = '#fff';
+        fateButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8))';
+        fateButton.style.border = '2px solid rgba(138, 43, 226, 0.6)';
+        fateButton.style.borderRadius = '50px';
+        fateButton.style.textDecoration = 'none';
+        fateButton.style.opacity = '0';
+        fateButton.style.transform = 'translateY(30px)';
+        fateButton.style.transition = 'all 0.5s ease';
+        fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
+        fateButton.style.position = 'relative';
+        fateButton.style.overflow = 'hidden';
+
+        setTimeout(() => {
+            fateButton.style.opacity = '1';
+            fateButton.style.transform = 'translateY(0)';
+        }, 6000);
+
+        // ボタンホバーエフェクト
+        fateButton.addEventListener('mouseenter', () => {
+            fateButton.style.boxShadow = '0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4)';
+            fateButton.style.transform = 'translateY(-5px) scale(1.05)';
+        });
+        fateButton.addEventListener('mouseleave', () => {
+            fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
+            fateButton.style.transform = 'translateY(0) scale(1)';
+        });
+
+        // ロゴのフェードイン
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                logo.style.opacity = '1';
+            }, 300);
+        });
+
+        // パーティクルエフェクト
+        function createParticle() {
+            const particle = document.createElement('div');
+            
+            const size = Math.random() * 4 + 2;
+            const x = Math.random() * 100;
+            const duration = Math.random() * 20 + 10;
+            const delay = Math.random() * 5;
+            
+            particle.style.position = 'absolute';
+            particle.style.background = 'rgba(138, 43, 226, 0.6)';
+            particle.style.borderRadius = '50%';
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = x + '%';
+            particle.style.bottom = '-10px';
+            particle.style.boxShadow = '0 0 10px rgba(138, 43, 226, 0.8)';
+            particle.style.opacity = '0';
+            
+            particles.appendChild(particle);
+            
+            // アニメーション
+            setTimeout(() => {
+                let currentY = 0;
+                let currentOpacity = 0;
+                let currentScale = 0;
+                const startTime = Date.now();
+                const animationDuration = duration * 1000;
+                
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / animationDuration;
+                    
+                    if (progress < 1) {
+                        currentY = progress * (window.innerHeight + 20);
+                        currentScale = progress;
+                        if (progress < 0.1) {
+                            currentOpacity = progress * 10;
+                        } else if (progress > 0.9) {
+                            currentOpacity = (1 - progress) * 10;
+                        } else {
+                            currentOpacity = 1;
+                        }
+                        
+                        particle.style.transform = `translateY(-${currentY}px) scale(${currentScale})`;
+                        particle.style.opacity = currentOpacity;
+                        requestAnimationFrame(animate);
+                    } else {
+                        particle.remove();
+                    }
+                }
+                
+                animate();
+            }, delay * 1000);
+        }
+
+        // パーティクルを定期的に生成
+        setInterval(createParticle, 2000);
+
+        // レスポンシブ対応
+        window.addEventListener('resize', () => {
+            const textLines = [document.getElementById('textLine1'), document.getElementById('textLine2'), 
+                             document.getElementById('textLine3'), document.getElementById('textLine4'), 
+                             document.getElementById('textLine5')];
+            
+            if (window.innerWidth <= 768) {
+                logo.style.maxWidth = '200px';
+                textLines.forEach(line => {
+                    line.style.fontSize = '16px';
+                    line.style.lineHeight = '1.8';
+                });
+                fateButton.style.padding = '15px 40px';
+                fateButton.style.fontSize = '18px';
+            } else {
+                logo.style.maxWidth = '300px';
+                textLines.forEach(line => {
+                    line.style.fontSize = '24px';
+                    line.style.lineHeight = '2';
+                });
+                fateButton.style.padding = '20px 60px';
+                fateButton.style.fontSize = '24px';
+            }
+        });
+    </script>
+</body>
+</html>
