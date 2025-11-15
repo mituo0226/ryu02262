@@ -23,11 +23,11 @@ async function getKey(secret: string) {
 
 export async function generateUserToken(userId: number, secret: string): Promise<string> {
   const issuedAt = Date.now();
-  const payload = ${userId}.;
+  const payload = `${userId}.${issuedAt}`;
   const key = await getKey(secret);
   const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
   const signature = base64UrlEncode(signatureBuffer);
-  return ${userId}..;
+  return `${userId}.${issuedAt}.${signature}`;
 }
 
 export async function verifyUserToken(token: string | undefined, secret: string): Promise<{ userId: number } | null> {
@@ -47,7 +47,7 @@ export async function verifyUserToken(token: string | undefined, secret: string)
   if (Date.now() - issuedAt > TOKEN_TTL_MS) {
     return null;
   }
-  const payload = ${userId}.;
+  const payload = `${userId}.${issuedAt}`;
   const key = await getKey(secret);
   const expectedSignatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
   const expectedSignature = base64UrlEncode(expectedSignatureBuffer);
