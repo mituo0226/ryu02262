@@ -497,15 +497,6 @@
       }
     }
 
-    panelButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const target = button.dataset.panelTarget;
-        if (target) {
-          setActivePanel(target);
-        }
-      });
-    });
-
     connectButton.addEventListener('click', () => {
       currentToken = adminTokenInput.value.trim();
       if (!currentToken) {
