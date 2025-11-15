@@ -22,10 +22,15 @@
       border-bottom: 1px solid rgba(255,255,255,0.08);
       background: rgba(0, 0, 0, 0.4);
     }
+    .dashboard-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 20px 40px;
+    }
     main {
       flex: 1;
       display: block;
-      padding: 0 20px 40px;
     }
     .card {
       background: rgba(255, 255, 255, 0.04);
@@ -85,7 +90,6 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      padding: 0 20px 20px;
     }
     .dashboard-nav button {
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -110,13 +114,35 @@
     }
     @media (max-width: 768px) {
       table { font-size: 12px; }
+      .dashboard-layout { padding: 0 16px 32px; }
       .dashboard-nav {
         flex-direction: column;
-        padding: 0 16px 16px;
       }
       .dashboard-nav button {
         width: 100%;
         text-align: center;
+      }
+    }
+    @media (min-width: 960px) {
+      .dashboard-layout {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 24px;
+      }
+      .dashboard-nav {
+        flex-direction: column;
+        width: 240px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 120px;
+      }
+      .dashboard-nav button {
+        width: 100%;
+        text-align: left;
+        border-radius: 12px;
+      }
+      main {
+        padding-right: 10px;
       }
     }
     .token-input { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -148,15 +174,16 @@
     </div>
   </header>
 
-  <nav class="dashboard-nav">
-    <button class="active" data-panel-target="search">ユーザー検索</button>
-    <button data-panel-target="list">ユーザー一覧</button>
-    <button data-panel-target="edit">ユーザー編集 / 退会</button>
-    <button data-panel-target="history">会話履歴</button>
-  </nav>
+  <div class="dashboard-layout">
+    <nav class="dashboard-nav">
+      <button class="active" data-panel-target="search">ユーザー検索</button>
+      <button data-panel-target="list">ユーザー一覧</button>
+      <button data-panel-target="edit">ユーザー編集 / 退会</button>
+      <button data-panel-target="history">会話履歴</button>
+    </nav>
 
-  <main>
-    <section class="card panel active" data-panel="search">
+    <main>
+      <section class="card panel active" data-panel="search">
       <h2>ユーザー検索</h2>
       <form id="searchForm">
         <label>ニックネーム
@@ -182,9 +209,9 @@
         </div>
         <p class="muted">※ニックネーム / 生年月日 / 合言葉のいずれか一つだけでも検索可能です。</p>
       </form>
-    </section>
+      </section>
 
-    <section class="card panel" data-panel="list">
+      <section class="card panel" data-panel="list">
       <h2>ユーザー一覧</h2>
       <div class="list-scroll">
         <table>
@@ -202,9 +229,9 @@
           </tbody>
         </table>
       </div>
-    </section>
+      </section>
 
-    <section class="card panel" data-panel="edit">
+      <section class="card panel" data-panel="edit">
       <h2>ユーザー編集 / 退会</h2>
       <form id="userForm">
         <input type="hidden" id="formUserId">
@@ -231,15 +258,16 @@
         </div>
         <p class="muted" id="formStatus"></p>
       </form>
-    </section>
+      </section>
 
-    <section class="card panel" data-panel="history">
+      <section class="card panel" data-panel="history">
       <h2>会話履歴（最新100件）</h2>
       <div class="list-scroll">
         <textarea id="conversationLog" readonly placeholder="ユーザーを選択すると会話履歴を表示します"></textarea>
       </div>
-    </section>
-  </main>
+      </section>
+    </main>
+  </div>
 
   <script>
     const adminTokenInput = document.getElementById('adminToken');
