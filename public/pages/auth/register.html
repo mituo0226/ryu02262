@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang=\"ja\">
+<head>
+  <meta charset=\"UTF-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <title>ユーザー登録 - 運命の扉</title>
+  <link rel=\"stylesheet\" href=\"../../css/styles.css\">
+  <style>
+    body {
+      background: radial-gradient(circle at top, rgba(138, 43, 226, 0.4), #050108 60%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f5f5f5;
+    }
+    .auth-card {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(138, 43, 226, 0.4);
+      border-radius: 18px;
+      padding: 30px;
+      width: min(480px, 90%);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px);
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    p.helper {
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 24px;
+      color: #c8b7ff;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    label {
+      font-size: 14px;
+      color: #e0d4ff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    input, select {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(138, 43, 226, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(138, 43, 226, 0.8);
+      box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+    }
+    .birth-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    button {
+      padding: 14px;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
+    }
+    .result-message {
+      margin-top: 16px;
+      font-size: 14px;
+      min-height: 24px;
+    }
+    .result-message.success {
+      color: #8fffd1;
+    }
+    .result-message.error {
+      color: #ffb5b5;
+    }
+    .switch-link {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .switch-link a {
+      color: #cfaeff;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class=\"auth-card\">
+    <h1>新規ユーザー登録</h1>
+    <p class=\"helper\">初回利用時は生年月日とニックネームをご登録ください。</p>
+    <form id=\"registerForm\">
+      <label>
+        ニックネーム
+        <input type=\"text\" id=\"nickname\" maxlength=\"50\" required placeholder=\"例: かえで好きさん\">
+      </label>
+      <div>
+        <span style=\"font-size:14px;color:#e0d4ff;\">生年月日</span>
+        <div class=\"birth-grid\">
+          <select id=\"birthYear\" required></select>
+          <select id=\"birthMonth\" required></select>
+          <select id=\"birthDay\" required></select>
+        </div>
+      </div>
+      <button type=\"submit\">登録してはじめる</button>
+    </form>
+    <div id=\"resultMessage\" class=\"result-message\"></div>
+    <div class=\"switch-link\">
+      すでに登録済みの方は <a id=\"loginLink\" href=\"login.html\">こちらからログイン</a>
+    </div>
+  </div>
+
+  <script>
+    const yearSelect = document.getElementById('birthYear');
+    const monthSelect = document.getElementById('birthMonth');
+    const daySelect = document.getElementById('birthDay');
+    const form = document.getElementById('registerForm');
+    const resultMessage = document.getElementById('resultMessage');
+    const loginLink = document.getElementById('loginLink');
+
+    const params = new URLSearchParams(window.location.search);
+    const redirectParam = params.get('redirect');
+
+    function populateSelect(select, start, end, suffix) {
+      select.innerHTML = '';
+      for (let value = start; value <= end; value += 1) {
+        const option = document.createElement('option');
+        option.value = String(value);
+        option.textContent = ${value};
+        select.appendChild(option);
+      }
+    }
+
+    const currentYear = new Date().getFullYear();
+    populateSelect(yearSelect, currentYear - 90, currentYear, '年');
+    yearSelect.value = String(currentYear - 30);
+    populateSelect(monthSelect, 1, 12, '月');
+    populateSelect(daySelect, 1, 31, '日');
+
+    function getRedirectTarget() {
+      if (!redirectParam) {
+        return '../main.html';
+      }
+      const decoded = decodeURIComponent(redirectParam);
+      return decoded || '../main.html';
+    }
+
+    loginLink.href = login.html?redirect=;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      resultMessage.textContent = '';
+      resultMessage.className = 'result-message';
+
+      const payload = {
+        nickname: document.getElementById('nickname').value.trim(),
+        birthYear: Number(yearSelect.value),
+        birthMonth: Number(monthSelect.value),
+        birthDay: Number(daySelect.value),
+      };
+
+      if (!payload.nickname) {
+        resultMessage.textContent = 'ニックネームを入力してください。';
+        resultMessage.classList.add('error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          resultMessage.textContent = data.error || '登録に失敗しました。';
+          resultMessage.classList.add('error');
+          return;
+        }
+
+        localStorage.setItem('userToken', data.userToken);
+        localStorage.setItem('userNickname', data.nickname);
+        localStorage.setItem('assignedDeity', data.assignedDeity);
+
+        resultMessage.textContent = 神様「」があなたを見守っています。数秒後に移動します...;
+        resultMessage.classList.add('success');
+
+        setTimeout(() => {
+          window.location.href = getRedirectTarget();
+        }, 1200);
+      } catch (error) {
+        console.error(error);
+        resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';
+        resultMessage.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>

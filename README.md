@@ -67,6 +67,20 @@ kaede/
 - マッチングサイト内システム用
 - 画像URLはシステム側でランダム化される想定
 
+## ユーザー登録と会話履歴
+
+- Cloudflare Pages Functions に以下の API を追加  
+  - `POST /api/auth/register` : 新規登録（生年月日・ニックネーム＋神様割り当て）  
+  - `POST /api/auth/login` : ログイン（登録情報で認証）  
+  - `POST /api/consult` : DeepSeek 連携 + D1 会話履歴
+- D1 データベース `DB` には `users` / `conversations` テーブルを用意
+- 環境変数  
+  - `DEEPSEEK_API_KEY`（既存）  
+  - `AUTH_SECRET`（ユーザートークン署名用の任意文字列）
+- フロントエンド  
+  - `public/pages/auth/register.html` / `login.html`  
+  - `public/pages/chat/chat-example.html` が `userToken` を必須チェックし、未ログイン時は登録画面へリダイレクト
+
 ## 注意事項
 
 - 画像パス: `photo/` フォルダを基準とした相対パス

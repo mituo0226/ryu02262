@@ -1,25 +1,12 @@
 // Cloudflare Pages Functions の型定義
 import { isInappropriate, generateSystemPrompt, getCharacterName } from '../lib/character-system.js';
 import { isValidCharacter } from '../lib/character-loader.js';
-
-interface Env {
-  DEEPSEEK_API_KEY: string;
-}
-
-interface PagesFunctionContext {
-  request: Request;
-  env: Env;
-  params: Record<string, string>;
-  waitUntil: (promise: Promise<any>) => void;
-  next: () => Promise<Response>;
-  data: Record<string, any>;
-}
-
-type PagesFunction = (context: PagesFunctionContext) => Response | Promise<Response>;
+import { verifyUserToken } from '../lib/token.js';
 
 interface RequestBody {
   message: string;
   character?: string;
+  userToken?: string;
 }
 
 interface ResponseBody {
@@ -29,6 +16,18 @@ interface ResponseBody {
   isInappropriate: boolean;
   detectedKeywords: string[];
   error?: string;
+  needsRegistration?: boolean;
+}
+
+interface UserRecord {
+  id: number;
+  nickname: string;
+  assigned_deity: string;
+}
+
+interface ConversationRow {
+  role: 'user' | 'assistant';
+  message: string;
 }
 
 export const onRequestPost: PagesFunction = async (context) => {
@@ -106,6 +105,57 @@ export const onRequestPost: PagesFunction = async (context) => {
           status: 400,
           headers: corsHeaders,
         }
+      );
+    }
+
+    // ユーザー認証
+    if (!body.userToken) {
+      return new Response(
+        JSON.stringify({
+          needsRegistration: true,
+          error: 'userToken is required',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: [],
+        } as ResponseBody),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    const tokenPayload = await verifyUserToken(body.userToken, env.AUTH_SECRET);
+    if (!tokenPayload) {
+      return new Response(
+        JSON.stringify({
+          needsRegistration: true,
+          error: 'invalid user token',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: [],
+        } as ResponseBody),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    const user = await env.DB.prepare<UserRecord>('SELECT id, nickname, assigned_deity FROM users WHERE id = ?')
+      .bind(tokenPayload.userId)
+      .first();
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({
+          needsRegistration: true,
+          error: 'user not found',
+          message: '',
+          character: '',
+          characterName: '',
+          isInappropriate: false,
+          detectedKeywords: [],
+        } as ResponseBody),
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -223,6 +273,23 @@ export const onRequestPost: PagesFunction = async (context) => {
     const systemPrompt = generateSystemPrompt(characterId);
     const characterName = getCharacterName(characterId);
 
+    // 過去の履歴を取得
+    const historyResults = await env.DB.prepare<ConversationRow>(
+      `SELECT role, message
+       FROM conversations
+       WHERE user_id = ? AND character_id = ?
+       ORDER BY created_at DESC
+       LIMIT 20`
+    )
+      .bind(user.id, characterId)
+      .all();
+
+    const conversationHistory =
+      historyResults.results?.slice().reverse().map((row) => ({
+        role: row.role,
+        content: row.message,
+      })) ?? [];
+
     // DeepSeek APIへのリクエスト
     const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -237,6 +304,7 @@ export const onRequestPost: PagesFunction = async (context) => {
             role: 'system',
             content: systemPrompt,
           },
+          ...conversationHistory,
           {
             role: 'user',
             content: trimmedMessage,
@@ -282,6 +350,33 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // 応答を抽出
     const responseMessage = deepseekData.choices?.[0]?.message?.content || '申し訳ございませんが、応答を生成できませんでした。';
+
+    // 会話履歴を保存
+    await env.DB.prepare(
+      `INSERT INTO conversations (user_id, character_id, role, message)
+       VALUES (?, ?, 'user', ?)`
+    )
+      .bind(user.id, characterId, trimmedMessage)
+      .run();
+
+    await env.DB.prepare(
+      `INSERT INTO conversations (user_id, character_id, role, message)
+       VALUES (?, ?, 'assistant', ?)`
+    )
+      .bind(user.id, characterId, responseMessage)
+      .run();
+
+    await env.DB.prepare(
+      `DELETE FROM conversations
+       WHERE id IN (
+         SELECT id FROM conversations
+         WHERE user_id = ? AND character_id = ?
+         ORDER BY created_at DESC
+         LIMIT 100 OFFSET 100
+       )`
+    )
+      .bind(user.id, characterId)
+      .run();
 
     // JSONで応答を返す
     return new Response(

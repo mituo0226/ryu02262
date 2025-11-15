@@ -46,6 +46,15 @@
             color: #666;
             font-size: 14px;
         }
+        .user-status {
+            background: rgba(0, 0, 0, 0.4);
+            color: #f5f5f5;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
         .character-selector {
             margin-bottom: 20px;
         }
@@ -169,7 +178,8 @@
 </head>
 <body>
     <div class="chat-container">
-        <h1 style="text-align: center; color: #8a2be2; margin-bottom: 20px;">🔮 鑑定士チャット</h1>
+        <h1 style="text-align: center; color: #8a2be2; margin-bottom: 10px;">🔮 鑑定士チャット</h1>
+        <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
         
         <!-- 現在の鑑定士表示 -->
         <div class="current-character-display" id="currentCharacterDisplay" style="display: none;">
@@ -207,6 +217,8 @@
         const characterImage = document.getElementById('characterImage');
         const characterNameDisplay = document.getElementById('characterNameDisplay');
         const characterStatus = document.getElementById('characterStatus');
+        const userStatus = document.getElementById('userStatus');
+        let cachedUserToken = null;
 
         // 鑑定士情報のマップ
         const characterInfo = {
@@ -263,8 +275,45 @@
             addMessage('welcome', welcomeMsg, characterInfo[characterId].name);
         }
 
+        function redirectToRegister() {
+            const redirectTarget = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = `../auth/register.html?redirect=${redirectTarget}`;
+        }
+
+        function ensureUserToken() {
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                redirectToRegister();
+                return null;
+            }
+            return token;
+        }
+
+        function updateUserStatus() {
+            if (!userStatus) return;
+            const nickname = localStorage.getItem('userNickname');
+            const deity = localStorage.getItem('assignedDeity');
+            if (nickname) {
+                userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity || '未設定'}`;
+            } else {
+                userStatus.textContent = 'ユーザー情報を確認できませんでした。再度ログインしてください。';
+            }
+        }
+
+        function handleNeedsRegistration() {
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('userNickname');
+            localStorage.removeItem('assignedDeity');
+            redirectToRegister();
+        }
+
         // ページ読み込み時の処理
         window.addEventListener('DOMContentLoaded', () => {
+            cachedUserToken = ensureUserToken();
+            if (!cachedUserToken) {
+                return;
+            }
+            updateUserStatus();
             const character = getCharacterFromURL();
             setCurrentCharacter(character);
         });
@@ -283,6 +332,13 @@
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
+            }
+
+            if (!cachedUserToken) {
+                cachedUserToken = ensureUserToken();
+                if (!cachedUserToken) {
+                    return;
+                }
             }
         });
 
@@ -312,7 +368,8 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        character: character
+                        character: character,
+                        userToken: cachedUserToken
                     })
                 });
 
@@ -320,6 +377,11 @@
                 removeMessage(loadingId);
 
                 const data = await response.json();
+
+                if (data.needsRegistration) {
+                    handleNeedsRegistration();
+                    return;
+                }
 
                 if (!response.ok || data.error) {
                     // エラーメッセージを表示
