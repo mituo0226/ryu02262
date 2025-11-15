@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー管理 - 運命の扉</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background: #05040a;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: #f7f5ff;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.4);
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      padding: 0 20px 40px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 { margin: 0 0 6px; font-size: clamp(22px, 4vw, 28px); }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    label {
+      font-size: 13px;
+      color: #bfc4ff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 14px;
+    }
+    textarea { min-height: 140px; }
+    button, .button-link {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9));
+      color: #fff;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      text-align: center;
+    }
+    button:hover, .button-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(138, 43, 226, 0.35);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { font-weight: 600; color: #c7cdff; }
+    @media (max-width: 768px) { main { grid-template-columns: 1fr; } table { font-size: 12px; } }
+    .token-input { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .token-input input { flex: 1; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(138, 43, 226, 0.2);
+      color: #d6c9ff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    .list-scroll { max-height: 360px; overflow: auto; padding-right: 4px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .danger { background: linear-gradient(135deg, rgba(255, 78, 132, 0.9), rgba(255, 130, 0, 0.8)); }
+    .muted { color: #9da2c6; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ユーザー管理ダッシュボード</h1>
+    <p class="muted">X-Admin-Token を入力してデータを操作してください。</p>
+    <div class="token-input">
+      <input type="password" id="adminToken" placeholder="管理者トークン">
+      <button id="connectButton">接続</button>
+      <span id="connectionStatus" class="badge">未接続</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>ユーザー一覧</h2>
+      <div class="list-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ニックネーム</th>
+              <th>誕生日</th>
+              <th>神様</th>
+              <th>選択</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="5" class="muted">接続して読み込み...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ユーザー編集 / 退会</h2>
+      <form id="userForm">
+        <input type="hidden" id="formUserId">
+        <label>ニックネーム
+          <input type="text" id="formNickname" required>
+        </label>
+        <div style="display:flex; gap:8px;">
+          <label style="flex:1;">年
+            <input type="number" id="formYear" min="1900" max="2100" required>
+          </label>
+          <label style="flex:1;">月
+            <input type="number" id="formMonth" min="1" max="12" required>
+          </label>
+          <label style="flex:1;">日
+            <input type="number" id="formDay" min="1" max="31" required>
+          </label>
+        </div>
+        <label>神様
+          <select id="formDeity"></select>
+        </label>
+        <div class="actions">
+          <button type="submit">更新する</button>
+          <button type="button" class="danger" id="deleteUserButton">退会（削除）</button>
+        </div>
+        <p class="muted" id="formStatus"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>会話履歴（最新100件）</h2>
+      <div class="list-scroll">
+        <textarea id="conversationLog" readonly placeholder="ユーザーを選択すると会話履歴を表示します"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const adminTokenInput = document.getElementById('adminToken');
+    const connectButton = document.getElementById('connectButton');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const userTableBody = document.getElementById('userTableBody');
+    const form = document.getElementById('userForm');
+    const formUserId = document.getElementById('formUserId');
+    const formNickname = document.getElementById('formNickname');
+    const formYear = document.getElementById('formYear');
+    const formMonth = document.getElementById('formMonth');
+    const formDay = document.getElementById('formDay');
+    const formDeity = document.getElementById('formDeity');
+    const formStatus = document.getElementById('formStatus');
+    const conversationLog = document.getElementById('conversationLog');
+    const deleteUserButton = document.getElementById('deleteUserButton');
+
+    const deities = [
+      '天照大神','須佐之男命','大国主命','八幡神','稲荷神','伊邪那岐命','伊邪那美命','弁財天','毘沙門天','布袋尊','大黒天','恵比寿','寿老人','福禄寿','猿田彦命','月読命','住吉大神','菅原道真公','秋葉大神','白山比咩大神','春日大社の神々','熊野権現','金毘羅大神','愛宕大神'
+    ];
+    deities.forEach((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      formDeity.appendChild(option);
+    });
+
+    let currentToken = '';
+    let users = [];
+
+    function setStatus(message, success = false) {
+      connectionStatus.textContent = message;
+      connectionStatus.style.background = success ? 'rgba(0,120,86,0.4)' : 'rgba(138,43,226,0.2)';
+    }
+
+    async function fetchUsers() {
+      try {
+        const res = await fetch('/api/admin/users', {
+          headers: { 'X-Admin-Token': currentToken },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '取得に失敗しました');
+        users = data.users;
+        renderUsers();
+        setStatus('接続済み', true);
+      } catch (error) {
+        console.error(error);
+        setStatus('接続エラー');
+        userTableBody.innerHTML = `<tr><td colspan="5" class="muted">${error.message}</td></tr>`;
+      }
+    }
+
+    function renderUsers() {
+      if (!users.length) {
+        userTableBody.innerHTML = '<tr><td colspan="5" class="muted">ユーザーが見つかりません。</td></tr>';
+        return;
+      }
+      userTableBody.innerHTML = users.map((user) => `
+        <tr>
+          <td>${user.id}</td>
+          <td>${user.nickname}</td>
+          <td>${user.birth_year}/${user.birth_month}/${user.birth_day}</td>
+          <td>${user.assigned_deity}</td>
+          <td><button class="button-link" data-user-id="${user.id}">選択</button></td>
+        </tr>
+      `).join('');
+    }
+
+    userTableBody.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target.matches('[data-user-id]')) {
+        const id = Number(target.dataset.userId);
+        const user = users.find((u) => u.id === id);
+        if (user) {
+          populateForm(user);
+          fetchConversations(id);
+        }
+      }
+    });
+
+    function populateForm(user) {
+      formUserId.value = user.id;
+      formNickname.value = user.nickname;
+      formYear.value = user.birth_year;
+      formMonth.value = user.birth_month;
+      formDay.value = user.birth_day;
+      formDeity.value = user.assigned_deity;
+      formStatus.textContent = '';
+    }
+
+    async function fetchConversations(userId) {
+      conversationLog.value = '読み込み中...';
+      try {
+        const res = await fetch(`/api/admin/conversations?userId=${userId}`, {
+          headers: { 'X-Admin-Token': currentToken },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '会話履歴の取得に失敗しました');
+        conversationLog.value = data.conversations
+          .map((item) => `[${item.created_at}] ${item.role.toUpperCase()}（${item.character_id}）: ${item.message}`)
+          .join('\n\n');
+      } catch (error) {
+        conversationLog.value = error.message;
+      }
+    }
+
+    connectButton.addEventListener('click', () => {
+      currentToken = adminTokenInput.value.trim();
+      if (!currentToken) {
+        setStatus('トークンを入力してください');
+        return;
+      }
+      fetchUsers();
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!formUserId.value) {
+        formStatus.textContent = 'ユーザーを選択してください。';
+        return;
+      }
+      const payload = {
+        id: Number(formUserId.value),
+        nickname: formNickname.value.trim(),
+        birthYear: Number(formYear.value),
+        birthMonth: Number(formMonth.value),
+        birthDay: Number(formDay.value),
+        assignedDeity: formDeity.value,
+      };
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Token': currentToken,
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '更新に失敗しました');
+        formStatus.textContent = '更新しました。';
+        fetchUsers();
+      } catch (error) {
+        formStatus.textContent = error.message;
+      }
+    });
+
+    deleteUserButton.addEventListener('click', async () => {
+      if (!formUserId.value) {
+        formStatus.textContent = 'ユーザーを選択してください。';
+        return;
+      }
+      if (!confirm('本当に退会処理を行いますか？会話履歴も削除されます。')) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/admin/users?id=${formUserId.value}`, {
+          method: 'DELETE',
+          headers: { 'X-Admin-Token': currentToken },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '削除に失敗しました');
+        formStatus.textContent = '削除しました。';
+        form.reset();
+        conversationLog.value = '';
+        fetchUsers();
+      } catch (error) {
+        formStatus.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -81,6 +81,17 @@ kaede/
   - `public/pages/auth/register.html` / `login.html`  
   - `public/pages/chat/chat-example.html` が `userToken` を必須チェックし、未ログイン時は登録画面へリダイレクト
 
+## 管理者向け
+
+- 画面: `public/pages/admin/dashboard.html`（マルチデバイス対応 UI）
+- API
+  - `GET/PUT/DELETE /api/admin/users`
+  - `GET /api/admin/conversations`
+- 追加環境変数
+  - `ADMIN_TOKEN` : 管理者専用トークン。Cloudflare Pages ダッシュボード  
+    `Settings > Functions > Add Variable` から `ADMIN_TOKEN` を追加し、任意の安全な値を設定してください。
+  - 管理画面で同じトークンを入力するとユーザー情報・会話履歴の参照／編集／退会が行えます。
+
 ## 注意事項
 
 - 画像パス: `photo/` フォルダを基準とした相対パス

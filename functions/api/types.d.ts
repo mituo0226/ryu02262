@@ -15,6 +15,7 @@ interface Env {
   DEEPSEEK_API_KEY: string;
   AUTH_SECRET: string;
   DB: D1Database;
+  ADMIN_TOKEN?: string;
 }
 
 interface PagesFunctionContext {
