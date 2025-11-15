@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang=\"ja\">
+<html lang="ja">
 <head>
-  <meta charset=\"UTF-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ユーザー登録 - 運命の扉</title>
-  <link rel=\"stylesheet\" href=\"../../css/styles.css\">
+  <link rel="stylesheet" href="../../css/styles.css">
   <style>
     body {
       background: radial-gradient(circle at top, rgba(138, 43, 226, 0.4), #050108 60%);
@@ -101,27 +101,27 @@
   </style>
 </head>
 <body>
-  <div class=\"auth-card\">
+  <div class="auth-card">
     <h1>新規ユーザー登録</h1>
-    <p class=\"helper\">初回利用時は生年月日とニックネームをご登録ください。</p>
-    <form id=\"registerForm\">
+    <p class="helper">初回利用時は生年月日とニックネームをご登録ください。</p>
+    <form id="registerForm">
       <label>
         ニックネーム
-        <input type=\"text\" id=\"nickname\" maxlength=\"50\" required placeholder=\"例: かえで好きさん\">
+        <input type="text" id="nickname" maxlength="50" required placeholder="例: かえで好きさん">
       </label>
       <div>
-        <span style=\"font-size:14px;color:#e0d4ff;\">生年月日</span>
-        <div class=\"birth-grid\">
-          <select id=\"birthYear\" required></select>
-          <select id=\"birthMonth\" required></select>
-          <select id=\"birthDay\" required></select>
+        <span style="font-size:14px;color:#e0d4ff;">生年月日</span>
+        <div class="birth-grid">
+          <select id="birthYear" required></select>
+          <select id="birthMonth" required></select>
+          <select id="birthDay" required></select>
         </div>
       </div>
-      <button type=\"submit\">登録してはじめる</button>
+      <button type="submit">登録してはじめる</button>
     </form>
-    <div id=\"resultMessage\" class=\"result-message\"></div>
-    <div class=\"switch-link\">
-      すでに登録済みの方は <a id=\"loginLink\" href=\"login.html\">こちらからログイン</a>
+    <div id="resultMessage" class="result-message"></div>
+    <div class="switch-link">
+      すでに登録済みの方は <a id="loginLink" href="login.html">こちらからログイン</a>
     </div>
   </div>
 
@@ -141,7 +141,7 @@
       for (let value = start; value <= end; value += 1) {
         const option = document.createElement('option');
         option.value = String(value);
-        option.textContent = ${value};
+        option.textContent = `${value}${suffix}`;
         select.appendChild(option);
       }
     }
@@ -160,7 +160,7 @@
       return decoded || '../main.html';
     }
 
-    loginLink.href = login.html?redirect=;
+    loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -198,7 +198,7 @@
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('assignedDeity', data.assignedDeity);
 
-        resultMessage.textContent = 神様「」があなたを見守っています。数秒後に移動します...;
+        resultMessage.textContent = `神様「${data.assignedDeity}」があなたを見守っています。数秒後に移動します...`;
         resultMessage.classList.add('success');
 
         setTimeout(() => {
