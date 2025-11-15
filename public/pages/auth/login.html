@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang=\"ja\">
+<html lang="ja">
 <head>
-  <meta charset=\"UTF-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ログイン - 運命の扉</title>
-  <link rel=\"stylesheet\" href=\"../../css/styles.css\">
+  <link rel="stylesheet" href="../../css/styles.css">
   <style>
     body {
       background: radial-gradient(circle at bottom, rgba(0, 47, 108, 0.5), #04020c 70%);
@@ -98,31 +98,31 @@
   </style>
 </head>
 <body>
-  <div class=\"auth-card\">
+  <div class="auth-card">
     <h1>ログイン</h1>
-    <p class=\"helper\">登録時と同じ情報を入力するとチャットを再開できます。</p>
-    <form id=\"loginForm\">
+    <p class="helper">登録時と同じ情報を入力するとチャットを再開できます。</p>
+    <form id="loginForm">
       <label>
         ニックネーム
-        <input type=\"text\" id=\"nickname\" maxlength=\"50\" required>
+        <input type="text" id="nickname" maxlength="50" required>
       </label>
       <div>
-        <span style=\"font-size:14px;color:#d7ecff;\">生年月日</span>
-        <div class=\"birth-grid\">
-          <select id=\"birthYear\" required></select>
-          <select id=\"birthMonth\" required></select>
-          <select id=\"birthDay\" required></select>
+        <span style="font-size:14px;color:#d7ecff;">生年月日</span>
+        <div class="birth-grid">
+          <select id="birthYear" required></select>
+          <select id="birthMonth" required></select>
+          <select id="birthDay" required></select>
         </div>
       </div>
       <label>
         割り当てられた神様
-        <select id=\"assignedDeity\" required></select>
+        <select id="assignedDeity" required></select>
       </label>
-      <button type=\"submit\">ログイン</button>
+      <button type="submit">ログイン</button>
     </form>
-    <div id=\"resultMessage\" class=\"result-message\"></div>
-    <div class=\"switch-link\">
-      まだ登録がお済みでない方は <a id=\"registerLink\" href=\"register.html\">こちら</a>
+    <div id="resultMessage" class="result-message"></div>
+    <div class="switch-link">
+      まだ登録がお済みでない方は <a id="registerLink" href="register.html">こちら</a>
     </div>
   </div>
 
@@ -138,10 +138,10 @@
     const redirectParam = params.get('redirect');
 
     const deities = [
-      '天照大神','須佐之男命','大国主命','八幡神','稲荷神','伊邪那岐命',
-      '伊邪那美命','弁財天','毘沙門天','布袋尊','大黒天','恵比寿',
-      '寿老人','福禄寿','猿田彦命','月読命','住吉大神','菅原道真公',
-      '秋葉大神','白山比咩大神','春日大社の神々','熊野権現','金毘羅大神','愛宕大神'
+      '天照大神', '須佐之男命', '大国主命', '八幡神', '稲荷神', '伊邪那岐命',
+      '伊邪那美命', '弁財天', '毘沙門天', '布袋尊', '大黒天', '恵比寿',
+      '寿老人', '福禄寿', '猿田彦命', '月読命', '住吉大神', '菅原道真公',
+      '秋葉大神', '白山比咩大神', '春日大社の神々', '熊野権現', '金毘羅大神', '愛宕大神'
     ];
 
     function populateSelect(select, start, end, suffix) {
@@ -149,7 +149,7 @@
       for (let value = start; value <= end; value += 1) {
         const option = document.createElement('option');
         option.value = String(value);
-        option.textContent = ${value};
+        option.textContent = `${value}${suffix}`;
         select.appendChild(option);
       }
     }
@@ -176,7 +176,14 @@
       return decoded || '../main.html';
     }
 
-    registerLink.href = egister.html?redirect=;
+    registerLink.href = `register.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const existingToken = localStorage.getItem('userToken');
+      if (existingToken) {
+        window.location.href = getRedirectTarget();
+      }
+    });
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
