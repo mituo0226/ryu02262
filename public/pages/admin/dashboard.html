@@ -86,63 +86,79 @@
       vertical-align: top;
     }
     th { font-weight: 600; color: #c7cdff; }
-    .dashboard-nav {
+    .dashboard-layout {
       display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 20px 40px;
     }
-    .dashboard-nav button {
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
-      color: #f0eaff;
-      border-radius: 999px;
-      padding: 8px 18px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.2s ease, transform 0.2s ease;
+    .dashboard-columns {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
-    .dashboard-nav button.active {
-      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9));
-      border-color: transparent;
-      transform: translateY(-1px);
+    .column-left,
+    .column-right {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
-    .panel {
+    #resultSummary {
+      margin-bottom: 10px;
+    }
+    .detail-card.hidden,
+    .conversation-card.hidden {
       display: none;
     }
-    .panel.active {
-      display: block;
+    .conversation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .conversation-item {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #f7f5ff;
+    }
+    .conversation-item summary {
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      list-style: none;
+    }
+    .conversation-item summary::-webkit-details-marker {
+      display: none;
+    }
+    .conversation-meta {
+      font-size: 12px;
+      color: #c7cff5;
+    }
+    .conversation-body {
+      margin-top: 10px;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
     }
     @media (max-width: 768px) {
       table { font-size: 12px; }
       .dashboard-layout { padding: 0 16px 32px; }
-      .dashboard-nav {
-        flex-direction: column;
-      }
-      .dashboard-nav button {
-        width: 100%;
-        text-align: center;
-      }
     }
     @media (min-width: 960px) {
-      .dashboard-layout {
+      .dashboard-columns {
         flex-direction: row;
         align-items: flex-start;
         gap: 24px;
       }
-      .dashboard-nav {
-        flex-direction: column;
-        width: 240px;
-        flex-shrink: 0;
-        position: sticky;
-        top: 120px;
+      .column-left {
+        width: 45%;
+        max-width: 520px;
       }
-      .dashboard-nav button {
-        width: 100%;
-        text-align: left;
-        border-radius: 12px;
-      }
-      main {
-        padding-right: 10px;
+      .column-right {
+        flex: 1;
       }
     }
     .token-input { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -175,98 +191,97 @@
   </header>
 
   <div class="dashboard-layout">
-    <nav class="dashboard-nav">
-      <button class="active" data-panel-target="search">ユーザー検索</button>
-      <button data-panel-target="list">ユーザー一覧</button>
-      <button data-panel-target="edit">ユーザー編集 / 退会</button>
-      <button data-panel-target="history">会話履歴</button>
-    </nav>
+    <div class="dashboard-columns">
+      <div class="column-left">
+        <section class="card">
+          <h2>ユーザー検索</h2>
+          <form id="searchForm">
+            <label>ニックネーム
+              <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
+            </label>
+            <div style="display:flex; gap:8px;">
+              <label style="flex:1;">年
+                <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
+              </label>
+              <label style="flex:1;">月
+                <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
+              </label>
+              <label style="flex:1;">日
+                <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
+              </label>
+            </div>
+            <label>合言葉
+              <input type="text" id="searchPassphrase" placeholder="例: 桜舞い散る春の道">
+            </label>
+            <div class="actions">
+              <button type="submit">検索する</button>
+              <button type="button" id="resetSearchButton">条件をクリア</button>
+            </div>
+            <p class="muted">※ニックネーム / 生年月日 / 合言葉のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
+          </form>
+        </section>
 
-    <main>
-      <section class="card panel active" data-panel="search">
-      <h2>ユーザー検索</h2>
-      <form id="searchForm">
-        <label>ニックネーム
-          <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
-        </label>
-        <div style="display:flex; gap:8px;">
-          <label style="flex:1;">年
-            <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
-          </label>
-          <label style="flex:1;">月
-            <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
-          </label>
-          <label style="flex:1;">日
-            <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
-          </label>
-        </div>
-        <label>合言葉
-          <input type="text" id="searchPassphrase" placeholder="例: 桜舞い散る春の道">
-        </label>
-        <div class="actions">
-          <button type="submit">検索する</button>
-          <button type="button" id="resetSearchButton">条件をクリア</button>
-        </div>
-        <p class="muted">※ニックネーム / 生年月日 / 合言葉のいずれか一つだけでも検索可能です。</p>
-      </form>
-      </section>
-
-      <section class="card panel" data-panel="list">
-      <h2>ユーザー一覧</h2>
-      <div class="list-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>ニックネーム</th>
-              <th>誕生日</th>
-              <th>神様</th>
-              <th>選択</th>
-            </tr>
-          </thead>
-          <tbody id="userTableBody">
-            <tr><td colspan="5" class="muted">接続して読み込み...</td></tr>
-          </tbody>
-        </table>
+        <section class="card">
+          <h2>検索結果</h2>
+          <div id="resultSummary" class="muted">検索結果 0 件</div>
+          <div class="list-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ニックネーム</th>
+                  <th>誕生日</th>
+                  <th>合言葉</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody">
+                <tr><td colspan="5" class="muted">接続して読み込み...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
-      </section>
 
-      <section class="card panel" data-panel="edit">
-      <h2>ユーザー編集 / 退会</h2>
-      <form id="userForm">
-        <input type="hidden" id="formUserId">
-        <label>ニックネーム
-          <input type="text" id="formNickname" required>
-        </label>
-        <div style="display:flex; gap:8px;">
-          <label style="flex:1;">年
-            <input type="number" id="formYear" min="1900" max="2100" required>
-          </label>
-          <label style="flex:1;">月
-            <input type="number" id="formMonth" min="1" max="12" required>
-          </label>
-          <label style="flex:1;">日
-            <input type="number" id="formDay" min="1" max="31" required>
-          </label>
-        </div>
-        <label>神様
-          <select id="formDeity"></select>
-        </label>
-        <div class="actions">
-          <button type="submit">更新する</button>
-          <button type="button" class="danger" id="deleteUserButton">退会（削除）</button>
-        </div>
-        <p class="muted" id="formStatus"></p>
-      </form>
-      </section>
+      <div class="column-right">
+        <section class="card detail-card hidden" id="detailCard">
+          <h2>ユーザー情報</h2>
+          <p class="muted" id="selectedUserLabel"></p>
+          <form id="userForm">
+            <input type="hidden" id="formUserId">
+            <label>ニックネーム
+              <input type="text" id="formNickname" required>
+            </label>
+            <div style="display:flex; gap:8px;">
+              <label style="flex:1;">年
+                <input type="number" id="formYear" min="1900" max="2100" required>
+              </label>
+              <label style="flex:1;">月
+                <input type="number" id="formMonth" min="1" max="12" required>
+              </label>
+              <label style="flex:1;">日
+                <input type="number" id="formDay" min="1" max="31" required>
+              </label>
+            </div>
+            <label>合言葉
+              <select id="formDeity"></select>
+            </label>
+            <div class="actions">
+              <button type="submit">更新する</button>
+              <button type="button" class="danger" id="deleteUserButton">退会（削除）</button>
+            </div>
+            <p class="muted" id="formStatus"></p>
+          </form>
+        </section>
 
-      <section class="card panel" data-panel="history">
-      <h2>会話履歴（最新100件）</h2>
-      <div class="list-scroll">
-        <textarea id="conversationLog" readonly placeholder="ユーザーを選択すると会話履歴を表示します"></textarea>
+        <section class="card conversation-card hidden" id="conversationCard">
+          <h2>会話履歴（最新100件）</h2>
+          <div id="conversationList" class="conversation-list">
+            <p class="muted">ユーザーを選択すると会話履歴を表示します。</p>
+          </div>
+        </section>
       </div>
-      </section>
-    </main>
+    </div>
   </div>
 
   <script>
@@ -282,7 +297,6 @@
     const formDay = document.getElementById('formDay');
     const formDeity = document.getElementById('formDeity');
     const formStatus = document.getElementById('formStatus');
-    const conversationLog = document.getElementById('conversationLog');
     const deleteUserButton = document.getElementById('deleteUserButton');
     const searchForm = document.getElementById('searchForm');
     const searchNickname = document.getElementById('searchNickname');
@@ -291,8 +305,11 @@
     const searchDay = document.getElementById('searchDay');
     const searchPassphrase = document.getElementById('searchPassphrase');
     const resetSearchButton = document.getElementById('resetSearchButton');
-    const panelButtons = document.querySelectorAll('[data-panel-target]');
-    const panels = document.querySelectorAll('.panel');
+    const resultSummary = document.getElementById('resultSummary');
+    const detailCard = document.getElementById('detailCard');
+    const selectedUserLabel = document.getElementById('selectedUserLabel');
+    const conversationCard = document.getElementById('conversationCard');
+    const conversationList = document.getElementById('conversationList');
 
     const deities = [
       '桜舞い散る春の道',
@@ -330,16 +347,24 @@
     let currentToken = '';
     let users = [];
     let filteredUsers = [];
+    let selectedUserId = null;
 
-    function setActivePanel(panelId) {
-      panels.forEach((panel) => {
-        panel.classList.toggle('active', panel.dataset.panel === panelId);
-      });
-      panelButtons.forEach((button) => {
-        button.classList.toggle('active', button.dataset.panelTarget === panelId);
-      });
+    function hideDetailSections() {
+      detailCard.classList.add('hidden');
+      conversationCard.classList.add('hidden');
+      conversationList.innerHTML = '<p class="muted">ユーザーを選択すると会話履歴を表示します。</p>';
+      selectedUserLabel.textContent = '';
+      formStatus.textContent = '';
+      selectedUserId = null;
     }
-    setActivePanel('search');
+
+    function showDetailSections(user) {
+      detailCard.classList.remove('hidden');
+      conversationCard.classList.remove('hidden');
+      selectedUserLabel.textContent = `ID: ${user.id} / ${user.nickname} / ${user.birth_year}年${user.birth_month}月${user.birth_day}日`;
+    }
+
+    hideDetailSections();
 
     function setStatus(message, success = false) {
       connectionStatus.textContent = message;
@@ -356,6 +381,7 @@
         users = data.users;
         applyFilters();
         renderUsers();
+        hideDetailSections();
         setStatus('接続済み', true);
       } catch (error) {
         console.error(error);
@@ -397,6 +423,7 @@
     }
 
     function renderUsers(list = filteredUsers) {
+      resultSummary.textContent = `検索結果 ${list.length} 件`;
       if (!list.length) {
         userTableBody.innerHTML = '<tr><td colspan="5" class="muted">ユーザーが見つかりません。</td></tr>';
         return;
@@ -432,22 +459,41 @@
       formDay.value = user.birth_day;
       formDeity.value = user.assigned_deity;
       formStatus.textContent = '';
-      setActivePanel('edit');
+      selectedUserId = user.id;
+      showDetailSections(user);
+    }
+
+    function renderConversationList(records) {
+      if (!records.length) {
+        conversationList.innerHTML = '<p class="muted">会話履歴はまだありません。</p>';
+        return;
+      }
+      conversationList.innerHTML = records.map((item, index) => {
+        const title = `[${item.character_id}] ${item.role === 'assistant' ? '鑑定士' : '相談者'} / ${new Date(item.created_at).toLocaleString('ja-JP')}`;
+        const safeContent = item.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `
+          <details class="conversation-item" ${index === 0 ? 'open' : ''}>
+            <summary>
+              <span>${title}</span>
+              <span class="conversation-meta">#${records.length - index}</span>
+            </summary>
+            <div class="conversation-body">${safeContent}</div>
+          </details>
+        `;
+      }).join('');
     }
 
     async function fetchConversations(userId) {
-      conversationLog.value = '読み込み中...';
+      conversationList.innerHTML = '<p class="muted">読み込み中...</p>';
       try {
         const res = await fetch(`/api/admin/conversations?userId=${userId}`, {
           headers: { 'X-Admin-Token': currentToken },
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '会話履歴の取得に失敗しました');
-        conversationLog.value = data.conversations
-          .map((item) => `[${item.created_at}] ${item.role.toUpperCase()}（${item.character_id}）: ${item.message}`)
-          .join('\n\n');
+        renderConversationList(data.conversations || []);
       } catch (error) {
-        conversationLog.value = error.message;
+        conversationList.innerHTML = `<p class="muted">${error.message}</p>`;
       }
     }
 
@@ -473,12 +519,14 @@
       event.preventDefault();
       applyFilters();
       renderUsers();
+      hideDetailSections();
     });
 
     resetSearchButton.addEventListener('click', () => {
       searchForm.reset();
       filteredUsers = [...users];
       renderUsers();
+      hideDetailSections();
     });
 
     form.addEventListener('submit', async (event) => {
@@ -530,7 +578,7 @@
         if (!res.ok) throw new Error(data.error || '削除に失敗しました');
         formStatus.textContent = '削除しました。';
         form.reset();
-        conversationLog.value = '';
+        hideDetailSections();
         fetchUsers();
       } catch (error) {
         formStatus.textContent = error.message;
