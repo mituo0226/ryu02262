@@ -102,6 +102,71 @@
       color: #cfaeff;
       text-decoration: underline;
     }
+    .passphrase-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 1, 12, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      padding: 20px;
+      z-index: 1000;
+    }
+    .passphrase-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .passphrase-card {
+      background: rgba(11, 5, 25, 0.95);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55);
+      padding: 32px;
+      width: min(520px, 95%);
+      text-align: center;
+      color: #f8f5ff;
+      animation: floatIn 0.5s ease forwards;
+    }
+    @keyframes floatIn {
+      from {
+        transform: translateY(25px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    .passphrase-label {
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      color: #cfaeff;
+      margin-bottom: 10px;
+    }
+    .passphrase-text {
+      font-size: 24px;
+      font-weight: 600;
+      color: #ffe8a3;
+      margin-bottom: 12px;
+    }
+    .passphrase-note {
+      font-size: 14px;
+      color: #d8d1ff;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .passphrase-note a {
+      color: #8acbff;
+      text-decoration: underline;
+    }
+    .passphrase-actions button {
+      width: 100%;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -126,6 +191,20 @@
     <div id="resultMessage" class="result-message"></div>
     <div class="switch-link">
       すでに登録済みの方は <a id="loginLink" href="login.html">こちらからログイン</a>
+    </div>
+  </div>
+
+  <div id="passphraseOverlay" class="passphrase-overlay" aria-hidden="true">
+    <div class="passphrase-card">
+      <div class="passphrase-label">あなたの合言葉</div>
+      <div id="passphraseText" class="passphrase-text">---</div>
+      <p class="passphrase-note">
+        この合言葉はログインや本人確認で必要になります。メモ帳やスクリーンショットなどで必ず控えてください。<br>
+        もし忘れてしまった場合は、<a href="passphrase-reset.html" target="_blank" rel="noopener">こちらの再設定ページ</a>で新しい合言葉を発行できます。
+      </p>
+      <div class="passphrase-actions">
+        <button id="confirmPassphraseButton" type="button">合言葉を控えたので次へ進む</button>
+      </div>
     </div>
   </div>
 
@@ -166,6 +245,11 @@
 
     loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
 
+    const passphraseOverlay = document.getElementById('passphraseOverlay');
+    const passphraseText = document.getElementById('passphraseText');
+    const confirmPassphraseButton = document.getElementById('confirmPassphraseButton');
+    let redirectTargetCache = null;
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       resultMessage.textContent = '';
@@ -202,17 +286,25 @@
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('assignedDeity', data.assignedDeity);
 
-        resultMessage.textContent = `神様「${data.assignedDeity}」があなたを見守っています。数秒後に移動します...`;
+        resultMessage.textContent = '登録が完了しました。合言葉を必ず控えてください。';
         resultMessage.classList.add('success');
 
-        setTimeout(() => {
-          window.location.href = getRedirectTarget();
-        }, 1200);
+        passphraseText.textContent = data.assignedDeity;
+        redirectTargetCache = getRedirectTarget();
+        passphraseOverlay.classList.add('visible');
+        passphraseOverlay.setAttribute('aria-hidden', 'false');
       } catch (error) {
         console.error(error);
         resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';
         resultMessage.classList.add('error');
       }
+    });
+
+    confirmPassphraseButton.addEventListener('click', () => {
+      passphraseOverlay.classList.remove('visible');
+      passphraseOverlay.setAttribute('aria-hidden', 'true');
+      const target = redirectTargetCache || '../main.html';
+      window.location.href = target;
     });
   </script>
 </body>

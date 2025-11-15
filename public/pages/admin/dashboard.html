@@ -105,7 +105,7 @@
 <body>
   <header>
     <h1>ユーザー管理ダッシュボード</h1>
-    <p class="muted">X-Admin-Token を入力してデータを操作してください。</p>
+    <p class="muted">管理操作用のパスコード（X-Admin-Token）を入力して接続してください。</p>
     <div class="token-input">
       <input type="password" id="adminToken" placeholder="管理者トークン">
       <button id="connectButton">接続</button>
@@ -114,6 +114,34 @@
   </header>
 
   <main>
+    <section class="card">
+      <h2>ユーザー検索</h2>
+      <form id="searchForm">
+        <label>ニックネーム
+          <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
+        </label>
+        <div style="display:flex; gap:8px;">
+          <label style="flex:1;">年
+            <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
+          </label>
+          <label style="flex:1;">月
+            <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
+          </label>
+          <label style="flex:1;">日
+            <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
+          </label>
+        </div>
+        <label>合言葉
+          <input type="text" id="searchPassphrase" placeholder="例: 桜舞い散る春の道">
+        </label>
+        <div class="actions">
+          <button type="submit">検索する</button>
+          <button type="button" id="resetSearchButton">条件をクリア</button>
+        </div>
+        <p class="muted">※ニックネーム / 生年月日 / 合言葉のいずれか一つだけでも検索可能です。</p>
+      </form>
+    </section>
+
     <section class="card">
       <h2>ユーザー一覧</h2>
       <div class="list-scroll">
@@ -186,9 +214,39 @@
     const formStatus = document.getElementById('formStatus');
     const conversationLog = document.getElementById('conversationLog');
     const deleteUserButton = document.getElementById('deleteUserButton');
+    const searchForm = document.getElementById('searchForm');
+    const searchNickname = document.getElementById('searchNickname');
+    const searchYear = document.getElementById('searchYear');
+    const searchMonth = document.getElementById('searchMonth');
+    const searchDay = document.getElementById('searchDay');
+    const searchPassphrase = document.getElementById('searchPassphrase');
+    const resetSearchButton = document.getElementById('resetSearchButton');
 
     const deities = [
-      '天照大神','須佐之男命','大国主命','八幡神','稲荷神','伊邪那岐命','伊邪那美命','弁財天','毘沙門天','布袋尊','大黒天','恵比寿','寿老人','福禄寿','猿田彦命','月読命','住吉大神','菅原道真公','秋葉大神','白山比咩大神','春日大社の神々','熊野権現','金毘羅大神','愛宕大神'
+      '桜舞い散る春の道',
+      '月明かりに浮かぶ夢',
+      '星降る夜の物語',
+      '朝露に光る希望',
+      '夕焼けのやさしさ',
+      '虹の架け橋',
+      '春風に揺れる花',
+      '雪化粧の静けさ',
+      '風鈴の涼しい音',
+      '蝉しぐれの夏',
+      '紅葉散る小道',
+      '初雪の贈り物',
+      '菜の花畑の春',
+      '蛍舞う夕べ',
+      '雲海に浮かぶ夢',
+      '波の音の子守歌',
+      '霧雨の潤い',
+      '落葉の敷き毯',
+      '春霞の揺らぎ',
+      '小鳥のさえずり',
+      '小川のせせらぎ',
+      '野原の風車',
+      '藤色の花',
+      '金色の稲穂'
     ];
     deities.forEach((name) => {
       const option = document.createElement('option');
@@ -199,6 +257,7 @@
 
     let currentToken = '';
     let users = [];
+    let filteredUsers = [];
 
     function setStatus(message, success = false) {
       connectionStatus.textContent = message;
@@ -213,6 +272,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '取得に失敗しました');
         users = data.users;
+        applyFilters();
         renderUsers();
         setStatus('接続済み', true);
       } catch (error) {
@@ -222,12 +282,44 @@
       }
     }
 
-    function renderUsers() {
-      if (!users.length) {
+    function applyFilters() {
+      const nickname = searchNickname.value.trim();
+      const yearValue = searchYear.value.trim();
+      const monthValue = searchMonth.value.trim();
+      const dayValue = searchDay.value.trim();
+      const passphrase = searchPassphrase.value.trim();
+
+      const hasNickname = nickname.length > 0;
+      const hasYear = yearValue.length > 0;
+      const hasMonth = monthValue.length > 0;
+      const hasDay = dayValue.length > 0;
+      const hasPassphrase = passphrase.length > 0;
+
+      if (!hasNickname && !hasYear && !hasMonth && !hasDay && !hasPassphrase) {
+        filteredUsers = [...users];
+        return;
+      }
+
+      const year = Number(yearValue);
+      const month = Number(monthValue);
+      const day = Number(dayValue);
+
+      filteredUsers = users.filter((user) => {
+        const nicknameMatch = hasNickname ? user.nickname.includes(nickname) : true;
+        const yearMatch = hasYear ? user.birth_year === year : true;
+        const monthMatch = hasMonth ? user.birth_month === month : true;
+        const dayMatch = hasDay ? user.birth_day === day : true;
+        const passphraseMatch = hasPassphrase ? user.assigned_deity.includes(passphrase) : true;
+        return nicknameMatch && yearMatch && monthMatch && dayMatch && passphraseMatch;
+      });
+    }
+
+    function renderUsers(list = filteredUsers) {
+      if (!list.length) {
         userTableBody.innerHTML = '<tr><td colspan="5" class="muted">ユーザーが見つかりません。</td></tr>';
         return;
       }
-      userTableBody.innerHTML = users.map((user) => `
+      userTableBody.innerHTML = list.map((user) => `
         <tr>
           <td>${user.id}</td>
           <td>${user.nickname}</td>
@@ -283,6 +375,18 @@
         return;
       }
       fetchUsers();
+    });
+
+    searchForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      applyFilters();
+      renderUsers();
+    });
+
+    resetSearchButton.addEventListener('click', () => {
+      searchForm.reset();
+      filteredUsers = [...users];
+      renderUsers();
     });
 
     form.addEventListener('submit', async (event) => {

@@ -3,28 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ログイン - 運命の扉</title>
+  <title>合言葉の再設定 - 運命の扉</title>
   <link rel="stylesheet" href="../../css/styles.css">
   <style>
     body {
-      background: radial-gradient(circle at bottom, rgba(0, 47, 108, 0.5), #04020c 70%);
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.8), #03010a 70%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #f5f5f5;
+      padding: 20px;
     }
     .auth-card {
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid rgba(94, 182, 255, 0.3);
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(134, 206, 255, 0.3);
       border-radius: 18px;
       padding: 30px;
-      width: min(480px, 90%);
+      width: min(520px, 95%);
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(12px);
     }
     h1 {
-      font-size: 28px;
+      font-size: 26px;
       margin-bottom: 10px;
       text-align: center;
     }
@@ -32,7 +33,8 @@
       font-size: 14px;
       text-align: center;
       margin-bottom: 24px;
-      color: #a3d4ff;
+      color: #a8d4ff;
+      line-height: 1.6;
     }
     form {
       display: flex;
@@ -49,7 +51,7 @@
     input, select {
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid rgba(94, 182, 255, 0.4);
+      border: 1px solid rgba(134, 206, 255, 0.4);
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
     }
@@ -59,8 +61,8 @@
     }
     input:focus, select:focus {
       outline: none;
-      border-color: rgba(94, 182, 255, 0.8);
-      box-shadow: 0 0 0 2px rgba(94, 182, 255, 0.2);
+      border-color: rgba(134, 206, 255, 0.8);
+      box-shadow: 0 0 0 2px rgba(134, 206, 255, 0.2);
     }
     .birth-grid {
       display: grid;
@@ -71,7 +73,7 @@
       padding: 14px;
       border: none;
       border-radius: 999px;
-      background: linear-gradient(135deg, rgba(82, 157, 255, 0.95), rgba(61, 90, 255, 0.95));
+      background: linear-gradient(135deg, rgba(108, 180, 255, 0.95), rgba(67, 108, 255, 0.95));
       color: #fff;
       font-size: 16px;
       font-weight: 600;
@@ -80,7 +82,7 @@
     }
     button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(82, 157, 255, 0.4);
+      box-shadow: 0 10px 30px rgba(108, 180, 255, 0.4);
     }
     .result-message {
       margin-top: 16px;
@@ -90,22 +92,54 @@
     .result-message.error {
       color: #ffb5b5;
     }
-        .switch-link {
+    .result-message.success {
+      color: #90ffc9;
+    }
+    .passphrase-display {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(15, 32, 63, 0.8);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .passphrase-display.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .passphrase-display .label {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      color: #cfdfff;
+      margin-bottom: 8px;
+    }
+    .passphrase-display .value {
+      font-size: 24px;
+      font-weight: 600;
+      color: #ffe9ad;
+    }
+    .back-links {
       margin-top: 20px;
       text-align: center;
       font-size: 14px;
     }
-    .switch-link a {
-      color: #9fd8ff;
+    .back-links a {
+      color: #8acbff;
       text-decoration: underline;
+      margin: 0 6px;
     }
   </style>
 </head>
 <body>
   <div class="auth-card">
-    <h1>ログイン</h1>
-    <p class="helper">登録時と同じ情報を入力するとチャットを再開できます。</p>
-    <form id="loginForm">
+    <h1>合言葉の再設定</h1>
+    <p class="helper">
+      ログインに使用する合言葉をお忘れの場合は、登録した生年月日とニックネームを入力し直してください。本人確認後、新しい合言葉を自動で発行します。
+    </p>
+    <form id="resetForm">
       <label>
         ニックネーム
         <input type="text" id="nickname" maxlength="50" required>
@@ -118,36 +152,27 @@
           <select id="birthDay" required></select>
         </div>
       </div>
-      <label>
-        割り当てられた神様
-        <select id="assignedDeity" required></select>
-      </label>
-      <button type="submit">ログイン</button>
+      <button type="submit">新しい合言葉を発行する</button>
     </form>
     <div id="resultMessage" class="result-message"></div>
-        <div class="switch-link">
-          まだ登録がお済みでない方は <a id="registerLink" href="register.html">こちら</a><br>
-          合言葉を忘れた方は <a href="passphrase-reset.html">こちらで再設定</a>
-        </div>
+    <div id="passphraseDisplay" class="passphrase-display" aria-live="polite">
+      <div class="label">新しい合言葉</div>
+      <div class="value" id="passphraseValue">---</div>
+    </div>
+    <div class="back-links">
+      <a href="login.html">ログイン画面へ戻る</a> /
+      <a href="register.html">新規登録ページへ</a>
+    </div>
   </div>
 
   <script>
     const yearSelect = document.getElementById('birthYear');
     const monthSelect = document.getElementById('birthMonth');
     const daySelect = document.getElementById('birthDay');
-    const deitySelect = document.getElementById('assignedDeity');
-    const form = document.getElementById('loginForm');
+    const form = document.getElementById('resetForm');
     const resultMessage = document.getElementById('resultMessage');
-    const registerLink = document.getElementById('registerLink');
-    const params = new URLSearchParams(window.location.search);
-    const redirectParam = params.get('redirect');
-
-    const deities = [
-      '天照大神', '須佐之男命', '大国主命', '八幡神', '稲荷神', '伊邪那岐命',
-      '伊邪那美命', '弁財天', '毘沙門天', '布袋尊', '大黒天', '恵比寿',
-      '寿老人', '福禄寿', '猿田彦命', '月読命', '住吉大神', '菅原道真公',
-      '秋葉大神', '白山比咩大神', '春日大社の神々', '熊野権現', '金毘羅大神', '愛宕大神'
-    ];
+    const passphraseDisplay = document.getElementById('passphraseDisplay');
+    const passphraseValue = document.getElementById('passphraseValue');
 
     function populateSelect(select, start, end, suffix) {
       select.innerHTML = '';
@@ -165,42 +190,17 @@
     populateSelect(monthSelect, 1, 12, '月');
     populateSelect(daySelect, 1, 31, '日');
 
-    deitySelect.innerHTML = '';
-    deities.forEach((name) => {
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = name;
-      deitySelect.appendChild(option);
-    });
-
-    function getRedirectTarget() {
-      if (!redirectParam) {
-        return '../main.html';
-      }
-      const decoded = decodeURIComponent(redirectParam);
-      return decoded || '../main.html';
-    }
-
-    registerLink.href = `register.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const existingToken = localStorage.getItem('userToken');
-      if (existingToken) {
-        window.location.href = getRedirectTarget();
-      }
-    });
-
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       resultMessage.textContent = '';
       resultMessage.className = 'result-message';
+      passphraseDisplay.classList.remove('visible');
 
       const payload = {
         nickname: document.getElementById('nickname').value.trim(),
         birthYear: Number(yearSelect.value),
         birthMonth: Number(monthSelect.value),
         birthDay: Number(daySelect.value),
-        assignedDeity: deitySelect.value,
       };
 
       if (!payload.nickname) {
@@ -210,30 +210,38 @@
       }
 
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('/api/auth/reset-passphrase', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('サーバーエラーが発生しました。');
+        }
         const data = await response.json();
 
         if (!response.ok) {
-          resultMessage.textContent = data.error || 'ログインに失敗しました。';
+          resultMessage.textContent = data.error || '再設定に失敗しました。';
           resultMessage.classList.add('error');
           return;
         }
 
+        resultMessage.textContent = '本人確認が完了しました。新しい合言葉を控えてください。';
+        resultMessage.classList.add('success');
+        passphraseValue.textContent = data.assignedDeity;
+        passphraseDisplay.classList.add('visible');
+
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('assignedDeity', data.assignedDeity);
-
-        window.location.href = getRedirectTarget();
       } catch (error) {
         console.error(error);
-        resultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
+        resultMessage.textContent = error.message || '通信エラーが発生しました。';
         resultMessage.classList.add('error');
       }
     });
   </script>
 </body>
 </html>
+
