@@ -256,6 +256,36 @@
         .modal-result.success {
             color: #8fffd1;
         }
+        .register-banner {
+            display: none;
+            margin-top: 12px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: rgba(138, 43, 226, 0.12);
+            border: 1px solid rgba(138, 43, 226, 0.35);
+            color: #3b0f63;
+        }
+        .register-banner .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .register-banner .text {
+            font-size: 14px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .register-banner button {
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -289,6 +319,13 @@
                 <input type="text" id="messageInput" placeholder="メッセージを入力..." maxlength="1000">
                 <button id="sendButton" onclick="sendMessage()">送信</button>
                 <button id="registerButton" class="register-button" type="button" onclick="openRegistrationModal(characterSelect.value)" style="display: none;">登録</button>
+            </div>
+        </div>
+
+        <div class="register-banner" id="registerBanner" aria-live="polite">
+            <div class="row">
+                <div class="text" id="registerBannerText">これ以上鑑定を続けるには正式な登録が必要です。こちらから手続きできます。</div>
+                <button id="registerBannerButton" type="button">登録する</button>
             </div>
         </div>
     </div>
@@ -339,6 +376,9 @@
         const modalLeadText = document.getElementById('modalLeadText');
         const modalResultMessage = document.getElementById('modalResultMessage');
         const registerButton = document.getElementById('registerButton');
+        const registerBanner = document.getElementById('registerBanner');
+        const registerBannerText = document.getElementById('registerBannerText');
+        const registerBannerButton = document.getElementById('registerBannerButton');
 
         let cachedUserToken = null;
 
@@ -431,6 +471,29 @@
             }
         }
 
+        function showRegisterBanner(message) {
+            if (registerBanner) {
+                if (message && registerBannerText) registerBannerText.textContent = message;
+                registerBanner.style.display = 'block';
+            }
+        }
+
+        function hideRegisterBanner() {
+            if (registerBanner) {
+                registerBanner.style.display = 'none';
+            }
+        }
+
+        function showRegisterUI(message) {
+            showRegisterButton();
+            showRegisterBanner(message);
+        }
+
+        function hideRegisterUI() {
+            hideRegisterButton();
+            hideRegisterBanner();
+        }
+
         function handleNeedsRegistration(message) {
             if (window.AuthState) {
                 AuthState.clearAuth();
@@ -498,10 +561,16 @@
             attachEventHandlers();
             
             // 初期表示で登録ボタンの表示を制御
-            if (!AuthState.isRegistered()) {
-                showRegisterButton();
+            if (AuthState && typeof AuthState.isRegistered === 'function' && !AuthState.isRegistered()) {
+                const remaining = Math.max(0, GUEST_MESSAGE_LIMIT - (typeof AuthState.getGuestMessageCount === 'function' ? AuthState.getGuestMessageCount() : 0));
+                if (remaining <= 1) {
+                    showRegisterUI('まもなく無料体験が終了します。登録で鑑定を継続できます。');
+                } else {
+                    showRegisterButton();
+                    hideRegisterBanner();
+                }
             } else {
-                hideRegisterButton();
+                hideRegisterUI();
             }
         }
 
@@ -529,6 +598,12 @@
             modalCloseButton.addEventListener('click', () => {
                 closeRegistrationModal();
             });
+
+            if (registerBannerButton) {
+                registerBannerButton.addEventListener('click', () => {
+                    openRegistrationModal(characterSelect.value);
+                });
+            }
         }
 
         window.addEventListener('DOMContentLoaded', initPage);
@@ -545,8 +620,11 @@
             const guestCountBeforeSend = AuthState.getGuestMessageCount();
 
             if (!isRegistered && guestCountBeforeSend >= GUEST_MESSAGE_LIMIT) {
-                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
-                showRegisterButton();
+                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタン、または下部の登録バーから手続きをお願いします。', 'システルム');
+                showRegisterUI('これ以上鑑定を続けるには正式な登録が必要です。こちらから手続きできます。');
+                if (registerBanner) {
+                    registerBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
                 return;
             }
 
@@ -629,9 +707,15 @@
                 // 登録促しはDeepSeekの応答内に自然に含まれるため、会話内で自然に促される
                 // ゲスト体験中（未登録）の場合、登録ボタンを表示
                 if (!isRegistered) {
-                    showRegisterButton();
+                    const remaining = typeof data.remainingGuestMessages === 'number' ? data.remainingGuestMessages : Math.max(0, GUEST_MESSAGE_LIMIT - (typeof AuthState.getGuestMessageCount === 'function' ? AuthState.getGuestMessageCount() : 0));
+                    if (remaining <= 1) {
+                        showRegisterUI('まもなく無料体験が終了します。登録で鑑定を継続できます。');
+                    } else {
+                        showRegisterButton();
+                        hideRegisterBanner();
+                    }
                 } else {
-                    hideRegisterButton();
+                    hideRegisterUI();
                 }
 
                 updateUserStatus();
@@ -737,7 +821,7 @@
 
                 setTimeout(() => {
                     closeRegistrationModal();
-                    hideRegisterButton();
+                    hideRegisterUI();
                 }, 1000);
             } catch (error) {
                 modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
