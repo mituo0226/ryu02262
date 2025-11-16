@@ -132,6 +132,11 @@
         }
         .input-area {
             display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-row {
+            display: flex;
             gap: 10px;
         }
         .input-area input {
@@ -157,6 +162,7 @@
             font-weight: 600;
             transition: all 0.3s;
             box-shadow: 0 2px 10px rgba(138, 43, 226, 0.3);
+            white-space: nowrap;
         }
         .input-area button:hover {
             background: linear-gradient(135deg, #9b3be3, #5b0093);
@@ -168,6 +174,14 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+        .input-area button.register-button {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8));
+            font-size: 14px;
+            padding: 12px 20px;
+        }
+        .input-area button.register-button:hover {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95));
         }
         .loading {
             text-align: center;
@@ -242,27 +256,6 @@
         .modal-result.success {
             color: #8fffd1;
         }
-        .register-reminder {
-            display: none;
-            margin-top: 16px;
-            padding: 14px 16px;
-            border-radius: 10px;
-            background: rgba(138, 43, 226, 0.12);
-            border: 1px solid rgba(138, 43, 226, 0.35);
-            color: #3b0f63;
-            font-size: 14px;
-        }
-        .register-reminder strong {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 15px;
-        }
-        .register-reminder button {
-            margin-top: 10px;
-            width: 100%;
-            border-radius: 999px;
-            padding: 10px 16px;
-        }
     </style>
 </head>
 <body>
@@ -292,14 +285,11 @@
         <div class="messages" id="messages"></div>
 
         <div class="input-area">
-            <input type="text" id="messageInput" placeholder="メッセージを入力..." maxlength="1000">
-            <button id="sendButton" onclick="sendMessage()">送信</button>
-        </div>
-
-        <div class="register-reminder" id="registerReminder" aria-live="polite">
-            <strong>正式なご登録で鑑定を継続できます。</strong>
-            <span id="registerReminderText">鑑定士が登録をおすすめしています。登録すると履歴も保持され、より深い鑑定が受けられます。</span>
-            <button id="registerReminderButton" type="button">登録画面を開く</button>
+            <div class="input-row">
+                <input type="text" id="messageInput" placeholder="メッセージを入力..." maxlength="1000">
+                <button id="sendButton" onclick="sendMessage()">送信</button>
+                <button id="registerButton" class="register-button" type="button" onclick="openRegistrationModal(characterSelect.value)" style="display: none;">登録</button>
+            </div>
         </div>
     </div>
 
@@ -348,9 +338,7 @@
         const modalBirthDay = document.getElementById('modalBirthDay');
         const modalLeadText = document.getElementById('modalLeadText');
         const modalResultMessage = document.getElementById('modalResultMessage');
-        const registerReminder = document.getElementById('registerReminder');
-        const registerReminderText = document.getElementById('registerReminderText');
-        const registerReminderButton = document.getElementById('registerReminderButton');
+        const registerButton = document.getElementById('registerButton');
 
         let cachedUserToken = null;
 
@@ -422,24 +410,25 @@
                 const nickname = localStorage.getItem('userNickname') || '鑑定者';
                 const deity = localStorage.getItem('assignedDeity') || '未割当';
                 userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
-                hideRegisterReminder();
+                if (registerButton) {
+                    registerButton.style.display = 'none';
+                }
             } else {
                 const remaining = Math.max(0, GUEST_MESSAGE_LIMIT - AuthState.getGuestMessageCount());
                 userStatus.textContent = `ゲスト体験中：あと ${remaining} 回まで無料相談が可能です。`;
             }
         }
 
-        function showRegisterReminder(mode = 'soft') {
-            let text = '鑑定士が登録をおすすめしています。登録すると履歴も保持され、より深い鑑定が受けられます。';
-            if (mode === 'hard') {
-                text = 'これ以上の鑑定を続けるには正式な登録が必要です。登録すると同じ会話の続きから再開できます。';
+        function showRegisterButton() {
+            if (registerButton) {
+                registerButton.style.display = 'block';
             }
-            registerReminderText.textContent = text;
-            registerReminder.style.display = 'block';
         }
 
-        function hideRegisterReminder() {
-            registerReminder.style.display = 'none';
+        function hideRegisterButton() {
+            if (registerButton) {
+                registerButton.style.display = 'none';
+            }
         }
 
         function handleNeedsRegistration(message) {
@@ -507,6 +496,13 @@
             const character = getCharacterFromURL();
             setCurrentCharacter(character);
             attachEventHandlers();
+            
+            // 初期表示で登録ボタンの表示を制御
+            if (!AuthState.isRegistered()) {
+                showRegisterButton();
+            } else {
+                hideRegisterButton();
+            }
         }
 
         function attachEventHandlers() {
@@ -549,8 +545,8 @@
             const guestCountBeforeSend = AuthState.getGuestMessageCount();
 
             if (!isRegistered && guestCountBeforeSend >= GUEST_MESSAGE_LIMIT) {
-                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録画面から手続きをお願いします。', 'システム');
-                showRegisterReminder('hard');
+                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
+                showRegisterButton();
                 return;
             }
 
@@ -630,10 +626,12 @@
                     detectedKeywords: data.detectedKeywords,
                 });
 
-                // 登録促しはDeepSeekの応答内に自然に含まれるため、追加のリマインダーは不要
-                // ただし、残り回数が少ない場合は控えめにリマインダーを表示
-                if (!isRegistered && data.remainingGuestMessages !== undefined && data.remainingGuestMessages <= 1) {
-                    showRegisterReminder('soft');
+                // 登録促しはDeepSeekの応答内に自然に含まれるため、会話内で自然に促される
+                // ゲスト体験中（未登録）の場合、登録ボタンを表示
+                if (!isRegistered) {
+                    showRegisterButton();
+                } else {
+                    hideRegisterButton();
                 }
 
                 updateUserStatus();
@@ -739,7 +737,7 @@
 
                 setTimeout(() => {
                     closeRegistrationModal();
-                    hideRegisterReminder();
+                    hideRegisterButton();
                 }, 1000);
             } catch (error) {
                 modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
