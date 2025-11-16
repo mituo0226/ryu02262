@@ -174,6 +174,74 @@
             color: #666;
             font-style: italic;
         }
+        .register-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 15, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .register-modal.active {
+            display: flex;
+        }
+        .modal-card {
+            background: #0f0b1a;
+            border-radius: 18px;
+            padding: 30px;
+            width: min(520px, 95%);
+            border: 1px solid rgba(138, 43, 226, 0.3);
+            color: #f3edff;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.45);
+        }
+        .modal-card h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .modal-card p {
+            line-height: 1.6;
+        }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .modal-card input,
+        .modal-card select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+        .modal-card button {
+            width: 100%;
+            margin-top: 15px;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-result {
+            margin-top: 12px;
+            min-height: 18px;
+            font-size: 14px;
+        }
+        .modal-result.error {
+            color: #ffb5b5;
+        }
+        .modal-result.success {
+            color: #8fffd1;
+        }
     </style>
 </head>
 <body>
@@ -208,7 +276,33 @@
         </div>
     </div>
 
+    <div class="register-modal" id="registerModal" aria-hidden="true">
+        <div class="modal-card">
+            <button type="button" class="modal-close" id="modalCloseButton" aria-label="閉じる">&times;</button>
+            <h2>正式なご登録のお願い</h2>
+            <p id="modalLeadText">この先も鑑定を続けるには登録が必要です。</p>
+            <form id="modalRegisterForm">
+                <label style="display:block;margin-bottom:12px;">
+                    ニックネーム
+                    <input type="text" id="modalNickname" maxlength="50" placeholder="例: 星空の旅人">
+                </label>
+                <div>
+                    <span style="font-size:14px;color:#cbbdff;">生年月日</span>
+                    <div class="modal-grid" style="margin-top:6px;">
+                        <select id="modalBirthYear"></select>
+                        <select id="modalBirthMonth"></select>
+                        <select id="modalBirthDay"></select>
+                    </div>
+                </div>
+                <button type="submit">登録して会話を続ける</button>
+            </form>
+            <div id="modalResultMessage" class="modal-result"></div>
+        </div>
+    </div>
+
+    <script src="../../js/auth-state.js"></script>
     <script>
+        const GUEST_MESSAGE_LIMIT = 3;
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const characterSelect = document.getElementById('characterSelect');
@@ -218,6 +312,16 @@
         const characterNameDisplay = document.getElementById('characterNameDisplay');
         const characterStatus = document.getElementById('characterStatus');
         const userStatus = document.getElementById('userStatus');
+        const registerModal = document.getElementById('registerModal');
+        const modalCloseButton = document.getElementById('modalCloseButton');
+        const modalRegisterForm = document.getElementById('modalRegisterForm');
+        const modalNickname = document.getElementById('modalNickname');
+        const modalBirthYear = document.getElementById('modalBirthYear');
+        const modalBirthMonth = document.getElementById('modalBirthMonth');
+        const modalBirthDay = document.getElementById('modalBirthDay');
+        const modalLeadText = document.getElementById('modalLeadText');
+        const modalResultMessage = document.getElementById('modalResultMessage');
+
         let cachedUserToken = null;
 
         // 鑑定士情報のマップ
@@ -275,72 +379,126 @@
             addMessage('welcome', welcomeMsg, characterInfo[characterId].name);
         }
 
-        function redirectToRegister() {
-            const redirectTarget = encodeURIComponent(window.location.pathname + window.location.search);
-            window.location.href = `../auth/register.html?redirect=${redirectTarget}`;
-        }
+        const registrationPromptMessages = {
+            kaede: '龍神としての私がこれ以上力を使うには、正規の門をくぐっていただく必要があります。登録を済ませれば、もっと深くお守りできますよ。',
+            yukino: 'タロットも星々も、次のカードを開くにはあなたの正式な登録が必要だと告げています。一緒に儀式を進めましょう。',
+            sora: 'この先は登録してくれないと、あなたのことをちゃんと見守れなくて心配です。困ったらいつでも呼べるように準備しておきませんか？',
+            kaon: '未来を読み解くには、正式なつながりが欠かせません。登録してくれれば、あなたの未来を責任を持って案内できます。'
+        };
 
-        function ensureUserToken() {
-            const token = localStorage.getItem('userToken');
-            if (!token) {
-                redirectToRegister();
-                return null;
+        function initAuthState() {
+            if (window.AuthState && typeof AuthState.init === 'function') {
+                AuthState.init();
             }
-            return token;
+            cachedUserToken = AuthState.getUserToken();
         }
 
         function updateUserStatus() {
             if (!userStatus) return;
-            const nickname = localStorage.getItem('userNickname');
-            const deity = localStorage.getItem('assignedDeity');
-            if (nickname) {
-                userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity || '未設定'}`;
+            if (AuthState.isRegistered()) {
+                const nickname = localStorage.getItem('userNickname') || '鑑定者';
+                const deity = localStorage.getItem('assignedDeity') || '未割当';
+                userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
             } else {
-                userStatus.textContent = 'ユーザー情報を確認できませんでした。再度ログインしてください。';
+                const remaining = Math.max(0, GUEST_MESSAGE_LIMIT - AuthState.getGuestMessageCount());
+                userStatus.textContent = `ゲスト体験中：あと ${remaining} 回まで無料相談が可能です。`;
             }
         }
 
-        function handleNeedsRegistration() {
-            localStorage.removeItem('userToken');
-            localStorage.removeItem('userNickname');
-            localStorage.removeItem('assignedDeity');
-            redirectToRegister();
+        function handleNeedsRegistration(message) {
+            if (window.AuthState) {
+                AuthState.clearAuth();
+                AuthState.resetGuestProgress();
+            } else {
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userNickname');
+                localStorage.removeItem('assignedDeity');
+            }
+            cachedUserToken = null;
+            updateUserStatus();
+            addMessage('warning', message || 'セッションの有効期限が切れました。登録を完了してください。', 'システム');
+            openRegistrationModal(characterSelect.value);
         }
 
-        // ページ読み込み時の処理
-        window.addEventListener('DOMContentLoaded', () => {
-            cachedUserToken = ensureUserToken();
-            if (!cachedUserToken) {
-                return;
+        function setupBirthSelects() {
+            const currentYear = new Date().getFullYear();
+            modalBirthYear.innerHTML = '';
+            for (let year = currentYear - 90; year <= currentYear; year += 1) {
+                const option = document.createElement('option');
+                option.value = String(year);
+                option.textContent = `${year}年`;
+                modalBirthYear.appendChild(option);
             }
+            modalBirthYear.value = String(currentYear - 30);
+
+            modalBirthMonth.innerHTML = '';
+            for (let month = 1; month <= 12; month += 1) {
+                const option = document.createElement('option');
+                option.value = String(month);
+                option.textContent = `${month}月`;
+                modalBirthMonth.appendChild(option);
+            }
+
+            modalBirthDay.innerHTML = '';
+            for (let day = 1; day <= 31; day += 1) {
+                const option = document.createElement('option');
+                option.value = String(day);
+                option.textContent = `${day}日`;
+                modalBirthDay.appendChild(option);
+            }
+        }
+
+        function openRegistrationModal(characterId) {
+            const info = characterInfo[characterId] || characterInfo.kaede;
+            modalLeadText.textContent = registrationPromptMessages[characterId] || registrationPromptMessages.kaede;
+            modalNickname.value = localStorage.getItem('userNickname') || '';
+            modalResultMessage.textContent = '';
+            registerModal.classList.add('active');
+            registerModal.setAttribute('aria-hidden', 'false');
+            modalNickname.focus();
+        }
+
+        function closeRegistrationModal() {
+            registerModal.classList.remove('active');
+            registerModal.setAttribute('aria-hidden', 'true');
+        }
+
+        function initPage() {
+            initAuthState();
+            setupBirthSelects();
             updateUserStatus();
             const character = getCharacterFromURL();
             setCurrentCharacter(character);
-        });
+            attachEventHandlers();
+        }
 
-        // 鑑定士選択が変更されたとき
-        characterSelect.addEventListener('change', (e) => {
-            const newCharacter = e.target.value;
-            setCurrentCharacter(newCharacter);
-            // URLを更新（履歴に追加しない）
-            const newUrl = new URL(window.location);
-            newUrl.searchParams.set('character', newCharacter);
-            window.history.replaceState({}, '', newUrl);
-        });
+        function attachEventHandlers() {
+            characterSelect.addEventListener('change', (e) => {
+                const newCharacter = e.target.value;
+                setCurrentCharacter(newCharacter);
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('character', newCharacter);
+                window.history.replaceState({}, '', newUrl);
+            });
 
-        // Enterキーで送信
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-
-            if (!cachedUserToken) {
-                cachedUserToken = ensureUserToken();
-                if (!cachedUserToken) {
-                    return;
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendMessage();
                 }
-            }
-        });
+            });
+
+            modalRegisterForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                await submitRegistrationForm();
+            });
+
+            modalCloseButton.addEventListener('click', () => {
+                closeRegistrationModal();
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', initPage);
 
         async function sendMessage() {
             const message = messageInput.value.trim();
@@ -350,61 +508,98 @@
                 return;
             }
 
-            // ユーザーメッセージを表示
+            const isRegistered = AuthState.isRegistered();
+            const guestCountBeforeSend = AuthState.getGuestMessageCount();
+
+            if (!isRegistered && guestCountBeforeSend >= GUEST_MESSAGE_LIMIT) {
+                addRegistrationPromptMessage(character);
+                openRegistrationModal(character);
+                return;
+            }
+
+            const includeGuestHistory =
+                !isRegistered || AuthState.hasPendingHistoryTransfer(character);
+            const historyForRequest = getClientHistoryPayload(character, includeGuestHistory);
+
             addMessage('user', message, 'あなた');
 
-            // 入力欄をクリア
+            if (!isRegistered) {
+                AuthState.recordGuestMessage('user', message, character);
+            }
+
             messageInput.value = '';
             sendButton.disabled = true;
-
-            // ローディング表示
             const loadingId = addMessage('loading', '応答を生成中...', '');
+
+            const payload = {
+                message,
+                character,
+            };
+
+            if (isRegistered) {
+                cachedUserToken = AuthState.getUserToken();
+                payload.userToken = cachedUserToken;
+                if (AuthState.hasPendingHistoryTransfer(character) && historyForRequest.length > 0) {
+                    payload.clientHistory = historyForRequest;
+                    payload.migrateHistory = true;
+                }
+            } else {
+                payload.guestMetadata = { messageCount: guestCountBeforeSend };
+                if (historyForRequest.length > 0) {
+                    payload.clientHistory = historyForRequest;
+                }
+                AuthState.incrementGuestMessageCount();
+                updateUserStatus();
+            }
 
             try {
                 const response = await fetch('/api/consult', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        character: character,
-                        userToken: cachedUserToken
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
                 });
 
-                // ローディングメッセージを削除
+                const data = await response.json();
                 removeMessage(loadingId);
 
-                const data = await response.json();
-
                 if (data.needsRegistration) {
-                    handleNeedsRegistration();
+                    handleNeedsRegistration(data.error);
                     return;
                 }
 
                 if (!response.ok || data.error) {
-                    // エラーメッセージを表示
                     addMessage('error', data.error || 'エラーが発生しました', 'システム');
                     return;
                 }
 
-                // 応答を表示
                 if (data.isInappropriate) {
-                    // 不適切な発言への警告
                     addMessage('warning', data.message, data.characterName, {
-                        detectedKeywords: data.detectedKeywords
+                        detectedKeywords: data.detectedKeywords,
                     });
-                } else {
-                    // 通常の応答
-                    addMessage('character', data.message, data.characterName);
+                    if (!isRegistered) {
+                        AuthState.recordGuestMessage('assistant', data.message, character);
+                    }
+                    return;
                 }
 
+                if (!isRegistered) {
+                    AuthState.recordGuestMessage('assistant', data.message, character);
+                } else if (payload.migrateHistory) {
+                    AuthState.completeHistoryTransfer(character);
+                    AuthState.resetGuestProgress();
+                }
+
+                addMessage('character', data.message, data.characterName, {
+                    detectedKeywords: data.detectedKeywords,
+                });
+
+                if (!isRegistered && data.registrationSuggested) {
+                    addRegistrationPromptMessage(character);
+                }
+
+                updateUserStatus();
             } catch (error) {
-                // ローディングメッセージを削除
                 removeMessage(loadingId);
-                
-                // エラーメッセージを表示
                 addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
             } finally {
                 sendButton.disabled = false;
@@ -415,17 +610,18 @@
         function addMessage(type, text, sender, metadata = {}) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
-            
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'message-header';
-            headerDiv.textContent = sender ? `${sender}` : '';
-            messageDiv.appendChild(headerDiv);
+
+            if (sender) {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'message-header';
+                headerDiv.textContent = sender;
+                messageDiv.appendChild(headerDiv);
+            }
 
             const textDiv = document.createElement('div');
             textDiv.textContent = text;
             messageDiv.appendChild(textDiv);
 
-            // 不適切なキーワードが検出された場合
             if (metadata.detectedKeywords && metadata.detectedKeywords.length > 0) {
                 const keywordsDiv = document.createElement('div');
                 keywordsDiv.style.marginTop = '5px';
@@ -438,7 +634,6 @@
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-            // ローディングメッセージの場合はIDを返す
             if (type === 'loading') {
                 return messageDiv;
             }
@@ -449,6 +644,76 @@
                 messageElement.parentNode.removeChild(messageElement);
             }
         }
+
+        function addRegistrationPromptMessage(characterId) {
+            const info = characterInfo[characterId] || characterInfo.kaede;
+            const text = registrationPromptMessages[characterId] || registrationPromptMessages.kaede;
+            addMessage('character', text, info.name);
+        }
+
+        function getClientHistoryPayload(characterId, includeHistory) {
+            if (!includeHistory || !window.AuthState) {
+                return [];
+            }
+            const history = AuthState.getGuestHistory(characterId);
+            return history.map((entry) => ({
+                role: entry.role,
+                content: entry.content,
+            }));
+        }
+
+        async function submitRegistrationForm() {
+            modalResultMessage.textContent = '';
+            modalResultMessage.classList.remove('error', 'success');
+
+            const payload = {
+                nickname: modalNickname.value.trim(),
+                birthYear: Number(modalBirthYear.value),
+                birthMonth: Number(modalBirthMonth.value),
+                birthDay: Number(modalBirthDay.value),
+            };
+
+            if (!payload.nickname) {
+                modalResultMessage.textContent = 'ニックネームを入力してください。';
+                modalResultMessage.classList.add('error');
+                return;
+            }
+
+            modalResultMessage.textContent = '登録処理中です...';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    modalResultMessage.textContent = data.error || '登録に失敗しました。';
+                    modalResultMessage.classList.add('error');
+                    return;
+                }
+
+                AuthState.setAuth(data.userToken, data.nickname, data.assignedDeity);
+                cachedUserToken = data.userToken;
+                AuthState.markHistoryTransfer(characterSelect.value);
+                AuthState.resetGuestProgress({ keepHistory: true });
+                updateUserStatus();
+
+                modalResultMessage.textContent = `守護神「${data.assignedDeity}」があなたを見守ります。`;
+                modalResultMessage.classList.add('success');
+
+                setTimeout(() => {
+                    closeRegistrationModal();
+                }, 1000);
+            } catch (error) {
+                modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
+                modalResultMessage.classList.add('error');
+            }
+        }
+
+        window.sendMessage = sendMessage;
     </script>
 </body>
 </html>

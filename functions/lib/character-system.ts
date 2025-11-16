@@ -31,7 +31,18 @@ export function isInappropriate(message: string): boolean {
 /**
  * キャラクター別のシステムプロンプトを生成
  */
-export function generateSystemPrompt(characterId: string): string {
+interface PromptOptions {
+  encourageRegistration?: boolean;
+}
+
+const registrationGuides: Record<string, string> = {
+  kaede: 'あなたは三度目の応答で、龍神としての威厳を保ちながらも「鑑定を正式に続けるには、専用の門をくぐる登録が必要」と優しく伝え、登録ボタンを押すよう案内してください。圧はかけず、安心感を与えつつ背中を押します。',
+  yukino: '三度目の応答では、タロットや星の導きを引き合いに出し、「次のカードを開くには正式な登録が必要」と気品をもって伝えてください。登録の先にある深い鑑定の世界を想像させます。',
+  sora: '三度目では、修行中の身として母性的な優しさで「これ以上は登録してもらわないと心配で見守れない」と素直に伝えます。登録すればずっとそばにいられると励まします。',
+  kaon: '三度目では、未来予知の責任を語りながら「これ以上は正式な登録がないと力を使い切れない」と丁寧に伝えます。登録すれば未来を見守れることを強調します。',
+};
+
+export function generateSystemPrompt(characterId: string, options: PromptOptions = {}): string {
   const prompts: Record<string, string> = {
     kaede: `あなたは楓（かえで）という鑑定士です。以下の設定に従って応答してください。
 
@@ -168,7 +179,16 @@ export function generateSystemPrompt(characterId: string): string {
 - 第三者の力により未来を変えることは良き方向に向けるためのものであり、誰かを不幸にしては決していけないと説く`,
   };
 
-  return prompts[characterId] || prompts.kaede;
+  const basePrompt = prompts[characterId] || prompts.kaede;
+  if (options.encourageRegistration) {
+    const guide = registrationGuides[characterId] || registrationGuides.kaede;
+    return `${basePrompt}
+
+【登録誘導方針】
+${guide}
+- ただし相談者を責めず、共感を持って案内すること。`;
+  }
+  return basePrompt;
 }
 
 /**
