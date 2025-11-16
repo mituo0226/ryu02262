@@ -401,7 +401,7 @@
             if (window.AuthState && typeof AuthState.init === 'function') {
                 AuthState.init();
             }
-            cachedUserToken = AuthState.getUserToken();
+            cachedUserToken = window.AuthState && typeof AuthState.getUserToken === 'function' ? AuthState.getUserToken() : null;
         }
 
         function updateUserStatus() {
