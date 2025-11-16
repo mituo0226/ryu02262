@@ -122,24 +122,39 @@
 
         // ボタン
         const fateButton = document.getElementById('fateButton');
-        fateButton.style.display = 'inline-block';
-        fateButton.style.padding = window.innerWidth <= 768 ? '15px 40px' : '20px 60px';
-        fateButton.style.fontSize = window.innerWidth <= 768 ? '18px' : '24px';
-        fateButton.style.color = '#fff';
-        fateButton.style.background = 'linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8))';
-        fateButton.style.border = '2px solid rgba(138, 43, 226, 0.6)';
-        fateButton.style.borderRadius = '50px';
-        fateButton.style.textDecoration = 'none';
-        fateButton.style.opacity = '0';
-        fateButton.style.transform = 'translateY(30px)';
-        fateButton.style.transition = 'all 0.5s ease';
-        fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
-        fateButton.style.position = 'relative';
-        fateButton.style.overflow = 'hidden';
+        fateButton.setAttribute('href','/pages/auth/login.html?redirect=%2Fnocss%2Fmain.html');
+        Object.assign(fateButton.style,{
+            display:'inline-block',padding:(window.innerWidth<=768?'15px 40px':'20px 60px'),
+            fontSize:(window.innerWidth<=768?'18px':'24px'),color:'#fff',
+            background:'linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8))',
+            border:'2px solid rgba(138, 43, 226, 0.6)',borderRadius:'50px',textDecoration:'none',
+            opacity:'0',transform:'translateY(30px)',transition:'all 0.5s ease',
+            boxShadow:'0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)',
+            position:'relative',overflow:'hidden'
+        });
+
+        // 初めての方向けボタン
+        const guestBtn = document.createElement('a');
+        guestBtn.id = 'guestButton';
+        guestBtn.href = 'main.html';
+        guestBtn.textContent = '初めての方入口';
+        Object.assign(guestBtn.style,{
+            display:'inline-block',marginTop:'12px',padding:(window.innerWidth<=768?'12px 32px':'16px 48px'),
+            fontSize:(window.innerWidth<=768?'16px':'20px'),color:'#fff',
+            background:'linear-gradient(135deg, rgba(138, 43, 226, 0.6), rgba(75, 0, 130, 0.6))',
+            border:'2px solid rgba(138, 43, 226, 0.5)',borderRadius:'50px',textDecoration:'none',
+            opacity:'0',transform:'translateY(30px)',transition:'all 0.5s ease',
+            boxShadow:'0 0 16px rgba(138, 43, 226, 0.4), 0 0 28px rgba(138, 43, 226, 0.25)'
+        });
+        buttonContainer.appendChild(guestBtn);
 
         setTimeout(() => {
             fateButton.style.opacity = '1';
             fateButton.style.transform = 'translateY(0)';
+            setTimeout(()=>{
+              guestBtn.style.opacity = '1';
+              guestBtn.style.transform = 'translateY(0)';
+            }, 200);
         }, 6000);
 
         // ボタンホバーエフェクト
@@ -151,25 +166,13 @@
             fateButton.style.boxShadow = '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3)';
             fateButton.style.transform = 'translateY(0) scale(1)';
         });
-
-        // Returning registered users (hasAccount but no token) should sign-in first
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('fateButton');
-            if (!btn) return;
-            btn.addEventListener('click', function(ev){
-                try {
-                    var hasAccount = localStorage.getItem('hasAccount') === 'true';
-                    var token = localStorage.getItem('userToken');
-                    if (hasAccount && !token) {
-                        ev.preventDefault();
-                        var target = (btn.getAttribute('href') || '/');
-                        var redirectUrl = '/pages/auth/login.html?redirect=' + encodeURIComponent('/nocss/' + target.replace(/^\.\//, ''));
-                        window.location.href = redirectUrl;
-                    }
-                } catch (e) {
-                    // ignore
-                }
-            });
+        guestBtn.addEventListener('mouseenter', () => {
+            guestBtn.style.boxShadow = '0 0 24px rgba(138, 43, 226, 0.7), 0 0 40px rgba(138, 43, 226, 0.35)';
+            guestBtn.style.transform = 'translateY(-4px) scale(1.04)';
+        });
+        guestBtn.addEventListener('mouseleave', () => {
+            guestBtn.style.boxShadow = '0 0 16px rgba(138, 43, 226, 0.4), 0 0 28px rgba(138, 43, 226, 0.25)';
+            guestBtn.style.transform = 'translateY(0) scale(1)';
         });
 
         // ロゴのフェードイン

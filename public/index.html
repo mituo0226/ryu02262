@@ -24,7 +24,12 @@
         </div>
         
         <div class="button-container">
-            <a href="pages/main.html" class="fate-button fade-in-button" id="fateButton">運命の扉を開く</a>
+            <a href="./pages/auth/login.html?redirect=%2Fpages%2Fmain.html" class="fate-button fade-in-button" id="fateButton">運命の扉を開く</a>
+            <div style="margin-top:12px;">
+                <a href="pages/main.html" class="fate-button fade-in-button" id="guestButton" style="opacity:0;transform:translateY(30px);display:inline-block;">
+                    初めての方入口
+                </a>
+            </div>
         </div>
     </div>
 
@@ -45,30 +50,19 @@
 
         // ボタンのフェードイン
         const button = document.getElementById('fateButton');
+        const guestButton = document.getElementById('guestButton');
         setTimeout(() => {
-            button.style.opacity = '1';
-            button.style.transform = 'translateY(0)';
+            if (button) {
+                button.style.opacity = '1';
+                button.style.transform = 'translateY(0)';
+            }
+            if (guestButton) {
+                setTimeout(() => {
+                    guestButton.style.opacity = '1';
+                    guestButton.style.transform = 'translateY(0)';
+                }, 200);
+            }
         }, 6000);
-
-        // Redirect returning registered users (no token but hasAccount) to login before entering
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('fateButton');
-            if (!btn) return;
-            btn.addEventListener('click', (ev) => {
-                try {
-                    const hasAccount = localStorage.getItem('hasAccount') === 'true';
-                    const token = localStorage.getItem('userToken');
-                    if (hasAccount && !token) {
-                        ev.preventDefault();
-                        const target = (btn.getAttribute('href') || '/');
-                        const redirectUrl = `./pages/auth/login.html?redirect=${encodeURIComponent(target)}`;
-                        window.location.href = redirectUrl;
-                    }
-                } catch (e) {
-                    // ignore storage errors
-                }
-            });
-        });
 
         // パーティクルエフェクト
         function createParticle() {
