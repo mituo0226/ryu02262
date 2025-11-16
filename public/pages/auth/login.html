@@ -226,6 +226,7 @@
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('assignedDeity', data.assignedDeity);
+        localStorage.setItem('hasAccount', 'true');
 
         window.location.href = getRedirectTarget();
       } catch (error) {

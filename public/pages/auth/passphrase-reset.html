@@ -235,6 +235,7 @@
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('assignedDeity', data.assignedDeity);
+        localStorage.setItem('hasAccount', 'true');
       } catch (error) {
         console.error(error);
         resultMessage.textContent = error.message || '通信エラーが発生しました。';

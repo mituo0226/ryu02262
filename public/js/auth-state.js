@@ -42,6 +42,8 @@
     if (deity) {
       localStorage.setItem('assignedDeity', deity);
     }
+    // Mark that this browser/user has completed registration
+    localStorage.setItem('hasAccount', 'true');
   }
 
   function clearAuth() {
