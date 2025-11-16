@@ -824,10 +824,10 @@
                 modalResultMessage.textContent = `守護神「${data.assignedDeity}」があなたを見守ります。`;
                 modalResultMessage.classList.add('success');
 
-                setTimeout(() => {
-                    closeRegistrationModal();
-                    hideRegisterUI();
-                }, 1000);
+                const redirectUrl = `/pages/auth/passphrase-success.html?nickname=${encodeURIComponent(
+                    data.nickname || ''
+                )}&passphrase=${encodeURIComponent(data.assignedDeity || '')}&redirect=${encodeURIComponent(window.location.href)}`;
+                window.location.href = redirectUrl;
             } catch (error) {
                 modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
                 modalResultMessage.classList.add('error');
