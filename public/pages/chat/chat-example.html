@@ -242,6 +242,27 @@
         .modal-result.success {
             color: #8fffd1;
         }
+        .register-reminder {
+            display: none;
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: rgba(138, 43, 226, 0.12);
+            border: 1px solid rgba(138, 43, 226, 0.35);
+            color: #3b0f63;
+            font-size: 14px;
+        }
+        .register-reminder strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+        .register-reminder button {
+            margin-top: 10px;
+            width: 100%;
+            border-radius: 999px;
+            padding: 10px 16px;
+        }
     </style>
 </head>
 <body>
@@ -273,6 +294,12 @@
         <div class="input-area">
             <input type="text" id="messageInput" placeholder="メッセージを入力..." maxlength="1000">
             <button id="sendButton" onclick="sendMessage()">送信</button>
+        </div>
+
+        <div class="register-reminder" id="registerReminder" aria-live="polite">
+            <strong>正式なご登録で鑑定を継続できます。</strong>
+            <span id="registerReminderText">鑑定士が登録をおすすめしています。登録すると履歴も保持され、より深い鑑定が受けられます。</span>
+            <button id="registerReminderButton" type="button">登録画面を開く</button>
         </div>
     </div>
 
@@ -321,6 +348,9 @@
         const modalBirthDay = document.getElementById('modalBirthDay');
         const modalLeadText = document.getElementById('modalLeadText');
         const modalResultMessage = document.getElementById('modalResultMessage');
+        const registerReminder = document.getElementById('registerReminder');
+        const registerReminderText = document.getElementById('registerReminderText');
+        const registerReminderButton = document.getElementById('registerReminderButton');
 
         let cachedUserToken = null;
 
@@ -379,13 +409,6 @@
             addMessage('welcome', welcomeMsg, characterInfo[characterId].name);
         }
 
-        const registrationPromptMessages = {
-            kaede: '龍神としての私がこれ以上力を使うには、正規の門をくぐっていただく必要があります。登録を済ませれば、もっと深くお守りできますよ。',
-            yukino: 'タロットも星々も、次のカードを開くにはあなたの正式な登録が必要だと告げています。一緒に儀式を進めましょう。',
-            sora: 'この先は登録してくれないと、あなたのことをちゃんと見守れなくて心配です。困ったらいつでも呼べるように準備しておきませんか？',
-            kaon: '未来を読み解くには、正式なつながりが欠かせません。登録してくれれば、あなたの未来を責任を持って案内できます。'
-        };
-
         function initAuthState() {
             if (window.AuthState && typeof AuthState.init === 'function') {
                 AuthState.init();
@@ -399,10 +422,24 @@
                 const nickname = localStorage.getItem('userNickname') || '鑑定者';
                 const deity = localStorage.getItem('assignedDeity') || '未割当';
                 userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
+                hideRegisterReminder();
             } else {
                 const remaining = Math.max(0, GUEST_MESSAGE_LIMIT - AuthState.getGuestMessageCount());
                 userStatus.textContent = `ゲスト体験中：あと ${remaining} 回まで無料相談が可能です。`;
             }
+        }
+
+        function showRegisterReminder(mode = 'soft') {
+            let text = '鑑定士が登録をおすすめしています。登録すると履歴も保持され、より深い鑑定が受けられます。';
+            if (mode === 'hard') {
+                text = 'これ以上の鑑定を続けるには正式な登録が必要です。登録すると同じ会話の続きから再開できます。';
+            }
+            registerReminderText.textContent = text;
+            registerReminder.style.display = 'block';
+        }
+
+        function hideRegisterReminder() {
+            registerReminder.style.display = 'none';
         }
 
         function handleNeedsRegistration(message) {
@@ -450,7 +487,7 @@
 
         function openRegistrationModal(characterId) {
             const info = characterInfo[characterId] || characterInfo.kaede;
-            modalLeadText.textContent = registrationPromptMessages[characterId] || registrationPromptMessages.kaede;
+            modalLeadText.textContent = `${info.name} が正式登録をおすすめしています。`;
             modalNickname.value = localStorage.getItem('userNickname') || '';
             modalResultMessage.textContent = '';
             registerModal.classList.add('active');
@@ -512,8 +549,8 @@
             const guestCountBeforeSend = AuthState.getGuestMessageCount();
 
             if (!isRegistered && guestCountBeforeSend >= GUEST_MESSAGE_LIMIT) {
-                addRegistrationPromptMessage(character);
-                openRegistrationModal(character);
+                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録画面から手続きをお願いします。', 'システム');
+                showRegisterReminder('hard');
                 return;
             }
 
@@ -594,7 +631,7 @@
                 });
 
                 if (!isRegistered && data.registrationSuggested) {
-                    addRegistrationPromptMessage(character);
+                    showRegisterReminder('soft');
                 }
 
                 updateUserStatus();
@@ -643,12 +680,6 @@
             if (messageElement && messageElement.parentNode) {
                 messageElement.parentNode.removeChild(messageElement);
             }
-        }
-
-        function addRegistrationPromptMessage(characterId) {
-            const info = characterInfo[characterId] || characterInfo.kaede;
-            const text = registrationPromptMessages[characterId] || registrationPromptMessages.kaede;
-            addMessage('character', text, info.name);
         }
 
         function getClientHistoryPayload(characterId, includeHistory) {
@@ -706,6 +737,7 @@
 
                 setTimeout(() => {
                     closeRegistrationModal();
+                    hideRegisterReminder();
                 }, 1000);
             } catch (error) {
                 modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
