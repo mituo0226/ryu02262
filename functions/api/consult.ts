@@ -3,7 +3,7 @@ import { isInappropriate, generateSystemPrompt, getCharacterName } from '../lib/
 import { isValidCharacter } from '../lib/character-loader.js';
 import { verifyUserToken } from '../lib/token.js';
 
-const GUEST_MESSAGE_LIMIT = 3;
+const GUEST_MESSAGE_LIMIT = 5;
 
 type ConversationRole = 'user' | 'assistant';
 
