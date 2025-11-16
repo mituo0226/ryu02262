@@ -141,6 +141,7 @@
     const registerLink = document.getElementById('registerLink');
     const params = new URLSearchParams(window.location.search);
     const redirectParam = params.get('redirect');
+    const relogin = params.get('relogin') === '1';
 
     const deities = [
       '天照大神', '須佐之男命', '大国主命', '八幡神', '稲荷神', '伊邪那岐命',
@@ -181,9 +182,14 @@
       return decoded || '../main.html';
     }
 
-    registerLink.href = `register.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
+    registerLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
 
     window.addEventListener('DOMContentLoaded', () => {
+      if (relogin) {
+        // Force showing the login form by clearing any existing token
+        try { localStorage.removeItem('userToken'); } catch (_) {}
+        return; // do not auto-redirect
+      }
       const existingToken = localStorage.getItem('userToken');
       if (existingToken) {
         window.location.href = getRedirectTarget();
