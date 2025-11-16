@@ -630,7 +630,9 @@
                     detectedKeywords: data.detectedKeywords,
                 });
 
-                if (!isRegistered && data.registrationSuggested) {
+                // 登録促しはDeepSeekの応答内に自然に含まれるため、追加のリマインダーは不要
+                // ただし、残り回数が少ない場合は控えめにリマインダーを表示
+                if (!isRegistered && data.remainingGuestMessages !== undefined && data.remainingGuestMessages <= 1) {
                     showRegisterReminder('soft');
                 }
 
