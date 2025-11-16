@@ -431,15 +431,30 @@
             characterNameDisplay.textContent = info.name;
             characterStatus.textContent = '現在の鑑定士';
             currentCharacterDisplay.style.display = 'flex';
-            
-            // ウェルカムメッセージを表示
-            showWelcomeMessage(characterId);
+            // ウェルカムは後段で履歴有無を見て表示
         }
 
         // ウェルカムメッセージを表示
         function showWelcomeMessage(characterId) {
-            const welcomeMsg = welcomeMessages[characterId] || welcomeMessages.kaede;
-            addMessage('welcome', welcomeMsg, characterInfo[characterId].name);
+            const msg = (welcomeMessages[characterId] || welcomeMessages.kaede);
+            const sender = (characterInfo[characterId] ? characterInfo[characterId].name : characterInfo.kaede.name);
+            addMessage('welcome', msg, sender);
+        }
+
+        function getGuestHistoryFor(characterId) {
+            if (!(window.AuthState) || typeof AuthState.getGuestHistory !== 'function') return [];
+            return AuthState.getGuestHistory(characterId) || [];
+        }
+
+        function renderGuestHistory(characterId) {
+            const info = characterInfo[characterId] || characterInfo.kaede;
+            const history = getGuestHistoryFor(characterId);
+            if (!history || !history.length) return;
+            history.forEach((entry) => {
+                const type = entry.role === 'user' ? 'user' : 'character';
+                const sender = entry.role === 'user' ? 'あなた' : info.name;
+                addMessage(type, entry.content, sender);
+            });
         }
 
         function initAuthState() {
@@ -566,13 +581,20 @@
             attachEventHandlers();
             
             // 初期表示で登録ボタンの表示を制御
+
+            const existing = getGuestHistoryFor(character);
+            if (existing && existing.length) {
+                renderGuestHistory(character);
+            } else {
+                showWelcomeMessage(character);
+            }
+
             if (AuthState && typeof AuthState.isRegistered === 'function' && !AuthState.isRegistered()) {
-                const remaining = Math.max(0, GUEST_MESSAGE_LIMIT - (typeof AuthState.getGuestMessageCount === 'function' ? AuthState.getGuestMessageCount() : 0));
+                const remaining = Math.max(0, (typeof AuthState.getGuestMessageCount === 'function' ? AuthState.getGuestMessageCount() : 0));
                 if (remaining <= 1) {
                     showRegisterUI('まもなく無料体験が終了します。登録で鑑定を継続できます。');
                 } else {
-                    showRegisterButton();
-                    hideRegisterBanner();
+                    hideRegisterUI();
                 }
             } else {
                 hideRegisterUI();
@@ -625,7 +647,7 @@
             const guestCountBeforeSend = AuthState.getGuestMessageCount();
 
             if (!isRegistered && guestCountBeforeSend >= GUEST_MESSAGE_LIMIT) {
-                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタン、または下部の登録バーから手続きをお願いします。', 'システルム');
+                addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタン、または下部の登録バーから手続きをお願いします。', 'システム');
                 showRegisterUI('これ以上鑑定を続けるには正式な登録が必要です。こちらから手続きできます。');
                 if (registerBanner) {
                     registerBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -713,11 +735,10 @@
                 // ゲスト体験中（未登録）の場合、登録ボタンを表示
                 if (!isRegistered) {
                     const remaining = typeof data.remainingGuestMessages === 'number' ? data.remainingGuestMessages : Math.max(0, GUEST_MESSAGE_LIMIT - (typeof AuthState.getGuestMessageCount === 'function' ? AuthState.getGuestMessageCount() : 0));
-                    if (remaining <= 1) {
+                    if ((typeof data.registrationSuggested !== 'undefined' && data.registrationSuggested) || remaining <= 1) {
                         showRegisterUI('まもなく無料体験が終了します。登録で鑑定を継続できます。');
                     } else {
-                        showRegisterButton();
-                        hideRegisterBanner();
+                        hideRegisterUI();
                     }
                 } else {
                     hideRegisterUI();
