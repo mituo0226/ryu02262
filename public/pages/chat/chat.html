@@ -481,21 +481,38 @@ ${lastDate ? `${lastDate}の話では` : ''}${conversationContent ? ` ${conversa
                     const initialMessage = generateInitialMessage(character, historyData);
                     addMessage('welcome', initialMessage, characterInfo[character].name);
                 } else if (historyData && historyData.nickname) {
-                    // 会話履歴はないが、ユーザー情報は取得できた場合
+                    // 会話履歴はないが、ユーザー情報は取得できた場合（この鑑定士とは初めての会話）
                     userNickname = historyData.nickname;
                     const info = characterInfo[character];
-                    const message = `${userNickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
+                    
+                    // 各鑑定士ごとの初回メッセージ
+                    let message = '';
+                    if (character === 'sora') {
+                        message = `${userNickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\nどのようなご相談がございますか？直感と霊感を使って必ずあなたを幸せに導くよ。`;
+                    } else {
+                        message = `${userNickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
+                    }
                     addMessage('welcome', message, info.name);
                 } else {
                     // エラーが発生した場合
                     const info = characterInfo[character];
-                    const message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
+                    let message = '';
+                    if (character === 'sora') {
+                        message = `${userNickname || 'あなた'}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\nどのようなご相談がございますか？直感と霊感を使って必ずあなたを幸せに導くよ。`;
+                    } else {
+                        message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
+                    }
                     addMessage('welcome', message, info.name);
                 }
             } catch (error) {
                 console.error('Error loading conversation history:', error);
                 const info = characterInfo[character];
-                const message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
+                let message = '';
+                if (character === 'sora') {
+                    message = `${userNickname || 'あなた'}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\nどのようなご相談がございますか？直感と霊感を使って必ずあなたを幸せに導くよ。`;
+                } else {
+                    message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
+                }
                 addMessage('welcome', message, info.name);
             }
 
