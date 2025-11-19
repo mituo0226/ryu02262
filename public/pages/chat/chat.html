@@ -181,11 +181,54 @@
             background-color: #ffebee;
             color: #c62828;
         }
+        .message.loading, .message.connecting {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(75, 0, 130, 0.15));
+            border: 2px solid rgba(138, 43, 226, 0.4);
+            text-align: center;
+            color: #8a2be2;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+        .message.connecting::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        .message.connecting .connecting-text {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
         .message-header {
             font-size: 12px;
             color: #666;
             margin-bottom: 5px;
             font-weight: 600;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #8a2be2;
+            margin-right: 8px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
         .input-area {
             display: flex;
@@ -502,7 +545,9 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             userNickname = localStorage.getItem('userNickname') || null;
             updateUserStatus();
 
-            // 会話履歴を読み込んで初回メッセージを表示
+            // 会話履歴を読み込んで初回メッセージを表示（演出付き）
+            await showConnectionSequence(character);
+            
             try {
                 const historyData = await loadConversationHistory(character);
                 
@@ -574,7 +619,7 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 });
 
                 const data = await response.json();
-                removeMessage(loadingId);
+                removeMessage(waitingId);
 
                 if (data.needsRegistration) {
                     addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
@@ -600,7 +645,7 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
 
                 addMessage('character', data.message, data.characterName);
             } catch (error) {
-                removeMessage(loadingId);
+                removeMessage(waitingId);
                 addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
             } finally {
                 sendButton.disabled = false;
