@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おかえりなさい</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .welcome-container {
+            text-align: center;
+            color: white;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        .welcome-message {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(138, 43, 226, 0.8);
+            animation: slideUp 1s ease-out;
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .welcome-message {
+                font-size: 24px;
+            }
+            .loading-text {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <div class="welcome-message" id="welcomeMessage">おかえりなさい</div>
+        <div class="loading-text">読み込み中...</div>
+    </div>
+
+    <script>
+        // AuthStateの読み込みを待つ
+        function initPage() {
+            // AuthStateが読み込まれているか確認
+            if (typeof AuthState === 'undefined') {
+                // AuthStateスクリプトを読み込む
+                const script = document.createElement('script');
+                script.src = '../js/auth-state.js';
+                script.onload = () => {
+                    checkAuthAndRedirect();
+                };
+                script.onerror = () => {
+                    // スクリプトが見つからない場合、直接リダイレクト
+                    setTimeout(() => {
+                        window.location.href = 'appraisers-list.html';
+                    }, 2000);
+                };
+                document.head.appendChild(script);
+            } else {
+                checkAuthAndRedirect();
+            }
+        }
+
+        function checkAuthAndRedirect() {
+            try {
+                // AuthStateを初期化
+                if (typeof AuthState !== 'undefined' && typeof AuthState.init === 'function') {
+                    AuthState.init();
+                }
+
+                // ユーザー情報を取得
+                const userToken = localStorage.getItem('userToken');
+                const nickname = localStorage.getItem('userNickname');
+
+                if (userToken && nickname) {
+                    // ニックネームを表示
+                    const welcomeMessage = document.getElementById('welcomeMessage');
+                    welcomeMessage.textContent = `おかえりなさい${nickname}さん`;
+                    
+                    // 2秒後に鑑定師一覧ページに遷移
+                    setTimeout(() => {
+                        window.location.href = 'appraisers-list.html';
+                    }, 2000);
+                } else {
+                    // 未登録の場合はログインページにリダイレクト
+                    setTimeout(() => {
+                        window.location.href = 'auth/login.html?redirect=' + encodeURIComponent('/pages/appraisers-list.html');
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // エラーが発生した場合も鑑定師一覧ページに遷移
+                setTimeout(() => {
+                    window.location.href = 'appraisers-list.html';
+                }, 2000);
+            }
+        }
+
+        // ページ読み込み時に初期化
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
+

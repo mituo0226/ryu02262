@@ -120,6 +120,55 @@
       60% { opacity: .9; transform: translateY(-2px) scale(1.01);} 
       100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0);} 
     }
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+        align-items: flex-start;
+        padding-top: 20px;
+      }
+      .card {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+      }
+      .header {
+        padding: 16px 20px;
+      }
+      .header h1 {
+        font-size: 20px;
+      }
+      .content {
+        padding: 20px;
+      }
+      .lead {
+        font-size: 14px;
+        margin-bottom: 14px;
+        line-height: 1.6;
+      }
+      .passphrase {
+        font-size: clamp(18px, 6vw, 28px);
+        padding: 16px 20px;
+        word-break: break-word;
+      }
+      .note {
+        font-size: 13px;
+        margin-top: 10px;
+      }
+      .actions {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .btn {
+        padding: 14px 16px;
+        font-size: 16px;
+        min-height: 48px;
+      }
+      .meta {
+        font-size: 12px;
+        margin-top: 10px;
+      }
+    }
   </style>
 </head>
 <body>

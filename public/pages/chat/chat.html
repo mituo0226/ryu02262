@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鑑定士チャット</title>
+    <style>
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            min-height: 100vh;
+        }
+        .navigation-links {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .navigation-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8));
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(138, 43, 226, 0.3);
+        }
+        .navigation-links a:hover {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .chat-container {
+                padding: 15px;
+            }
+            .navigation-links {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .navigation-links a {
+                width: 100%;
+                text-align: center;
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+            .current-character-display {
+                flex-direction: column;
+                text-align: center;
+                padding: 12px;
+            }
+            .current-character-display img {
+                width: 50px;
+                height: 50px;
+            }
+            .current-character-info h3 {
+                font-size: 18px;
+            }
+            .messages {
+                height: 300px;
+                padding: 10px;
+            }
+            .message {
+                padding: 10px 12px;
+                margin-bottom: 12px;
+            }
+            .message.user {
+                margin-left: 10%;
+            }
+            .message.character {
+                margin-right: 10%;
+            }
+            .input-row {
+                flex-direction: column;
+            }
+            .input-area input {
+                font-size: 16px;
+                padding: 14px;
+            }
+            .input-area button {
+                width: 100%;
+                padding: 14px;
+                font-size: 16px;
+            }
+            .user-status {
+                font-size: 12px;
+                padding: 8px 12px;
+                line-height: 1.5;
+            }
+        }
+        .chat-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(138, 43, 226, 0.3);
+        }
+        .current-character-display {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.1));
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .current-character-display img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(138, 43, 226, 0.5);
+            object-fit: cover;
+        }
+        .current-character-info h3 {
+            margin: 0;
+            color: #8a2be2;
+            font-size: 20px;
+        }
+        .current-character-info p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .user-status {
+            background: rgba(0, 0, 0, 0.4);
+            color: #f5f5f5;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease-in;
+            white-space: pre-wrap;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user {
+            background-color: #e3f2fd;
+            text-align: right;
+            margin-left: 20%;
+        }
+        .message.character {
+            background-color: #f1f8e9;
+            margin-right: 20%;
+        }
+        .message.welcome {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.1));
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            text-align: left;
+            font-weight: 500;
+            color: #8a2be2;
+        }
+        .message.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .message-header {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .input-area input:focus {
+            outline: none;
+            border-color: #8a2be2;
+        }
+        .input-area button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8a2be2, #4b0082);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(138, 43, 226, 0.3);
+            white-space: nowrap;
+        }
+        .input-area button:hover {
+            background: linear-gradient(135deg, #9b3be3, #5b0093);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+        }
+        .input-area button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="navigation-links">
+            <a href="../appraisers-list.html">鑑定師一覧に戻る</a>
+        </div>
+        <h1 style="text-align: center; color: #8a2be2; margin-bottom: 10px;">🔮 鑑定士チャット</h1>
+        <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
+        
+        <!-- 現在の鑑定士表示 -->
+        <div class="current-character-display" id="currentCharacterDisplay" style="display: none;">
+            <img id="characterImage" src="" alt="">
+            <div class="current-character-info">
+                <h3 id="characterNameDisplay"></h3>
+                <p id="characterStatus">現在の鑑定士</p>
+            </div>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="input-area">
+            <div class="input-row">
+                <input type="text" id="messageInput" placeholder="メッセージを入力..." maxlength="1000">
+                <button id="sendButton" onclick="sendMessage()">送信</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../js/auth-state.js"></script>
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const currentCharacterDisplay = document.getElementById('currentCharacterDisplay');
+        const characterImage = document.getElementById('characterImage');
+        const characterNameDisplay = document.getElementById('characterNameDisplay');
+        const characterStatus = document.getElementById('characterStatus');
+        const userStatus = document.getElementById('userStatus');
+
+        let cachedUserToken = null;
+        let userNickname = null;
+        let conversationHistory = null;
+        let currentCharacter = 'kaede';
+
+        // 鑑定士情報のマップ
+        const characterInfo = {
+            kaede: { name: '楓', image: '../../photo/kaede.png' },
+            yukino: { name: '笹岡雪乃', image: '../../photo/yukino.png' },
+            sora: { name: '水野ソラ', image: '../../photo/sora.png' },
+            kaon: { name: '三崎花音', image: '../../photo/kaon.png' }
+        };
+
+        // URLパラメータから鑑定士IDを取得
+        function getCharacterFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const character = urlParams.get('character');
+            const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+            
+            if (character && validCharacters.includes(character)) {
+                return character;
+            }
+            return 'kaede'; // デフォルト
+        }
+
+        // 鑑定士を設定
+        function setCurrentCharacter(characterId) {
+            if (!characterInfo[characterId]) {
+                characterId = 'kaede';
+            }
+            
+            currentCharacter = characterId;
+            
+            // 現在の鑑定士表示を更新
+            const info = characterInfo[characterId];
+            characterImage.src = info.image;
+            characterImage.alt = info.name;
+            characterNameDisplay.textContent = info.name;
+            characterStatus.textContent = '現在の鑑定士';
+            currentCharacterDisplay.style.display = 'flex';
+        }
+
+        // 会話履歴を取得
+        async function loadConversationHistory(characterId) {
+            if (!AuthState.isRegistered()) {
+                return null;
+            }
+
+            const token = AuthState.getUserToken();
+            if (!token) {
+                return null;
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/conversation-history?userToken=${encodeURIComponent(token)}&character=${encodeURIComponent(characterId)}`
+                );
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.warn('Failed to load conversation history:', response.status, errorData);
+                    return null;
+                }
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Failed to load conversation history:', error);
+                return null;
+            }
+        }
+
+        // 会話内容を抽出（ユーザーの最初のメッセージから）
+        function extractConversationContent(historyData) {
+            if (!historyData || !historyData.recentMessages) {
+                return null;
+            }
+
+            // 時系列順に並び替え
+            const sortedMessages = historyData.recentMessages.slice().reverse();
+            
+            // ユーザーの最初のメッセージを探す
+            const firstUserMessage = sortedMessages.find(msg => msg.role === 'user');
+            
+            if (firstUserMessage) {
+                // 60文字以内に要約
+                const content = firstUserMessage.content;
+                if (content.length > 60) {
+                    return content.substring(0, 60) + '...';
+                }
+                return content;
+            }
+            
+            return null;
+        }
+
+        // 日付を「何月何日」形式でフォーマット
+        function formatDateForMessage(dateString) {
+            if (!dateString) return null;
+            
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const currentYear = new Date().getFullYear();
+            
+            if (year === currentYear) {
+                return `${month}月${day}日`;
+            } else {
+                return `${year}年${month}月${day}日`;
+            }
+        }
+
+        // 各鑑定師の初回メッセージを生成
+        function generateInitialMessage(characterId, historyData) {
+            const nickname = historyData.nickname || userNickname || 'あなた';
+            const lastDate = historyData.lastConversationDate ? formatDateForMessage(historyData.lastConversationDate) : null;
+            const conversationContent = extractConversationContent(historyData);
+
+            const messages = {
+                kaede: `${nickname}さん 再度私の鑑定を受けてくれてありがとうございます。${lastDate ? `前回は${lastDate}でしたね。` : ''}
+
+${conversationContent ? `その時の相談内容は、${conversationContent}というものでした。` : ''}
+
+その後、${nickname}さんのことを考えて、また再訪してくれることをとても望んでいましたので、こうして来てくれてこんなに嬉しいことはありません。
+
+これから先も私との交流を深めてくれることを心より望んでおります。
+
+どのような話でも構いませんので、あなたの今の素直な気持ちを聞かせてください。`,
+
+                kaon: `また私の部屋に来てくれてありがとう。嬉しいわ。
+
+${nickname}さんのことはよく覚えていますよ。印象的だったから･･･
+
+${lastDate ? `話は${lastDate}だったのを覚えてる？` : ''}${conversationContent ? `話の内容はこんな感じ。${conversationContent}` : ''}
+
+それでは今日も私と有意義な時間を過ごしましょうね`,
+
+                yukino: `再訪問してくれてありがとうございます。とても嬉しい気持ちです。
+
+${nickname}さんのことはとても印象的で、またお話をしたいと思っていました。
+
+あれから、${nickname}さんのことをいろいろ考えて、これから先、${nickname}さんが少しでも運を開けるために何ができるか私なりに考えていました。
+
+${conversationContent ? conversationContent : ''}話の続きを始めればよいのかしら。
+
+話がしたいんだから早速教えてくださいね`,
+
+                sora: `また僕と接触してくれてすごく嬉しいよ。ありがとう。
+
+${nickname}さんとは、これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。
+
+${lastDate ? `${lastDate}の話では` : ''}${conversationContent ? `${conversationContent}というような感じだったか。` : ''}
+
+あれから何か進展があったんだろうか？あなたの今の状況をとりあえず聞かせてくれないだろうか？直感と霊感を使って必ずあなたを幸せに導くよ。`
+            };
+
+            return messages[characterId] || messages.kaede;
+        }
+
+        function initAuthState() {
+            if (window.AuthState && typeof AuthState.init === 'function') {
+                AuthState.init();
+            }
+            cachedUserToken = window.AuthState && typeof AuthState.getUserToken === 'function' ? AuthState.getUserToken() : null;
+        }
+
+        function updateUserStatus() {
+            if (!userStatus) return;
+            if (AuthState.isRegistered()) {
+                const nickname = localStorage.getItem('userNickname') || '鑑定者';
+                const deity = localStorage.getItem('assignedDeity') || '未割当';
+                userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
+            } else {
+                // 未登録の場合はログインページにリダイレクト
+                window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+            }
+        }
+
+        async function initPage() {
+            // 登録済みユーザーのみアクセス可能
+            initAuthState();
+            
+            if (!AuthState.isRegistered()) {
+                window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            const character = getCharacterFromURL();
+            setCurrentCharacter(character);
+            
+            userNickname = localStorage.getItem('userNickname') || null;
+            updateUserStatus();
+
+            // 会話履歴を読み込んで初回メッセージを表示
+            try {
+                const historyData = await loadConversationHistory(character);
+                
+                if (historyData && historyData.hasHistory) {
+                    conversationHistory = historyData;
+                    userNickname = historyData.nickname || userNickname;
+                    const initialMessage = generateInitialMessage(character, historyData);
+                    addMessage('welcome', initialMessage, characterInfo[character].name);
+                } else if (historyData && historyData.nickname) {
+                    // 会話履歴はないが、ユーザー情報は取得できた場合
+                    userNickname = historyData.nickname;
+                    const info = characterInfo[character];
+                    const message = `${userNickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
+                    addMessage('welcome', message, info.name);
+                } else {
+                    // エラーが発生した場合
+                    const info = characterInfo[character];
+                    const message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
+                    addMessage('welcome', message, info.name);
+                }
+            } catch (error) {
+                console.error('Error loading conversation history:', error);
+                const info = characterInfo[character];
+                const message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
+                addMessage('welcome', message, info.name);
+            }
+
+            // イベントハンドラーを設定
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            const character = currentCharacter;
+
+            if (!message) {
+                return;
+            }
+
+            if (!AuthState.isRegistered()) {
+                window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            addMessage('user', message, 'あなた');
+
+            messageInput.value = '';
+            sendButton.disabled = true;
+            const loadingId = addMessage('loading', '応答を生成中...', '');
+
+            const payload = {
+                message,
+                character,
+                userToken: AuthState.getUserToken(),
+            };
+
+            try {
+                const response = await fetch('/api/consult', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json();
+                removeMessage(loadingId);
+
+                if (data.needsRegistration) {
+                    addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return;
+                }
+
+                if (!response.ok || data.error) {
+                    const errorMessage = data.error || 'エラーが発生しました';
+                    if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
+                        addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                        window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    } else {
+                        addMessage('error', errorMessage, 'システム');
+                    }
+                    return;
+                }
+
+                if (data.isInappropriate) {
+                    addMessage('warning', data.message, data.characterName);
+                    return;
+                }
+
+                addMessage('character', data.message, data.characterName);
+            } catch (error) {
+                removeMessage(loadingId);
+                addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        function addMessage(type, text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            if (sender) {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'message-header';
+                headerDiv.textContent = sender;
+                messageDiv.appendChild(headerDiv);
+            }
+
+            const textDiv = document.createElement('div');
+            textDiv.textContent = text;
+            messageDiv.appendChild(textDiv);
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            if (type === 'loading') {
+                return messageDiv;
+            }
+        }
+
+        function removeMessage(messageElement) {
+            if (messageElement && messageElement.parentNode) {
+                messageElement.parentNode.removeChild(messageElement);
+            }
+        }
+
+        window.sendMessage = sendMessage;
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
+

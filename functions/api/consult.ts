@@ -319,18 +319,14 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    const systemPrompt = generateSystemPrompt(characterId, {
-      encourageRegistration: shouldEncourageRegistration,
-    });
-
     let conversationHistory: ClientHistoryEntry[] = [];
 
     if (user) {
       const historyResults = await env.DB.prepare<ConversationRow>(
-        `SELECT role, message
+        `SELECT role, content as message
          FROM conversations
          WHERE user_id = ? AND character_id = ?
-         ORDER BY created_at DESC
+         ORDER BY timestamp DESC
          LIMIT 20`
       )
         .bind(user.id, characterId)
@@ -345,8 +341,8 @@ export const onRequestPost: PagesFunction = async (context) => {
       if (body.migrateHistory && sanitizedHistory.length > 0) {
         for (const entry of sanitizedHistory) {
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message)
-             VALUES (?, ?, ?, ?)`
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+             VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
           )
             .bind(user.id, characterId, entry.role, entry.content)
             .run();
@@ -357,6 +353,27 @@ export const onRequestPost: PagesFunction = async (context) => {
       }
     } else {
       conversationHistory = sanitizedHistory;
+    }
+
+    // デバッグ: ユーザー情報とニックネームを確認
+    if (user) {
+      console.log('User info:', {
+        userId: user.id,
+        nickname: user.nickname,
+        assignedDeity: user.assigned_deity,
+      });
+    }
+
+    const systemPrompt = generateSystemPrompt(characterId, {
+      encourageRegistration: shouldEncourageRegistration,
+      userNickname: user?.nickname,
+      hasPreviousConversation: conversationHistory.length > 0,
+    });
+
+    // デバッグ: システムプロンプトにニックネームが含まれているか確認
+    if (user?.nickname) {
+      console.log('System prompt includes nickname:', systemPrompt.includes(user.nickname));
+      console.log('Nickname in prompt:', user.nickname);
     }
 
     const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -409,30 +426,48 @@ export const onRequestPost: PagesFunction = async (context) => {
       deepseekData.choices?.[0]?.message?.content || '申し訳ございませんが、応答を生成できませんでした。';
 
     if (user) {
+      // 100件制限チェックと古いメッセージ削除
+      const messageCountResult = await env.DB.prepare<{ count: number }>(
+        `SELECT COUNT(*) as count 
+         FROM conversations 
+         WHERE user_id = ? AND character_id = ?`
+      )
+        .bind(user.id, characterId)
+        .first();
+
+      const messageCount = messageCountResult?.count || 0;
+
+      if (messageCount >= 100) {
+        // 古いメッセージを削除（100件を超える分）
+        const deleteCount = messageCount - 100 + 2; // ユーザーとアシスタントの2件を追加するため
+        await env.DB.prepare(
+          `DELETE FROM conversations
+           WHERE user_id = ? AND character_id = ?
+           AND id IN (
+             SELECT id FROM conversations
+             WHERE user_id = ? AND character_id = ?
+             ORDER BY timestamp ASC
+             LIMIT ?
+           )`
+        )
+          .bind(user.id, characterId, user.id, characterId, deleteCount)
+          .run();
+      }
+
+      // ユーザーメッセージを追加
       await env.DB.prepare(
-        `INSERT INTO conversations (user_id, character_id, role, message)
-         VALUES (?, ?, 'user', ?)`
+        `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+         VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
       )
         .bind(user.id, characterId, trimmedMessage)
         .run();
 
+      // アシスタントメッセージを追加
       await env.DB.prepare(
-        `INSERT INTO conversations (user_id, character_id, role, message)
-         VALUES (?, ?, 'assistant', ?)`
+        `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+         VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
       )
         .bind(user.id, characterId, responseMessage)
-        .run();
-
-      await env.DB.prepare(
-        `DELETE FROM conversations
-         WHERE id IN (
-           SELECT id FROM conversations
-           WHERE user_id = ? AND character_id = ?
-           ORDER BY created_at DESC
-           LIMIT 100 OFFSET 100
-         )`
-      )
-        .bind(user.id, characterId)
         .run();
     }
 

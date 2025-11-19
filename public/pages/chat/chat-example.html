@@ -13,6 +13,94 @@
             background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
             min-height: 100vh;
         }
+        .navigation-links {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .navigation-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8));
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(138, 43, 226, 0.3);
+        }
+        .navigation-links a:hover {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.95), rgba(75, 0, 130, 0.95));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .chat-container {
+                padding: 15px;
+            }
+            .navigation-links {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .navigation-links a {
+                width: 100%;
+                text-align: center;
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+            .current-character-display {
+                flex-direction: column;
+                text-align: center;
+                padding: 12px;
+            }
+            .current-character-display img {
+                width: 50px;
+                height: 50px;
+            }
+            .current-character-info h3 {
+                font-size: 18px;
+            }
+            .messages {
+                height: 300px;
+                padding: 10px;
+            }
+            .message {
+                padding: 10px 12px;
+                margin-bottom: 12px;
+            }
+            .message.user {
+                margin-left: 10%;
+            }
+            .message.character {
+                margin-right: 10%;
+            }
+            .input-row {
+                flex-direction: column;
+            }
+            .input-area input {
+                font-size: 16px;
+                padding: 14px;
+            }
+            .input-area button {
+                width: 100%;
+                padding: 14px;
+                font-size: 16px;
+            }
+            .character-selector select {
+                font-size: 16px;
+                padding: 14px;
+            }
+            .user-status {
+                font-size: 12px;
+                padding: 8px 12px;
+                line-height: 1.5;
+            }
+        }
         .chat-container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
@@ -54,6 +142,8 @@
             font-size: 14px;
             margin-bottom: 15px;
             text-align: center;
+            line-height: 1.6;
+            word-break: break-word;
         }
         .character-selector {
             margin-bottom: 20px;
@@ -295,6 +385,10 @@
 </head>
 <body>
     <div class="chat-container">
+        <div class="navigation-links">
+            <a href="../../index.html">トップ画面に戻る</a>
+            <a href="../../index.html">鑑定士一覧に戻る</a>
+        </div>
         <h1 style="text-align: center; color: #8a2be2; margin-bottom: 10px;">🔮 鑑定士チャット</h1>
         <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
         
@@ -386,6 +480,10 @@
         const registerBannerButton = document.getElementById('registerBannerButton');
 
         let cachedUserToken = null;
+        let userNickname = null;
+        let conversationHistory = null;
+        let hasPreviousConversation = false;
+        let lastConversations = {}; // 各キャラクターとの最後の会話日時
 
         // 鑑定士情報のマップ
         const characterInfo = {
@@ -434,11 +532,95 @@
             // ウェルカムは後段で履歴有無を見て表示
         }
 
-        // ウェルカムメッセージを表示
+        // 初回訪問者向けウェルカムメッセージを表示
         function showWelcomeMessage(characterId) {
-            const msg = (welcomeMessages[characterId] || welcomeMessages.kaede);
-            const sender = (characterInfo[characterId] ? characterInfo[characterId].name : characterInfo.kaede.name);
-            addMessage('welcome', msg, sender);
+            const info = characterInfo[characterId] || characterInfo.kaede;
+            const isRegistered = AuthState.isRegistered();
+            const nickname = isRegistered ? (userNickname || localStorage.getItem('userNickname') || 'あなた') : 'あなた';
+            
+            let message = '';
+            if (isRegistered) {
+                // 登録済みだが、この鑑定士とは初めての会話
+                message = `${nickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
+            } else {
+                // ゲストユーザー（初回訪問）
+                message = `初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
+            }
+            
+            addMessage('welcome', message, info.name);
+        }
+
+        // 会話履歴を取得
+        async function loadConversationHistory(characterId) {
+            if (!AuthState.isRegistered()) {
+                return null;
+            }
+
+            const token = AuthState.getUserToken();
+            if (!token) {
+                return null;
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/conversation-history?userToken=${encodeURIComponent(token)}&character=${encodeURIComponent(characterId)}`
+                );
+                
+                if (!response.ok) {
+                    // エラーレスポンスの詳細をログに出力（デバッグ用）
+                    const errorData = await response.json().catch(() => ({}));
+                    console.warn('Failed to load conversation history:', response.status, errorData);
+                    // エラーが発生しても、通常の動作を続けられるようにnullを返す
+                    return null;
+                }
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Failed to load conversation history:', error);
+                // エラーが発生しても、通常の動作を続けられるようにnullを返す
+                return null;
+            }
+        }
+
+        // 会話履歴に基づく再訪問メッセージを表示
+        function showReturningUserMessage(characterId, historyData) {
+            const info = characterInfo[characterId] || characterInfo.kaede;
+            const nickname = historyData.nickname || userNickname || 'あなた';
+            userNickname = nickname;
+
+            let message = '';
+            
+            if (historyData.hasHistory && historyData.lastConversationDate) {
+                // 前回の会話日時を取得
+                const lastDate = formatDateForMessage(historyData.lastConversationDate);
+                
+                // 前回の会話の内容を取得
+                const lastUserMessage = historyData.recentMessages
+                    ?.slice()
+                    .reverse()
+                    .find(msg => msg.role === 'user');
+                
+                message = `${nickname}さん、おかえりなさい。${info.name}です。\n\n`;
+                
+                if (lastDate) {
+                    message += `前回は${lastDate}に会話をさせていただきましたね。`;
+                }
+                
+                if (lastUserMessage) {
+                    const userMsgPreview = lastUserMessage.content.length > 60 
+                        ? lastUserMessage.content.substring(0, 60) + '...' 
+                        : lastUserMessage.content;
+                    message += `その時は「${userMsgPreview}」についてお話ししました。`;
+                }
+                
+                message += `\n\n今日はどのようなご相談がございますか？前回の続きから始めても、新しい話題でも、どちらでも構いません。お気軽にお話しください。`;
+            } else {
+                // 会話履歴はあるが日時情報がない場合
+                message = `${nickname}さん、おかえりなさい。${info.name}です。\n\n今日はどのようなご相談がございますか？お気軽にお話しください。`;
+            }
+
+            addMessage('welcome', message, info.name);
         }
 
         function getGuestHistoryFor(characterId) {
@@ -464,12 +646,119 @@
             cachedUserToken = window.AuthState && typeof AuthState.getUserToken === 'function' ? AuthState.getUserToken() : null;
         }
 
+        // 日付をフォーマット（相対的な表示用）
+        function formatLastConversationDate(dateString) {
+            if (!dateString) return null;
+            
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffTime = now - date;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            // 今日の場合
+            if (diffDays === 0) {
+                const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+                if (diffHours === 0) {
+                    const diffMinutes = Math.floor(diffTime / (1000 * 60));
+                    if (diffMinutes === 0) {
+                        return 'たった今';
+                    }
+                    return `${diffMinutes}分前`;
+                }
+                return `${diffHours}時間前`;
+            }
+            
+            // 昨日の場合
+            if (diffDays === 1) {
+                return '昨日';
+            }
+            
+            // 1週間以内
+            if (diffDays < 7) {
+                return `${diffDays}日前`;
+            }
+            
+            // それ以上前の場合、日付を表示
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const currentYear = now.getFullYear();
+            
+            if (year === currentYear) {
+                return `${month}月${day}日`;
+            } else {
+                return `${year}年${month}月${day}日`;
+            }
+        }
+
+        // 日付を「何月何日」形式でフォーマット（会話メッセージ用）
+        function formatDateForMessage(dateString) {
+            if (!dateString) return null;
+            
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const currentYear = new Date().getFullYear();
+            
+            if (year === currentYear) {
+                return `${month}月${day}日`;
+            } else {
+                return `${year}年${month}月${day}日`;
+            }
+        }
+
+        // 各キャラクターの最後の会話日時を取得
+        async function loadLastConversations() {
+            if (!AuthState.isRegistered()) {
+                return {};
+            }
+
+            const token = AuthState.getUserToken();
+            if (!token) {
+                return {};
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/last-conversations?userToken=${encodeURIComponent(token)}`
+                );
+                
+                if (!response.ok) {
+                    return {};
+                }
+
+                const data = await response.json();
+                return data.lastConversations || {};
+            } catch (error) {
+                console.error('Failed to load last conversations:', error);
+                return {};
+            }
+        }
+
+        // 現在のキャラクターの最後の会話日時を取得
+        function getCurrentCharacterLastConversation(characterId) {
+            return lastConversations[characterId] || null;
+        }
+
         function updateUserStatus() {
             if (!userStatus) return;
             if (AuthState.isRegistered()) {
                 const nickname = localStorage.getItem('userNickname') || '鑑定者';
                 const deity = localStorage.getItem('assignedDeity') || '未割当';
-                userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
+                const currentCharacter = characterSelect.value;
+                const lastDate = getCurrentCharacterLastConversation(currentCharacter);
+                
+                let statusText = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
+                
+                if (lastDate) {
+                    const formattedDate = formatLastConversationDate(lastDate);
+                    statusText += ` ｜ 前回の会話: ${formattedDate}`;
+                } else {
+                    statusText += ` ｜ 前回の会話: 初めての会話`;
+                }
+                
+                userStatus.textContent = statusText;
                 if (registerButton) {
                     registerButton.style.display = 'none';
                 }
@@ -572,21 +861,68 @@
             registerModal.setAttribute('aria-hidden', 'true');
         }
 
-        function initPage() {
+        async function initPage() {
+            // 初回訪問者専用ページ：登録済みユーザーはchat.htmlにリダイレクト
             initAuthState();
+            
+            if (AuthState.isRegistered()) {
+                const character = getCharacterFromURL();
+                window.location.href = `chat.html?character=${character}`;
+                return;
+            }
+            
             setupBirthSelects();
-            updateUserStatus();
             const character = getCharacterFromURL();
             setCurrentCharacter(character);
             attachEventHandlers();
             
-            // 初期表示で登録ボタンの表示を制御
+            updateUserStatus();
 
-            const existing = getGuestHistoryFor(character);
-            if (existing && existing.length) {
-                renderGuestHistory(character);
+            // 会話履歴を読み込む
+            if (AuthState.isRegistered()) {
+                try {
+                    const historyData = await loadConversationHistory(character);
+                    if (historyData && historyData.hasHistory) {
+                        conversationHistory = historyData;
+                        hasPreviousConversation = true;
+                        showReturningUserMessage(character, historyData);
+                    } else if (historyData && historyData.nickname) {
+                        // 会話履歴はないが、ユーザー情報は取得できた場合（この鑑定士とは初めての会話）
+                        userNickname = historyData.nickname;
+                        const existing = getGuestHistoryFor(character);
+                        if (existing && existing.length) {
+                            renderGuestHistory(character);
+                        } else {
+                            // 初回訪問者としてウェルカムメッセージを表示
+                            showWelcomeMessage(character);
+                        }
+                    } else {
+                        // 会話履歴の取得に失敗した場合、通常のウェルカムメッセージを表示
+                        const existing = getGuestHistoryFor(character);
+                        if (existing && existing.length) {
+                            renderGuestHistory(character);
+                        } else {
+                            showWelcomeMessage(character);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading conversation history:', error);
+                    // エラーが発生しても、通常のウェルカムメッセージを表示
+                    const existing = getGuestHistoryFor(character);
+                    if (existing && existing.length) {
+                        renderGuestHistory(character);
+                    } else {
+                        showWelcomeMessage(character);
+                    }
+                }
             } else {
-                showWelcomeMessage(character);
+                // ゲストユーザーの場合
+                const existing = getGuestHistoryFor(character);
+                if (existing && existing.length) {
+                    renderGuestHistory(character);
+                } else {
+                    showWelcomeMessage(character);
+                }
             }
 
             if (AuthState && typeof AuthState.isRegistered === 'function' && !AuthState.isRegistered()) {
@@ -601,13 +937,69 @@
             }
         }
 
+        async function handleCharacterChange(newCharacter) {
+            setCurrentCharacter(newCharacter);
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('character', newCharacter);
+            window.history.replaceState({}, '', newUrl);
+            
+            // メッセージをクリア
+            messagesDiv.innerHTML = '';
+            
+            // ユーザー情報を更新（最後の会話日時を更新）
+            updateUserStatus();
+            
+            // 新しいキャラクターの会話履歴を読み込む
+            if (AuthState.isRegistered()) {
+                try {
+                    const historyData = await loadConversationHistory(newCharacter);
+                    if (historyData && historyData.hasHistory) {
+                        conversationHistory = historyData;
+                        hasPreviousConversation = true;
+                        showReturningUserMessage(newCharacter, historyData);
+                    } else if (historyData && historyData.nickname) {
+                        // 会話履歴はないが、ユーザー情報は取得できた場合（この鑑定士とは初めての会話）
+                        userNickname = historyData.nickname;
+                        const existing = getGuestHistoryFor(newCharacter);
+                        if (existing && existing.length) {
+                            renderGuestHistory(newCharacter);
+                        } else {
+                            // 初回訪問者としてウェルカムメッセージを表示
+                            showWelcomeMessage(newCharacter);
+                        }
+                    } else {
+                        // 会話履歴の取得に失敗した場合、通常のウェルカムメッセージを表示
+                        const existing = getGuestHistoryFor(newCharacter);
+                        if (existing && existing.length) {
+                            renderGuestHistory(newCharacter);
+                        } else {
+                            showWelcomeMessage(newCharacter);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading conversation history:', error);
+                    // エラーが発生しても、通常のウェルカムメッセージを表示
+                    const existing = getGuestHistoryFor(newCharacter);
+                    if (existing && existing.length) {
+                        renderGuestHistory(newCharacter);
+                    } else {
+                        showWelcomeMessage(newCharacter);
+                    }
+                }
+            } else {
+                const existing = getGuestHistoryFor(newCharacter);
+                if (existing && existing.length) {
+                    renderGuestHistory(newCharacter);
+                } else {
+                    showWelcomeMessage(newCharacter);
+                }
+            }
+        }
+
         function attachEventHandlers() {
-            characterSelect.addEventListener('change', (e) => {
+            characterSelect.addEventListener('change', async (e) => {
                 const newCharacter = e.target.value;
-                setCurrentCharacter(newCharacter);
-                const newUrl = new URL(window.location);
-                newUrl.searchParams.set('character', newCharacter);
-                window.history.replaceState({}, '', newUrl);
+                await handleCharacterChange(newCharacter);
             });
 
             messageInput.addEventListener('keypress', (e) => {
@@ -706,7 +1098,19 @@
                 }
 
                 if (!response.ok || data.error) {
-                    addMessage('error', data.error || 'エラーが発生しました', 'システム');
+                    // エラーメッセージを表示するが、ユーザーに分かりやすい形にする
+                    const errorMessage = data.error || 'エラーが発生しました';
+                    // "user not found"などの技術的なエラーは、より分かりやすいメッセージに変換
+                    if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
+                        addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                        // 認証情報をクリア
+                        if (window.AuthState) {
+                            AuthState.clearAuth();
+                        }
+                        updateUserStatus();
+                    } else {
+                        addMessage('error', errorMessage, 'システム');
+                    }
                     return;
                 }
 
@@ -730,6 +1134,13 @@
                 addMessage('character', data.message, data.characterName, {
                     detectedKeywords: data.detectedKeywords,
                 });
+
+                // 登録済みユーザーの場合、最後の会話日時を更新
+                if (isRegistered) {
+                    // 現在の日時を最後の会話日時として更新
+                    const now = new Date().toISOString();
+                    lastConversations[character] = now;
+                }
 
                 // 登録促しはDeepSeekの応答内に自然に含まれるため、会話内で自然に促される
                 // ゲスト体験中（未登録）の場合、登録ボタンを表示
