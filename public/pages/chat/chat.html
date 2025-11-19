@@ -586,6 +586,61 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             });
         }
 
+        // 接続シーケンスを表示（chatを開いた時）
+        async function showConnectionSequence(character) {
+            const characterName = characterInfo[character].name;
+            const nickname = userNickname || localStorage.getItem('userNickname') || 'あなた';
+            
+            // ステップ1: 交信開始
+            const step1Id = addConnectingMessage(`${characterName}に交信を開始...`);
+            await delay(1500);
+            removeMessage(step1Id);
+            
+            // ステップ2: 魂を読み込み中
+            const step2Id = addConnectingMessage(`${characterName}が${nickname}の魂を読み込んでいます...`);
+            await delay(2000);
+            removeMessage(step2Id);
+            
+            // ステップ3: もうすぐ返事が来ます
+            const step3Id = addConnectingMessage('もうすぐ返事が来ます...');
+            await delay(1500);
+            removeMessage(step3Id);
+        }
+
+        // 鑑定中のメッセージを表示（ユーザーが返信した時）
+        async function showAppraisalSequence(character) {
+            const characterName = characterInfo[character].name;
+            const message = `${characterName}が鑑定中...`;
+            const loadingId = addConnectingMessage(message);
+            return loadingId;
+        }
+
+        // 接続/鑑定中のメッセージを追加
+        function addConnectingMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message connecting';
+            
+            const indicator = document.createElement('span');
+            indicator.className = 'status-indicator';
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = 'connecting-text';
+            textSpan.textContent = text;
+            
+            messageDiv.appendChild(indicator);
+            messageDiv.appendChild(textSpan);
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // 遅延関数
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         async function sendMessage() {
             const message = messageInput.value.trim();
             const character = currentCharacter;
@@ -603,7 +658,14 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
 
             messageInput.value = '';
             sendButton.disabled = true;
-            const loadingId = addMessage('loading', '応答を生成中...', '');
+            
+            // 鑑定中の演出を表示
+            const loadingId = await showAppraisalSequence(character);
+            await delay(1000);
+            removeMessage(loadingId);
+            
+            // もうすぐ返事が来ます
+            const waitingId = addConnectingMessage('もうすぐ返事が来ます...');
 
             const payload = {
                 message,
