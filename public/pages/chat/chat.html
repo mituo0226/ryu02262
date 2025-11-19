@@ -390,7 +390,7 @@
             }
         }
 
-        // 各鑑定師の初回メッセージを生成
+        // 各鑑定師の初回メッセージを生成（会話履歴がある場合）
         function generateInitialMessage(characterId, historyData) {
             const nickname = historyData.nickname || userNickname || 'あなた';
             const lastDate = historyData.lastConversationDate ? formatDateForMessage(historyData.lastConversationDate) : null;
@@ -432,6 +432,37 @@ ${nickname}さんとは、これから先も長い付き合いになるような
 ${lastDate ? `${lastDate}の話では` : ''}${conversationContent ? ` ${conversationContent}というような感じだったか。` : ''}
 
 あれから何か進展があったんだろうか？${nickname}さんの今の状況をとりあえず聞かせてくれないだろうか？直感と霊感を使って必ず${nickname}さんを幸せに導くよ。`
+            };
+
+            return messages[characterId] || messages.kaede;
+        }
+
+        // 各鑑定師の初めての会話メッセージを生成（会話履歴がない場合）
+        function generateFirstTimeMessage(characterId, nickname) {
+            const messages = {
+                kaede: `${nickname}さん、初めまして。楓（かえで）と申します。
+
+${nickname}さんのことは、システムからお聞きしております。初めてお話しできる機会をいただき、ありがとうございます。
+
+穏やかな日常を何より大切にしながら、${nickname}さんのお話を聞かせていただきます。どのようなご相談がございますか？お気軽にお話しください。`,
+
+                kaon: `${nickname}さん、初めまして。三崎花音（みさき かおん）と申します。
+
+${nickname}さんのことは、システムからお聞きしておりますわ。初めてお話しできる機会をいただき、嬉しいわ。
+
+未来予知の能力を使って、${nickname}さんの未来を読み解かせていただきます。どのようなご相談がございますか？お気軽にお話しください。`,
+
+                yukino: `${nickname}さん、初めまして。笹岡雪乃（ささおか ゆきの）と申します。
+
+${nickname}さんのことは、システムからお聞きしております。初めてお話しできる機会をいただき、ありがとうございます。
+
+タロットカードや占星術の力を借りて、${nickname}さんの運命を読み解かせていただきます。どのようなご相談がございますか？お気軽にお話しください。`,
+
+                sora: `${nickname}さん、初めまして。水野ソラ（みずの そら）です。
+
+${nickname}さんのことは、システムから聞いてるよ。初めてお話しできる機会をいただき、ありがとう。
+
+まだ修行中の身だけど、${nickname}さんの心を読み解きながら、一緒に考えていこう。どのようなご相談がある？気軽に話してくれ。直感と霊感を使って必ず${nickname}さんを幸せに導くよ。`
             };
 
             return messages[characterId] || messages.kaede;
@@ -485,14 +516,9 @@ ${lastDate ? `${lastDate}の話では` : ''}${conversationContent ? ` ${conversa
                     userNickname = historyData.nickname;
                     const info = characterInfo[character];
                     
-                    // 各鑑定士ごとの初回メッセージ
-                    let message = '';
-                    if (character === 'sora') {
-                        message = `${userNickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\nどのようなご相談がございますか？直感と霊感を使って必ず${userNickname}さんを幸せに導くよ。`;
-                    } else {
-                        message = `${userNickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
-                    }
-                    addMessage('welcome', message, info.name);
+                    // 各鑑定士ごとの初めての会話メッセージを生成
+                    const firstTimeMessage = generateFirstTimeMessage(character, userNickname);
+                    addMessage('welcome', firstTimeMessage, info.name);
                 } else {
                     // エラーが発生した場合
                     const info = characterInfo[character];
