@@ -326,7 +326,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         `SELECT role, content as message
          FROM conversations
          WHERE user_id = ? AND character_id = ?
-         ORDER BY timestamp DESC
+         ORDER BY COALESCE(timestamp, created_at) DESC
          LIMIT 20`
       )
         .bind(user.id, characterId)
@@ -340,12 +340,22 @@ export const onRequestPost: PagesFunction = async (context) => {
 
       if (body.migrateHistory && sanitizedHistory.length > 0) {
         for (const entry of sanitizedHistory) {
-          await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
-             VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
-          )
-            .bind(user.id, characterId, entry.role, entry.content)
-            .run();
+          try {
+            await env.DB.prepare(
+              `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+               VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
+            )
+              .bind(user.id, characterId, entry.role, entry.content)
+              .run();
+          } catch (error) {
+            // timestampカラムが存在しない場合はcreated_atのみを使用
+            await env.DB.prepare(
+              `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
+               VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
+            )
+              .bind(user.id, characterId, entry.role, entry.content)
+              .run();
+          }
         }
         conversationHistory = [...sanitizedHistory, ...dbHistory];
       } else {
@@ -446,7 +456,7 @@ export const onRequestPost: PagesFunction = async (context) => {
            AND id IN (
              SELECT id FROM conversations
              WHERE user_id = ? AND character_id = ?
-             ORDER BY timestamp ASC
+             ORDER BY COALESCE(timestamp, created_at) ASC
              LIMIT ?
            )`
         )
@@ -455,20 +465,41 @@ export const onRequestPost: PagesFunction = async (context) => {
       }
 
       // ユーザーメッセージを追加
-      await env.DB.prepare(
-        `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
-         VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-      )
-        .bind(user.id, characterId, trimmedMessage)
-        .run();
+      // timestampカラムが存在しない場合はcreated_atのみを使用
+      try {
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+        )
+          .bind(user.id, characterId, trimmedMessage)
+          .run();
+      } catch (error) {
+        // timestampカラムが存在しない場合はcreated_atのみを使用
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
+           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+        )
+          .bind(user.id, characterId, trimmedMessage)
+          .run();
+      }
 
       // アシスタントメッセージを追加
-      await env.DB.prepare(
-        `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
-         VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-      )
-        .bind(user.id, characterId, responseMessage)
-        .run();
+      try {
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+        )
+          .bind(user.id, characterId, responseMessage)
+          .run();
+      } catch (error) {
+        // timestampカラムが存在しない場合はcreated_atのみを使用
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
+           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+        )
+          .bind(user.id, characterId, responseMessage)
+          .run();
+      }
     }
 
     return new Response(

@@ -82,8 +82,9 @@ export const onRequestGet: PagesFunction = async (context) => {
     }
 
     // 各キャラクターとの最後の会話日時を取得
+    // timestampカラムが存在しない場合はcreated_atを使用
     const lastConversationsResult = await env.DB.prepare<LastConversationRow>(
-      `SELECT character_id, MAX(timestamp) as last_conversation_date
+      `SELECT character_id, MAX(COALESCE(timestamp, created_at)) as last_conversation_date
        FROM conversations
        WHERE user_id = ?
        GROUP BY character_id`
