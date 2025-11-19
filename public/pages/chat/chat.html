@@ -522,24 +522,14 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 } else {
                     // エラーが発生した場合
                     const info = characterInfo[character];
-                    let message = '';
-                    if (character === 'sora') {
-                        message = `${userNickname || 'あなた'}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\nどのようなご相談がございますか？直感と霊感を使って必ず${userNickname || 'あなた'}さんを幸せに導くよ。`;
-                    } else {
-                        message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
-                    }
-                    addMessage('welcome', message, info.name);
+                    const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
+                    addMessage('welcome', firstTimeMessage, info.name);
                 }
             } catch (error) {
                 console.error('Error loading conversation history:', error);
                 const info = characterInfo[character];
-                let message = '';
-                if (character === 'sora') {
-                    message = `${userNickname || 'あなた'}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\nどのようなご相談がございますか？直感と霊感を使って必ずあなたを幸せに導くよ。`;
-                } else {
-                    message = `${userNickname || 'あなた'}さん、こんにちは。${info.name}です。どのようなご相談がございますか？`;
-                }
-                addMessage('welcome', message, info.name);
+                const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
+                addMessage('welcome', firstTimeMessage, info.name);
             }
 
             // イベントハンドラーを設定
