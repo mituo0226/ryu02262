@@ -21,6 +21,15 @@
             background: #000;
         }
 
+        body {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
+
         .animation-container {
             width: 100%;
             height: 100%;
