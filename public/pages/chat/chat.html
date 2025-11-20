@@ -1140,6 +1140,12 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                         console.log('messagesDiv exists:', !!messagesDiv);
                         if (messagesDiv) {
                             addMessage('character', data.message, data.characterName);
+                            
+                            // テキストエリアからフォーカスを外してキーボードを非表示にする
+                            if (messageInput) {
+                                messageInput.blur();
+                            }
+                            
                             // 追加後に確認
                             setTimeout(() => {
                                 const addedMessages = messagesDiv.querySelectorAll('.message.character');
@@ -1147,6 +1153,9 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                                 if (addedMessages.length > 0) {
                                     console.log('Last character message:', addedMessages[addedMessages.length - 1].textContent.substring(0, 50));
                                 }
+                                
+                                // スクロールを確実に実行して、最新のメッセージが見えるようにする
+                                scrollToLatest('smooth');
                             }, 100);
                         } else {
                             console.error('messagesDiv is null, cannot add message');
@@ -1173,7 +1182,16 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             if (sendButton) sendButton.disabled = false;
             const sendButtonMobile = document.getElementById('sendButtonMobile');
             if (sendButtonMobile) sendButtonMobile.disabled = false;
-            messageInput.focus();
+            
+            // テキストエリアからフォーカスを外してキーボードを非表示にする
+            if (messageInput) {
+                messageInput.blur();
+            }
+            
+            // アクティブな要素からフォーカスを外す（キーボードを確実に非表示にする）
+            if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') {
+                document.activeElement.blur();
+            }
             
             // フェードイン
             document.body.style.transition = 'opacity 0.5s ease';
