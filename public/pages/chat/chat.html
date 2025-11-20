@@ -429,7 +429,7 @@
             transition: transform 0.2s, opacity 0.2s;
         }
         .send-button.visible {
-            display: flex;
+            display: flex !important;
         }
         .send-button:active {
             transform: scale(0.95);
@@ -520,11 +520,11 @@
             }
             /* デスクトップ版の送信ボタンを非表示 */
             #sendButton {
-                display: none;
+                display: none !important;
             }
             /* モバイル版の送信ボタンは入力時に表示 */
             .send-button.visible {
-                display: flex;
+                display: flex !important;
             }
         }
     </style>
