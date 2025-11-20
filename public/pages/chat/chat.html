@@ -1323,7 +1323,11 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             messageDiv.appendChild(textDiv);
 
             messagesDiv.appendChild(messageDiv);
-            scrollToLatest(animateScroll ? 'smooth' : 'auto');
+            
+            // メッセージ追加後、確実にスクロール
+            requestAnimationFrame(() => {
+                scrollToLatest(animateScroll ? 'smooth' : 'auto');
+            });
 
             if (type === 'loading') {
                 return messageDiv;
