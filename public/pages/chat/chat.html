@@ -997,6 +997,13 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             // メッセージを一時保存（アニメーション後に使用）
             const messageToSend = message;
             
+            // ユーザーメッセージをsessionStorageに保存（アニメーション後に復元するため）
+            sessionStorage.setItem('lastUserMessage', JSON.stringify({
+                message: messageToSend,
+                character: character,
+                timestamp: new Date().toISOString()
+            }));
+            
             // アニメーション画面に遷移（フェードアウト）
             const currentUrl = window.location.href;
             const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
@@ -1085,6 +1092,32 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
         // アニメーション画面から戻ってきた時の処理
         function handleReturnFromAnimation() {
             console.log('handleReturnFromAnimation called');
+            
+            // ユーザーメッセージを復元
+            const lastUserMessage = sessionStorage.getItem('lastUserMessage');
+            if (lastUserMessage) {
+                try {
+                    const userMsgData = JSON.parse(lastUserMessage);
+                    console.log('Restoring user message:', userMsgData.message);
+                    // ユーザーメッセージを表示（既に表示されている可能性があるが、念のため）
+                    const existingUserMessages = messagesDiv.querySelectorAll('.message.user');
+                    const messageTexts = Array.from(existingUserMessages).map(msg => {
+                        const textDiv = msg.querySelector('div:last-child');
+                        return textDiv ? textDiv.textContent : '';
+                    });
+                    
+                    // 同じメッセージが既に表示されていないか確認
+                    if (!messageTexts.includes(userMsgData.message)) {
+                        addMessage('user', userMsgData.message, 'あなた');
+                    }
+                    
+                    // ユーザーメッセージデータをクリア
+                    sessionStorage.removeItem('lastUserMessage');
+                } catch (error) {
+                    console.error('Error parsing user message:', error);
+                }
+            }
+            
             const consultResponse = sessionStorage.getItem('lastConsultResponse');
             const consultError = sessionStorage.getItem('lastConsultError');
             
