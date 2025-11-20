@@ -1118,7 +1118,22 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                         addMessage('warning', data.message, data.characterName);
                     } else if (data.message) {
                         console.log('Adding character message:', data.message.substring(0, 50) + '...');
-                        addMessage('character', data.message, data.characterName);
+                        console.log('Full message:', data.message);
+                        console.log('Character name:', data.characterName);
+                        console.log('messagesDiv exists:', !!messagesDiv);
+                        if (messagesDiv) {
+                            addMessage('character', data.message, data.characterName);
+                            // 追加後に確認
+                            setTimeout(() => {
+                                const addedMessages = messagesDiv.querySelectorAll('.message.character');
+                                console.log('Character messages in DOM:', addedMessages.length);
+                                if (addedMessages.length > 0) {
+                                    console.log('Last character message:', addedMessages[addedMessages.length - 1].textContent.substring(0, 50));
+                                }
+                            }, 100);
+                        } else {
+                            console.error('messagesDiv is null, cannot add message');
+                        }
                     } else {
                         console.warn('No message in response:', data);
                         addMessage('error', '返信が取得できませんでした', 'システム');
