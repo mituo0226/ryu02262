@@ -1008,6 +1008,11 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
         }
 
         function addMessage(type, text, sender, animateScroll = true) {
+            if (!messagesDiv) {
+                console.error('messagesDiv is not initialized');
+                return;
+            }
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
 
@@ -1023,6 +1028,7 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             messageDiv.appendChild(textDiv);
 
             messagesDiv.appendChild(messageDiv);
+            console.log('Message added to DOM:', { type, sender, textLength: text.length });
             
             // メッセージ追加後、確実にスクロール
             requestAnimationFrame(() => {
@@ -1143,10 +1149,13 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
         }
         
         window.sendMessage = sendMessage;
-        window.addEventListener('DOMContentLoaded', () => {
-            initPage();
-            // アニメーション画面から戻ってきた場合の処理
-            handleReturnFromAnimation();
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initPage();
+            // アニメーション画面から戻ってきた場合の処理（initPage完了後）
+            // 少し遅延を入れて、DOMが完全に準備されるのを待つ
+            setTimeout(() => {
+                handleReturnFromAnimation();
+            }, 100);
         });
     </script>
 </body>
