@@ -490,7 +490,7 @@
     <!-- モバイルヘッダー -->
     <div class="mobile-header">
         <div class="mobile-header-content">
-            <button class="mobile-header-back" id="mobileHeaderBack" onclick="goBack()">←</button>
+            <a href="../appraisers-list.html" class="mobile-header-back" id="mobileHeaderBack">≪</a>
             <div class="mobile-header-title" id="mobileHeaderTitle">鑑定士</div>
             <button class="mobile-header-expand" id="mobileHeaderExpand" onclick="toggleHeaderMenu()">↓</button>
         </div>
@@ -640,9 +640,6 @@
             }
         }
 
-        function goBack() {
-            window.history.back();
-        }
 
         // 鑑定士を設定
         function setCurrentCharacter(characterId) {
