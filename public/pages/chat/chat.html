@@ -600,6 +600,17 @@
             messageInput.style.height = Math.min(messageInput.scrollHeight, max) + 'px';
         }
 
+        function updateSendButtonVisibility() {
+            const sendButtonMobile = document.getElementById('sendButtonMobile');
+            if (!sendButtonMobile || !messageInput) return;
+            
+            if (messageInput.value.trim().length > 0) {
+                sendButtonMobile.classList.add('visible');
+            } else {
+                sendButtonMobile.classList.remove('visible');
+            }
+        }
+
         let scrollTimeout = null;
         function scrollToLatest(behavior = 'smooth') {
             if (!messagesDiv) return;
