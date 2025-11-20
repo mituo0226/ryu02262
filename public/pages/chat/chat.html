@@ -1245,31 +1245,24 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             const sendButtonMobile = document.getElementById('sendButtonMobile');
             if (sendButtonMobile) sendButtonMobile.disabled = true;
             
-            // 画面を暗くして読書アニメーションを表示
-            const characterName = characterInfo[character].name;
-            const readingOverlay = showReadingAnimation(characterName);
+            // メッセージを一時保存（アニメーション後に使用）
+            const messageToSend = message;
             
-            // 少し待ってからAPI呼び出し
-            await delay(1500);
-
-            const payload = {
-                message,
-                character,
-                userToken: AuthState.getUserToken(),
-            };
-
-            try {
-                const response = await fetch('/api/consult', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-
-                const data = await response.json();
-                
-                // アニメーションをフェードアウト
-                await hideReadingAnimation(readingOverlay);
-                await delay(300);
+            // アニメーション画面に遷移（フェードアウト）
+            const currentUrl = window.location.href;
+            const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
+            
+            // チャット画面をフェードアウト
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '0';
+            
+            await delay(500);
+            
+            // アニメーション画面に遷移
+            window.location.href = animationUrl;
+            
+            // ここで処理を終了（アニメーション画面から戻ってきた時に続行）
+            return;
 
                 if (data.needsRegistration) {
                     addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
@@ -1373,8 +1366,63 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 // スクロール中
             }
         }, { passive: true });
+        
+        // アニメーション画面から戻ってきた時の処理
+        function handleReturnFromAnimation() {
+            const consultResponse = sessionStorage.getItem('lastConsultResponse');
+            const consultError = sessionStorage.getItem('lastConsultError');
+            
+            if (consultResponse) {
+                try {
+                    const data = JSON.parse(consultResponse);
+                    
+                    if (data.needsRegistration) {
+                        addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                        window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                        return;
+                    }
+                    
+                    if (data.error) {
+                        const errorMessage = data.error;
+                        if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
+                            addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                            window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                        } else {
+                            addMessage('error', errorMessage, 'システム');
+                        }
+                    } else if (data.isInappropriate) {
+                        addMessage('warning', data.message, data.characterName);
+                    } else {
+                        addMessage('character', data.message, data.characterName);
+                    }
+                    
+                    // レスポンスデータをクリア
+                    sessionStorage.removeItem('lastConsultResponse');
+                } catch (error) {
+                    console.error('Error parsing consult response:', error);
+                }
+            } else if (consultError) {
+                addMessage('error', '通信エラーが発生しました: ' + consultError, 'システム');
+                sessionStorage.removeItem('lastConsultError');
+            }
+            
+            // ボタンを有効化
+            if (sendButton) sendButton.disabled = false;
+            const sendButtonMobile = document.getElementById('sendButtonMobile');
+            if (sendButtonMobile) sendButtonMobile.disabled = false;
+            messageInput.focus();
+            
+            // フェードイン
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '1';
+        }
+        
         window.sendMessage = sendMessage;
-        window.addEventListener('DOMContentLoaded', initPage);
+        window.addEventListener('DOMContentLoaded', () => {
+            initPage();
+            // アニメーション画面から戻ってきた場合の処理
+            handleReturnFromAnimation();
+        });
     </script>
 </body>
 </html>

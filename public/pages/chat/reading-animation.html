@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>鑑定中...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            background: #000;
+        }
+
+        .animation-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .image-layer.active {
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .image-layer.fade-out {
+            opacity: 0;
+            z-index: 5;
+        }
+
+        .image-layer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="animation-container" id="animationContainer">
+        <!-- 画像レイヤーはJavaScriptで動的に生成 -->
+    </div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div style="color: white; font-size: 18px; font-weight: 600;">読み込み中...</div>
+    </div>
+
+    <script>
+        // URLパラメータから鑑定士IDを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const character = urlParams.get('character') || 'kaede';
+        const returnUrl = urlParams.get('return') || '../chat/chat.html';
+
+        // 各鑑定士の画像シーケンス
+        const characterSequences = {
+            kaede: [
+                '../../photo/kaede2.png',
+                '../../photo/2.png',
+                '../../photo/3.png',
+                '../../photo/4.png'
+            ],
+            kaon: [
+                '../../photo/kaon2.png',
+                '../../photo/2.png',
+                '../../photo/3.png',
+                '../../photo/4.png'
+            ],
+            yukino: [
+                '../../photo/yukino2.png',
+                '../../photo/2.png',
+                '../../photo/3.png',
+                '../../photo/4.png'
+            ],
+            sora: [
+                '../../photo/sora2.png',
+                '../../photo/2.png',
+                '../../photo/3.png',
+                '../../photo/4.png'
+            ]
+        };
+
+        const images = characterSequences[character] || characterSequences.kaede;
+        const container = document.getElementById('animationContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // 画像レイヤーを作成
+        const layers = [];
+        images.forEach((src, index) => {
+            const layer = document.createElement('div');
+            layer.className = 'image-layer';
+            layer.dataset.index = index;
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = `鑑定中 ${index + 1}`;
+            
+            // 画像読み込みエラー処理
+            img.onerror = () => {
+                console.warn(`Failed to load image: ${src}`);
+            };
+            
+            layer.appendChild(img);
+            container.appendChild(layer);
+            layers.push(layer);
+        });
+
+        // アニメーション実行
+        async function playAnimation() {
+            loadingOverlay.classList.add('active');
+            
+            // 最初の画像を表示（フェードイン）
+            if (layers.length > 0) {
+                layers[0].classList.add('active');
+                await delay(2500); // 最初の画像を2.5秒表示
+            }
+
+            // 各画像を順番に表示（重なり合うように）
+            for (let i = 1; i < layers.length; i++) {
+                // 次のレイヤーをフェードイン開始（前のレイヤーと重なる）
+                layers[i].classList.add('active');
+                
+                // 少し待ってから前のレイヤーをフェードアウト開始
+                await delay(500);
+                if (layers[i - 1]) {
+                    layers[i - 1].classList.remove('active');
+                    layers[i - 1].classList.add('fade-out');
+                }
+                
+                // フェードアウトが完了するまで待機
+                await delay(1500);
+            }
+
+            // 最後の画像を少し長めに表示
+            await delay(2500);
+
+            // すべてのレイヤーをフェードアウト
+            layers.forEach(layer => {
+                layer.classList.remove('active');
+                layer.classList.add('fade-out');
+            });
+
+            await delay(1500);
+
+            // API呼び出しを実行（バックグラウンド）
+            if (message) {
+                try {
+                    // ユーザートークンを取得（localStorageから）
+                    const userToken = localStorage.getItem('userToken');
+                    
+                    if (userToken) {
+                        const payload = {
+                            message: decodeURIComponent(message),
+                            character: character,
+                            userToken: userToken,
+                        };
+
+                        const response = await fetch('/api/consult', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                        });
+
+                        const data = await response.json();
+                        
+                        // レスポンスデータをsessionStorageに保存
+                        sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                    }
+                } catch (error) {
+                    console.error('Error calling API:', error);
+                    sessionStorage.setItem('lastConsultError', error.message);
+                }
+            }
+
+            // チャット画面に戻る（フェードアウト）
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '0';
+            
+            await delay(500);
+            
+            if (returnUrl) {
+                window.location.href = returnUrl;
+            } else {
+                window.history.back();
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // すべての画像が読み込まれたらアニメーション開始
+        let loadedCount = 0;
+        const totalImages = images.length;
+
+        function checkAllLoaded() {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+                loadingOverlay.classList.remove('active');
+                setTimeout(() => {
+                    playAnimation();
+                }, 300);
+            }
+        }
+
+        // 画像の読み込みを監視
+        layers.forEach(layer => {
+            const img = layer.querySelector('img');
+            if (img.complete) {
+                checkAllLoaded();
+            } else {
+                img.onload = checkAllLoaded;
+                img.onerror = checkAllLoaded; // エラーでも続行
+            }
+        });
+
+        // タイムアウト処理（10秒経過したら強制的に開始）
+        setTimeout(() => {
+            if (loadedCount < totalImages) {
+                console.warn('Some images failed to load, starting animation anyway');
+                loadingOverlay.classList.remove('active');
+                playAnimation();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
+
