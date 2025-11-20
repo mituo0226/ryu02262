@@ -976,7 +976,14 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 return;
             }
 
+            // ユーザーメッセージを会話形式で表示
             addMessage('user', message, 'あなた');
+            
+            // メッセージが確実に表示されるまで少し待つ
+            await delay(100);
+            
+            // スクロールを確実に実行
+            scrollToLatest('smooth');
 
             messageInput.value = '';
             autoResizeInput();
