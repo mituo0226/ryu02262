@@ -1119,13 +1119,16 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                     console.log('Message already exists?', messageTexts.includes(userMsgData.message.trim()));
                     
                     // 同じメッセージが既に表示されていないか確認
-                    if (!messageTexts.includes(userMsgData.message.trim())) {
+                    const messageToCheck = userMsgData.message.trim();
+                    const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
+                    
+                    if (!messageExists) {
                         console.log('Adding user message to DOM');
-                        addMessage('user', userMsgData.message, 'あなた');
+                        addMessage('user', userMsgData.message, 'あなた', false); // スクロールは後で実行
                         // スクロールを確実に実行
                         setTimeout(() => {
                             scrollToLatest('smooth');
-                        }, 100);
+                        }, 200);
                     } else {
                         console.log('User message already exists, skipping');
                     }
