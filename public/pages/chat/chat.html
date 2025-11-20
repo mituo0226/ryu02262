@@ -1263,41 +1263,6 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             
             // ここで処理を終了（アニメーション画面から戻ってきた時に続行）
             return;
-
-                if (data.needsRegistration) {
-                    addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
-                    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
-                    return;
-                }
-
-                if (!response.ok || data.error) {
-                    const errorMessage = data.error || 'エラーが発生しました';
-                    if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
-                        addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
-                        window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
-                    } else {
-                        addMessage('error', errorMessage, 'システム');
-                    }
-                    return;
-                }
-
-                if (data.isInappropriate) {
-                    addMessage('warning', data.message, data.characterName);
-                    return;
-                }
-
-                addMessage('character', data.message, data.characterName);
-            } catch (error) {
-                // エラー時もアニメーションをフェードアウト
-                await hideReadingAnimation(readingOverlay);
-                addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
-            } finally {
-                // デスクトップ版とモバイル版の両方のボタンを有効化
-                if (sendButton) sendButton.disabled = false;
-                const sendButtonMobile = document.getElementById('sendButtonMobile');
-                if (sendButtonMobile) sendButtonMobile.disabled = false;
-                messageInput.focus();
-            }
         }
 
         function addMessage(type, text, sender, animateScroll = true) {

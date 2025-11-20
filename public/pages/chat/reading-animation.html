@@ -204,8 +204,25 @@
             // API呼び出しを実行（バックグラウンド）
             if (message) {
                 try {
-                    // ユーザートークンを取得（localStorageから）
-                    const userToken = localStorage.getItem('userToken');
+                    // auth-state.jsを読み込む
+                    const script = document.createElement('script');
+                    script.src = '../../js/auth-state.js';
+                    document.head.appendChild(script);
+                    
+                    await new Promise((resolve) => {
+                        script.onload = resolve;
+                        setTimeout(resolve, 500); // タイムアウト
+                    });
+                    
+                    // AuthStateが利用可能か確認
+                    let userToken = null;
+                    if (window.AuthState && typeof window.AuthState.getUserToken === 'function') {
+                        window.AuthState.init();
+                        userToken = window.AuthState.getUserToken();
+                    } else {
+                        // フォールバック: localStorageから直接取得
+                        userToken = localStorage.getItem('userToken');
+                    }
                     
                     if (userToken) {
                         const payload = {
@@ -224,6 +241,8 @@
                         
                         // レスポンスデータをsessionStorageに保存
                         sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                    } else {
+                        sessionStorage.setItem('lastConsultError', 'User token not found');
                     }
                 } catch (error) {
                     console.error('Error calling API:', error);
