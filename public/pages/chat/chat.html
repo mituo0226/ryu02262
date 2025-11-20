@@ -593,24 +593,28 @@
                 roomLabel: '楓の部屋',
                 roomHint: '静寂に包まれた霊視交信ルーム',
                 image: '../../photo/kaede.png',
+                profileUrl: '../profiles/kaede.html',
             },
             yukino: {
                 name: '笹岡雪乃',
                 roomLabel: '雪乃の部屋',
                 roomHint: '雪の結晶が舞う癒やしの鑑定空間',
                 image: '../../photo/yukino.png',
+                profileUrl: '../profiles/yukino.html',
             },
             sora: {
                 name: '水野ソラ',
                 roomLabel: 'ソラの部屋',
                 roomHint: '星灯りの下で心を繋ぐ交信スペース',
                 image: '../../photo/sora.png',
+                profileUrl: '../profiles/sora.html',
             },
             kaon: {
                 name: '三崎花音',
                 roomLabel: '花音の部屋',
                 roomHint: '香り立つランプが揺れる艶やかな鑑定室',
                 image: '../../photo/kaon.png',
+                profileUrl: '../profiles/kaon.html',
             },
         };
 
@@ -648,12 +652,22 @@
             
             currentCharacter = characterId;
             
-            // モバイルヘッダーのタイトルを更新（アイコン付き）
+            // モバイルヘッダーのタイトルを更新（アイコン付き、プロフィールページへのリンク付き）
             const mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
             if (mobileHeaderTitle) {
                 const info = characterInfo[characterId];
                 // 既存の内容をクリア
                 mobileHeaderTitle.innerHTML = '';
+                
+                // プロフィールページへのリンクを作成
+                const profileLink = document.createElement('a');
+                profileLink.href = info.profileUrl;
+                profileLink.style.textDecoration = 'none';
+                profileLink.style.color = 'inherit';
+                profileLink.style.display = 'flex';
+                profileLink.style.alignItems = 'center';
+                profileLink.style.justifyContent = 'center';
+                profileLink.style.gap = '8px';
                 
                 // アイコン画像を追加
                 const iconImg = document.createElement('img');
@@ -665,8 +679,9 @@
                 const nameText = document.createElement('span');
                 nameText.textContent = info.name;
                 
-                mobileHeaderTitle.appendChild(iconImg);
-                mobileHeaderTitle.appendChild(nameText);
+                profileLink.appendChild(iconImg);
+                profileLink.appendChild(nameText);
+                mobileHeaderTitle.appendChild(profileLink);
             }
         }
 
