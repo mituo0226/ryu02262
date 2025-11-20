@@ -998,11 +998,13 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             const messageToSend = message;
             
             // ユーザーメッセージをsessionStorageに保存（アニメーション後に復元するため）
-            sessionStorage.setItem('lastUserMessage', JSON.stringify({
+            const userMessageData = {
                 message: messageToSend,
                 character: character,
                 timestamp: new Date().toISOString()
-            }));
+            };
+            sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
+            console.log('User message saved to sessionStorage:', userMessageData);
             
             // アニメーション画面に遷移（フェードアウト）
             const currentUrl = window.location.href;
@@ -1095,27 +1097,46 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             
             // ユーザーメッセージを復元
             const lastUserMessage = sessionStorage.getItem('lastUserMessage');
+            console.log('Checking for user message in sessionStorage:', !!lastUserMessage);
+            
             if (lastUserMessage) {
                 try {
                     const userMsgData = JSON.parse(lastUserMessage);
-                    console.log('Restoring user message:', userMsgData.message);
+                    console.log('Restoring user message:', userMsgData);
+                    console.log('Message text:', userMsgData.message);
+                    
                     // ユーザーメッセージを表示（既に表示されている可能性があるが、念のため）
                     const existingUserMessages = messagesDiv.querySelectorAll('.message.user');
+                    console.log('Existing user messages count:', existingUserMessages.length);
+                    
                     const messageTexts = Array.from(existingUserMessages).map(msg => {
                         const textDiv = msg.querySelector('div:last-child');
-                        return textDiv ? textDiv.textContent : '';
+                        return textDiv ? textDiv.textContent.trim() : '';
                     });
                     
+                    console.log('Existing message texts:', messageTexts);
+                    console.log('New message text:', userMsgData.message.trim());
+                    console.log('Message already exists?', messageTexts.includes(userMsgData.message.trim()));
+                    
                     // 同じメッセージが既に表示されていないか確認
-                    if (!messageTexts.includes(userMsgData.message)) {
+                    if (!messageTexts.includes(userMsgData.message.trim())) {
+                        console.log('Adding user message to DOM');
                         addMessage('user', userMsgData.message, 'あなた');
+                        // スクロールを確実に実行
+                        setTimeout(() => {
+                            scrollToLatest('smooth');
+                        }, 100);
+                    } else {
+                        console.log('User message already exists, skipping');
                     }
                     
                     // ユーザーメッセージデータをクリア
                     sessionStorage.removeItem('lastUserMessage');
                 } catch (error) {
-                    console.error('Error parsing user message:', error);
+                    console.error('Error parsing user message:', error, lastUserMessage);
                 }
+            } else {
+                console.warn('No user message found in sessionStorage');
             }
             
             const consultResponse = sessionStorage.getItem('lastConsultResponse');
