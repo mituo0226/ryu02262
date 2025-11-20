@@ -1071,12 +1071,26 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
         
         // アニメーション画面から戻ってきた時の処理
         function handleReturnFromAnimation() {
+            console.log('handleReturnFromAnimation called');
             const consultResponse = sessionStorage.getItem('lastConsultResponse');
             const consultError = sessionStorage.getItem('lastConsultError');
+            
+            console.log('SessionStorage check:', { 
+                hasResponse: !!consultResponse, 
+                hasError: !!consultError,
+                responseLength: consultResponse ? consultResponse.length : 0
+            });
             
             if (consultResponse) {
                 try {
                     const data = JSON.parse(consultResponse);
+                    console.log('Parsed response data:', {
+                        hasError: !!data.error,
+                        hasMessage: !!data.message,
+                        isInappropriate: !!data.isInappropriate,
+                        needsRegistration: !!data.needsRegistration,
+                        characterName: data.characterName
+                    });
                     
                     if (data.needsRegistration) {
                         addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
@@ -1086,6 +1100,7 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                     
                     if (data.error) {
                         const errorMessage = data.error;
+                        console.error('API returned error:', errorMessage);
                         if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
                             addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
                             window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
@@ -1093,19 +1108,27 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                             addMessage('error', errorMessage, 'システム');
                         }
                     } else if (data.isInappropriate) {
+                        console.log('Inappropriate content detected');
                         addMessage('warning', data.message, data.characterName);
-                    } else {
+                    } else if (data.message) {
+                        console.log('Adding character message:', data.message.substring(0, 50) + '...');
                         addMessage('character', data.message, data.characterName);
+                    } else {
+                        console.warn('No message in response:', data);
+                        addMessage('error', '返信が取得できませんでした', 'システム');
                     }
                     
                     // レスポンスデータをクリア
                     sessionStorage.removeItem('lastConsultResponse');
                 } catch (error) {
-                    console.error('Error parsing consult response:', error);
+                    console.error('Error parsing consult response:', error, consultResponse);
                 }
             } else if (consultError) {
+                console.error('Consult error found:', consultError);
                 addMessage('error', '通信エラーが発生しました: ' + consultError, 'システム');
                 sessionStorage.removeItem('lastConsultError');
+            } else {
+                console.warn('No response or error found in sessionStorage');
             }
             
             // ボタンを有効化

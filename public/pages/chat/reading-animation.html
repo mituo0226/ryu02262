@@ -226,20 +226,39 @@
                         throw new Error('User token not found');
                     }
 
+                    // messageはURLパラメータから取得しているので、すでにデコードされている
+                    const decodedMessage = decodeURIComponent(message);
+                    
                     const payload = {
-                        message,
+                        message: decodedMessage,
                         character,
                         userToken,
                     };
 
+                    console.log('Calling API with:', { character, messageLength: decodedMessage.length, hasToken: !!userToken });
+                    
                     const response = await fetch('/api/consult', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     });
 
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API response not OK:', response.status, errorText);
+                        throw new Error(`API error: ${response.status}`);
+                    }
+
                     const data = await response.json();
+                    console.log('API response received:', { 
+                        hasError: !!data.error, 
+                        hasMessage: !!data.message, 
+                        isInappropriate: !!data.isInappropriate,
+                        needsRegistration: !!data.needsRegistration 
+                    });
+                    
                     sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                    console.log('Response saved to sessionStorage');
                 } catch (error) {
                     console.error('Error calling API:', error);
                     sessionStorage.setItem('lastConsultError', error.message || '通信エラー');
