@@ -412,24 +412,32 @@
             cursor: not-allowed;
             box-shadow: none;
         }
+        /* デスクトップ版では送信ボタンを非表示 */
         .send-button {
-            background: linear-gradient(135deg, var(--brand-main), var(--brand-sub));
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            padding: 10px;
             display: none;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            flex-shrink: 0;
-            border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
-            transition: transform 0.2s, opacity 0.2s;
         }
-        .send-button.visible {
-            display: flex !important;
+        
+        @media (max-width: 768px) {
+            /* モバイル版では送信ボタンを表示可能にする */
+            .send-button {
+                background: linear-gradient(135deg, var(--brand-main), var(--brand-sub));
+                border: none;
+                color: #fff;
+                cursor: pointer;
+                padding: 10px;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                flex-shrink: 0;
+                border-radius: 50%;
+                box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+                transition: transform 0.2s, opacity 0.2s;
+            }
+            .send-button.visible {
+                display: flex !important;
+            }
         }
         .send-button:active {
             transform: scale(0.95);
