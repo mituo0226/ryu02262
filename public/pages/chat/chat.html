@@ -412,25 +412,24 @@
             cursor: not-allowed;
             box-shadow: none;
         }
-        .camera-button, .send-button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--brand-main);
-            cursor: pointer;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            flex-shrink: 0;
-        }
         .send-button {
             background: linear-gradient(135deg, var(--brand-main), var(--brand-sub));
+            border: none;
             color: #fff;
+            cursor: pointer;
+            padding: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
             border-radius: 50%;
             box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .send-button.visible {
+            display: flex;
         }
         .send-button:active {
             transform: scale(0.95);
@@ -438,6 +437,11 @@
         .send-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+        .send-button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
         }
         .loading {
             text-align: center;
@@ -518,8 +522,8 @@
             #sendButton {
                 display: none;
             }
-            /* モバイル版のボタンは表示 */
-            .camera-button, .send-button {
+            /* モバイル版の送信ボタンは入力時に表示 */
+            .send-button.visible {
                 display: flex;
             }
         }
@@ -561,12 +565,11 @@
 
         <div class="input-area">
             <div class="input-row">
-                <button class="camera-button" id="cameraButton" onclick="handleCameraClick()" title="画像を送信">
-                    📷
-                </button>
                 <textarea id="messageInput" placeholder="メッセージを入力（Shift+Enterで改行）" rows="1" maxlength="1000"></textarea>
                 <button class="send-button" id="sendButtonMobile" onclick="sendMessage()" title="送信">
-                    ✈️
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
                 </button>
                 <button id="sendButton" onclick="sendMessage()">送信</button>
             </div>
@@ -927,8 +930,12 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                     sendMessage();
                 }
             });
-            messageInput.addEventListener('input', autoResizeInput);
+            messageInput.addEventListener('input', () => {
+                autoResizeInput();
+                updateSendButtonVisibility();
+            });
             autoResizeInput();
+            updateSendButtonVisibility();
         }
 
         // 接続シーケンスを表示（chatを開いた時）
@@ -1003,6 +1010,7 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
 
             messageInput.value = '';
             autoResizeInput();
+            updateSendButtonVisibility();
             
             // デスクトップ版とモバイル版の両方のボタンを無効化
             if (sendButton) sendButton.disabled = true;
