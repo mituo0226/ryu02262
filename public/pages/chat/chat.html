@@ -1078,6 +1078,12 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                     if (!messageExists) {
                         console.log('Adding user message to DOM');
                         addMessage('user', userMsgData.message, 'あなた', false); // スクロールは後で実行
+                        
+                        // テキストエリアからフォーカスを外してキーボードを非表示にする
+                        if (messageInput) {
+                            messageInput.blur();
+                        }
+                        
                         // スクロールを確実に実行
                         setTimeout(() => {
                             scrollToLatest('smooth');
