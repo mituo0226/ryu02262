@@ -1048,6 +1048,13 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 return;
             }
 
+            // 初期フェードイン（アニメーション画面から戻ってきた場合）
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease';
+            requestAnimationFrame(() => {
+                document.body.style.opacity = '1';
+            });
+
             const character = getCharacterFromURL();
             setCurrentCharacter(character);
             
