@@ -8,16 +8,17 @@
     <title>鑑定士チャット</title>
     <style>
         :root {
-            --bg-primary: linear-gradient(135deg, #090314 0%, #1d0a2f 45%, #300b55 100%);
-            --card-bg: rgba(255, 255, 255, 0.98);
+            --bg-primary: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            --card-bg: rgba(26, 10, 46, 0.85);
             --brand-main: #8a2be2;
             --brand-sub: #b56cff;
-            --user-bubble: #ccf2ff;
-            --char-bubble: #f3e8ff;
-            --welcome-bubble: rgba(138, 43, 226, 0.1);
-            --border-soft: rgba(138, 43, 226, 0.16);
-            --text-dark: #1d1736;
-            --text-muted: #6c6b80;
+            --user-bubble: rgba(138, 43, 226, 0.25);
+            --char-bubble: rgba(138, 43, 226, 0.2);
+            --welcome-bubble: rgba(138, 43, 226, 0.15);
+            --border-soft: rgba(138, 43, 226, 0.3);
+            --text-dark: #e8d5ff;
+            --text-muted: #b8a5d8;
+            --messages-bg: rgba(26, 10, 46, 0.5);
         }
 
         html {
@@ -90,7 +91,8 @@
             background: var(--card-bg);
             border-radius: 20px;
             padding: 22px;
-            box-shadow: 0 25px 55px rgba(16, 6, 34, 0.45);
+            box-shadow: 0 25px 55px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(138, 43, 226, 0.2);
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -98,7 +100,7 @@
             overflow: hidden;
         }
         .user-status {
-            background: rgba(138, 43, 226, 0.08);
+            background: rgba(138, 43, 226, 0.15);
             color: var(--text-dark);
             padding: 12px 14px;
             border-radius: 14px;
@@ -116,8 +118,8 @@
             padding: 18px 12px;
             padding-top: 24px;
             padding-bottom: 100px;
-            background: #f9f7ff;
-            border: 1px solid rgba(138, 43, 226, 0.15);
+            background: var(--messages-bg);
+            border: 1px solid rgba(138, 43, 226, 0.25);
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -130,10 +132,10 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.4), transparent 45%),
+            background: radial-gradient(circle at 20% 20%, rgba(138,43,226,0.3), transparent 45%),
                         radial-gradient(circle at 80% 0%, rgba(138,43,226,0.2), transparent 40%);
             filter: blur(30px);
-            opacity: 0.6;
+            opacity: 0.5;
             animation: aurora 12s infinite alternate;
             pointer-events: none;
             z-index: -1;
@@ -152,6 +154,7 @@
             max-width: 92%;
             word-break: break-word;
             position: relative;
+            color: var(--text-dark);
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
@@ -161,15 +164,17 @@
             margin-left: auto;
             background: var(--user-bubble);
             border-bottom-right-radius: 6px;
-            box-shadow: 0 6px 18px rgba(8, 86, 129, 0.25);
+            box-shadow: 0 6px 18px rgba(138, 43, 226, 0.3);
             position: relative;
+            color: var(--text-dark);
         }
         .message.character {
             margin-right: auto;
             background: var(--char-bubble);
             border-bottom-left-radius: 6px;
-            box-shadow: 0 6px 18px rgba(63, 32, 102, 0.25);
+            box-shadow: 0 6px 18px rgba(138, 43, 226, 0.3);
             position: relative;
+            color: var(--text-dark);
         }
         .message.character::before,
         .message.user::before {
@@ -199,19 +204,20 @@
         .message.welcome {
             margin-right: auto;
             background: var(--welcome-bubble);
-            border: 1px solid rgba(138, 43, 226, 0.25);
-            color: var(--brand-main);
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            color: var(--text-dark);
             font-weight: 500;
         }
         .message.error {
-            background: #ffe3e6;
-            color: #b00020;
+            background: rgba(176, 0, 32, 0.3);
+            color: #ff6b7d;
+            border: 1px solid rgba(176, 0, 32, 0.4);
         }
         .message.loading {
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(75, 0, 130, 0.15));
-            border: 1px solid rgba(138, 43, 226, 0.3);
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2));
+            border: 1px solid rgba(138, 43, 226, 0.4);
             text-align: center;
-            color: var(--brand-main);
+            color: var(--text-dark);
             font-weight: 600;
             position: relative;
             overflow: hidden;
@@ -221,6 +227,7 @@
             color: var(--text-muted);
             margin-bottom: 4px;
             font-weight: 600;
+            opacity: 0.9;
         }
         /* モバイルヘッダー */
         .mobile-header {
@@ -327,19 +334,25 @@
         .input-area textarea {
             flex: 1;
             padding: 14px 18px;
-            border: 1.5px solid rgba(138, 43, 226, 0.25);
+            border: 1.5px solid rgba(138, 43, 226, 0.4);
             border-radius: 999px;
             font-size: 16px;
-            background: #f4f0ff;
+            background: rgba(26, 10, 46, 0.7);
+            color: var(--text-dark);
             resize: none;
             line-height: 1.5;
             min-height: 46px;
         }
+        .input-area textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
         .input-area textarea:focus {
             outline: none;
-            border-color: rgba(138, 43, 226, 0.65);
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.18);
+            border-color: rgba(138, 43, 226, 0.7);
+            background: rgba(26, 10, 46, 0.85);
+            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.25);
+            color: var(--text-dark);
         }
         .input-area button {
             padding: 12px 22px;
@@ -465,7 +478,7 @@
                 background: var(--card-bg);
                 padding: 8px 12px;
                 border-top: 1px solid var(--border-soft);
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
             }
             .input-row {
                 display: flex;
