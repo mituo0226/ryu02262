@@ -275,48 +275,6 @@
             object-fit: cover;
             border: 2px solid rgba(138, 43, 226, 0.3);
         }
-        .mobile-header-expand {
-            background: none;
-            border: none;
-            font-size: 20px;
-            color: var(--brand-main);
-            cursor: pointer;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            transition: transform 0.3s;
-        }
-        .mobile-header-expand.expanded {
-            transform: rotate(180deg);
-        }
-        .mobile-header-menu {
-            max-height: 0;
-            overflow: hidden;
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--border-soft);
-            transition: max-height 0.3s ease;
-        }
-        .mobile-header-menu.expanded {
-            max-height: 200px;
-        }
-        .mobile-header-menu-content {
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .mobile-header-menu-item {
-            padding: 12px;
-            background: rgba(138, 43, 226, 0.08);
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--text-dark);
-            font-size: 14px;
-            text-align: center;
-        }
 
         .input-area {
             position: sticky;
@@ -509,13 +467,6 @@
         <div class="mobile-header-content">
             <a href="../appraisers-list.html" class="mobile-header-back" id="mobileHeaderBack">≪</a>
             <div class="mobile-header-title" id="mobileHeaderTitle">鑑定士</div>
-            <button class="mobile-header-expand" id="mobileHeaderExpand" onclick="toggleHeaderMenu()">↓</button>
-        </div>
-        <div class="mobile-header-menu" id="mobileHeaderMenu">
-            <div class="mobile-header-menu-content">
-                <div class="user-status" id="userStatusMobile">利用者情報を読み込んでいます...</div>
-                <a href="../appraisers-list.html" class="mobile-header-menu-item">鑑定師一覧に戻る</a>
-            </div>
         </div>
     </div>
 
@@ -647,15 +598,6 @@
             return 'kaede'; // デフォルト
         }
 
-        // モバイルヘッダーの制御
-        function toggleHeaderMenu() {
-            const menu = document.getElementById('mobileHeaderMenu');
-            const expandBtn = document.getElementById('mobileHeaderExpand');
-            if (menu && expandBtn) {
-                menu.classList.toggle('expanded');
-                expandBtn.classList.toggle('expanded');
-            }
-        }
 
 
         // 鑑定士を設定
