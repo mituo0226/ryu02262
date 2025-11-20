@@ -119,6 +119,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const character = urlParams.get('character') || 'kaede';
         const returnUrl = urlParams.get('return') || '../chat/chat.html';
+        const message = urlParams.get('message') || '';
+        
+        console.log('Animation params:', { character, returnUrl, hasMessage: !!message });
 
         // 各鑑定士の画像シーケンス
         const characterSequences = {
@@ -210,9 +213,11 @@
 
             await delay(1500);
 
-            // API呼び出しを実行（バックグラウンド）
+            // API呼び出しを実行（完了を待つ）
+            let apiCompleted = false;
             if (message) {
                 try {
+                    console.log('Starting API call...');
                     // auth-state.jsを読み込む
                     const script = document.createElement('script');
                     script.src = '../../js/auth-state.js';
@@ -240,6 +245,7 @@
                             userToken: userToken,
                         };
 
+                        console.log('Calling API with payload:', { character, messageLength: payload.message.length });
                         const response = await fetch('/api/consult', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -247,17 +253,34 @@
                         });
 
                         const data = await response.json();
+                        console.log('API response received:', { hasError: !!data.error, hasMessage: !!data.message });
                         
                         // レスポンスデータをsessionStorageに保存
                         sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                        apiCompleted = true;
                     } else {
+                        console.error('User token not found');
                         sessionStorage.setItem('lastConsultError', 'User token not found');
+                        apiCompleted = true;
                     }
                 } catch (error) {
                     console.error('Error calling API:', error);
                     sessionStorage.setItem('lastConsultError', error.message);
+                    apiCompleted = true;
                 }
+            } else {
+                console.warn('No message parameter found, skipping API call');
+                apiCompleted = true;
             }
+
+            // API呼び出しが完了するまで待機（タイムアウト付き）
+            const maxWaitTime = 30000; // 30秒
+            const startTime = Date.now();
+            while (!apiCompleted && (Date.now() - startTime) < maxWaitTime) {
+                await delay(100);
+            }
+
+            console.log('Returning to chat screen:', returnUrl);
 
             // チャット画面に戻る（フェードアウト）
             document.body.style.transition = 'opacity 0.5s ease';
@@ -265,10 +288,19 @@
             
             await delay(500);
             
-            if (returnUrl) {
-                window.location.href = returnUrl;
-            } else {
-                window.history.back();
+            // 確実に遷移するため、複数の方法を試す
+            try {
+                if (returnUrl) {
+                    console.log('Navigating to:', returnUrl);
+                    window.location.href = returnUrl;
+                } else {
+                    console.log('Using history.back()');
+                    window.history.back();
+                }
+            } catch (error) {
+                console.error('Navigation error:', error);
+                // フォールバック: 強制的に遷移
+                window.location.replace(returnUrl || '../chat/chat.html');
             }
         }
 
