@@ -651,6 +651,25 @@
             return 'kaede'; // デフォルト
         }
 
+        // モバイルヘッダーの制御
+        function toggleHeaderMenu() {
+            const menu = document.getElementById('mobileHeaderMenu');
+            const expandBtn = document.getElementById('mobileHeaderExpand');
+            if (menu && expandBtn) {
+                menu.classList.toggle('expanded');
+                expandBtn.classList.toggle('expanded');
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function handleCameraClick() {
+            // 画像送信機能（将来実装）
+            alert('画像送信機能は準備中です');
+        }
+
         // 鑑定士を設定
         function setCurrentCharacter(characterId) {
             if (!characterInfo[characterId]) {
@@ -666,6 +685,12 @@
             characterNameDisplay.textContent = info.roomLabel || `${info.name}の部屋`;
             characterStatus.textContent = info.roomHint || '鑑定交信ルーム';
             currentCharacterDisplay.style.display = 'flex';
+            
+            // モバイルヘッダーのタイトルを更新
+            const mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
+            if (mobileHeaderTitle) {
+                mobileHeaderTitle.textContent = info.name;
+            }
         }
 
         // 会話履歴を取得
@@ -973,7 +998,11 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
 
             messageInput.value = '';
             autoResizeInput();
-            sendButton.disabled = true;
+            
+            // デスクトップ版とモバイル版の両方のボタンを無効化
+            if (sendButton) sendButton.disabled = true;
+            const sendButtonMobile = document.getElementById('sendButtonMobile');
+            if (sendButtonMobile) sendButtonMobile.disabled = true;
             
             // 鑑定中の演出を表示
             const loadingId = await showAppraisalSequence(character);
@@ -1026,7 +1055,10 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 removeMessage(waitingId);
                 addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
             } finally {
-                sendButton.disabled = false;
+                // デスクトップ版とモバイル版の両方のボタンを有効化
+                if (sendButton) sendButton.disabled = false;
+                const sendButtonMobile = document.getElementById('sendButtonMobile');
+                if (sendButtonMobile) sendButtonMobile.disabled = false;
                 messageInput.focus();
             }
         }
