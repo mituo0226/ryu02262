@@ -232,7 +232,7 @@
             background: #ffe3e6;
             color: #b00020;
         }
-        .message.loading, .message.connecting {
+        .message.loading {
             background: linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(75, 0, 130, 0.15));
             border: 1px solid rgba(138, 43, 226, 0.3);
             text-align: center;
@@ -241,45 +241,11 @@
             position: relative;
             overflow: hidden;
         }
-        .message.connecting::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-        .message.connecting .connecting-text {
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
         .message-header {
             font-size: 11px;
             color: var(--text-muted);
             margin-bottom: 4px;
             font-weight: 600;
-        }
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #8a2be2;
-            margin-right: 8px;
-            animation: blink 1s infinite;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
         }
         /* モバイルヘッダー */
         .mobile-header {
@@ -468,119 +434,6 @@
             font-style: italic;
         }
 
-        /* メッセージ読書アニメーション */
-        .reading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
-        .reading-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .reading-overlay.fade-out {
-            opacity: 0;
-        }
-        .reading-content {
-            text-align: center;
-            color: #fff;
-            position: relative;
-            z-index: 10001;
-        }
-        .reading-character-name {
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(138, 43, 226, 0.8),
-                         0 0 40px rgba(138, 43, 226, 0.6),
-                         0 0 60px rgba(138, 43, 226, 0.4);
-            animation: glowPulse 2s ease-in-out infinite;
-        }
-        @keyframes glowPulse {
-            0%, 100% {
-                text-shadow: 0 0 20px rgba(138, 43, 226, 0.8),
-                             0 0 40px rgba(138, 43, 226, 0.6),
-                             0 0 60px rgba(138, 43, 226, 0.4);
-            }
-            50% {
-                text-shadow: 0 0 30px rgba(138, 43, 226, 1),
-                             0 0 60px rgba(138, 43, 226, 0.8),
-                             0 0 90px rgba(138, 43, 226, 0.6);
-            }
-        }
-        .reading-message {
-            font-size: 18px;
-            margin-top: 30px;
-            opacity: 0.9;
-            animation: fadeInOut 2s ease-in-out infinite;
-        }
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
-        }
-        .reading-particles {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
-        }
-        .particle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: rgba(138, 43, 226, 0.6);
-            border-radius: 50%;
-            animation: float 8s infinite ease-in-out;
-        }
-        @keyframes float {
-            0% {
-                transform: translateY(100vh) translateX(0) scale(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh) translateX(100px) scale(1);
-                opacity: 0;
-            }
-        }
-        .reading-aura {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(138, 43, 226, 0.3), transparent 70%);
-            animation: auraPulse 3s ease-in-out infinite;
-        }
-        @keyframes auraPulse {
-            0%, 100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 0.5;
-            }
-            50% {
-                transform: translate(-50%, -50%) scale(1.5);
-                opacity: 0.8;
-            }
-        }
 
         @media (max-width: 768px) {
             html, body {
@@ -1061,9 +914,6 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             userNickname = localStorage.getItem('userNickname') || null;
             updateUserStatus();
 
-            // 会話履歴を読み込んで初回メッセージを表示（演出付き）
-            await showConnectionSequence(character);
-            
             try {
                 const historyData = await loadConversationHistory(character);
                 
@@ -1108,124 +958,9 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             updateSendButtonVisibility();
         }
 
-        // 接続シーケンスを表示（chatを開いた時）
-        async function showConnectionSequence(character) {
-            const characterName = characterInfo[character].name;
-            const nickname = userNickname || localStorage.getItem('userNickname') || 'あなた';
-            
-            // ステップ1: 交信開始
-            const step1Id = addConnectingMessage(`${characterName}に交信を開始...`);
-            await delay(1500);
-            removeMessage(step1Id);
-            
-            // ステップ2: 魂を読み込み中
-            const step2Id = addConnectingMessage(`${characterName}が${nickname}の魂を読み込んでいます...`);
-            await delay(2000);
-            removeMessage(step2Id);
-            
-            // ステップ3: もうすぐ返事が来ます
-            const step3Id = addConnectingMessage('もうすぐ返事が来ます...');
-            await delay(1500);
-            removeMessage(step3Id);
-        }
-
-        // 鑑定中のメッセージを表示（ユーザーが返信した時）
-        async function showAppraisalSequence(character) {
-            const characterName = characterInfo[character].name;
-            const message = `${characterName}が鑑定中...`;
-            const loadingId = addConnectingMessage(message);
-            return loadingId;
-        }
-
-        // 接続/鑑定中のメッセージを追加
-        function addConnectingMessage(text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message connecting';
-            
-            const indicator = document.createElement('span');
-            indicator.className = 'status-indicator';
-            
-            const textSpan = document.createElement('span');
-            textSpan.className = 'connecting-text';
-            textSpan.textContent = text;
-            
-            messageDiv.appendChild(indicator);
-            messageDiv.appendChild(textSpan);
-            
-            messagesDiv.appendChild(messageDiv);
-            scrollToLatest('smooth');
-            
-            return messageDiv;
-        }
-
         // 遅延関数
         function delay(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        // メッセージ読書アニメーションを表示
-        function showReadingAnimation(characterName) {
-            // オーバーレイを作成
-            const overlay = document.createElement('div');
-            overlay.className = 'reading-overlay';
-            overlay.id = 'readingOverlay';
-            
-            // パーティクルコンテナ
-            const particlesContainer = document.createElement('div');
-            particlesContainer.className = 'reading-particles';
-            
-            // パーティクルを生成
-            for (let i = 0; i < 30; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 8 + 's';
-                particle.style.animationDuration = (8 + Math.random() * 4) + 's';
-                particlesContainer.appendChild(particle);
-            }
-            
-            // オーラエフェクト
-            const aura = document.createElement('div');
-            aura.className = 'reading-aura';
-            
-            // コンテンツ
-            const content = document.createElement('div');
-            content.className = 'reading-content';
-            
-            const characterNameDiv = document.createElement('div');
-            characterNameDiv.className = 'reading-character-name';
-            characterNameDiv.textContent = characterName;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'reading-message';
-            messageDiv.textContent = 'メッセージを読んでいます...';
-            
-            content.appendChild(characterNameDiv);
-            content.appendChild(messageDiv);
-            
-            overlay.appendChild(particlesContainer);
-            overlay.appendChild(aura);
-            overlay.appendChild(content);
-            
-            document.body.appendChild(overlay);
-            
-            // アニメーション開始
-            requestAnimationFrame(() => {
-                overlay.classList.add('active');
-            });
-            
-            return overlay;
-        }
-
-        // メッセージ読書アニメーションをフェードアウト
-        async function hideReadingAnimation(overlay) {
-            if (!overlay) return;
-            
-            overlay.classList.add('fade-out');
-            await delay(500);
-            if (overlay.parentNode) {
-                overlay.parentNode.removeChild(overlay);
-            }
         }
 
         async function sendMessage() {
@@ -1299,11 +1034,6 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             }
         }
 
-        function removeMessage(messageElement) {
-            if (messageElement && messageElement.parentNode) {
-                messageElement.parentNode.removeChild(messageElement);
-            }
-        }
 
         let resizeTimeout = null;
         function handleResize() {
