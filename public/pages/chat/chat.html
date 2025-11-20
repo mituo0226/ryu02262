@@ -140,6 +140,7 @@
             overflow-x: hidden;
             border-radius: 22px;
             padding: 18px 12px;
+            padding-bottom: 100px;
             background: #f9f7ff;
             border: 1px solid rgba(138, 43, 226, 0.15);
             display: flex;
@@ -313,6 +314,17 @@
             font-size: 18px;
             font-weight: 600;
             color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .mobile-header-title img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(138, 43, 226, 0.3);
         }
         .mobile-header-expand {
             background: none;
@@ -612,7 +624,7 @@
             .messages {
                 padding: 14px 10px;
                 height: 100%;
-                padding-bottom: 20px;
+                padding-bottom: 100px;
             }
             .message {
                 max-width: 85%;
@@ -739,7 +751,10 @@
                 clearTimeout(scrollTimeout);
             }
             scrollTimeout = setTimeout(() => {
-                const targetScroll = messagesDiv.scrollHeight;
+                // フッターの高さを考慮して、確実に最後までスクロール
+                const maxScroll = messagesDiv.scrollHeight - messagesDiv.clientHeight;
+                const targetScroll = Math.max(0, maxScroll);
+                
                 if (behavior === 'smooth') {
                     messagesDiv.scrollTo({
                         top: targetScroll,
@@ -748,7 +763,16 @@
                 } else {
                     messagesDiv.scrollTop = targetScroll;
                 }
-            }, behavior === 'smooth' ? 50 : 0);
+                
+                // 確実にスクロールされたか確認（少し余裕を持たせる）
+                setTimeout(() => {
+                    const currentScroll = messagesDiv.scrollTop;
+                    const maxPossibleScroll = messagesDiv.scrollHeight - messagesDiv.clientHeight;
+                    if (currentScroll < maxPossibleScroll - 10) {
+                        messagesDiv.scrollTop = maxPossibleScroll;
+                    }
+                }, 100);
+            }, behavior === 'smooth' ? 100 : 0);
         }
 
         // 鑑定士情報のマップ
@@ -817,14 +841,26 @@
             const info = characterInfo[characterId];
             characterImage.src = info.image;
             characterImage.alt = info.name;
-            characterNameDisplay.textContent = info.roomLabel || `${info.name}の部屋`;
+            characterNameDisplay.textContent = info.name;
             characterStatus.textContent = info.roomHint || '鑑定交信ルーム';
             currentCharacterDisplay.style.display = 'flex';
             
-            // モバイルヘッダーのタイトルを更新
+            // モバイルヘッダーのタイトルを更新（アイコン付き）
             const mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
             if (mobileHeaderTitle) {
-                mobileHeaderTitle.textContent = info.name;
+                // 既存の内容をクリア
+                mobileHeaderTitle.innerHTML = '';
+                
+                // アイコン画像を追加
+                const iconImg = document.createElement('img');
+                iconImg.src = info.image;
+                iconImg.alt = info.name;
+                
+                // 名前テキストを追加
+                const nameText = document.createTextNode(info.name);
+                
+                mobileHeaderTitle.appendChild(iconImg);
+                mobileHeaderTitle.appendChild(nameText);
             }
         }
 
