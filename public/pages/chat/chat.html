@@ -280,6 +280,83 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
         }
+        /* モバイルヘッダー */
+        .mobile-header {
+            display: none;
+        }
+        .mobile-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-soft);
+            position: relative;
+            z-index: 100;
+        }
+        .mobile-header-back {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--brand-main);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+        .mobile-header-title {
+            flex: 1;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .mobile-header-expand {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--brand-main);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: transform 0.3s;
+        }
+        .mobile-header-expand.expanded {
+            transform: rotate(180deg);
+        }
+        .mobile-header-menu {
+            max-height: 0;
+            overflow: hidden;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-soft);
+            transition: max-height 0.3s ease;
+        }
+        .mobile-header-menu.expanded {
+            max-height: 200px;
+        }
+        .mobile-header-menu-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .mobile-header-menu-item {
+            padding: 12px;
+            background: rgba(138, 43, 226, 0.08);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-size: 14px;
+            text-align: center;
+        }
+
         .input-area {
             position: sticky;
             bottom: 0;
@@ -335,6 +412,33 @@
             cursor: not-allowed;
             box-shadow: none;
         }
+        .camera-button, .send-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--brand-main);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+        }
+        .send-button {
+            background: linear-gradient(135deg, var(--brand-main), var(--brand-sub));
+            color: #fff;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+        }
+        .send-button:active {
+            transform: scale(0.95);
+        }
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .loading {
             text-align: center;
             color: #666;
@@ -349,47 +453,89 @@
                 height: 100%;
             }
             body {
-                padding: 8px;
+                padding: 0;
             }
             main {
                 height: 100%;
+                max-width: 100%;
+            }
+            .mobile-header {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1000;
             }
             .chat-container {
-                padding: 18px 14px;
+                padding: 0;
                 height: 100%;
+                border-radius: 0;
+                box-shadow: none;
+                padding-top: 56px;
+                padding-bottom: 70px;
             }
             .navigation-links {
-                flex-direction: column;
-            }
-            .navigation-links a {
-                width: 100%;
-                font-size: 15px;
+                display: none;
             }
             .current-character-display {
-                flex-direction: column;
-                text-align: center;
+                display: none;
             }
-            .current-character-display img {
-                width: 72px;
-                height: 72px;
+            .user-status {
+                display: none;
             }
             .messages {
                 padding: 14px 10px;
+                height: 100%;
+                padding-bottom: 20px;
             }
             .message {
-                max-width: 100%;
+                max-width: 85%;
+            }
+            .input-area {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--card-bg);
+                padding: 8px 12px;
+                border-top: 1px solid var(--border-soft);
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             }
             .input-row {
-                flex-direction: column;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+            .input-area textarea {
+                flex: 1;
+                min-height: 40px;
+                max-height: 120px;
+                padding: 10px 16px;
+                font-size: 16px;
             }
             .input-area button {
-                width: 100%;
-                min-height: 48px;
+                display: none;
             }
         }
     </style>
 </head>
 <body>
+    <!-- モバイルヘッダー -->
+    <div class="mobile-header">
+        <div class="mobile-header-content">
+            <button class="mobile-header-back" id="mobileHeaderBack" onclick="goBack()">←</button>
+            <div class="mobile-header-title" id="mobileHeaderTitle">鑑定士</div>
+            <button class="mobile-header-expand" id="mobileHeaderExpand" onclick="toggleHeaderMenu()">↓</button>
+        </div>
+        <div class="mobile-header-menu" id="mobileHeaderMenu">
+            <div class="mobile-header-menu-content">
+                <div class="user-status" id="userStatusMobile">利用者情報を読み込んでいます...</div>
+                <a href="../appraisers-list.html" class="mobile-header-menu-item">鑑定師一覧に戻る</a>
+            </div>
+        </div>
+    </div>
+
     <main>
     <div class="chat-container">
         <div class="navigation-links">
@@ -410,7 +556,13 @@
 
         <div class="input-area">
             <div class="input-row">
+                <button class="camera-button" id="cameraButton" onclick="handleCameraClick()" title="画像を送信">
+                    📷
+                </button>
                 <textarea id="messageInput" placeholder="メッセージを入力（Shift+Enterで改行）" rows="1" maxlength="1000"></textarea>
+                <button class="send-button" id="sendButtonMobile" onclick="sendMessage()" title="送信">
+                    ✈️
+                </button>
                 <button id="sendButton" onclick="sendMessage()">送信</button>
             </div>
         </div>
@@ -677,7 +829,14 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             if (AuthState.isRegistered()) {
                 const nickname = localStorage.getItem('userNickname') || '鑑定者';
                 const deity = localStorage.getItem('assignedDeity') || '未割当';
-                userStatus.textContent = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
+                const statusText = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
+                userStatus.textContent = statusText;
+                
+                // モバイル版のユーザーステータスも更新
+                const userStatusMobile = document.getElementById('userStatusMobile');
+                if (userStatusMobile) {
+                    userStatusMobile.textContent = statusText;
+                }
             } else {
                 // 未登録の場合はログインページにリダイレクト
                 window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
