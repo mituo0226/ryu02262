@@ -652,17 +652,10 @@
             
             currentCharacter = characterId;
             
-            // 現在の鑑定士表示を更新
-            const info = characterInfo[characterId];
-            characterImage.src = info.image;
-            characterImage.alt = info.name;
-            characterNameDisplay.textContent = info.name;
-            characterStatus.textContent = info.roomHint || '鑑定交信ルーム';
-            currentCharacterDisplay.style.display = 'flex';
-            
             // モバイルヘッダーのタイトルを更新（アイコン付き）
             const mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
             if (mobileHeaderTitle) {
+                const info = characterInfo[characterId];
                 // 既存の内容をクリア
                 mobileHeaderTitle.innerHTML = '';
                 
@@ -670,9 +663,11 @@
                 const iconImg = document.createElement('img');
                 iconImg.src = info.image;
                 iconImg.alt = info.name;
+                iconImg.className = 'mobile-character-icon';
                 
                 // 名前テキストを追加
-                const nameText = document.createTextNode(info.name);
+                const nameText = document.createElement('span');
+                nameText.textContent = info.name;
                 
                 mobileHeaderTitle.appendChild(iconImg);
                 mobileHeaderTitle.appendChild(nameText);
