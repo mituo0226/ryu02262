@@ -26,10 +26,43 @@
         </div>
 
         <div class="final-button-container">
-            <a href="../chat/chat-example.html?character=kaon" class="talk-button">三崎花音とつながる</a>
+            <a href="#" id="chatLink" class="talk-button">三崎花音とつながる</a>
         </div>
     </div>
 
+    <script src="../../js/auth-state.js"></script>
+    <script>
+        // ユーザーの登録状況に応じてリンク先を設定
+        function setChatLink() {
+            const chatLink = document.getElementById('chatLink');
+            if (!chatLink) return;
+            
+            // AuthStateを初期化
+            if (window.AuthState && typeof window.AuthState.init === 'function') {
+                window.AuthState.init();
+            }
+            
+            // 登録済みユーザーかどうかを確認
+            const isRegistered = window.AuthState && typeof window.AuthState.isRegistered === 'function' 
+                ? window.AuthState.isRegistered() 
+                : false;
+            
+            if (isRegistered) {
+                // 登録済みユーザー → chat.html
+                chatLink.href = '../chat/chat.html?character=kaon';
+            } else {
+                // 未登録者 → chat-example.html
+                chatLink.href = '../chat/chat-example.html?character=kaon';
+            }
+        }
+        
+        // ページ読み込み時にリンクを設定
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setChatLink);
+        } else {
+            setChatLink();
+        }
+    </script>
     <script>
         const backVideo = document.getElementById('backVideo');
         const messageText = document.getElementById('messageText');
