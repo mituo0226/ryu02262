@@ -504,49 +504,33 @@
         let userNickname = null;
         let conversationHistory = null;
         let currentCharacter = 'kaede';
+        let characterInfo = {};
 
-        // 鑑定士情報のマップ
-        const characterInfo = {
-            kaede: {
-                name: '楓',
-                roomLabel: '楓の部屋',
-                roomHint: '静寂に包まれた霊視交信ルーム',
-                image: '../../photo/kaede.png',
-                profileUrl: '../profiles/kaede.html',
-            },
-            yukino: {
-                name: '笹岡雪乃',
-                roomLabel: '雪乃の部屋',
-                roomHint: '雪の結晶が舞う癒やしの鑑定空間',
-                image: '../../photo/yukino.png',
-                profileUrl: '../profiles/yukino.html',
-            },
-            sora: {
-                name: '水野ソラ',
-                roomLabel: 'ソラの部屋',
-                roomHint: '星灯りの下で心を繋ぐ交信スペース',
-                image: '../../photo/sora.png',
-                profileUrl: '../profiles/sora.html',
-            },
-            kaon: {
-                name: '三崎花音',
-                roomLabel: '花音の部屋',
-                roomHint: '香り立つランプが揺れる艶やかな鑑定室',
-                image: '../../photo/kaon.png',
-                profileUrl: '../profiles/kaon.html',
-            },
-        };
+        // 鑑定士情報を外部ファイルから読み込む
+        async function loadCharacterData() {
+            try {
+                const response = await fetch('../../data/characters.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load character data');
+                }
+                characterInfo = await response.json();
+                return characterInfo;
+            } catch (error) {
+                console.error('Failed to load character data:', error);
+                return {};
+            }
+        }
 
         // URLパラメータから鑑定士IDを取得
         function getCharacterFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
             const character = urlParams.get('character');
-            const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+            const validCharacters = Object.keys(characterInfo);
             
             if (character && validCharacters.includes(character)) {
                 return character;
             }
-            return 'kaede';
+            return validCharacters[0] || 'kaede';
         }
 
         // 鑑定士を設定
@@ -650,82 +634,73 @@
             }
         }
 
+        // メッセージテンプレートを置換
+        function replaceMessageTemplate(template, nickname, lastDate, conversationContent, characterId) {
+            let message = template;
+            const character = characterInfo[characterId];
+            
+            // プレースホルダーを置換
+            message = message.replace(/{nickname}/g, nickname);
+            
+            // lastDateの処理
+            if (lastDate) {
+                const dateText = formatDateForMessage(lastDate);
+                if (dateText) {
+                    const dateFormat = character?.messages?.returningLastDateFormat || `前回は{date}でしたね。`;
+                    const formattedDate = dateFormat.replace(/{date}/g, dateText);
+                    message = message.replace(/{lastDate}/g, formattedDate);
+                } else {
+                    message = message.replace(/{lastDate}/g, '');
+                }
+            } else {
+                message = message.replace(/{lastDate}/g, '');
+            }
+            
+            // conversationContentの処理
+            if (conversationContent) {
+                const contentFormat = character?.messages?.returningConversationFormat || `その時の相談内容は、{content}というものでした。`;
+                const formattedContent = contentFormat.replace(/{content}/g, conversationContent);
+                message = message.replace(/{conversationContent}/g, formattedContent);
+            } else {
+                message = message.replace(/{conversationContent}/g, '');
+            }
+            
+            return message;
+        }
+
         // 各鑑定師の初回メッセージを生成（会話履歴がある場合）
         function generateInitialMessage(characterId, historyData) {
+            const character = characterInfo[characterId];
+            if (!character || !character.messages || !character.messages.returning) {
+                return 'こんにちは。';
+            }
+
             const nickname = historyData.nickname || userNickname || 'あなた';
-            const lastDate = historyData.lastConversationDate ? formatDateForMessage(historyData.lastConversationDate) : null;
+            const lastDate = historyData.lastConversationDate || null;
             const conversationContent = extractConversationContent(historyData);
-
-            const messages = {
-                kaede: `${nickname}さん 再度私の鑑定を受けてくれてありがとうございます。${lastDate ? `前回は${lastDate}でしたね。` : ''}
-
-${conversationContent ? `その時の相談内容は、${conversationContent}というものでした。` : ''}
-
-その後、${nickname}さんのことを考えて、また再訪してくれることをとても望んでいましたので、こうして来てくれてこんなに嬉しいことはありません。
-
-これから先も私との交流を深めてくれることを心より望んでおります。
-
-どのような話でも構いませんので、あなたの今の素直な気持ちを聞かせてください。`,
-
-                kaon: `また私の部屋に来てくれてありがとう。嬉しいわ。
-
-${nickname}さんのことはよく覚えていますよ。印象的だったから･･･
-
-${lastDate ? `話は${lastDate}だったのを覚えてる？` : ''}${conversationContent ? `話の内容はこんな感じ。${conversationContent}` : ''}
-
-それでは今日も私と有意義な時間を過ごしましょうね`,
-
-                yukino: `再訪問してくれてありがとうございます。とても嬉しい気持ちです。
-
-${nickname}さんのことはとても印象的で、またお話をしたいと思っていました。
-
-あれから、${nickname}さんのことをいろいろ考えて、これから先、${nickname}さんが少しでも運を開けるために何ができるか私なりに考えていました。
-
-${conversationContent ? conversationContent : ''}話の続きを始めればよいのかしら。
-
-話がしたいんだから早速教えてくださいね`,
-
-                sora: `また僕と接触してくれてすごく嬉しいよ。ありがとう。
-
-${nickname}さんとは、これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。
-
-${lastDate ? `${lastDate}の話では` : ''}${conversationContent ? ` ${conversationContent}というような感じだったか。` : ''}
-
-あれから何か進展があったんだろうか？${nickname}さんの今の状況をとりあえず聞かせてくれないだろうか？直感と霊感を使って必ず${nickname}さんを幸せに導くよ。`
-            };
-
-            return messages[characterId] || messages.kaede;
+            
+            return replaceMessageTemplate(
+                character.messages.returning,
+                nickname,
+                lastDate,
+                conversationContent,
+                characterId
+            );
         }
 
         // 各鑑定師の初めての会話メッセージを生成
         function generateFirstTimeMessage(characterId, nickname) {
-            const messages = {
-                kaede: `${nickname}さん、初めまして。楓（かえで）と申します。
-
-${nickname}さんのことは、システムからお聞きしております。初めてお話しできる機会をいただき、ありがとうございます。
-
-穏やかな日常を何より大切にしながら、${nickname}さんのお話を聞かせていただきます。どのようなご相談がございますか？お気軽にお話しください。`,
-
-                kaon: `${nickname}さん、初めまして。三崎花音（みさき かおん）と申します。
-
-${nickname}さんのことは、システムからお聞きしておりますわ。初めてお話しできる機会をいただき、嬉しいわ。
-
-未来予知の能力を使って、${nickname}さんの未来を読み解かせていただきます。どのようなご相談がございますか？お気軽にお話しください。`,
-
-                yukino: `${nickname}さん、初めまして。笹岡雪乃（ささおか ゆきの）と申します。
-
-${nickname}さんのことは、システムからお聞きしております。初めてお話しできる機会をいただき、ありがとうございます。
-
-タロットカードや占星術の力を借りて、${nickname}さんの運命を読み解かせていただきます。どのようなご相談がございますか？お気軽にお話しください。`,
-
-                sora: `${nickname}さん、初めまして。水野ソラ（みずの そら）です。
-
-${nickname}さんのことは、システムから聞いてるよ。初めてお話しできる機会をいただき、ありがとう。
-
-まだ修行中の身だけど、${nickname}さんの心を読み解きながら、一緒に考えていこう。どのようなご相談がある？気軽に話してくれ。直感と霊感を使って必ず${nickname}さんを幸せに導くよ。`
-            };
-
-            return messages[characterId] || messages.kaede;
+            const character = characterInfo[characterId];
+            if (!character || !character.messages || !character.messages.firstTime) {
+                return `${nickname}さん、初めまして。`;
+            }
+            
+            return replaceMessageTemplate(
+                character.messages.firstTime,
+                nickname,
+                null,
+                null
+            );
         }
 
         function initAuthState() {
@@ -771,6 +746,14 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             
             if (!AuthState.isRegistered()) {
                 window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            // 鑑定士データを読み込む
+            await loadCharacterData();
+            
+            if (Object.keys(characterInfo).length === 0) {
+                console.error('Failed to load character data');
                 return;
             }
 

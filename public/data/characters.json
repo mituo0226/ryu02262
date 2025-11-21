@@ -1,0 +1,52 @@
+{
+  "kaede": {
+    "name": "楓",
+    "roomLabel": "楓の部屋",
+    "roomHint": "静寂に包まれた霊視交信ルーム",
+    "image": "../../photo/kaede.png",
+    "profileUrl": "../profiles/kaede.html",
+    "messages": {
+      "firstTime": "{nickname}さん、初めまして。楓（かえで）と申します。\n\n{nickname}さんのことは、システムからお聞きしております。初めてお話しできる機会をいただき、ありがとうございます。\n\n穏やかな日常を何より大切にしながら、{nickname}さんのお話を聞かせていただきます。どのようなご相談がございますか？お気軽にお話しください。",
+      "returning": "{nickname}さん 再度私の鑑定を受けてくれてありがとうございます。{lastDate}\n\n{conversationContent}\n\nその後、{nickname}さんのことを考えて、また再訪してくれることをとても望んでいましたので、こうして来てくれてこんなに嬉しいことはありません。\n\nこれから先も私との交流を深めてくれることを心より望んでおります。\n\nどのような話でも構いませんので、あなたの今の素直な気持ちを聞かせてください。"
+    }
+  },
+  "yukino": {
+    "name": "笹岡雪乃",
+    "roomLabel": "雪乃の部屋",
+    "roomHint": "雪の結晶が舞う癒やしの鑑定空間",
+    "image": "../../photo/yukino.png",
+    "profileUrl": "../profiles/yukino.html",
+    "messages": {
+      "firstTime": "{nickname}さん、初めまして。笹岡雪乃（ささおか ゆきの）と申します。\n\n{nickname}さんのことは、システムからお聞きしております。初めてお話しできる機会をいただき、ありがとうございます。\n\nタロットカードや占星術の力を借りて、{nickname}さんの運命を読み解かせていただきます。どのようなご相談がございますか？お気軽にお話しください。",
+      "returning": "再訪問してくれてありがとうございます。とても嬉しい気持ちです。\n\n{nickname}さんのことはとても印象的で、またお話をしたいと思っていました。\n\nあれから、{nickname}さんのことをいろいろ考えて、これから先、{nickname}さんが少しでも運を開けるために何ができるか私なりに考えていました。\n\n{conversationContent}話の続きを始めればよいのかしら。\n\n話がしたいんだから早速教えてくださいね",
+      "returningConversationFormat": "{content}話の続きを始めればよいのかしら。"
+    }
+  },
+  "sora": {
+    "name": "水野ソラ",
+    "roomLabel": "ソラの部屋",
+    "roomHint": "星灯りの下で心を繋ぐ交信スペース",
+    "image": "../../photo/sora.png",
+    "profileUrl": "../profiles/sora.html",
+    "messages": {
+      "firstTime": "{nickname}さん、初めまして。水野ソラ（みずの そら）です。\n\n{nickname}さんのことは、システムから聞いてるよ。初めてお話しできる機会をいただき、ありがとう。\n\nまだ修行中の身だけど、{nickname}さんの心を読み解きながら、一緒に考えていこう。どのようなご相談がある？気軽に話してくれ。直感と霊感を使って必ず{nickname}さんを幸せに導くよ。",
+      "returning": "また僕と接触してくれてすごく嬉しいよ。ありがとう。\n\n{nickname}さんとは、これから先も長い付き合いになるような気がしている。だって、初めて話を聞いたときから何か特別なものを感じていたからね。\n\n{lastDate}{conversationContent}\n\nあれから何か進展があったんだろうか？{nickname}さんの今の状況をとりあえず聞かせてくれないだろうか？直感と霊感を使って必ず{nickname}さんを幸せに導くよ。",
+      "returningLastDateFormat": "{date}の話では",
+      "returningConversationFormat": " {content}というような感じだったか。"
+    }
+  },
+  "kaon": {
+    "name": "三崎花音",
+    "roomLabel": "花音の部屋",
+    "roomHint": "香り立つランプが揺れる艶やかな鑑定室",
+    "image": "../../photo/kaon.png",
+    "profileUrl": "../profiles/kaon.html",
+    "messages": {
+      "firstTime": "{nickname}さん、初めまして。三崎花音（みさき かおん）と申します。\n\n{nickname}さんのことは、システムからお聞きしておりますわ。初めてお話しできる機会をいただき、嬉しいわ。\n\n未来予知の能力を使って、{nickname}さんの未来を読み解かせていただきます。どのようなご相談がございますか？お気軽にお話しください。",
+      "returning": "また私の部屋に来てくれてありがとう。嬉しいわ。\n\n{nickname}さんのことはよく覚えていますよ。印象的だったから･･･\n\n{lastDate}{conversationContent}\n\nそれでは今日も私と有意義な時間を過ごしましょうね",
+      "returningLastDateFormat": "話は{date}だったのを覚えてる？",
+      "returningConversationFormat": "話の内容はこんな感じ。{content}"
+    }
+  }
+}
+
