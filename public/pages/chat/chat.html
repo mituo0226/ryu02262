@@ -13,27 +13,21 @@
         :root {
             /* 背景 */
             --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
-            --card-bg: rgba(26, 10, 46, 0.85);
             
             /* メインカラー */
             --primary: #8b3dff;
-            --primary-dark: #6b2acc;
             
             /* メッセージバブル */
             --user-bubble: #8b3dff;
             --char-bubble: rgba(75, 0, 130, 0.9);
             
             /* テキスト */
-            --text-primary: #1d1d1f;
             --text-secondary: #6e6e73;
             --text-on-primary: #ffffff;
             --text-light: #e8d5ff;
             
             /* ボーダー・影 */
-            --border-color: #d2d2d7;
-            --border-soft: rgba(138, 43, 226, 0.3);
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
         }
 
         /* ============================================
@@ -490,7 +484,7 @@
     <!-- モバイルヘッダー -->
     <div class="mobile-header" id="mobileHeader">
         <div class="mobile-header-content">
-            <a href="../appraisers-list.html" class="mobile-header-back" id="mobileHeaderBack">≪</a>
+            <a href="../appraisers-list.html" class="mobile-header-back">≪</a>
             <div class="mobile-header-title" id="mobileHeaderTitle">鑑定士</div>
         </div>
     </div>
@@ -524,7 +518,6 @@
         const sendButton = document.getElementById('sendButton');
         const userStatus = document.getElementById('userStatus');
 
-        let cachedUserToken = null;
         let userNickname = null;
         let conversationHistory = null;
         let currentCharacter = 'kaede';
@@ -731,7 +724,6 @@
             if (window.AuthState && typeof AuthState.init === 'function') {
                 AuthState.init();
             }
-            cachedUserToken = window.AuthState && typeof AuthState.getUserToken === 'function' ? AuthState.getUserToken() : null;
         }
 
         function updateUserStatus() {
