@@ -280,6 +280,44 @@
         }
 
         /* ============================================
+           登録ボタン
+           ============================================ */
+        .registration-button-container {
+            padding: 16px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        
+        .registration-button-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .registration-button {
+            background: linear-gradient(135deg, #8b3dff 0%, #6b2acc 100%);
+            color: #ffffff;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(139, 61, 255, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .registration-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 61, 255, 0.4);
+        }
+        
+        .registration-button:active {
+            transform: translateY(0);
+        }
+
+        /* ============================================
            入力エリア
            ============================================ */
         .input-area {
@@ -600,6 +638,16 @@
             .character-selector {
                 display: none;
             }
+            
+            .registration-button-container {
+                padding: 12px;
+            }
+            
+            .registration-button {
+                width: 100%;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -630,6 +678,13 @@
             </div>
 
             <div class="messages" id="messages"></div>
+
+            <!-- 登録ボタン（フェードインで表示） -->
+            <div class="registration-button-container" id="registrationButtonContainer" style="display: none;">
+                <button class="registration-button" id="registrationButton" onclick="openRegistrationModal(characterSelect.value)">
+                    ユーザー登録をして鑑定を続ける
+                </button>
+            </div>
 
             <div class="input-area">
                 <div class="input-row">
@@ -917,6 +972,17 @@
             }
         }
 
+        function showRegistrationButton(characterId) {
+            const registrationButtonContainer = document.getElementById('registrationButtonContainer');
+            if (registrationButtonContainer) {
+                registrationButtonContainer.style.display = 'block';
+                // 強制的に再描画をトリガーしてからクラスを追加
+                requestAnimationFrame(() => {
+                    registrationButtonContainer.classList.add('visible');
+                });
+            }
+        }
+        
         function openRegistrationModal(characterId) {
             const info = characterInfo[characterId] || characterInfo.kaede;
             modalLeadText.textContent = `${info.name} が正式登録をおすすめしています。`;
@@ -1022,6 +1088,13 @@
             window.history.replaceState({}, '', newUrl);
             
             messagesDiv.innerHTML = '';
+            
+            // 鑑定者を変更した場合、登録ボタンを非表示にする
+            const registrationButtonContainer = document.getElementById('registrationButtonContainer');
+            if (registrationButtonContainer) {
+                registrationButtonContainer.classList.remove('visible');
+                registrationButtonContainer.style.display = 'none';
+            }
             
             const existing = getGuestHistoryFor(newCharacter);
             if (existing && existing.length) {
@@ -1259,8 +1332,24 @@
                     const data = JSON.parse(consultResponse);
                     
                     if (data.needsRegistration) {
-                        addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
-                        openRegistrationModal(characterSelect.value);
+                        // 5通目以降は「ユーザー登録をしてください」というメッセージを表示
+                        if (data.message) {
+                            addMessage('character', data.message, data.characterName, {
+                                detectedKeywords: data.detectedKeywords,
+                            });
+                            if (messageInput) messageInput.blur();
+                            setTimeout(() => scrollToLatest(), 100);
+                            
+                            // 登録ボタンを表示
+                            setTimeout(() => {
+                                showRegistrationButton(characterSelect.value);
+                            }, 3000);
+                        } else {
+                            addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
+                            setTimeout(() => {
+                                showRegistrationButton(characterSelect.value);
+                            }, 1000);
+                        }
                         return;
                     }
                     
@@ -1302,11 +1391,11 @@
                         if (messageInput) messageInput.blur();
                         setTimeout(() => scrollToLatest(), 100);
                         
-                        // 登録を促すフラグが立っている場合、メッセージ表示後に登録モーダルを開く
+                        // 登録を促すフラグが立っている場合、メッセージ表示後に登録ボタンをフェードインで表示
                         if (data.registrationSuggested && !isRegistered) {
                             setTimeout(() => {
-                                openRegistrationModal(character);
-                            }, 2000); // メッセージを読んだ後、2秒後にモーダルを開く
+                                showRegistrationButton(character);
+                            }, 3000); // メッセージを読んだ後、3秒後にボタンを表示
                         }
                     } else {
                         addMessage('error', '返信が取得できませんでした', 'システム');
