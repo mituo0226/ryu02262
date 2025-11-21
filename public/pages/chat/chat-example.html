@@ -1631,7 +1631,12 @@
                 messageDiv.appendChild(keywordsDiv);
             }
 
-            // タロットカードを表示する場合
+            // タロットカード画像を表示（笹岡雪乃の場合）
+            if (type === 'character' && characterSelect && characterSelect.value === 'yukino') {
+                detectAndDisplayTarotCards(text, messageDiv);
+            }
+
+            // タロットカードを表示する場合（旧実装）
             if (metadata.showTarotCard) {
                 const tarotContainer = document.createElement('div');
                 tarotContainer.className = 'tarot-card-container';
@@ -1905,6 +1910,159 @@
             
             document.body.style.transition = 'opacity 0.5s ease';
             document.body.style.opacity = '1';
+        }
+
+        // タロットカード名から画像ファイル名へのマッピング
+        const tarotCardImageMap = {
+            '愚者': 'The Fool.png',
+            '魔術師': 'The Magician.png',
+            '女教皇': 'THE HIGH PRIESTESS.png',
+            '女帝': 'THE EMPRESS.png',
+            '皇帝': 'THE EMPEROR.png',
+            '教皇': 'THE HIEROPHANT.png',
+            '恋人': 'THE LOVERS.png',
+            '戦車': 'THE CHARIOT.png',
+            '力': 'STRENGTH.png',
+            '隠者': 'THE HERMIT.png',
+            '運命の輪': 'WHEEL OF FORTUNE.png',
+            '正義': 'JUSTICE.png',
+            '吊るされた男': 'THE HANGED MAN.png',
+            '死神': 'DEATH.png',
+            '節制': 'TEMPERANCE.png',
+            '悪魔': 'THE DEVIL.png',
+            '塔': 'THE TOWER.png',
+            '星': 'THE STAR.png',
+            '月': 'THE MOON.png',
+            '太陽': 'THE SUN.png',
+            '審判': 'JUDGEMENT.png',
+            '世界': 'THE WORLD.png',
+        };
+
+        // タロットカード名を検出して画像を表示
+        function detectAndDisplayTarotCards(text, container) {
+            const cardNames = Object.keys(tarotCardImageMap);
+            const detectedCards = [];
+            
+            // カード名を検出（【過去】【現在】【未来】の後に続くカード名を探す）
+            const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
+            let match;
+            
+            while ((match = cardPattern.exec(text)) !== null) {
+                const position = match[1]; // 過去、現在、未来
+                const cardName = match[2].trim();
+                
+                // カード名がマッピングに存在するか確認
+                if (tarotCardImageMap[cardName]) {
+                    detectedCards.push({
+                        position: position,
+                        name: cardName,
+                        image: tarotCardImageMap[cardName]
+                    });
+                }
+            }
+            
+            // カード画像を表示
+            if (detectedCards.length > 0) {
+                const cardsContainer = document.createElement('div');
+                cardsContainer.style.display = 'flex';
+                cardsContainer.style.flexWrap = 'wrap';
+                cardsContainer.style.gap = '12px';
+                cardsContainer.style.marginTop = '12px';
+                cardsContainer.style.justifyContent = 'center';
+                
+                detectedCards.forEach(card => {
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.style.display = 'flex';
+                    cardWrapper.style.flexDirection = 'column';
+                    cardWrapper.style.alignItems = 'center';
+                    cardWrapper.style.gap = '6px';
+                    
+                    const cardLabel = document.createElement('div');
+                    cardLabel.textContent = `【${card.position}】`;
+                    cardLabel.style.fontSize = '12px';
+                    cardLabel.style.color = 'rgba(255, 255, 255, 0.8)';
+                    cardLabel.style.fontWeight = '600';
+                    
+                    const cardImage = document.createElement('img');
+                    cardImage.src = `../../photo/TAROT/${card.image}`;
+                    cardImage.alt = card.name;
+                    cardImage.title = card.name;
+                    cardImage.style.width = '80px';
+                    cardImage.style.height = 'auto';
+                    cardImage.style.borderRadius = '8px';
+                    cardImage.style.boxShadow = '0 4px 12px rgba(138, 43, 226, 0.4)';
+                    cardImage.style.cursor = 'pointer';
+                    cardImage.style.transition = 'transform 0.2s ease';
+                    
+                    // ホバーエフェクト
+                    cardImage.addEventListener('mouseenter', () => {
+                        cardImage.style.transform = 'scale(1.1)';
+                    });
+                    cardImage.addEventListener('mouseleave', () => {
+                        cardImage.style.transform = 'scale(1)';
+                    });
+                    
+                    // クリックで拡大表示
+                    cardImage.addEventListener('click', () => {
+                        showCardModal(card.name, card.image);
+                    });
+                    
+                    cardWrapper.appendChild(cardLabel);
+                    cardWrapper.appendChild(cardImage);
+                    cardsContainer.appendChild(cardWrapper);
+                });
+                
+                container.appendChild(cardsContainer);
+            }
+        }
+
+        // カード拡大表示モーダル
+        function showCardModal(cardName, imageFile) {
+            // 既存のモーダルがあれば削除
+            const existingModal = document.getElementById('tarotCardModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const modal = document.createElement('div');
+            modal.id = 'tarotCardModal';
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            modal.style.zIndex = '10000';
+            modal.style.display = 'flex';
+            modal.style.flexDirection = 'column';
+            modal.style.justifyContent = 'center';
+            modal.style.alignItems = 'center';
+            modal.style.cursor = 'pointer';
+            
+            const cardNameDiv = document.createElement('div');
+            cardNameDiv.textContent = cardName;
+            cardNameDiv.style.color = '#ffffff';
+            cardNameDiv.style.fontSize = '24px';
+            cardNameDiv.style.fontWeight = '600';
+            cardNameDiv.style.marginBottom = '20px';
+            cardNameDiv.style.textShadow = '0 0 20px rgba(138, 43, 226, 0.8)';
+            
+            const cardImage = document.createElement('img');
+            cardImage.src = `../../photo/TAROT/${imageFile}`;
+            cardImage.alt = cardName;
+            cardImage.style.maxWidth = '90%';
+            cardImage.style.maxHeight = '80vh';
+            cardImage.style.borderRadius = '12px';
+            cardImage.style.boxShadow = '0 8px 32px rgba(138, 43, 226, 0.6)';
+            
+            modal.appendChild(cardNameDiv);
+            modal.appendChild(cardImage);
+            document.body.appendChild(modal);
+            
+            // クリックで閉じる
+            modal.addEventListener('click', () => {
+                modal.remove();
+            });
         }
 
         window.sendMessage = sendMessage;
