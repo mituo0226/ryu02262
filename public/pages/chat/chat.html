@@ -603,10 +603,38 @@
                 );
                 
                 if (!response.ok) {
+                    // 401エラー（認証エラー）の場合はlocalStorageをクリア
+                    if (response.status === 401) {
+                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                            AuthState.clearAuth();
+                        } else {
+                            localStorage.removeItem('userToken');
+                            localStorage.removeItem('userNickname');
+                            localStorage.removeItem('assignedDeity');
+                        }
+                        // ログインページにリダイレクト
+                        window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                        return null;
+                    }
                     return null;
                 }
 
                 const data = await response.json();
+                
+                // エラーレスポンスの場合（user not foundなど）
+                if (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token'))) {
+                    if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                        AuthState.clearAuth();
+                    } else {
+                        localStorage.removeItem('userToken');
+                        localStorage.removeItem('userNickname');
+                        localStorage.removeItem('assignedDeity');
+                    }
+                    // ログインページにリダイレクト
+                    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    return null;
+                }
+                
                 return data;
             } catch (error) {
                 console.error('Failed to load conversation history:', error);
@@ -947,6 +975,14 @@
                     const data = JSON.parse(consultResponse);
                     
                     if (data.needsRegistration) {
+                        // localStorageをクリア
+                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                            AuthState.clearAuth();
+                        } else {
+                            localStorage.removeItem('userToken');
+                            localStorage.removeItem('userNickname');
+                            localStorage.removeItem('assignedDeity');
+                        }
                         addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
                         window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                         return;
@@ -954,6 +990,14 @@
                     
                     if (data.error) {
                         if (data.error.includes('user not found') || data.error.includes('invalid user token')) {
+                            // localStorageをクリア
+                            if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                                AuthState.clearAuth();
+                            } else {
+                                localStorage.removeItem('userToken');
+                                localStorage.removeItem('userNickname');
+                                localStorage.removeItem('assignedDeity');
+                            }
                             addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
                             window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                         } else {
