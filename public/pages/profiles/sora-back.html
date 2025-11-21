@@ -32,8 +32,8 @@
 
     <script src="../../js/auth-state.js"></script>
     <script>
-        // ユーザーの登録状況に応じてリンク先を設定
-        function setChatLink() {
+        // ユーザーの登録状況に応じてリンク先を設定（トークンの有効性も確認）
+        async function setChatLink() {
             const chatLink = document.getElementById('chatLink');
             if (!chatLink) return;
             
@@ -42,16 +42,57 @@
                 window.AuthState.init();
             }
             
-            // 登録済みユーザーかどうかを確認
-            const isRegistered = window.AuthState && typeof window.AuthState.isRegistered === 'function' 
-                ? window.AuthState.isRegistered() 
-                : false;
+            // まず、localStorageにuserTokenがあるか確認
+            const userToken = window.AuthState && typeof window.AuthState.getUserToken === 'function' 
+                ? window.AuthState.getUserToken() 
+                : localStorage.getItem('userToken');
             
-            if (isRegistered) {
-                // 登録済みユーザー → chat.html
+            if (!userToken) {
+                // トークンがない場合 → chat-example.html
+                chatLink.href = '../chat/chat-example.html?character=sora';
+                return;
+            }
+            
+            // トークンがある場合、有効性を確認
+            try {
+                const response = await fetch(
+                    `/api/conversation-history?userToken=${encodeURIComponent(userToken)}&character=sora`
+                );
+                
+                if (!response.ok) {
+                    // 401または404エラーの場合、レスポンスボディを確認
+                    let errorData = null;
+                    try {
+                        const responseText = await response.text();
+                        if (responseText) {
+                            errorData = JSON.parse(responseText);
+                        }
+                    } catch (e) {
+                        // JSON解析に失敗した場合は無視
+                    }
+                    
+                    // user not found または invalid token の場合は無効
+                    if (response.status === 401 || 
+                        (response.status === 404 && errorData && errorData.error && 
+                         (errorData.error.includes('user not found') || errorData.error.includes('invalid user token')))) {
+                        // 無効なトークンの場合、認証情報をクリアしてchat-example.htmlへ
+                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                            AuthState.clearAuth();
+                        } else {
+                            localStorage.removeItem('userToken');
+                            localStorage.removeItem('userNickname');
+                            localStorage.removeItem('assignedDeity');
+                        }
+                        chatLink.href = '../chat/chat-example.html?character=sora';
+                        return;
+                    }
+                }
+                
+                // トークンが有効な場合 → chat.html
                 chatLink.href = '../chat/chat.html?character=sora';
-            } else {
-                // 未登録者 → chat-example.html
+            } catch (error) {
+                // エラーが発生した場合、安全のためchat-example.htmlへ
+                console.error('Error checking token validity:', error);
                 chatLink.href = '../chat/chat-example.html?character=sora';
             }
         }
