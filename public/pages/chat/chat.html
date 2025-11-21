@@ -87,14 +87,14 @@
             justify-content: center;
             align-items: center;
             padding: 11px 20px;
-            background: var(--primary);
-            color: var(--text-on-primary);
+            background: transparent;
+            color: var(--text-light);
             text-decoration: none;
             border-radius: 999px;
             font-size: 14px;
             font-weight: 600;
-            transition: transform 0.12s ease, box-shadow 0.2s;
-            box-shadow: var(--shadow-md);
+            transition: transform 0.12s ease;
+            box-shadow: none;
             min-width: 180px;
             max-width: 100%;
         }
@@ -120,13 +120,13 @@
         }
         
         .user-status {
-            background: rgba(138, 43, 226, 0.15);
+            background: transparent;
             color: var(--text-light);
             padding: 12px 14px;
             border-radius: 14px;
             font-size: 13px;
             text-align: center;
-            border: 1px solid var(--border-soft);
+            border: none;
             line-height: 1.5;
             word-break: break-word;
         }
@@ -138,12 +138,12 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            border-radius: 22px;
+            border-radius: 0;
             padding: 18px 12px;
             padding-top: 24px;
             padding-bottom: 100px;
-            background: rgba(26, 10, 46, 0.5);
-            border: 1px solid var(--border-soft);
+            background: transparent;
+            border: none;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -188,21 +188,21 @@
         
         .message.welcome {
             margin-right: auto;
-            background: rgba(138, 43, 226, 0.15);
-            border: 1px solid rgba(138, 43, 226, 0.4);
+            background: transparent;
+            border: none;
             color: var(--text-light);
             font-weight: 500;
         }
         
         .message.error {
-            background: rgba(176, 0, 32, 0.3);
+            background: transparent;
             color: #ff6b7d;
-            border: 1px solid rgba(176, 0, 32, 0.4);
+            border: none;
         }
         
         .message.loading {
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2));
-            border: 1px solid rgba(138, 43, 226, 0.4);
+            background: transparent;
+            border: none;
             text-align: center;
             color: var(--text-light);
             font-weight: 600;
@@ -239,7 +239,7 @@
             justify-content: space-between;
             padding: 6px 10px;
             background: transparent;
-            border-bottom: 1px solid var(--border-soft);
+            border-bottom: none;
             position: relative;
         }
         
@@ -275,7 +275,7 @@
             height: 28px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid rgba(138, 43, 226, 0.3);
+            border: none;
         }
 
         /* ============================================
@@ -284,7 +284,7 @@
         .input-area {
             position: sticky;
             bottom: 0;
-            background: var(--card-bg);
+            background: transparent;
             padding-top: 6px;
             flex-shrink: 0;
             z-index: 10;
@@ -300,10 +300,10 @@
         .input-area textarea {
             flex: 1;
             padding: 14px 18px;
-            border: 1.5px solid rgba(181, 108, 255, 0.6);
+            border: none;
             border-radius: 999px;
             font-size: 16px;
-            background: rgba(26, 10, 46, 0.7);
+            background: transparent;
             color: var(--text-light);
             resize: none;
             line-height: 1.5;
@@ -319,9 +319,9 @@
         
         .input-area textarea:focus {
             outline: none;
-            border-color: rgba(181, 108, 255, 0.8);
-            background: rgba(26, 10, 46, 0.85);
-            box-shadow: 0 0 0 3px rgba(181, 108, 255, 0.3);
+            border: none;
+            background: transparent;
+            box-shadow: none;
             color: var(--text-light);
         }
         
@@ -329,9 +329,9 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: var(--primary);
+            background: transparent;
             border: none;
-            color: var(--text-on-primary);
+            color: var(--text-light);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -442,12 +442,13 @@
                 font-size: 16px;
                 resize: none;
                 overflow: hidden;
-                border: 1.5px solid rgba(181, 108, 255, 0.6);
+                border: none;
+                background: transparent;
             }
             
             .input-area textarea:focus {
-                border-color: rgba(181, 108, 255, 0.8);
-                box-shadow: 0 0 0 3px rgba(181, 108, 255, 0.3);
+                border: none;
+                box-shadow: none;
             }
             
             .input-area button {
