@@ -245,7 +245,7 @@
                                 if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
                                     // ゲスト履歴を移行
                                     payload.migrateHistory = true;
-                                    payload.history = migrationData.history.map((entry) => ({
+                                    payload.clientHistory = migrationData.history.map((entry) => ({
                                         role: entry.role,
                                         content: entry.content,
                                     }));

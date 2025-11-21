@@ -1762,16 +1762,28 @@
 
                 AuthState.setAuth(data.userToken, data.nickname, data.assignedDeity);
                 cachedUserToken = data.userToken;
-                AuthState.markHistoryTransfer(characterSelect.value);
+                
+                // ゲスト履歴をsessionStorageに保存（chat.htmlで読み込むため）
+                const currentCharacter = characterSelect.value;
+                const guestHistory = AuthState.getGuestHistory(currentCharacter) || [];
+                if (guestHistory.length > 0) {
+                    sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                        character: currentCharacter,
+                        history: guestHistory
+                    }));
+                }
+                
+                AuthState.markHistoryTransfer(currentCharacter);
                 AuthState.resetGuestProgress({ keepHistory: true });
 
                 modalResultMessage.textContent = `守護神「${data.assignedDeity}」があなたを見守ります。`;
                 modalResultMessage.classList.add('success');
 
-                const redirectUrl = `/pages/auth/passphrase-success.html?nickname=${encodeURIComponent(
-                    data.nickname || ''
-                )}&passphrase=${encodeURIComponent(data.assignedDeity || '')}&redirect=${encodeURIComponent(window.location.href)}`;
-                window.location.href = redirectUrl;
+                // 登録後はchat.htmlにリダイレクト（ゲスト履歴を継続するため）
+                const redirectUrl = `chat.html?character=${encodeURIComponent(currentCharacter)}`;
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 2000); // 2秒後にリダイレクト（メッセージを読む時間を確保）
             } catch (error) {
                 modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
                 modalResultMessage.classList.add('error');
