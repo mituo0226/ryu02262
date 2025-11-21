@@ -756,10 +756,20 @@
         function showWelcomeMessage(characterId) {
             const info = characterInfo[characterId] || characterInfo.kaede;
             const isRegistered = AuthState.isRegistered();
-            const nickname = isRegistered ? (userNickname || localStorage.getItem('userNickname') || 'あなた') : 'あなた';
+            
+            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
+            let nickname = 'あなた';
+            if (isRegistered) {
+                const token = AuthState.getUserToken();
+                if (token) {
+                    nickname = userNickname || localStorage.getItem('userNickname') || 'あなた';
+                } else {
+                    nickname = 'あなた';
+                }
+            }
             
             let message = '';
-            if (isRegistered) {
+            if (isRegistered && nickname !== 'あなた') {
                 message = `${nickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
             } else {
                 message = `初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
@@ -799,8 +809,16 @@
         // 会話履歴に基づく再訪問メッセージを表示
         function showReturningUserMessage(characterId, historyData) {
             const info = characterInfo[characterId] || characterInfo.kaede;
-            const nickname = historyData.nickname || userNickname || 'あなた';
-            userNickname = nickname;
+            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
+            let nickname = 'あなた';
+            if (AuthState.isRegistered() && AuthState.getUserToken()) {
+                nickname = historyData.nickname || userNickname || localStorage.getItem('userNickname') || 'あなた';
+            } else {
+                nickname = 'あなた';
+            }
+            if (AuthState.isRegistered() && AuthState.getUserToken()) {
+                userNickname = nickname;
+            }
 
             let message = '';
             
@@ -921,7 +939,12 @@
         function openRegistrationModal(characterId) {
             const info = characterInfo[characterId] || characterInfo.kaede;
             modalLeadText.textContent = `${info.name} が正式登録をおすすめしています。`;
-            modalNickname.value = localStorage.getItem('userNickname') || '';
+            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
+            if (AuthState.isRegistered() && AuthState.getUserToken()) {
+                modalNickname.value = localStorage.getItem('userNickname') || '';
+            } else {
+                modalNickname.value = '';
+            }
             modalResultMessage.textContent = '';
             registerModal.classList.add('active');
             registerModal.setAttribute('aria-hidden', 'false');
