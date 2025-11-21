@@ -7,20 +7,38 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>鑑定士チャット</title>
     <style>
+        /* ============================================
+           カラーパレット
+           ============================================ */
         :root {
-            --bg-primary: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            /* 背景 */
+            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
             --card-bg: rgba(26, 10, 46, 0.85);
-            --brand-main: #8a2be2;
-            --brand-sub: #b56cff;
-            --user-bubble: rgba(138, 43, 226, 0.25);
-            --char-bubble: rgba(138, 43, 226, 0.2);
-            --welcome-bubble: rgba(138, 43, 226, 0.15);
+            
+            /* メインカラー */
+            --primary: #8b3dff;
+            --primary-dark: #6b2acc;
+            
+            /* メッセージバブル */
+            --user-bubble: #8b3dff;
+            --char-bubble: #f5f5f7;
+            
+            /* テキスト */
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-on-primary: #ffffff;
+            --text-light: #e8d5ff;
+            
+            /* ボーダー・影 */
+            --border-color: #d2d2d7;
             --border-soft: rgba(138, 43, 226, 0.3);
-            --text-dark: #e8d5ff;
-            --text-muted: #b8a5d8;
-            --messages-bg: rgba(26, 10, 46, 0.5);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
         }
 
+        /* ============================================
+           基本レイアウト
+           ============================================ */
         html {
             height: 100%;
             overflow: hidden;
@@ -28,6 +46,7 @@
             width: 100%;
             -webkit-overflow-scrolling: touch;
         }
+        
         body {
             font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             margin: 0;
@@ -35,11 +54,11 @@
             width: 100%;
             overflow: hidden;
             position: fixed;
-            background: var(--bg-primary);
+            background: var(--bg-gradient);
             display: flex;
             justify-content: center;
             padding: 18px;
-            color: var(--text-dark);
+            color: var(--text-light);
             -webkit-overflow-scrolling: touch;
         }
 
@@ -51,6 +70,10 @@
             flex-direction: column;
             overflow: hidden;
         }
+
+        /* ============================================
+           ナビゲーション
+           ============================================ */
         .navigation-links {
             display: flex;
             gap: 10px;
@@ -58,50 +81,47 @@
             flex-wrap: wrap;
             justify-content: center;
         }
+        
         .navigation-links a {
             display: inline-flex;
             justify-content: center;
             align-items: center;
             padding: 11px 20px;
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.85));
-            color: #fff;
+            background: var(--primary);
+            color: var(--text-on-primary);
             text-decoration: none;
             border-radius: 999px;
             font-size: 14px;
             font-weight: 600;
             transition: transform 0.12s ease, box-shadow 0.2s;
-            box-shadow: 0 12px 24px rgba(138, 43, 226, 0.35);
+            box-shadow: var(--shadow-md);
             min-width: 180px;
             max-width: 100%;
-            border: 1px solid rgba(255,255,255,0.4);
         }
+        
         .navigation-links a:active {
             transform: scale(0.97);
         }
-        .navigation-links a::after {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin-left: 8px;
-            background: rgba(255,255,255,0.9);
-            box-shadow: 0 0 6px rgba(255,255,255,0.8);
-        }
+
+        /* ============================================
+           チャットコンテナ
+           ============================================ */
         .chat-container {
             background: var(--card-bg);
             border-radius: 20px;
             padding: 22px;
             box-shadow: 0 25px 55px rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(138, 43, 226, 0.2);
+            border: 1px solid var(--border-soft);
             height: 100%;
             display: flex;
             flex-direction: column;
             gap: 16px;
             overflow: hidden;
         }
+        
         .user-status {
             background: rgba(138, 43, 226, 0.15);
-            color: var(--text-dark);
+            color: var(--text-light);
             padding: 12px 14px;
             border-radius: 14px;
             font-size: 13px;
@@ -110,6 +130,10 @@
             line-height: 1.5;
             word-break: break-word;
         }
+
+        /* ============================================
+           メッセージエリア
+           ============================================ */
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -118,32 +142,16 @@
             padding: 18px 12px;
             padding-top: 24px;
             padding-bottom: 100px;
-            background: var(--messages-bg);
-            border: 1px solid rgba(138, 43, 226, 0.25);
+            background: rgba(26, 10, 46, 0.5);
+            border: 1px solid var(--border-soft);
             display: flex;
             flex-direction: column;
             gap: 12px;
             position: relative;
-            isolation: isolate;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
         }
-        .messages::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 20% 20%, rgba(138,43,226,0.3), transparent 45%),
-                        radial-gradient(circle at 80% 0%, rgba(138,43,226,0.2), transparent 40%);
-            filter: blur(30px);
-            opacity: 0.5;
-            animation: aurora 12s infinite alternate;
-            pointer-events: none;
-            z-index: -1;
-        }
-        @keyframes aurora {
-            0% { transform: translateY(0); opacity: 0.5; }
-            100% { transform: translateY(-10px) scale(1.05); opacity: 0.8; }
-        }
+        
         .message {
             padding: 12px 16px;
             border-radius: 20px;
@@ -154,82 +162,67 @@
             max-width: 92%;
             word-break: break-word;
             position: relative;
-            color: var(--text-dark);
         }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
         .message.user {
             margin-left: auto;
             background: var(--user-bubble);
+            color: var(--text-on-primary);
             border-bottom-right-radius: 6px;
-            box-shadow: 0 6px 18px rgba(138, 43, 226, 0.3);
-            position: relative;
-            color: var(--text-dark);
+            box-shadow: var(--shadow-sm);
         }
+        
         .message.character {
             margin-right: auto;
             background: var(--char-bubble);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
             border-bottom-left-radius: 6px;
-            box-shadow: 0 6px 18px rgba(138, 43, 226, 0.3);
-            position: relative;
-            color: var(--text-dark);
+            box-shadow: var(--shadow-sm);
         }
-        .message.character::before,
-        .message.user::before {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.7), transparent 70%);
-            opacity: 0.6;
-            filter: blur(10px);
-            animation: orbFloat 6s ease-in-out infinite;
-        }
-        .message.character::before {
-            left: -12px;
-            top: -8px;
-        }
-        .message.user::before {
-            right: -12px;
-            top: -6px;
-        }
-        @keyframes orbFloat {
-            0% { transform: translate3d(0,0,0); opacity: 0.5; }
-            50% { transform: translate3d(6px,-4px,0); opacity: 0.9; }
-            100% { transform: translate3d(0,0,0); opacity: 0.4; }
-        }
+        
         .message.welcome {
             margin-right: auto;
-            background: var(--welcome-bubble);
+            background: rgba(138, 43, 226, 0.15);
             border: 1px solid rgba(138, 43, 226, 0.4);
-            color: var(--text-dark);
+            color: var(--text-light);
             font-weight: 500;
         }
+        
         .message.error {
             background: rgba(176, 0, 32, 0.3);
             color: #ff6b7d;
             border: 1px solid rgba(176, 0, 32, 0.4);
         }
+        
         .message.loading {
             background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2));
             border: 1px solid rgba(138, 43, 226, 0.4);
             text-align: center;
-            color: var(--text-dark);
+            color: var(--text-light);
             font-weight: 600;
-            position: relative;
-            overflow: hidden;
         }
+        
         .message-header {
             font-size: 11px;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             margin-bottom: 4px;
             font-weight: 600;
             opacity: 0.9;
         }
-        /* モバイルヘッダー */
+        
+        .message.user .message-header {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* ============================================
+           モバイルヘッダー
+           ============================================ */
         .mobile-header {
             display: none;
             position: fixed;
@@ -237,22 +230,24 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: var(--bg-primary);
+            background: var(--bg-gradient);
         }
+        
         .mobile-header-content {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 6px 10px;
             background: transparent;
-            border-bottom: 1px solid rgba(138, 43, 226, 0.3);
+            border-bottom: 1px solid var(--border-soft);
             position: relative;
         }
+        
         .mobile-header-back {
             background: none;
             border: none;
             font-size: 20px;
-            color: var(--brand-main);
+            color: var(--primary);
             cursor: pointer;
             padding: 8px;
             display: flex;
@@ -262,17 +257,19 @@
             height: 40px;
             text-decoration: none;
         }
+        
         .mobile-header-title {
             flex: 1;
             text-align: center;
             font-size: 18px;
             font-weight: 600;
-            color: var(--text-dark);
+            color: var(--text-light);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
         }
+        
         .mobile-header-title img {
             width: 28px;
             height: 28px;
@@ -281,6 +278,9 @@
             border: 2px solid rgba(138, 43, 226, 0.3);
         }
 
+        /* ============================================
+           入力エリア
+           ============================================ */
         .input-area {
             position: sticky;
             bottom: 0;
@@ -289,11 +289,14 @@
             flex-shrink: 0;
             z-index: 10;
         }
+        
         .input-row {
             display: flex;
             gap: 10px;
             align-items: flex-end;
+            position: relative;
         }
+        
         .input-area textarea {
             flex: 1;
             padding: 14px 18px;
@@ -301,95 +304,67 @@
             border-radius: 999px;
             font-size: 16px;
             background: rgba(26, 10, 46, 0.7);
-            color: var(--text-dark);
+            color: var(--text-light);
             resize: none;
             line-height: 1.5;
             min-height: 46px;
             max-height: 46px;
             overflow: hidden;
         }
+        
         .input-area textarea::placeholder {
-            color: var(--text-muted);
+            color: var(--text-secondary);
             opacity: 0.7;
         }
+        
         .input-area textarea:focus {
             outline: none;
             border-color: rgba(181, 108, 255, 0.8);
             background: rgba(26, 10, 46, 0.85);
             box-shadow: 0 0 0 3px rgba(181, 108, 255, 0.3);
-            color: var(--text-dark);
-        }
-        .input-area button {
-            padding: 12px 22px;
-            border: none;
-            border-radius: 999px;
-            background: linear-gradient(135deg, var(--brand-main), var(--brand-sub));
-            color: #fff;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            min-width: 90px;
-            box-shadow: 0 14px 26px rgba(138, 43, 226, 0.35);
-            transition: transform 0.12s, box-shadow 0.2s;
-        }
-        .input-area button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 18px 30px rgba(138, 43, 226, 0.4);
-        }
-        .input-area button:active {
-            transform: translateY(1px) scale(0.98);
-        }
-        .input-area button:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        /* デスクトップ版では送信ボタンを非表示 */
-        .send-button {
-            display: none;
+            color: var(--text-light);
         }
         
-        @media (max-width: 768px) {
-            /* モバイル版では送信ボタンを表示可能にする */
-            .send-button {
-                background: none;
-                border: none;
-                color: #d4a5ff;
-                cursor: pointer;
-                padding: 0;
-                display: none;
-                align-items: center;
-                justify-content: center;
-                width: 32px;
-                height: 32px;
-                flex-shrink: 0;
-                transition: opacity 0.2s, transform 0.2s;
-                text-decoration: none;
-            }
-            .send-button.visible {
-                display: flex !important;
-            }
-            .send-button:active {
-                transform: scale(0.9);
-                opacity: 0.7;
-            }
-            .send-button:disabled {
-                opacity: 0.3;
-                cursor: not-allowed;
-            }
-            .send-button svg {
-                width: 18px;
-                height: 18px;
-                fill: currentColor;
-            }
+        .input-area button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            color: var(--text-on-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
         }
-        .loading {
-            text-align: center;
-            color: #666;
-            font-style: italic;
+        
+        .input-area button.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .input-area button:active {
+            transform: scale(0.95);
+        }
+        
+        .input-area button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .input-area button svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
         }
 
-
+        /* ============================================
+           レスポンシブデザイン
+           ============================================ */
         @media (max-width: 768px) {
             html, body {
                 position: fixed;
@@ -397,16 +372,20 @@
                 width: 100%;
                 height: 100%;
             }
+            
             body {
                 padding: 0;
             }
+            
             main {
                 height: 100%;
                 max-width: 100%;
             }
+            
             .mobile-header {
                 display: block;
             }
+            
             .chat-container {
                 padding: 0;
                 height: 100%;
@@ -416,12 +395,15 @@
                 padding-bottom: 70px;
                 background: transparent;
             }
+            
             .navigation-links {
                 display: none;
             }
+            
             .user-status {
                 display: none;
             }
+            
             .messages {
                 padding: 20px 10px;
                 padding-top: 20px;
@@ -429,9 +411,12 @@
                 padding-bottom: 100px;
                 margin-top: 0;
             }
+            
             .message {
                 max-width: 85%;
+                font-size: 14px;
             }
+            
             .input-area {
                 position: fixed;
                 bottom: 0;
@@ -442,11 +427,13 @@
                 border-top: 1px solid var(--border-soft);
                 box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
             }
+            
             .input-row {
                 display: flex;
                 gap: 8px;
                 align-items: center;
             }
+            
             .input-area textarea {
                 flex: 1;
                 min-height: 40px;
@@ -457,17 +444,20 @@
                 overflow: hidden;
                 border: 1.5px solid rgba(181, 108, 255, 0.6);
             }
+            
             .input-area textarea:focus {
                 border-color: rgba(181, 108, 255, 0.8);
                 box-shadow: 0 0 0 3px rgba(181, 108, 255, 0.3);
             }
-            /* デスクトップ版の送信ボタンを非表示 */
-            #sendButton {
-                display: none !important;
+            
+            .input-area button {
+                width: 40px;
+                height: 40px;
             }
-            /* モバイル版の送信ボタンは入力時に表示 */
-            .send-button.visible {
-                display: flex !important;
+            
+            .input-area button svg {
+                width: 20px;
+                height: 20px;
             }
         }
     </style>
@@ -482,26 +472,25 @@
     </div>
 
     <main>
-    <div class="chat-container">
-        <div class="navigation-links">
-            <a href="../appraisers-list.html">鑑定師一覧に戻る</a>
-        </div>
-        <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
-        
-        <div class="messages" id="messages"></div>
+        <div class="chat-container">
+            <div class="navigation-links">
+                <a href="../appraisers-list.html">鑑定師一覧に戻る</a>
+            </div>
+            <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
+            
+            <div class="messages" id="messages"></div>
 
-        <div class="input-area">
-            <div class="input-row">
-                <textarea id="messageInput" placeholder="メッセージを入力" rows="1" maxlength="1000"></textarea>
-                <a href="#" class="send-button" id="sendButtonMobile" onclick="event.preventDefault(); sendMessage(); return false;" title="送信">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                    </svg>
-                </a>
-                <button id="sendButton" onclick="sendMessage()">送信</button>
+            <div class="input-area">
+                <div class="input-row">
+                    <textarea id="messageInput" placeholder="メッセージを入力" rows="1" maxlength="1000"></textarea>
+                    <button id="sendButton" onclick="sendMessage()" title="送信">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
     </main>
 
     <script src="../../js/auth-state.js"></script>
@@ -515,56 +504,6 @@
         let userNickname = null;
         let conversationHistory = null;
         let currentCharacter = 'kaede';
-
-        function autoResizeInput() {
-            if (!messageInput) return;
-            // 1段表示のため、高さを固定
-            messageInput.style.height = 'auto';
-            const fixedHeight = window.innerWidth <= 768 ? 40 : 46;
-            messageInput.style.height = fixedHeight + 'px';
-        }
-
-        function updateSendButtonVisibility() {
-            const sendButtonMobile = document.getElementById('sendButtonMobile');
-            if (!sendButtonMobile || !messageInput) return;
-            
-            if (messageInput.value.trim().length > 0) {
-                sendButtonMobile.classList.add('visible');
-            } else {
-                sendButtonMobile.classList.remove('visible');
-            }
-        }
-
-        let scrollTimeout = null;
-        function scrollToLatest(behavior = 'smooth') {
-            if (!messagesDiv) return;
-            if (scrollTimeout) {
-                clearTimeout(scrollTimeout);
-            }
-            scrollTimeout = setTimeout(() => {
-                // フッターの高さを考慮して、確実に最後までスクロール
-                const maxScroll = messagesDiv.scrollHeight - messagesDiv.clientHeight;
-                const targetScroll = Math.max(0, maxScroll);
-                
-                if (behavior === 'smooth') {
-                    messagesDiv.scrollTo({
-                        top: targetScroll,
-                        behavior: 'smooth',
-                    });
-                } else {
-                    messagesDiv.scrollTop = targetScroll;
-                }
-                
-                // 確実にスクロールされたか確認（少し余裕を持たせる）
-                setTimeout(() => {
-                    const currentScroll = messagesDiv.scrollTop;
-                    const maxPossibleScroll = messagesDiv.scrollHeight - messagesDiv.clientHeight;
-                    if (currentScroll < maxPossibleScroll - 10) {
-                        messagesDiv.scrollTop = maxPossibleScroll;
-                    }
-                }, 100);
-            }, behavior === 'smooth' ? 100 : 0);
-        }
 
         // 鑑定士情報のマップ
         const characterInfo = {
@@ -607,10 +546,8 @@
             if (character && validCharacters.includes(character)) {
                 return character;
             }
-            return 'kaede'; // デフォルト
+            return 'kaede';
         }
-
-
 
         // 鑑定士を設定
         function setCurrentCharacter(characterId) {
@@ -620,14 +557,11 @@
             
             currentCharacter = characterId;
             
-            // モバイルヘッダーのタイトルを更新（アイコン付き、プロフィールページへのリンク付き）
             const mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
             if (mobileHeaderTitle) {
                 const info = characterInfo[characterId];
-                // 既存の内容をクリア
                 mobileHeaderTitle.innerHTML = '';
                 
-                // プロフィールページへのリンクを作成
                 const profileLink = document.createElement('a');
                 profileLink.href = info.profileUrl;
                 profileLink.style.textDecoration = 'none';
@@ -637,13 +571,11 @@
                 profileLink.style.justifyContent = 'center';
                 profileLink.style.gap = '8px';
                 
-                // アイコン画像を追加
                 const iconImg = document.createElement('img');
                 iconImg.src = info.image;
                 iconImg.alt = info.name;
                 iconImg.className = 'mobile-character-icon';
                 
-                // 名前テキストを追加
                 const nameText = document.createElement('span');
                 nameText.textContent = info.name;
                 
@@ -670,8 +602,6 @@
                 );
                 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.warn('Failed to load conversation history:', response.status, errorData);
                     return null;
                 }
 
@@ -683,20 +613,16 @@
             }
         }
 
-        // 会話内容を抽出（ユーザーの最初のメッセージから）
+        // 会話内容を抽出
         function extractConversationContent(historyData) {
             if (!historyData || !historyData.recentMessages) {
                 return null;
             }
 
-            // 時系列順に並び替え
             const sortedMessages = historyData.recentMessages.slice().reverse();
-            
-            // ユーザーの最初のメッセージを探す
             const firstUserMessage = sortedMessages.find(msg => msg.role === 'user');
             
             if (firstUserMessage) {
-                // 60文字以内に要約
                 const content = firstUserMessage.content;
                 if (content.length > 60) {
                     return content.substring(0, 60) + '...';
@@ -707,7 +633,7 @@
             return null;
         }
 
-        // 日付を「何月何日」形式でフォーマット
+        // 日付をフォーマット
         function formatDateForMessage(dateString) {
             if (!dateString) return null;
             
@@ -771,7 +697,7 @@ ${lastDate ? `${lastDate}の話では` : ''}${conversationContent ? ` ${conversa
             return messages[characterId] || messages.kaede;
         }
 
-        // 各鑑定師の初めての会話メッセージを生成（会話履歴がない場合）
+        // 各鑑定師の初めての会話メッセージを生成
         function generateFirstTimeMessage(characterId, nickname) {
             const messages = {
                 kaede: `${nickname}さん、初めまして。楓（かえで）と申します。
@@ -816,20 +742,31 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 const deity = localStorage.getItem('assignedDeity') || '未割当';
                 const statusText = `鑑定名義: ${nickname} ｜ 守護: ${deity}`;
                 userStatus.textContent = statusText;
-                
-                // モバイル版のユーザーステータスも更新
-                const userStatusMobile = document.getElementById('userStatusMobile');
-                if (userStatusMobile) {
-                    userStatusMobile.textContent = statusText;
-                }
             } else {
-                // 未登録の場合はログインページにリダイレクト
                 window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
             }
         }
 
+        // スクロール処理（簡素化）
+        function scrollToLatest() {
+            if (!messagesDiv) return;
+            setTimeout(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 50);
+        }
+
+        // 送信ボタンの表示/非表示
+        function updateSendButtonVisibility() {
+            if (!sendButton || !messageInput) return;
+            
+            if (messageInput.value.trim().length > 0) {
+                sendButton.classList.add('visible');
+            } else {
+                sendButton.classList.remove('visible');
+            }
+        }
+
         async function initPage() {
-            // 登録済みユーザーのみアクセス可能
             initAuthState();
             
             if (!AuthState.isRegistered()) {
@@ -837,7 +774,6 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 return;
             }
 
-            // 初期フェードイン（アニメーション画面から戻ってきた場合）
             document.body.style.opacity = '0';
             document.body.style.transition = 'opacity 0.5s ease';
             requestAnimationFrame(() => {
@@ -859,15 +795,11 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                     const initialMessage = generateInitialMessage(character, historyData);
                     addMessage('welcome', initialMessage, characterInfo[character].name);
                 } else if (historyData && historyData.nickname) {
-                    // 会話履歴はないが、ユーザー情報は取得できた場合（この鑑定士とは初めての会話）
                     userNickname = historyData.nickname;
                     const info = characterInfo[character];
-                    
-                    // 各鑑定士ごとの初めての会話メッセージを生成
                     const firstTimeMessage = generateFirstTimeMessage(character, userNickname);
                     addMessage('welcome', firstTimeMessage, info.name);
                 } else {
-                    // エラーが発生した場合
                     const info = characterInfo[character];
                     const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
                     addMessage('welcome', firstTimeMessage, info.name);
@@ -879,22 +811,17 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 addMessage('welcome', firstTimeMessage, info.name);
             }
 
-            // イベントハンドラーを設定
             messageInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
                 }
             });
-            messageInput.addEventListener('input', () => {
-                autoResizeInput();
-                updateSendButtonVisibility();
-            });
-            autoResizeInput();
+            
+            messageInput.addEventListener('input', updateSendButtonVisibility);
             updateSendButtonVisibility();
         }
 
-        // 遅延関数
         function delay(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
@@ -912,58 +839,35 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                 return;
             }
 
-            // ユーザーメッセージを会話形式で表示
             addMessage('user', message, 'あなた');
-            
-            // メッセージが確実に表示されるまで少し待つ
             await delay(100);
-            
-            // スクロールを確実に実行
-            scrollToLatest('smooth');
+            scrollToLatest();
 
             messageInput.value = '';
-            autoResizeInput();
             updateSendButtonVisibility();
             
-            // デスクトップ版とモバイル版の両方のボタンを無効化
             if (sendButton) sendButton.disabled = true;
-            const sendButtonMobile = document.getElementById('sendButtonMobile');
-            if (sendButtonMobile) sendButtonMobile.disabled = true;
             
-            // メッセージを一時保存（アニメーション後に使用）
             const messageToSend = message;
-            
-            // ユーザーメッセージをsessionStorageに保存（アニメーション後に復元するため）
             const userMessageData = {
                 message: messageToSend,
                 character: character,
                 timestamp: new Date().toISOString()
             };
             sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
-            console.log('User message saved to sessionStorage:', userMessageData);
             
-            // アニメーション画面に遷移（フェードアウト）
             const currentUrl = window.location.href;
             const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
             
-            // チャット画面をフェードアウト
             document.body.style.transition = 'opacity 0.5s ease';
             document.body.style.opacity = '0';
             
             await delay(500);
-            
-            // アニメーション画面に遷移
             window.location.href = animationUrl;
-            
-            // ここで処理を終了（アニメーション画面から戻ってきた時に続行）
-            return;
         }
 
-        function addMessage(type, text, sender, animateScroll = true) {
-            if (!messagesDiv) {
-                console.error('messagesDiv is not initialized');
-                return;
-            }
+        function addMessage(type, text, sender) {
+            if (!messagesDiv) return;
             
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -980,129 +884,44 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
             messageDiv.appendChild(textDiv);
 
             messagesDiv.appendChild(messageDiv);
-            console.log('Message added to DOM:', { type, sender, textLength: text.length });
             
-            // メッセージ追加後、確実にスクロール
             requestAnimationFrame(() => {
-                scrollToLatest(animateScroll ? 'smooth' : 'auto');
+                scrollToLatest();
             });
-
-            if (type === 'loading') {
-                return messageDiv;
-            }
         }
 
-
-        let resizeTimeout = null;
-        function handleResize() {
-            if (resizeTimeout) clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                scrollToLatest('auto');
-            }, 100);
-        }
-        
-        window.addEventListener('resize', handleResize, { passive: true });
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                scrollToLatest('auto');
-            }, 300);
-        }, { passive: true });
-        
-        // スクロール位置の固定（iOS Safari対策）
-        let lastScrollTop = 0;
-        messagesDiv.addEventListener('scroll', () => {
-            lastScrollTop = messagesDiv.scrollTop;
-        }, { passive: true });
-        
-        // タッチイベントでスクロール位置を維持
-        let touchStartY = 0;
-        messagesDiv.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-        
-        messagesDiv.addEventListener('touchmove', (e) => {
-            // スクロール中は位置を維持
-            if (Math.abs(e.touches[0].clientY - touchStartY) > 10) {
-                // スクロール中
-            }
-        }, { passive: true });
-        
-        // アニメーション画面から戻ってきた時の処理
+        // アニメーション画面から戻ってきた時の処理（簡素化）
         function handleReturnFromAnimation() {
-            console.log('handleReturnFromAnimation called');
-            
-            // ユーザーメッセージを復元
             const lastUserMessage = sessionStorage.getItem('lastUserMessage');
-            console.log('Checking for user message in sessionStorage:', !!lastUserMessage);
-            
+            const consultResponse = sessionStorage.getItem('lastConsultResponse');
+
             if (lastUserMessage) {
                 try {
                     const userMsgData = JSON.parse(lastUserMessage);
-                    console.log('Restoring user message:', userMsgData);
-                    console.log('Message text:', userMsgData.message);
-                    
-                    // ユーザーメッセージを表示（既に表示されている可能性があるが、念のため）
                     const existingUserMessages = messagesDiv.querySelectorAll('.message.user');
-                    console.log('Existing user messages count:', existingUserMessages.length);
-                    
                     const messageTexts = Array.from(existingUserMessages).map(msg => {
                         const textDiv = msg.querySelector('div:last-child');
                         return textDiv ? textDiv.textContent.trim() : '';
                     });
                     
-                    console.log('Existing message texts:', messageTexts);
-                    console.log('New message text:', userMsgData.message.trim());
-                    console.log('Message already exists?', messageTexts.includes(userMsgData.message.trim()));
-                    
-                    // 同じメッセージが既に表示されていないか確認
                     const messageToCheck = userMsgData.message.trim();
                     const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
                     
                     if (!messageExists) {
-                        console.log('Adding user message to DOM');
-                        addMessage('user', userMsgData.message, 'あなた', false); // スクロールは後で実行
-                        
-                        // テキストエリアからフォーカスを外してキーボードを非表示にする
-                        if (messageInput) {
-                            messageInput.blur();
-                        }
-                        
-                        // スクロールを確実に実行
-                        setTimeout(() => {
-                            scrollToLatest('smooth');
-                        }, 200);
-                    } else {
-                        console.log('User message already exists, skipping');
+                        addMessage('user', userMsgData.message, 'あなた');
+                        if (messageInput) messageInput.blur();
+                        setTimeout(() => scrollToLatest(), 200);
                     }
                     
-                    // ユーザーメッセージデータをクリア
                     sessionStorage.removeItem('lastUserMessage');
                 } catch (error) {
-                    console.error('Error parsing user message:', error, lastUserMessage);
+                    console.error('Error parsing user message:', error);
                 }
-            } else {
-                console.warn('No user message found in sessionStorage');
             }
-            
-            const consultResponse = sessionStorage.getItem('lastConsultResponse');
-            const consultError = sessionStorage.getItem('lastConsultError');
-            
-            console.log('SessionStorage check:', { 
-                hasResponse: !!consultResponse, 
-                hasError: !!consultError,
-                responseLength: consultResponse ? consultResponse.length : 0
-            });
-            
+
             if (consultResponse) {
                 try {
                     const data = JSON.parse(consultResponse);
-                    console.log('Parsed response data:', {
-                        hasError: !!data.error,
-                        hasMessage: !!data.message,
-                        isInappropriate: !!data.isInappropriate,
-                        needsRegistration: !!data.needsRegistration,
-                        characterName: data.characterName
-                    });
                     
                     if (data.needsRegistration) {
                         addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
@@ -1111,78 +930,31 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
                     }
                     
                     if (data.error) {
-                        const errorMessage = data.error;
-                        console.error('API returned error:', errorMessage);
-                        if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
+                        if (data.error.includes('user not found') || data.error.includes('invalid user token')) {
                             addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
                             window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                         } else {
-                            addMessage('error', errorMessage, 'システム');
+                            addMessage('error', data.error, 'システム');
                         }
                     } else if (data.isInappropriate) {
-                        console.log('Inappropriate content detected');
                         addMessage('warning', data.message, data.characterName);
                     } else if (data.message) {
-                        console.log('Adding character message:', data.message.substring(0, 50) + '...');
-                        console.log('Full message:', data.message);
-                        console.log('Character name:', data.characterName);
-                        console.log('messagesDiv exists:', !!messagesDiv);
-                        if (messagesDiv) {
-                            addMessage('character', data.message, data.characterName);
-                            
-                            // テキストエリアからフォーカスを外してキーボードを非表示にする
-                            if (messageInput) {
-                                messageInput.blur();
-                            }
-                            
-                            // 追加後に確認
-                            setTimeout(() => {
-                                const addedMessages = messagesDiv.querySelectorAll('.message.character');
-                                console.log('Character messages in DOM:', addedMessages.length);
-                                if (addedMessages.length > 0) {
-                                    console.log('Last character message:', addedMessages[addedMessages.length - 1].textContent.substring(0, 50));
-                                }
-                                
-                                // スクロールを確実に実行して、最新のメッセージが見えるようにする
-                                scrollToLatest('smooth');
-                            }, 100);
-                        } else {
-                            console.error('messagesDiv is null, cannot add message');
-                        }
+                        addMessage('character', data.message, data.characterName);
+                        if (messageInput) messageInput.blur();
+                        setTimeout(() => scrollToLatest(), 100);
                     } else {
-                        console.warn('No message in response:', data);
                         addMessage('error', '返信が取得できませんでした', 'システム');
                     }
                     
-                    // レスポンスデータをクリア
                     sessionStorage.removeItem('lastConsultResponse');
                 } catch (error) {
-                    console.error('Error parsing consult response:', error, consultResponse);
+                    console.error('Error parsing consult response:', error);
                 }
-            } else if (consultError) {
-                console.error('Consult error found:', consultError);
-                addMessage('error', '通信エラーが発生しました: ' + consultError, 'システム');
-                sessionStorage.removeItem('lastConsultError');
-            } else {
-                console.warn('No response or error found in sessionStorage');
             }
             
-            // ボタンを有効化
             if (sendButton) sendButton.disabled = false;
-            const sendButtonMobile = document.getElementById('sendButtonMobile');
-            if (sendButtonMobile) sendButtonMobile.disabled = false;
+            if (messageInput) messageInput.blur();
             
-            // テキストエリアからフォーカスを外してキーボードを非表示にする
-            if (messageInput) {
-                messageInput.blur();
-            }
-            
-            // アクティブな要素からフォーカスを外す（キーボードを確実に非表示にする）
-            if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') {
-                document.activeElement.blur();
-            }
-            
-            // フェードイン
             document.body.style.transition = 'opacity 0.5s ease';
             document.body.style.opacity = '1';
         }
@@ -1190,8 +962,6 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
         window.sendMessage = sendMessage;
         window.addEventListener('DOMContentLoaded', async () => {
             await initPage();
-            // アニメーション画面から戻ってきた場合の処理（initPage完了後）
-            // 少し遅延を入れて、DOMが完全に準備されるのを待つ
             setTimeout(() => {
                 handleReturnFromAnimation();
             }, 100);
@@ -1199,4 +969,3 @@ ${nickname}さんのことは、システムから聞いてるよ。初めてお
     </script>
 </body>
 </html>
-
