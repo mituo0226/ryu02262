@@ -222,18 +222,24 @@
                             window.AuthState.getUserToken()) ||
                         localStorage.getItem('userToken');
 
-                    if (!userToken) {
-                        throw new Error('User token not found');
-                    }
-
                     // messageはURLパラメータから取得しているので、すでにデコードされている
                     const decodedMessage = decodeURIComponent(message);
                     
-                    const payload = {
+                    const payload: any = {
                         message: decodedMessage,
                         character,
-                        userToken,
                     };
+
+                    // 登録済みユーザーの場合のみuserTokenを追加
+                    if (userToken) {
+                        payload.userToken = userToken;
+                    } else {
+                        // ゲストユーザーの場合、guestMetadataを追加
+                        const guestCount = (window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
+                            ? window.AuthState.getGuestMessageCount() 
+                            : 0;
+                        payload.guestMetadata = { messageCount: guestCount };
+                    }
 
                     console.log('Calling API with:', { character, messageLength: decodedMessage.length, hasToken: !!userToken });
                     
