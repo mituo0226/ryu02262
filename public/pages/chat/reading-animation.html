@@ -343,7 +343,14 @@
 
         function startStatusSequence() {
             if (!loadingMessageEl) return;
-            const nickname = localStorage.getItem('userNickname') || 'あなた';
+            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
+            let nickname = 'あなた';
+            if (window.AuthState && typeof window.AuthState.isRegistered === 'function' && window.AuthState.isRegistered()) {
+                const token = window.AuthState && typeof window.AuthState.getUserToken === 'function' ? window.AuthState.getUserToken() : null;
+                if (token) {
+                    nickname = localStorage.getItem('userNickname') || 'あなた';
+                }
+            }
             const messages = [
                 `${characterNameLabel}が${nickname}の魂と交信中`,
                 `${characterNameLabel}の返答が来ます`,

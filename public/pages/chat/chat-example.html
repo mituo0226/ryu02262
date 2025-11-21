@@ -1103,10 +1103,6 @@
                 return;
             }
 
-            const includeGuestHistory =
-                !isRegistered || AuthState.hasPendingHistoryTransfer(character);
-            const historyForRequest = getClientHistoryPayload(character, includeGuestHistory);
-
             addMessage('user', message, 'あなた');
             await delay(100);
             scrollToLatest();
