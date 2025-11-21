@@ -215,15 +215,20 @@
         }
         
         .message-header {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
+            font-size: 12px;
             font-weight: 600;
-            opacity: 0.9;
+            margin-bottom: 6px;
+            opacity: 0.85;
         }
         
+        /* ユーザーメッセージのヘッダーを紫色に */
         .message.user .message-header {
-            color: rgba(255, 255, 255, 0.9);
+            color: #b794ff !important;  /* 明るい紫色 */
+        }
+        
+        /* キャラクターメッセージのヘッダーは白色のまま */
+        .message.character .message-header {
+            color: rgba(255, 255, 255, 0.9) !important;
         }
 
         /* ============================================
