@@ -36,6 +36,7 @@ interface ResponseBody {
   registrationSuggested?: boolean;
   guestMode?: boolean;
   remainingGuestMessages?: number;
+  showTarotCard?: boolean;
 }
 
 interface UserRecord {
@@ -440,6 +441,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     const deepseekData = await deepseekResponse.json();
     const responseMessage =
       deepseekData.choices?.[0]?.message?.content || '申し訳ございませんが、応答を生成できませんでした。';
+    
+    // タロットカード関連のキーワードを検出（笹岡雪乃の場合のみ）
+    const tarotKeywords = ['タロット', 'タロットカード', 'カードを', 'カードをめく', 'カードを占', 'カードを引'];
+    const showTarotCard = characterId === 'yukino' && tarotKeywords.some(keyword => responseMessage.includes(keyword));
 
     if (user) {
       // 100件制限チェックと古いメッセージ削除
@@ -520,6 +525,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         remainingGuestMessages: user
           ? undefined
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
+        showTarotCard: showTarotCard,
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

@@ -222,6 +222,85 @@
         }
 
         /* ============================================
+           タロットカード
+           ============================================ */
+        .tarot-card-container {
+            margin: 16px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+        
+        .tarot-card {
+            width: 120px;
+            height: 200px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        
+        .tarot-card.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .tarot-card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tarot-card-back {
+            background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%);
+            border: 2px solid #8b3dff;
+            transform: rotateY(0deg);
+        }
+        
+        .tarot-card-back::before {
+            content: '🃏';
+            font-size: 48px;
+            opacity: 0.7;
+        }
+        
+        .tarot-card-front {
+            background: linear-gradient(135deg, #f5f5f7 0%, #e8d5ff 100%);
+            border: 2px solid #8b3dff;
+            transform: rotateY(180deg);
+            flex-direction: column;
+            padding: 12px;
+        }
+        
+        .tarot-card-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a0a2e;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .tarot-card-meaning {
+            font-size: 11px;
+            color: #4a4a4a;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .tarot-card-hint {
+            margin-top: 8px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* ============================================
            モバイルヘッダー
            ============================================ */
         .mobile-header {
@@ -1268,6 +1347,77 @@
                 messageDiv.appendChild(keywordsDiv);
             }
 
+            // タロットカードを表示する場合
+            if (metadata.showTarotCard) {
+                const tarotContainer = document.createElement('div');
+                tarotContainer.className = 'tarot-card-container';
+                
+                const tarotCard = document.createElement('div');
+                tarotCard.className = 'tarot-card';
+                
+                const cardBack = document.createElement('div');
+                cardBack.className = 'tarot-card-face tarot-card-back';
+                
+                const cardFront = document.createElement('div');
+                cardFront.className = 'tarot-card-face tarot-card-front';
+                
+                // タロットカードの名前と意味をランダムに選択
+                const tarotCards = [
+                    { name: '愚者', meaning: '新しい始まり、自由、冒険' },
+                    { name: '魔術師', meaning: '創造力、意志力、可能性' },
+                    { name: '女教皇', meaning: '直感、内なる知恵、神秘' },
+                    { name: '女帝', meaning: '豊かさ、母性、自然' },
+                    { name: '皇帝', meaning: '権威、安定、構造' },
+                    { name: '教皇', meaning: '伝統、精神的な導き、儀式' },
+                    { name: '恋人', meaning: '選択、調和、関係性' },
+                    { name: '戦車', meaning: '勝利、意志、コントロール' },
+                    { name: '力', meaning: '内なる強さ、忍耐、優しさ' },
+                    { name: '隠者', meaning: '内省、探求、導き' },
+                    { name: '運命の輪', meaning: '運命、循環、変化' },
+                    { name: '正義', meaning: 'バランス、公正、真実' },
+                    { name: '吊られた男', meaning: '犠牲、新しい視点、待機' },
+                    { name: '死神', meaning: '終わりと始まり、変容、解放' },
+                    { name: '節制', meaning: '調和、バランス、節度' },
+                    { name: '悪魔', meaning: '束縛、誘惑、物質主義' },
+                    { name: '塔', meaning: '突然の変化、解放、啓示' },
+                    { name: '星', meaning: '希望、インスピレーション、癒し' },
+                    { name: '月', meaning: '不安、幻想、無意識' },
+                    { name: '太陽', meaning: '喜び、成功、活力' },
+                    { name: '審判', meaning: '再生、評価、覚醒' },
+                    { name: '世界', meaning: '完成、達成、統合' }
+                ];
+                
+                const selectedCard = tarotCards[Math.floor(Math.random() * tarotCards.length)];
+                
+                const cardName = document.createElement('div');
+                cardName.className = 'tarot-card-name';
+                cardName.textContent = selectedCard.name;
+                
+                const cardMeaning = document.createElement('div');
+                cardMeaning.className = 'tarot-card-meaning';
+                cardMeaning.textContent = selectedCard.meaning;
+                
+                cardFront.appendChild(cardName);
+                cardFront.appendChild(cardMeaning);
+                
+                tarotCard.appendChild(cardBack);
+                tarotCard.appendChild(cardFront);
+                
+                // カードをクリック/タップでめくる
+                tarotCard.addEventListener('click', () => {
+                    tarotCard.classList.toggle('flipped');
+                });
+                
+                tarotContainer.appendChild(tarotCard);
+                
+                const hint = document.createElement('div');
+                hint.className = 'tarot-card-hint';
+                hint.textContent = 'カードをタップしてめくってください';
+                tarotContainer.appendChild(hint);
+                
+                messageDiv.appendChild(tarotContainer);
+            }
+
             messagesDiv.appendChild(messageDiv);
             scrollToLatest();
 
@@ -1433,6 +1583,7 @@
                         
                         addMessage('character', data.message, data.characterName, {
                             detectedKeywords: data.detectedKeywords,
+                            showTarotCard: data.showTarotCard,
                         });
                         if (messageInput) messageInput.blur();
                         setTimeout(() => scrollToLatest(), 100);
