@@ -206,8 +206,9 @@ export const onRequestPost: PagesFunction = async (context) => {
     const guestMessageCount = Number(guestMetadata.messageCount ?? 0);
     const sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
     const guestLimitReached = !body.userToken && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT;
-    // 3通目以降から自然に登録を促す
-    const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 3 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
+    // 3往復目（ユーザーの3通目のメッセージ送信時）から自然に登録を促す
+    // 1往復目: count=0, 2往復目: count=1, 3往復目: count=2（この時点で促す）
+    const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 2 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
 
     if (guestLimitReached) {
       return new Response(
