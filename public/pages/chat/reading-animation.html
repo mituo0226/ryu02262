@@ -270,16 +270,32 @@
 
                     console.log('Calling API with:', { character, messageLength: decodedMessage.length, hasToken: !!userToken });
                     
-                    const response = await fetch('/api/consult', {
+                    // タイムアウト処理（30秒）
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('API呼び出しがタイムアウトしました')), 30000);
+                    });
+                    
+                    const fetchPromise = fetch('/api/consult', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     });
+                    
+                    const response = await Promise.race([fetchPromise, timeoutPromise]);
 
                     if (!response.ok) {
                         const errorText = await response.text();
                         console.error('API response not OK:', response.status, errorText);
-                        throw new Error(`API error: ${response.status}`);
+                        let errorMessage = `APIエラー (${response.status})`;
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            if (errorData.error) {
+                                errorMessage = errorData.error;
+                            }
+                        } catch {
+                            // JSON解析に失敗した場合はデフォルトメッセージを使用
+                        }
+                        throw new Error(errorMessage);
                     }
 
                     const data = await response.json();
@@ -290,11 +306,18 @@
                         needsRegistration: !!data.needsRegistration 
                     });
                     
-                    sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
-                    console.log('Response saved to sessionStorage');
+                    // エラーがある場合でもレスポンスとして保存（エラーメッセージを表示するため）
+                    if (data.error && !data.message) {
+                        // エラーのみでメッセージがない場合はエラーとして扱う
+                        sessionStorage.setItem('lastConsultError', data.error || 'APIエラーが発生しました');
+                    } else {
+                        sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                        console.log('Response saved to sessionStorage');
+                    }
                 } catch (error) {
                     console.error('Error calling API:', error);
-                    sessionStorage.setItem('lastConsultError', error.message || '通信エラー');
+                    const errorMessage = error instanceof Error ? error.message : '通信エラーが発生しました';
+                    sessionStorage.setItem('lastConsultError', errorMessage);
                 } finally {
                     apiCompleted = true;
                 }
