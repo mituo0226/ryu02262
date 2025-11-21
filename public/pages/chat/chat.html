@@ -1097,11 +1097,24 @@
                     cardWrapper.style.alignItems = 'center';
                     cardWrapper.style.gap = '6px';
                     
+                    // カードラベル（めくった後に表示）
                     const cardLabel = document.createElement('div');
                     cardLabel.textContent = `【${card.position}】`;
                     cardLabel.style.fontSize = '12px';
                     cardLabel.style.color = 'rgba(255, 255, 255, 0.8)';
                     cardLabel.style.fontWeight = '600';
+                    cardLabel.style.opacity = '0'; // 最初は非表示
+                    cardLabel.style.transition = 'opacity 0.3s ease';
+                    
+                    // カード名ラベル（めくった後に表示）
+                    const cardNameLabel = document.createElement('div');
+                    cardNameLabel.textContent = card.name;
+                    cardNameLabel.style.fontSize = '11px';
+                    cardNameLabel.style.color = 'rgba(255, 255, 255, 0.9)';
+                    cardNameLabel.style.fontWeight = '500';
+                    cardNameLabel.style.marginTop = '4px';
+                    cardNameLabel.style.opacity = '0'; // 最初は非表示
+                    cardNameLabel.style.transition = 'opacity 0.3s ease';
                     
                     // カードコンテナ（3D flip用）
                     const cardContainer = document.createElement('div');
@@ -1183,6 +1196,12 @@
                             cardInner.style.transform = 'rotateY(180deg)';
                             flippedCards.add(card.position);
                             
+                            // カードをめくった後にラベルを表示
+                            setTimeout(() => {
+                                cardLabel.style.opacity = '1';
+                                cardNameLabel.style.opacity = '1';
+                            }, 300);
+                            
                             // すべてのカードがめくられたかチェック
                             if (flippedCards.size === detectedCards.length) {
                                 allCardsFlipped = true;
@@ -1193,6 +1212,7 @@
                     
                     cardWrapper.appendChild(cardLabel);
                     cardWrapper.appendChild(cardContainer);
+                    cardWrapper.appendChild(cardNameLabel);
                     cardsContainer.appendChild(cardWrapper);
                 });
                 
@@ -1233,7 +1253,7 @@
             
             const explanationButton = document.createElement('button');
             explanationButton.className = 'tarot-explanation-button';
-            explanationButton.textContent = '出てきたカードの説明を受ける';
+            explanationButton.textContent = 'めくったカードの鑑定をしてもらう';
             explanationButton.style.padding = '12px 24px';
             explanationButton.style.fontSize = '14px';
             explanationButton.style.fontWeight = '600';
@@ -1359,8 +1379,25 @@
                 messageDiv.appendChild(headerDiv);
             }
 
+            // タロットカード情報を検出してテキストから削除
+            let displayText = text;
+            const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
+            const detectedCards = [];
+            let match;
+            
+            while ((match = cardPattern.exec(text)) !== null) {
+                const position = match[1];
+                const cardName = match[2].trim();
+                detectedCards.push({ position, name: cardName });
+            }
+            
+            // カード情報が検出された場合、テキストから削除
+            if (detectedCards.length > 0) {
+                displayText = text.replace(/【(過去|現在|未来)】[^\n]+/g, '').trim();
+            }
+            
             const textDiv = document.createElement('div');
-            textDiv.textContent = text;
+            textDiv.textContent = displayText;
             messageDiv.appendChild(textDiv);
 
             // タロットカードの画像を検出して表示（キャラクターメッセージのみ）
