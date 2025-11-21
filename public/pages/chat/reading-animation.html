@@ -216,7 +216,10 @@
                     if (window.AuthState && typeof window.AuthState.init === 'function') {
                         window.AuthState.init();
                     }
-                    const userToken =
+                    // chat-example.htmlから来た場合は、ゲストユーザーとして扱う（userTokenを無視）
+                    const isFromChatExample = returnUrl.includes('chat-example.html');
+                    
+                    const userToken = isFromChatExample ? null :
                         (window.AuthState &&
                             typeof window.AuthState.getUserToken === 'function' &&
                             window.AuthState.getUserToken()) ||
@@ -230,8 +233,8 @@
                         character,
                     };
 
-                    // 登録済みユーザーの場合のみuserTokenを追加
-                    if (userToken) {
+                    // 登録済みユーザーの場合のみuserTokenを追加（chat-example.htmlから来た場合は無視）
+                    if (userToken && !isFromChatExample) {
                         payload.userToken = userToken;
                         
                         // ゲスト履歴の移行をチェック

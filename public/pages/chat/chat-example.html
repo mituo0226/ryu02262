@@ -1302,7 +1302,16 @@
             if (window.AuthState && typeof AuthState.init === 'function') {
                 AuthState.init();
             }
-            cachedUserToken = window.AuthState && typeof AuthState.getUserToken === 'function' ? AuthState.getUserToken() : null;
+            // chat-example.htmlはゲストユーザー専用ページなので、userTokenをクリア
+            // 登録済みユーザーはchat.htmlにリダイレクトされる想定
+            if (window.AuthState && typeof AuthState.clearAuth === 'function') {
+                AuthState.clearAuth();
+            } else {
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userNickname');
+                localStorage.removeItem('assignedDeity');
+            }
+            cachedUserToken = null;
         }
 
         // 日付を「何月何日」形式でフォーマット（会話メッセージ用）
