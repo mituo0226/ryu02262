@@ -1618,21 +1618,17 @@
                 messageDiv.appendChild(headerDiv);
             }
 
-            // タロットカード情報を検出してテキストから削除
+            // タロットカード情報を検出してテキストから完全に削除
             let displayText = text;
             const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
-            const detectedCards = [];
-            let match;
+            const hasCardInfo = cardPattern.test(text);
             
-            while ((match = cardPattern.exec(text)) !== null) {
-                const position = match[1];
-                const cardName = match[2].trim();
-                detectedCards.push({ position, name: cardName });
-            }
-            
-            // カード情報が検出された場合、テキストから削除
-            if (detectedCards.length > 0) {
-                displayText = text.replace(/【(過去|現在|未来)】[^\n]+/g, '').trim();
+            // カード情報が検出された場合、テキストから完全に削除（改行も含めて）
+            if (hasCardInfo) {
+                // カード情報の行を削除（前後の改行も含めて）
+                displayText = text.replace(/【(過去|現在|未来)】[^\n]+\n?/g, '').trim();
+                // 連続する改行を1つに統一
+                displayText = displayText.replace(/\n{3,}/g, '\n\n');
             }
             
             const textDiv = document.createElement('div');
@@ -1773,6 +1769,7 @@
             if (consultResponse) {
                 try {
                     const data = JSON.parse(consultResponse);
+                    console.log('API応答を受信:', data);
                     
                     if (data.needsRegistration) {
                         // 5通目以降は「ユーザー登録をしてください」というメッセージを表示
@@ -1823,6 +1820,8 @@
                     if (data.message) {
                         const character = characterSelect.value;
                         const isRegistered = AuthState.isRegistered();
+                        
+                        console.log('キャラクターメッセージを表示:', data.message);
                         
                         if (!isRegistered) {
                             AuthState.recordGuestMessage('assistant', data.message, character);
@@ -2111,11 +2110,18 @@
                 const cardInfo = cards.map(card => `【${card.position}】${card.name}`).join('\n');
                 const message = `以下のタロットカードについて、詳しく解説してください。\n${cardInfo}\n\n各カードの意味、3枚のカードの組み合わせから読み取れる全体的なメッセージ、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
                 
+                console.log('タロットカード解説リクエスト:', message);
+                
                 // メッセージを送信
                 const messageInputEl = document.getElementById('messageInput');
                 if (messageInputEl && window.sendMessage) {
                     messageInputEl.value = message;
+                    console.log('メッセージを送信します:', message);
                     await window.sendMessage();
+                } else {
+                    console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'window.sendMessage=', window.sendMessage);
+                    explanationButton.disabled = false;
+                    explanationButton.textContent = 'めくったカードの鑑定をしてもらう';
                 }
             });
             
