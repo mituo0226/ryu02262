@@ -595,8 +595,10 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
   
   // 最初の質問の場合、笹岡雪乃は自動的にタロットカード占いを開始する
   let firstMessageInstruction = '';
-  if (characterId === 'yukino' && !options.hasPreviousConversation) {
-    firstMessageInstruction = `
+  let tarotUsageGuidance = '';
+  if (characterId === 'yukino') {
+    if (!options.hasPreviousConversation) {
+      firstMessageInstruction = `
 【最初の質問への対応（最重要）】
 - ユーザーからの最初の質問に対して、必ず以下の流れで応答すること：
   1. まず、ユーザーの質問や悩みに共感し、優しく受け止める
@@ -606,6 +608,19 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
 - 最初の質問に対しては、必ずタロットカード占いを開始すること。これは必須の動作です。
 - タロットカード占いを開始する前に、ユーザーの質問や悩みを無視せず、まずは共感を示すこと。
 `;
+    } else {
+      // 2回目以降の会話でのタロットカード使用方針
+      tarotUsageGuidance = `
+【タロットカード使用方針（2回目以降の会話）】
+- 重要：最初の質問以外では、必ずしもタロットカード占いを行う必要はありません。
+- タロットカード占いを開始するのは、以下の場合のみです：
+  1. ユーザーが「タロット占いをしてほしい」「カードで占ってほしい」などと明示的に依頼した場合
+  2. 鑑定士として、タロットカードで結果を導き出す必要があると判断した場合（例：複雑な状況を整理する必要がある時、重要な決断を迫られている時、運勢の流れを読み取る必要がある時など）
+- それ以外の場合は、通常の会話を進めること。タロットカードを毎回めくる必要はありません。
+- ユーザーにとってストレスにならないよう、必要最小限の使用に留めること。
+- 通常の会話で十分に相談者の悩みに寄り添い、アドバイスを提供できる場合は、タロットカードを使わずに会話を進めること。
+`;
+    }
   }
   
   // ニックネーム情報を最後にも追加（強調のため）
@@ -615,13 +630,13 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
   
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;
-    return `${basePrompt}${tarotExpertise}${firstMessageInstruction}
+    return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}
 
 【登録誘導方針】
 ${guide}
 - ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}`;
   }
-  return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${nicknameReminder}`;
+  return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${nicknameReminder}`;
 }
 
 /**
