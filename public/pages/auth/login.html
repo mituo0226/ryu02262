@@ -248,10 +248,16 @@
 
     function getRedirectTarget() {
       if (!redirectParam) {
-        return '../main.html';
+        return '../welcome-back.html';
       }
       const decoded = decodeURIComponent(redirectParam);
-      return decoded || '../main.html';
+      
+      // chat-example.htmlへのリダイレクトを防ぐ（登録済みユーザーはchat.htmlを使用）
+      if (decoded && decoded.includes('chat-example.html')) {
+        return '../welcome-back.html';
+      }
+      
+      return decoded || '../welcome-back.html';
     }
 
     registerLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;

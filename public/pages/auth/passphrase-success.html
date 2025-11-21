@@ -237,11 +237,10 @@
       });
 
       continueBtn.addEventListener('click', () => {
-        if (redirect) {
-          location.href = redirect;
-        } else {
-          history.length > 1 ? history.back() : location.href = '/';
-        }
+        // ユーザー認証（ログイン）画面に遷移
+        // redirectパラメータをappraisers-list.htmlに設定して、ログイン成功後にwelcome-back.html経由でappraisers-list.htmlに遷移する
+        const loginRedirect = '../welcome-back.html';
+        location.href = `login.html?redirect=${encodeURIComponent(loginRedirect)}`;
       });
     })();
   </script>
