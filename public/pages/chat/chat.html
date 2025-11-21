@@ -401,12 +401,6 @@
             }
             .mobile-header {
                 display: block;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                z-index: 1000;
-                background: var(--bg-primary);
             }
             .chat-container {
                 padding: 0;
@@ -475,7 +469,7 @@
 </head>
 <body>
     <!-- モバイルヘッダー -->
-    <div class="mobile-header">
+    <div class="mobile-header" id="mobileHeader">
         <div class="mobile-header-content">
             <a href="../appraisers-list.html" class="mobile-header-back" id="mobileHeaderBack">≪</a>
             <div class="mobile-header-title" id="mobileHeaderTitle">鑑定士</div>
