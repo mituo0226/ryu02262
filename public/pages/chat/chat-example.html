@@ -959,10 +959,70 @@
         async function initPage() {
             initAuthState();
             
+            // 登録済みと判断される場合でも、サーバー側でユーザーが存在するか確認
             if (AuthState.isRegistered()) {
-                const character = getCharacterFromURL();
-                window.location.href = `chat.html?character=${character}`;
-                return;
+                const token = AuthState.getUserToken();
+                if (token) {
+                    try {
+                        // サーバー側でユーザーが存在するか確認（会話履歴APIで確認）
+                        const character = getCharacterFromURL();
+                        const response = await fetch(
+                            `/api/conversation-history?userToken=${encodeURIComponent(token)}&character=${encodeURIComponent(character)}`
+                        );
+                        
+                        // 401エラーまたはuser not foundエラーの場合、ユーザーは存在しない
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            if (response.status === 401 || errorData.error?.includes('user not found') || errorData.error?.includes('invalid user token')) {
+                                // ローカルストレージをクリアしてゲストユーザーとして扱う
+                                if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                                    AuthState.clearAuth();
+                                } else {
+                                    localStorage.removeItem('userToken');
+                                    localStorage.removeItem('userNickname');
+                                    localStorage.removeItem('assignedDeity');
+                                    localStorage.removeItem('hasAccount');
+                                }
+                                // ゲストユーザーとして続行
+                            } else {
+                                // その他のエラーの場合も、念のためローカルストレージをクリア
+                                if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                                    AuthState.clearAuth();
+                                } else {
+                                    localStorage.removeItem('userToken');
+                                    localStorage.removeItem('userNickname');
+                                    localStorage.removeItem('assignedDeity');
+                                    localStorage.removeItem('hasAccount');
+                                }
+                            }
+                        } else {
+                            // ユーザーが存在する場合、chat.htmlにリダイレクト
+                            window.location.href = `chat.html?character=${character}`;
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error checking user existence:', error);
+                        // エラーが発生した場合も、念のためローカルストレージをクリア
+                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                            AuthState.clearAuth();
+                        } else {
+                            localStorage.removeItem('userToken');
+                            localStorage.removeItem('userNickname');
+                            localStorage.removeItem('assignedDeity');
+                            localStorage.removeItem('hasAccount');
+                        }
+                    }
+                } else {
+                    // userTokenがない場合、ローカルストレージをクリア
+                    if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                        AuthState.clearAuth();
+                    } else {
+                        localStorage.removeItem('userToken');
+                        localStorage.removeItem('userNickname');
+                        localStorage.removeItem('assignedDeity');
+                        localStorage.removeItem('hasAccount');
+                    }
+                }
             }
             
             setupBirthSelects();
