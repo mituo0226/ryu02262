@@ -512,9 +512,10 @@
 
         function autoResizeInput() {
             if (!messageInput) return;
+            // 1段表示のため、高さを固定
             messageInput.style.height = 'auto';
-            const max = 160;
-            messageInput.style.height = Math.min(messageInput.scrollHeight, max) + 'px';
+            const fixedHeight = window.innerWidth <= 768 ? 40 : 46;
+            messageInput.style.height = fixedHeight + 'px';
         }
 
         function updateSendButtonVisibility() {
