@@ -225,7 +225,7 @@
                     // messageはURLパラメータから取得しているので、すでにデコードされている
                     const decodedMessage = decodeURIComponent(message);
                     
-                    const payload: any = {
+                    const payload = {
                         message: decodedMessage,
                         character,
                     };
