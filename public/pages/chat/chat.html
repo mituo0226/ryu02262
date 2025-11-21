@@ -656,8 +656,9 @@
             let message = template;
             const character = characterInfo[characterId];
             
-            // プレースホルダーを置換
-            message = message.replace(/{nickname}/g, nickname);
+            // プレースホルダーを置換（nicknameがnullまたはundefinedの場合は'あなた'を使用）
+            const safeNickname = nickname || 'あなた';
+            message = message.replace(/{nickname}/g, safeNickname);
             
             // lastDateの処理
             if (lastDate) {
