@@ -1197,23 +1197,40 @@
                             cardInner.style.transform = 'rotateY(180deg)';
                             flippedCards.add(card.position);
                             
+                            // カードをめくった瞬間に画面いっぱいに表示してフェードアウト
+                            showCardFullscreenFade(card.name, card.image);
+                            
                             // カードをめくった後にラベルを表示
                             setTimeout(() => {
                                 cardLabel.style.opacity = '1';
                                 cardNameLabel.style.opacity = '1';
                             }, 300);
-                            
-                            // すべてのカードがめくられたかチェック
-                            if (flippedCards.size === selectedCards.length) {
-                                allCardsFlipped = true;
-                                showExplanationButton(container, selectedCards);
-                            }
                         }
+                    });
+                    
+                    // カードを拡大するリンク
+                    const expandLink = document.createElement('div');
+                    expandLink.textContent = 'カードを拡大する';
+                    expandLink.style.fontSize = '12px';
+                    expandLink.style.color = 'rgba(255, 255, 255, 0.8)';
+                    expandLink.style.cursor = 'pointer';
+                    expandLink.style.marginTop = '8px';
+                    expandLink.style.textDecoration = 'underline';
+                    expandLink.style.transition = 'color 0.2s ease';
+                    expandLink.addEventListener('mouseenter', () => {
+                        expandLink.style.color = 'rgba(255, 255, 255, 1)';
+                    });
+                    expandLink.addEventListener('mouseleave', () => {
+                        expandLink.style.color = 'rgba(255, 255, 255, 0.8)';
+                    });
+                    expandLink.addEventListener('click', () => {
+                        showCardModal(card.name, card.image);
                     });
                     
                     cardWrapper.appendChild(cardLabel);
                     cardWrapper.appendChild(cardContainer);
                     cardWrapper.appendChild(cardNameLabel);
+                    cardWrapper.appendChild(expandLink);
                     cardsContainer.appendChild(cardWrapper);
                 });
                 
