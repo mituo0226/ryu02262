@@ -622,14 +622,24 @@
                     `/api/conversation-history?userToken=${encodeURIComponent(token)}&character=${encodeURIComponent(characterId)}`
                 );
                 
-                if (!response.ok) {
-                    // 404エラーの場合は会話履歴がないと判断（エラーを出さない）
-                    if (response.status === 404) {
-                        console.log('No conversation history found (404)');
-                        return null;
+                // レスポンスボディを一度だけ読み取る
+                const responseText = await response.text();
+                let data = null;
+                
+                try {
+                    if (responseText) {
+                        data = JSON.parse(responseText);
                     }
-                    // 401エラー（認証エラー）の場合はlocalStorageをクリア
-                    if (response.status === 401) {
+                } catch (e) {
+                    // JSON解析に失敗した場合は無視
+                }
+                
+                if (!response.ok) {
+                    // 401エラーまたは404エラーでuser not foundの場合
+                    if (response.status === 401 || 
+                        (response.status === 404 && data && data.error && 
+                         (data.error.includes('user not found') || data.error.includes('invalid user token')))) {
+                        // 認証情報をクリア
                         if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
                             AuthState.clearAuth();
                         } else {
@@ -637,18 +647,23 @@
                             localStorage.removeItem('userNickname');
                             localStorage.removeItem('assignedDeity');
                         }
-                        // ログインページにリダイレクト
-                        window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                        // chat-example.htmlにリダイレクト（ゲストユーザーとして扱う）
+                        window.location.href = `chat-example.html?character=${encodeURIComponent(characterId)}`;
                         return null;
                     }
+                    
+                    // 404エラーで会話履歴がないだけの場合
+                    if (response.status === 404) {
+                        console.log('No conversation history found (404)');
+                        return null;
+                    }
+                    
                     console.warn('Failed to load conversation history:', response.status);
                     return null;
                 }
-
-                const data = await response.json();
                 
-                // エラーレスポンスの場合（user not foundなど）
-                if (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token'))) {
+                // エラーレスポンスの場合（念のためチェック）
+                if (data && data.error && (data.error.includes('user not found') || data.error.includes('invalid user token'))) {
                     if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
                         AuthState.clearAuth();
                     } else {
@@ -656,8 +671,8 @@
                         localStorage.removeItem('userNickname');
                         localStorage.removeItem('assignedDeity');
                     }
-                    // ログインページにリダイレクト
-                    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                    // chat-example.htmlにリダイレクト（ゲストユーザーとして扱う）
+                    window.location.href = `chat-example.html?character=${encodeURIComponent(characterId)}`;
                     return null;
                 }
                 
@@ -815,8 +830,12 @@
         async function initPage() {
             initAuthState();
             
+            // ゲストユーザー（未登録）の場合はchat-example.htmlにリダイレクト
             if (!AuthState.isRegistered()) {
-                window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                // URLパラメータから鑑定士IDを取得
+                const urlParams = new URLSearchParams(window.location.search);
+                const character = urlParams.get('character') || 'kaede';
+                window.location.href = `chat-example.html?character=${encodeURIComponent(character)}`;
                 return;
             }
 
@@ -848,6 +867,11 @@
 
             try {
                 const historyData = await loadConversationHistory(character);
+                
+                // loadConversationHistoryでリダイレクトされた場合は処理を中断
+                if (!historyData && !AuthState.isRegistered()) {
+                    return;
+                }
                 
                 // ゲスト履歴をチェック（sessionStorageから移行待ちの履歴を確認）
                 let guestHistory = [];
