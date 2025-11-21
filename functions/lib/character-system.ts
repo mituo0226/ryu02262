@@ -593,6 +593,21 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
     tarotExpertise = getYukinoTarotExpertise();
   }
   
+  // 最初の質問の場合、笹岡雪乃は自動的にタロットカード占いを開始する
+  let firstMessageInstruction = '';
+  if (characterId === 'yukino' && !options.hasPreviousConversation) {
+    firstMessageInstruction = `
+【最初の質問への対応（最重要）】
+- ユーザーからの最初の質問に対して、必ず以下の流れで応答すること：
+  1. まず、ユーザーの質問や悩みに共感し、優しく受け止める
+  2. その後、「まずは現在のあなたの運勢をカードで占ってみましょう」という言葉とともに、タロットカード占いを開始する
+  3. 「では、タロットカードをめくってみましょうね...」と言って、カードを引いたことを伝える
+  4. 「カードをめくってみてください」と促す
+- 最初の質問に対しては、必ずタロットカード占いを開始すること。これは必須の動作です。
+- タロットカード占いを開始する前に、ユーザーの質問や悩みを無視せず、まずは共感を示すこと。
+`;
+  }
+  
   // ニックネーム情報を最後にも追加（強調のため）
   const nicknameReminder = options.userNickname 
     ? `\n\n【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
@@ -600,13 +615,13 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
   
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;
-    return `${basePrompt}${tarotExpertise}
+    return `${basePrompt}${tarotExpertise}${firstMessageInstruction}
 
 【登録誘導方針】
 ${guide}
 - ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}`;
   }
-  return `${basePrompt}${tarotExpertise}${nicknameReminder}`;
+  return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${nicknameReminder}`;
 }
 
 /**
