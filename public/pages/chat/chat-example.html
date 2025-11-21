@@ -1636,77 +1636,6 @@
                 detectAndDisplayTarotCards(text, messageDiv);
             }
 
-            // タロットカードを表示する場合（旧実装）
-            if (metadata.showTarotCard) {
-                const tarotContainer = document.createElement('div');
-                tarotContainer.className = 'tarot-card-container';
-                
-                const tarotCard = document.createElement('div');
-                tarotCard.className = 'tarot-card';
-                
-                const cardBack = document.createElement('div');
-                cardBack.className = 'tarot-card-face tarot-card-back';
-                
-                const cardFront = document.createElement('div');
-                cardFront.className = 'tarot-card-face tarot-card-front';
-                
-                // タロットカードの名前と意味をランダムに選択
-                const tarotCards = [
-                    { name: '愚者', meaning: '新しい始まり、自由、冒険' },
-                    { name: '魔術師', meaning: '創造力、意志力、可能性' },
-                    { name: '女教皇', meaning: '直感、内なる知恵、神秘' },
-                    { name: '女帝', meaning: '豊かさ、母性、自然' },
-                    { name: '皇帝', meaning: '権威、安定、構造' },
-                    { name: '教皇', meaning: '伝統、精神的な導き、儀式' },
-                    { name: '恋人', meaning: '選択、調和、関係性' },
-                    { name: '戦車', meaning: '勝利、意志、コントロール' },
-                    { name: '力', meaning: '内なる強さ、忍耐、優しさ' },
-                    { name: '隠者', meaning: '内省、探求、導き' },
-                    { name: '運命の輪', meaning: '運命、循環、変化' },
-                    { name: '正義', meaning: 'バランス、公正、真実' },
-                    { name: '吊られた男', meaning: '犠牲、新しい視点、待機' },
-                    { name: '死神', meaning: '終わりと始まり、変容、解放' },
-                    { name: '節制', meaning: '調和、バランス、節度' },
-                    { name: '悪魔', meaning: '束縛、誘惑、物質主義' },
-                    { name: '塔', meaning: '突然の変化、解放、啓示' },
-                    { name: '星', meaning: '希望、インスピレーション、癒し' },
-                    { name: '月', meaning: '不安、幻想、無意識' },
-                    { name: '太陽', meaning: '喜び、成功、活力' },
-                    { name: '審判', meaning: '再生、評価、覚醒' },
-                    { name: '世界', meaning: '完成、達成、統合' }
-                ];
-                
-                const selectedCard = tarotCards[Math.floor(Math.random() * tarotCards.length)];
-                
-                const cardName = document.createElement('div');
-                cardName.className = 'tarot-card-name';
-                cardName.textContent = selectedCard.name;
-                
-                const cardMeaning = document.createElement('div');
-                cardMeaning.className = 'tarot-card-meaning';
-                cardMeaning.textContent = selectedCard.meaning;
-                
-                cardFront.appendChild(cardName);
-                cardFront.appendChild(cardMeaning);
-                
-                tarotCard.appendChild(cardBack);
-                tarotCard.appendChild(cardFront);
-                
-                // カードをクリック/タップでめくる
-                tarotCard.addEventListener('click', () => {
-                    tarotCard.classList.toggle('flipped');
-                });
-                
-                tarotContainer.appendChild(tarotCard);
-                
-                const hint = document.createElement('div');
-                hint.className = 'tarot-card-hint';
-                hint.textContent = 'カードをタップしてめくってください';
-                tarotContainer.appendChild(hint);
-                
-                messageDiv.appendChild(tarotContainer);
-            }
-
             messagesDiv.appendChild(messageDiv);
             scrollToLatest();
 
@@ -1938,7 +1867,7 @@
             '世界': 'THE WORLD.png',
         };
 
-        // タロットカード名を検出して画像を表示
+        // タロットカード名を検出して裏面カードを表示（クリックでめくれる）
         function detectAndDisplayTarotCards(text, container) {
             const cardNames = Object.keys(tarotCardImageMap);
             const detectedCards = [];
@@ -1961,7 +1890,7 @@
                 }
             }
             
-            // カード画像を表示
+            // カードを裏面から表示（クリックでめくれる）
             if (detectedCards.length > 0) {
                 const cardsContainer = document.createElement('div');
                 cardsContainer.style.display = 'flex';
@@ -1969,6 +1898,7 @@
                 cardsContainer.style.gap = '12px';
                 cardsContainer.style.marginTop = '12px';
                 cardsContainer.style.justifyContent = 'center';
+                cardsContainer.style.alignItems = 'center';
                 
                 detectedCards.forEach(card => {
                     const cardWrapper = document.createElement('div');
@@ -1983,34 +1913,99 @@
                     cardLabel.style.color = 'rgba(255, 255, 255, 0.8)';
                     cardLabel.style.fontWeight = '600';
                     
+                    // カードコンテナ（3D flip用）
+                    const cardContainer = document.createElement('div');
+                    cardContainer.className = 'tarot-flip-card';
+                    cardContainer.style.position = 'relative';
+                    cardContainer.style.width = '80px';
+                    cardContainer.style.height = '120px';
+                    cardContainer.style.perspective = '1000px';
+                    cardContainer.style.cursor = 'pointer';
+                    
+                    // カード本体
+                    const cardInner = document.createElement('div');
+                    cardInner.className = 'tarot-flip-card-inner';
+                    cardInner.style.position = 'relative';
+                    cardInner.style.width = '100%';
+                    cardInner.style.height = '100%';
+                    cardInner.style.transition = 'transform 0.6s';
+                    cardInner.style.transformStyle = 'preserve-3d';
+                    
+                    // 裏面（カードの裏）
+                    const cardBack = document.createElement('div');
+                    cardBack.className = 'tarot-flip-card-back';
+                    cardBack.style.position = 'absolute';
+                    cardBack.style.width = '100%';
+                    cardBack.style.height = '100%';
+                    cardBack.style.backfaceVisibility = 'hidden';
+                    cardBack.style.borderRadius = '8px';
+                    cardBack.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    cardBack.style.boxShadow = '0 4px 12px rgba(138, 43, 226, 0.4)';
+                    cardBack.style.display = 'flex';
+                    cardBack.style.alignItems = 'center';
+                    cardBack.style.justifyContent = 'center';
+                    
+                    const backPattern = document.createElement('div');
+                    backPattern.style.width = '60px';
+                    backPattern.style.height = '60px';
+                    backPattern.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                    backPattern.style.borderRadius = '4px';
+                    backPattern.style.background = 'rgba(255, 255, 255, 0.1)';
+                    cardBack.appendChild(backPattern);
+                    
+                    // 表面（カードの画像）
+                    const cardFront = document.createElement('div');
+                    cardFront.className = 'tarot-flip-card-front';
+                    cardFront.style.position = 'absolute';
+                    cardFront.style.width = '100%';
+                    cardFront.style.height = '100%';
+                    cardFront.style.backfaceVisibility = 'hidden';
+                    cardFront.style.transform = 'rotateY(180deg)';
+                    cardFront.style.borderRadius = '8px';
+                    cardFront.style.overflow = 'hidden';
+                    
                     const cardImage = document.createElement('img');
                     cardImage.src = `../../photo/TAROT/${card.image}`;
                     cardImage.alt = card.name;
                     cardImage.title = card.name;
-                    cardImage.style.width = '80px';
-                    cardImage.style.height = 'auto';
-                    cardImage.style.borderRadius = '8px';
-                    cardImage.style.boxShadow = '0 4px 12px rgba(138, 43, 226, 0.4)';
+                    cardImage.style.width = '100%';
+                    cardImage.style.height = '100%';
+                    cardImage.style.objectFit = 'cover';
                     cardImage.style.cursor = 'pointer';
-                    cardImage.style.transition = 'transform 0.2s ease';
-                    
-                    // ホバーエフェクト
-                    cardImage.addEventListener('mouseenter', () => {
-                        cardImage.style.transform = 'scale(1.1)';
-                    });
-                    cardImage.addEventListener('mouseleave', () => {
-                        cardImage.style.transform = 'scale(1)';
-                    });
                     
                     // クリックで拡大表示
-                    cardImage.addEventListener('click', () => {
+                    cardImage.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         showCardModal(card.name, card.image);
                     });
                     
+                    cardFront.appendChild(cardImage);
+                    
+                    cardInner.appendChild(cardBack);
+                    cardInner.appendChild(cardFront);
+                    cardContainer.appendChild(cardInner);
+                    
+                    // クリックでカードをめくる
+                    let isFlipped = false;
+                    cardContainer.addEventListener('click', () => {
+                        isFlipped = !isFlipped;
+                        cardInner.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+                    });
+                    
                     cardWrapper.appendChild(cardLabel);
-                    cardWrapper.appendChild(cardImage);
+                    cardWrapper.appendChild(cardContainer);
                     cardsContainer.appendChild(cardWrapper);
                 });
+                
+                // ヒントメッセージ
+                const hint = document.createElement('div');
+                hint.style.width = '100%';
+                hint.style.textAlign = 'center';
+                hint.style.marginTop = '8px';
+                hint.style.fontSize = '12px';
+                hint.style.color = 'rgba(255, 255, 255, 0.7)';
+                hint.textContent = 'カードをタップしてめくってください';
+                cardsContainer.appendChild(hint);
                 
                 container.appendChild(cardsContainer);
             }
