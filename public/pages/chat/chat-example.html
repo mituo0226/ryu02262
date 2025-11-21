@@ -755,25 +755,9 @@
         // 初回訪問者向けウェルカムメッセージを表示
         function showWelcomeMessage(characterId) {
             const info = characterInfo[characterId] || characterInfo.kaede;
-            const isRegistered = AuthState.isRegistered();
             
-            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
-            let nickname = 'あなた';
-            if (isRegistered) {
-                const token = AuthState.getUserToken();
-                if (token) {
-                    nickname = userNickname || localStorage.getItem('userNickname') || 'あなた';
-                } else {
-                    nickname = 'あなた';
-                }
-            }
-            
-            let message = '';
-            if (isRegistered && nickname !== 'あなた') {
-                message = `${nickname}さん、初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
-            } else {
-                message = `初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
-            }
+            // ゲストユーザー専用ページなので、常に「あなた」として扱う
+            const message = `初めまして。${info.name}です。\n\n初めてのご訪問、ありがとうございます。どのようなご相談がございますか？お気軽にお話しください。`;
             
             addMessage('welcome', message, info.name);
         }
@@ -809,16 +793,9 @@
         // 会話履歴に基づく再訪問メッセージを表示
         function showReturningUserMessage(characterId, historyData) {
             const info = characterInfo[characterId] || characterInfo.kaede;
-            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
-            let nickname = 'あなた';
-            if (AuthState.isRegistered() && AuthState.getUserToken()) {
-                nickname = historyData.nickname || userNickname || localStorage.getItem('userNickname') || 'あなた';
-            } else {
-                nickname = 'あなた';
-            }
-            if (AuthState.isRegistered() && AuthState.getUserToken()) {
-                userNickname = nickname;
-            }
+            // ゲストユーザー専用ページなので、常に「あなた」として扱う
+            // （登録済みユーザーはchat.htmlにリダイレクトされるため、ここには来ないはず）
+            const nickname = 'あなた';
 
             let message = '';
             
@@ -829,7 +806,7 @@
                     .reverse()
                     .find(msg => msg.role === 'user');
                 
-                message = `${nickname}さん、おかえりなさい。${info.name}です。\n\n`;
+                message = `おかえりなさい。${info.name}です。\n\n`;
                 
                 if (lastDate) {
                     message += `前回は${lastDate}に会話をさせていただきましたね。`;
@@ -844,7 +821,7 @@
                 
                 message += `\n\n今日はどのようなご相談がございますか？前回の続きから始めても、新しい話題でも、どちらでも構いません。お気軽にお話しください。`;
             } else {
-                message = `${nickname}さん、おかえりなさい。${info.name}です。\n\n今日はどのようなご相談がございますか？お気軽にお話しください。`;
+                message = `おかえりなさい。${info.name}です。\n\n今日はどのようなご相談がございますか？お気軽にお話しください。`;
             }
 
             addMessage('welcome', message, info.name);
@@ -943,12 +920,8 @@
         function openRegistrationModal(characterId) {
             const info = characterInfo[characterId] || characterInfo.kaede;
             modalLeadText.textContent = `${info.name} が正式登録をおすすめしています。`;
-            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
-            if (AuthState.isRegistered() && AuthState.getUserToken()) {
-                modalNickname.value = localStorage.getItem('userNickname') || '';
-            } else {
-                modalNickname.value = '';
-            }
+            // ゲストユーザー専用ページなので、ニックネーム入力欄は常に空
+            modalNickname.value = '';
             modalResultMessage.textContent = '';
             registerModal.classList.add('active');
             registerModal.setAttribute('aria-hidden', 'false');
@@ -1128,10 +1101,13 @@
             const currentUrl = window.location.href;
             const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
             
+            console.log('Transitioning to animation:', animationUrl);
+            
             document.body.style.transition = 'opacity 0.5s ease';
             document.body.style.opacity = '0';
             
             await delay(500);
+            console.log('Navigating to:', animationUrl);
             window.location.href = animationUrl;
         }
 
