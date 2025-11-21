@@ -898,6 +898,10 @@
             }, 50);
         }
 
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         // 送信ボタンの表示/非表示
         function updateSendButtonVisibility() {
             if (!sendButton || !messageInput) return;
@@ -1080,8 +1084,6 @@
             });
         }
 
-        window.addEventListener('DOMContentLoaded', initPage);
-
         async function sendMessage() {
             const message = messageInput.value.trim();
             const character = characterSelect.value;
@@ -1106,6 +1108,8 @@
             const historyForRequest = getClientHistoryPayload(character, includeGuestHistory);
 
             addMessage('user', message, 'あなた');
+            await delay(100);
+            scrollToLatest();
 
             if (!isRegistered) {
                 AuthState.recordGuestMessage('user', message, character);
@@ -1114,87 +1118,25 @@
 
             messageInput.value = '';
             updateSendButtonVisibility();
-            sendButton.disabled = true;
-            const loadingId = addMessage('loading', '応答を生成中...', '');
-
-            const payload = {
-                message,
-                character,
+            
+            if (sendButton) sendButton.disabled = true;
+            
+            const messageToSend = message;
+            const userMessageData = {
+                message: messageToSend,
+                character: character,
+                timestamp: new Date().toISOString()
             };
-
-            if (isRegistered) {
-                cachedUserToken = AuthState.getUserToken();
-                payload.userToken = cachedUserToken;
-                if (AuthState.hasPendingHistoryTransfer(character) && historyForRequest.length > 0) {
-                    payload.clientHistory = historyForRequest;
-                    payload.migrateHistory = true;
-                }
-            } else {
-                // 鑑定士ごとのメッセージカウントを送信
-                payload.guestMetadata = { messageCount: guestCountForCharacter };
-                if (historyForRequest.length > 0) {
-                    payload.clientHistory = historyForRequest;
-                }
-            }
-
-            try {
-                const response = await fetch('/api/consult', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-
-                const data = await response.json();
-                removeMessage(loadingId);
-
-                if (data.needsRegistration) {
-                    addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
-                    openRegistrationModal(character);
-                    return;
-                }
-
-                if (!response.ok || data.error) {
-                    const errorMessage = data.error || 'エラーが発生しました';
-                    if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
-                        addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
-                        if (window.AuthState) {
-                            AuthState.clearAuth();
-                        }
-                    } else {
-                        addMessage('error', errorMessage, 'システム');
-                    }
-                    return;
-                }
-
-                if (data.isInappropriate) {
-                    addMessage('warning', data.message, data.characterName, {
-                        detectedKeywords: data.detectedKeywords,
-                    });
-                    if (!isRegistered) {
-                        AuthState.recordGuestMessage('assistant', data.message, character);
-                    }
-                    return;
-                }
-
-                if (!isRegistered) {
-                    AuthState.recordGuestMessage('assistant', data.message, character);
-                } else if (payload.migrateHistory) {
-                    AuthState.completeHistoryTransfer(character);
-                    AuthState.resetGuestProgress();
-                }
-
-                addMessage('character', data.message, data.characterName, {
-                    detectedKeywords: data.detectedKeywords,
-                });
-
-                scrollToLatest();
-            } catch (error) {
-                removeMessage(loadingId);
-                addMessage('error', '通信エラーが発生しました: ' + error.message, 'システム');
-            } finally {
-                sendButton.disabled = false;
-                messageInput.focus();
-            }
+            sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
+            
+            const currentUrl = window.location.href;
+            const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
+            
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '0';
+            
+            await delay(500);
+            window.location.href = animationUrl;
         }
 
         function addMessage(type, text, sender, metadata = {}) {
@@ -1311,7 +1253,106 @@
             }
         }
 
+        // アニメーション画面から戻ってきた時の処理
+        function handleReturnFromAnimation() {
+            const lastUserMessage = sessionStorage.getItem('lastUserMessage');
+            const consultResponse = sessionStorage.getItem('lastConsultResponse');
+
+            if (lastUserMessage) {
+                try {
+                    const userMsgData = JSON.parse(lastUserMessage);
+                    const existingUserMessages = messagesDiv.querySelectorAll('.message.user');
+                    const messageTexts = Array.from(existingUserMessages).map(msg => {
+                        const textDiv = msg.querySelector('div:last-child');
+                        return textDiv ? textDiv.textContent.trim() : '';
+                    });
+                    
+                    const messageToCheck = userMsgData.message.trim();
+                    const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
+                    
+                    if (!messageExists) {
+                        addMessage('user', userMsgData.message, 'あなた');
+                        if (messageInput) messageInput.blur();
+                        setTimeout(() => scrollToLatest(), 200);
+                    }
+                    
+                    sessionStorage.removeItem('lastUserMessage');
+                } catch (error) {
+                    console.error('Error parsing user message:', error);
+                }
+            }
+
+            if (consultResponse) {
+                try {
+                    const data = JSON.parse(consultResponse);
+                    
+                    if (data.needsRegistration) {
+                        addMessage('warning', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
+                        openRegistrationModal(characterSelect.value);
+                        return;
+                    }
+                    
+                    if (data.error) {
+                        const errorMessage = data.error || 'エラーが発生しました';
+                        if (errorMessage.includes('user not found') || errorMessage.includes('invalid user token')) {
+                            addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                            if (window.AuthState) {
+                                AuthState.clearAuth();
+                            }
+                        } else {
+                            addMessage('error', errorMessage, 'システム');
+                        }
+                        return;
+                    }
+
+                    if (data.isInappropriate) {
+                        addMessage('warning', data.message, data.characterName, {
+                            detectedKeywords: data.detectedKeywords,
+                        });
+                        const character = characterSelect.value;
+                        if (!AuthState.isRegistered()) {
+                            AuthState.recordGuestMessage('assistant', data.message, character);
+                        }
+                        return;
+                    }
+
+                    if (data.message) {
+                        const character = characterSelect.value;
+                        const isRegistered = AuthState.isRegistered();
+                        
+                        if (!isRegistered) {
+                            AuthState.recordGuestMessage('assistant', data.message, character);
+                        }
+                        
+                        addMessage('character', data.message, data.characterName, {
+                            detectedKeywords: data.detectedKeywords,
+                        });
+                        if (messageInput) messageInput.blur();
+                        setTimeout(() => scrollToLatest(), 100);
+                    } else {
+                        addMessage('error', '返信が取得できませんでした', 'システム');
+                    }
+                    
+                    sessionStorage.removeItem('lastConsultResponse');
+                } catch (error) {
+                    console.error('Error parsing consult response:', error);
+                }
+            }
+            
+            if (sendButton) sendButton.disabled = false;
+            if (messageInput) messageInput.blur();
+            
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '1';
+        }
+
         window.sendMessage = sendMessage;
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initPage();
+            setTimeout(() => {
+                handleReturnFromAnimation();
+            }, 100);
+        });
     </script>
 </body>
 </html>
