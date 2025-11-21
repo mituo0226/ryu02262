@@ -235,9 +235,18 @@
                         payload.userToken = userToken;
                     } else {
                         // ゲストユーザーの場合、guestMetadataを追加
-                        const guestCount = (window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
-                            ? window.AuthState.getGuestMessageCount() 
-                            : 0;
+                        // 鑑定士ごとのメッセージカウントを取得（chat-example.htmlで使用）
+                        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+                        const key = GUEST_COUNT_KEY_PREFIX + character;
+                        const characterSpecificCount = sessionStorage.getItem(key);
+                        const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
+                        
+                        // 鑑定士ごとのカウントが存在する場合はそれを使用、なければ全体のカウントを使用
+                        const guestCount = guestCountForCharacter > 0 
+                            ? guestCountForCharacter 
+                            : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
+                                ? window.AuthState.getGuestMessageCount() 
+                                : 0);
                         payload.guestMetadata = { messageCount: guestCount };
                     }
 
