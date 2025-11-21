@@ -1301,6 +1301,13 @@
                         });
                         if (messageInput) messageInput.blur();
                         setTimeout(() => scrollToLatest(), 100);
+                        
+                        // 登録を促すフラグが立っている場合、メッセージ表示後に登録モーダルを開く
+                        if (data.registrationSuggested && !isRegistered) {
+                            setTimeout(() => {
+                                openRegistrationModal(character);
+                            }, 2000); // メッセージを読んだ後、2秒後にモーダルを開く
+                        }
                     } else {
                         addMessage('error', '返信が取得できませんでした', 'システム');
                     }
