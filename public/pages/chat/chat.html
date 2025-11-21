@@ -238,10 +238,10 @@
             align-items: center;
             justify-content: space-between;
             padding: 6px 10px;
-            background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(78, 4, 122, 0.3));
-            border-bottom: 1px solid rgba(138, 43, 226, 0.4);
+            background: var(--bg-primary);
+            border-bottom: 1px solid rgba(138, 43, 226, 0.3);
             position: relative;
-            z-index: 100;
+            z-index: 1000;
         }
         .mobile-header-back {
             background: none;
@@ -406,6 +406,7 @@
                 left: 0;
                 right: 0;
                 z-index: 1000;
+                background: var(--bg-primary);
             }
             .chat-container {
                 padding: 0;
