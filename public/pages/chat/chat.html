@@ -823,6 +823,27 @@
             try {
                 const historyData = await loadConversationHistory(character);
                 
+                // ゲスト履歴をチェック
+                let guestHistory = [];
+                if (window.AuthState && typeof window.AuthState.getGuestHistory === 'function') {
+                    guestHistory = AuthState.getGuestHistory(character) || [];
+                }
+                
+                // ゲスト履歴がある場合は表示
+                if (guestHistory.length > 0) {
+                    const info = characterInfo[character];
+                    guestHistory.forEach((entry) => {
+                        const type = entry.role === 'user' ? 'user' : 'character';
+                        const sender = entry.role === 'user' ? 'あなた' : info.name;
+                        addMessage(type, entry.content, sender);
+                    });
+                    // ゲスト履歴を移行するフラグを設定
+                    sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                        character: character,
+                        history: guestHistory
+                    }));
+                }
+                
                 if (historyData && historyData.hasHistory) {
                     conversationHistory = historyData;
                     userNickname = historyData.nickname || userNickname;
@@ -831,18 +852,43 @@
                 } else if (historyData && historyData.nickname) {
                     userNickname = historyData.nickname;
                     const info = characterInfo[character];
-                    const firstTimeMessage = generateFirstTimeMessage(character, userNickname);
-                    addMessage('welcome', firstTimeMessage, info.name);
+                    // ゲスト履歴がある場合は初回メッセージを表示しない
+                    if (guestHistory.length === 0) {
+                        const firstTimeMessage = generateFirstTimeMessage(character, userNickname);
+                        addMessage('welcome', firstTimeMessage, info.name);
+                    }
                 } else {
                     const info = characterInfo[character];
-                    const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
-                    addMessage('welcome', firstTimeMessage, info.name);
+                    // ゲスト履歴がある場合は初回メッセージを表示しない
+                    if (guestHistory.length === 0) {
+                        const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
+                        addMessage('welcome', firstTimeMessage, info.name);
+                    }
                 }
             } catch (error) {
                 console.error('Error loading conversation history:', error);
                 const info = characterInfo[character];
-                const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
-                addMessage('welcome', firstTimeMessage, info.name);
+                // ゲスト履歴をチェック
+                let guestHistory = [];
+                if (window.AuthState && typeof window.AuthState.getGuestHistory === 'function') {
+                    guestHistory = AuthState.getGuestHistory(character) || [];
+                }
+                // ゲスト履歴がある場合は表示
+                if (guestHistory.length > 0) {
+                    guestHistory.forEach((entry) => {
+                        const type = entry.role === 'user' ? 'user' : 'character';
+                        const sender = entry.role === 'user' ? 'あなた' : info.name;
+                        addMessage(type, entry.content, sender);
+                    });
+                    // ゲスト履歴を移行するフラグを設定
+                    sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                        character: character,
+                        history: guestHistory
+                    }));
+                } else {
+                    const firstTimeMessage = generateFirstTimeMessage(character, userNickname || 'あなた');
+                    addMessage('welcome', firstTimeMessage, info.name);
+                }
             }
 
             messageInput.addEventListener('keydown', (e) => {
@@ -1005,12 +1051,29 @@
                         }
                     } else if (data.isInappropriate) {
                         addMessage('warning', data.message, data.characterName);
-                    } else if (data.message) {
+                    } else                     if (data.message) {
                         addMessage('character', data.message, data.characterName);
                         if (messageInput) messageInput.blur();
                         setTimeout(() => scrollToLatest(), 100);
                     } else {
                         addMessage('error', '返信が取得できませんでした', 'システム');
+                    }
+                    
+                    // ゲスト履歴の移行が完了した場合、クリア
+                    const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                    if (pendingMigration) {
+                        try {
+                            const migrationData = JSON.parse(pendingMigration);
+                            if (migrationData.character === currentCharacter) {
+                                // ゲスト履歴をクリア
+                                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                                    AuthState.clearGuestHistory(migrationData.character);
+                                }
+                                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                            }
+                        } catch (error) {
+                            console.error('Error clearing guest history:', error);
+                        }
                     }
                     
                     sessionStorage.removeItem('lastConsultResponse');

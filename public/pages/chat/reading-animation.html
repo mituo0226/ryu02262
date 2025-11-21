@@ -233,6 +233,24 @@
                     // 登録済みユーザーの場合のみuserTokenを追加
                     if (userToken) {
                         payload.userToken = userToken;
+                        
+                        // ゲスト履歴の移行をチェック
+                        const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                        if (pendingMigration) {
+                            try {
+                                const migrationData = JSON.parse(pendingMigration);
+                                if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
+                                    // ゲスト履歴を移行
+                                    payload.migrateHistory = true;
+                                    payload.history = migrationData.history.map((entry) => ({
+                                        role: entry.role,
+                                        content: entry.content,
+                                    }));
+                                }
+                            } catch (error) {
+                                console.error('Error parsing pending guest history migration:', error);
+                            }
+                        }
                     } else {
                         // ゲストユーザーの場合、guestMetadataを追加
                         // 鑑定士ごとのメッセージカウントを取得（chat-example.htmlで使用）
