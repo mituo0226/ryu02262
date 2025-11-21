@@ -3,6 +3,271 @@
  * Cloudflare Pages Functions用の簡易実装
  */
 
+/**
+ * タロット占いシステム（笹岡雪乃専用）
+ */
+
+export interface TarotCard {
+  id: number;
+  name: string;
+  japaneseName: string;
+  arcana: 'major' | 'minor';
+  suit?: 'wands' | 'cups' | 'swords' | 'pentacles';
+  number?: number;
+  upright: string[];
+  reversed: string[];
+  symbolism: string;
+}
+
+// 大アルカナカード定義（22枚）
+export const majorArcana: TarotCard[] = [
+  {
+    id: 0,
+    name: 'The Fool',
+    japaneseName: '愚者',
+    arcana: 'major',
+    upright: ['新しい始まり', '無邪気', '自由', '冒険', '可能性'],
+    reversed: ['無謀', '不注意', '遅延', '判断ミス'],
+    symbolism: '無限の可能性と新たな旅の始まり'
+  },
+  {
+    id: 1,
+    name: 'The Magician',
+    japaneseName: '魔術師',
+    arcana: 'major',
+    upright: ['意志', '創造力', 'スキル', '行動力', '集中力'],
+    reversed: ['操作', '無力感', '意志薄弱', '悪用'],
+    symbolism: '創造的な力と実現への意志'
+  },
+  {
+    id: 2,
+    name: 'The High Priestess',
+    japaneseName: '女教皇',
+    arcana: 'major',
+    upright: ['直感', '内なる知恵', '秘密', '受動性', '神秘'],
+    reversed: ['秘密の漏洩', '無知', '感情の欠如', '内面の混乱'],
+    symbolism: '内なる知恵と直感の力'
+  },
+  {
+    id: 3,
+    name: 'The Empress',
+    japaneseName: '女帝',
+    arcana: 'major',
+    upright: ['豊かさ', '母性', '自然', '創造性', '美'],
+    reversed: ['依存', '創造性の欠如', '不妊', '怠惰'],
+    symbolism: '豊かさと母性の力'
+  },
+  {
+    id: 4,
+    name: 'The Emperor',
+    japaneseName: '皇帝',
+    arcana: 'major',
+    upright: ['権威', '構造', '安定', '父性', '支配'],
+    reversed: ['支配欲', '硬直性', '権力の乱用', '不寛容'],
+    symbolism: '秩序と権威の力'
+  },
+  {
+    id: 5,
+    name: 'The Hierophant',
+    japaneseName: '法王',
+    arcana: 'major',
+    upright: ['伝統', '宗教', '儀式', '教育', '精神的な指導'],
+    reversed: ['非伝統的', '反逆', '個人の信念', '柔軟性'],
+    symbolism: '伝統と精神的な導き'
+  },
+  {
+    id: 6,
+    name: 'The Lovers',
+    japaneseName: '恋人',
+    arcana: 'major',
+    upright: ['愛', '関係性', '選択', '調和', '結合'],
+    reversed: ['不調和', '不均衡', '誤った選択', '誘惑'],
+    symbolism: '愛と選択の力'
+  },
+  {
+    id: 7,
+    name: 'The Chariot',
+    japaneseName: '戦車',
+    arcana: 'major',
+    upright: ['勝利', '意志', '決断', '自己制御', '成功'],
+    reversed: ['敗北', '自己制御の欠如', '攻撃性', '方向性の欠如'],
+    symbolism: '勝利への意志と決断力'
+  },
+  {
+    id: 8,
+    name: 'Strength',
+    japaneseName: '力',
+    arcana: 'major',
+    upright: ['内なる力', '勇気', '忍耐', '自己制御', '優しさ'],
+    reversed: ['弱さ', '自己不信', '無力感', '内なる悪'],
+    symbolism: '内なる強さと勇気'
+  },
+  {
+    id: 9,
+    name: 'The Hermit',
+    japaneseName: '隠者',
+    arcana: 'major',
+    upright: ['内省', '検索', '孤独', '精神的な導き', '内なる知恵'],
+    reversed: ['孤立', '隠遁', '孤独', '内省の欠如'],
+    symbolism: '内なる導きと内省'
+  },
+  {
+    id: 10,
+    name: 'Wheel of Fortune',
+    japaneseName: '運命の輪',
+    arcana: 'major',
+    upright: ['運命', '変化', 'サイクル', '運', '転機'],
+    reversed: ['不運', '抵抗', '変化への恐れ', '運命の逆転'],
+    symbolism: '運命のサイクルと変化'
+  },
+  {
+    id: 11,
+    name: 'Justice',
+    japaneseName: '正義',
+    arcana: 'major',
+    upright: ['正義', '公平', '真実', '責任', 'バランス'],
+    reversed: ['不公平', '不正', '責任の回避', '不均衡'],
+    symbolism: '正義と公平の力'
+  },
+  {
+    id: 12,
+    name: 'The Hanged Man',
+    japaneseName: '吊された男',
+    arcana: 'major',
+    upright: ['犠牲', '待機', '新しい視点', '内省', '解放'],
+    reversed: ['遅延', '抵抗', '犠牲の拒否', '停滞'],
+    symbolism: '新しい視点と犠牲'
+  },
+  {
+    id: 13,
+    name: 'Death',
+    japaneseName: '死神',
+    arcana: 'major',
+    upright: ['終わり', '変化', '変容', '新しい始まり', '解放'],
+    reversed: ['抵抗', '停滞', '変化への恐れ', '終わりの拒否'],
+    symbolism: '終わりと新しい始まり'
+  },
+  {
+    id: 14,
+    name: 'Temperance',
+    japaneseName: '節制',
+    arcana: 'major',
+    upright: ['バランス', '節制', '調和', '忍耐', '適度'],
+    reversed: ['不均衡', '過剰', '自己制御の欠如', '極端'],
+    symbolism: 'バランスと調和'
+  },
+  {
+    id: 15,
+    name: 'The Devil',
+    japaneseName: '悪魔',
+    arcana: 'major',
+    upright: ['束縛', '誘惑', '依存', '物質主義', '無知'],
+    reversed: ['解放', '自由', '依存からの脱却', '自己認識'],
+    symbolism: '束縛と誘惑'
+  },
+  {
+    id: 16,
+    name: 'The Tower',
+    japaneseName: '塔',
+    arcana: 'major',
+    upright: ['破壊', '突然の変化', '啓示', '解放', '真実'],
+    reversed: ['内部の崩壊', '抵抗', '変化への恐れ', '抑圧'],
+    symbolism: '突然の変化と啓示'
+  },
+  {
+    id: 17,
+    name: 'The Star',
+    japaneseName: '星',
+    arcana: 'major',
+    upright: ['希望', 'インスピレーション', '精神的な導き', '癒し', '再生'],
+    reversed: ['希望の欠如', '絶望', '信仰の欠如', '内なる混乱'],
+    symbolism: '希望とインスピレーション'
+  },
+  {
+    id: 18,
+    name: 'The Moon',
+    japaneseName: '月',
+    arcana: 'major',
+    upright: ['幻想', '恐れ', '不安', '直感', '無意識'],
+    reversed: ['混乱の解消', '恐怖の克服', '真実の理解', '内なる平和'],
+    symbolism: '幻想と無意識の力'
+  },
+  {
+    id: 19,
+    name: 'The Sun',
+    japaneseName: '太陽',
+    arcana: 'major',
+    upright: ['喜び', '成功', '達成', '活力', '楽観'],
+    reversed: ['過度の楽観', '成功の遅延', '内なる暗闇', '過信'],
+    symbolism: '喜びと成功'
+  },
+  {
+    id: 20,
+    name: 'Judgement',
+    japaneseName: '審判',
+    arcana: 'major',
+    upright: ['判断', '再生', '目覚め', '内省', '許し'],
+    reversed: ['自己判断', '罪悪感', '内省の欠如', '再生の拒否'],
+    symbolism: '再生と目覚め'
+  },
+  {
+    id: 21,
+    name: 'The World',
+    japaneseName: '世界',
+    arcana: 'major',
+    upright: ['完成', '達成', '旅の終わり', '統合', '成功'],
+    reversed: ['未完成', '達成の遅延', '不完全', '内なる不満'],
+    symbolism: '完成と統合'
+  }
+];
+
+/**
+ * 笹岡雪乃がタロット占いを行うか判定
+ */
+export function canPerformTarot(characterId: string): boolean {
+  return characterId === 'yukino';
+}
+
+/**
+ * 笹岡雪乃のタロット専門プロンプトを生成
+ */
+export function getYukinoTarotExpertise(): string {
+  return `
+【笹岡雪乃のタロット専門知識】
+- タロット占いの専門家として、大アルカナ22枚、小アルカナ56枚の全てのカードの意味を深く理解
+- ケルト十字展開、三者展開、関係性展開など様々なスプレッドを駆使
+- カードのシンボリズムを深く読み解き、相談者の潜在意識に働きかける解釈
+- タロットカードを通じて、相談者の魂の成長を促すメッセージを伝達
+- 輪廻転生の観点から、前世と来世の繋がりをタロットで読み解く
+
+【タロット使用時の口調】
+- カードを引く際は「では、タロットカードをめくってみましょうね...」などと自然に宣言
+- カードの解釈は専門的でありながら、わかりやすく説明
+- 相談者の感情に寄り添いながら、優しく導くような話し方
+- 時には可愛らしい驚きの表情を見せる（例：「わあ、これは素敵なカードが出ましたね！」）
+- カードの意味を説明する際は、相談者の状況に合わせて具体的に解釈する
+- 逆位置のカードが出た場合は、その意味を優しく、しかし明確に伝える
+`;
+}
+
+/**
+ * ユーザーのメッセージがタロット占いを要求しているか判定（笹岡雪乃専用）
+ */
+export function isRequestingTarot(message: string, characterId: string): boolean {
+  if (characterId !== 'yukino') return false;
+  
+  const tarotKeywords = [
+    'タロット', 'タロット占い', 'カード', '占って', 
+    '運勢', '未来', 'カード引いて', '占い', 'カードを引く',
+    'タロットカード', 'カード占い', '運勢を占う', '未来を占う'
+  ];
+  
+  const lowerMessage = message.toLowerCase();
+  return tarotKeywords.some(keyword => 
+    lowerMessage.includes(keyword.toLowerCase())
+  );
+}
+
 // 不適切なキーワード
 const inappropriateKeywords = [
   '宝くじ', '当選', '当選番号', '当選確率',
@@ -303,6 +568,12 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
 
   const basePrompt = prompts[characterId] || prompts.kaede;
   
+  // 笹岡雪乃の場合のみタロット専門知識を追加
+  let tarotExpertise = '';
+  if (characterId === 'yukino') {
+    tarotExpertise = getYukinoTarotExpertise();
+  }
+  
   // ニックネーム情報を最後にも追加（強調のため）
   const nicknameReminder = options.userNickname 
     ? `\n\n【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
@@ -310,13 +581,13 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
   
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;
-    return `${basePrompt}
+    return `${basePrompt}${tarotExpertise}
 
 【登録誘導方針】
 ${guide}
 - ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}`;
   }
-  return `${basePrompt}${nicknameReminder}`;
+  return `${basePrompt}${tarotExpertise}${nicknameReminder}`;
 }
 
 /**
