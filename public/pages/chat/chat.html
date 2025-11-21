@@ -782,7 +782,13 @@
             const character = getCharacterFromURL();
             setCurrentCharacter(character);
             
-            userNickname = localStorage.getItem('userNickname') || null;
+            // userTokenがある場合のみlocalStorageからuserNicknameを取得
+            // ゲストユーザーの場合、userNicknameはnullのまま
+            if (AuthState.isRegistered() && AuthState.getUserToken()) {
+                userNickname = localStorage.getItem('userNickname') || null;
+            } else {
+                userNickname = null;
+            }
             updateUserStatus();
 
             try {
