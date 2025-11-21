@@ -1931,7 +1931,7 @@
                     cardInner.style.transition = 'transform 0.6s';
                     cardInner.style.transformStyle = 'preserve-3d';
                     
-                    // 裏面（カードの裏）
+                    // 裏面（カードの裏）- 提供された画像を使用
                     const cardBack = document.createElement('div');
                     cardBack.className = 'tarot-flip-card-back';
                     cardBack.style.position = 'absolute';
@@ -1939,19 +1939,16 @@
                     cardBack.style.height = '100%';
                     cardBack.style.backfaceVisibility = 'hidden';
                     cardBack.style.borderRadius = '8px';
-                    cardBack.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    cardBack.style.overflow = 'hidden';
                     cardBack.style.boxShadow = '0 4px 12px rgba(138, 43, 226, 0.4)';
-                    cardBack.style.display = 'flex';
-                    cardBack.style.alignItems = 'center';
-                    cardBack.style.justifyContent = 'center';
                     
-                    const backPattern = document.createElement('div');
-                    backPattern.style.width = '60px';
-                    backPattern.style.height = '60px';
-                    backPattern.style.border = '2px solid rgba(255, 255, 255, 0.3)';
-                    backPattern.style.borderRadius = '4px';
-                    backPattern.style.background = 'rgba(255, 255, 255, 0.1)';
-                    cardBack.appendChild(backPattern);
+                    const backImage = document.createElement('img');
+                    backImage.src = '../../photo/TAROT/card back.png';
+                    backImage.alt = 'カードの裏';
+                    backImage.style.width = '100%';
+                    backImage.style.height = '100%';
+                    backImage.style.objectFit = 'cover';
+                    cardBack.appendChild(backImage);
                     
                     // 表面（カードの画像）
                     const cardFront = document.createElement('div');
@@ -1987,9 +1984,21 @@
                     
                     // クリックでカードをめくる
                     let isFlipped = false;
+                    let allCardsFlipped = false;
+                    const flippedCards = new Set();
+                    
                     cardContainer.addEventListener('click', () => {
-                        isFlipped = !isFlipped;
-                        cardInner.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+                        if (!isFlipped) {
+                            isFlipped = true;
+                            cardInner.style.transform = 'rotateY(180deg)';
+                            flippedCards.add(card.position);
+                            
+                            // すべてのカードがめくられたかチェック
+                            if (flippedCards.size === detectedCards.length) {
+                                allCardsFlipped = true;
+                                showExplanationButton(container, detectedCards);
+                            }
+                        }
                     });
                     
                     cardWrapper.appendChild(cardLabel);
@@ -2005,10 +2014,76 @@
                 hint.style.fontSize = '12px';
                 hint.style.color = 'rgba(255, 255, 255, 0.7)';
                 hint.textContent = 'カードをタップしてめくってください';
+                hint.id = 'tarot-hint';
                 cardsContainer.appendChild(hint);
                 
                 container.appendChild(cardsContainer);
             }
+        }
+
+        // 説明を受けるボタンを表示
+        function showExplanationButton(container, cards) {
+            // 既存のボタンがあれば削除
+            const existingButton = container.querySelector('.tarot-explanation-button');
+            if (existingButton) {
+                existingButton.remove();
+            }
+            
+            // ヒントメッセージを更新
+            const hint = container.querySelector('#tarot-hint');
+            if (hint) {
+                hint.textContent = 'すべてのカードをめくりました';
+            }
+            
+            // 説明を受けるボタンを作成
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.width = '100%';
+            buttonContainer.style.textAlign = 'center';
+            buttonContainer.style.marginTop = '16px';
+            
+            const explanationButton = document.createElement('button');
+            explanationButton.className = 'tarot-explanation-button';
+            explanationButton.textContent = '出てきたカードの説明を受ける';
+            explanationButton.style.padding = '12px 24px';
+            explanationButton.style.fontSize = '14px';
+            explanationButton.style.fontWeight = '600';
+            explanationButton.style.color = '#ffffff';
+            explanationButton.style.background = 'linear-gradient(135deg, #8b3dff 0%, #6b2acc 100%)';
+            explanationButton.style.border = 'none';
+            explanationButton.style.borderRadius = '8px';
+            explanationButton.style.cursor = 'pointer';
+            explanationButton.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.4)';
+            explanationButton.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+            
+            // ホバーエフェクト
+            explanationButton.addEventListener('mouseenter', () => {
+                explanationButton.style.transform = 'scale(1.05)';
+                explanationButton.style.boxShadow = '0 6px 16px rgba(139, 61, 255, 0.6)';
+            });
+            explanationButton.addEventListener('mouseleave', () => {
+                explanationButton.style.transform = 'scale(1)';
+                explanationButton.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.4)';
+            });
+            
+            // ボタンクリック時の処理
+            explanationButton.addEventListener('click', async () => {
+                explanationButton.disabled = true;
+                explanationButton.textContent = '説明を生成中...';
+                
+                // カード情報をメッセージとして送信
+                const cardInfo = cards.map(card => `【${card.position}】${card.name}`).join('\n');
+                const message = `タロットカードの説明をお願いします。\n${cardInfo}`;
+                
+                // メッセージを送信
+                const messageInputEl = document.getElementById('messageInput');
+                if (messageInputEl && window.sendMessage) {
+                    messageInputEl.value = message;
+                    await window.sendMessage();
+                }
+            });
+            
+            buttonContainer.appendChild(explanationButton);
+            container.appendChild(buttonContainer);
         }
 
         // カード拡大表示モーダル
