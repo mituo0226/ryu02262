@@ -331,7 +331,7 @@
             border-radius: 50%;
             background: transparent;
             border: none;
-            color: var(--text-light);
+            color: #ffffff;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -423,7 +423,7 @@
                 left: 0;
                 right: 0;
                 background: rgba(75, 0, 130, 0.9);
-                padding: 8px 12px;
+                padding: 12px;
                 border-top: none;
                 box-shadow: none;
             }
@@ -432,6 +432,7 @@
                 display: flex;
                 gap: 8px;
                 align-items: center;
+                width: 100%;
             }
             
             .input-area textarea {
@@ -444,6 +445,7 @@
                 overflow: hidden;
                 border: 1px solid #ffffff;
                 background: transparent;
+                width: 100%;
             }
             
             .input-area textarea:focus {
@@ -454,11 +456,13 @@
             .input-area button {
                 width: 40px;
                 height: 40px;
+                color: #ffffff;
             }
             
             .input-area button svg {
                 width: 20px;
                 height: 20px;
+                fill: currentColor;
             }
         }
     </style>
