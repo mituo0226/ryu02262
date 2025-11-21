@@ -232,16 +232,21 @@
         /* モバイルヘッダー */
         .mobile-header {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--bg-primary);
         }
         .mobile-header-content {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 6px 10px;
-            background: var(--bg-primary);
+            background: transparent;
             border-bottom: 1px solid rgba(138, 43, 226, 0.3);
             position: relative;
-            z-index: 1000;
         }
         .mobile-header-back {
             background: none;
