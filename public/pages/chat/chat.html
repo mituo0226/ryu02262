@@ -1059,21 +1059,19 @@
 
         // タロットカードをランダムに選択して裏面カードを表示（クリックでめくれる）
         function detectAndDisplayTarotCards(text, container) {
-            // タロット占いが開始されたかどうかを検出（【過去】【現在】【未来】のパターンがあるか）
-            const cardPattern = /【(過去|現在|未来)】/g;
-            const hasTarotReading = cardPattern.test(text);
+            // タロット占いが開始されたかどうかを検出（タロットカードをめくってみましょうね、などのキーワード）
+            const tarotKeywords = ['タロットカードをめくってみましょうね', 'タロットカードを引きました', 'タロットカード'];
+            const hasTarotReading = tarotKeywords.some(keyword => text.includes(keyword));
             
-            // タロット占いが開始された場合、ランダムに3枚のカードを選択
+            // タロット占いが開始された場合、ランダムに1枚のカードを選択
             let selectedCards = [];
             if (hasTarotReading) {
                 const allCardNames = Object.keys(tarotCardImageMap);
                 const shuffled = [...allCardNames].sort(() => Math.random() - 0.5);
                 
-                // 過去、現在、未来の3枚をランダムに選択
+                // 1枚のカードをランダムに選択
                 selectedCards = [
-                    { position: '過去', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] },
-                    { position: '現在', name: shuffled[1], image: tarotCardImageMap[shuffled[1]] },
-                    { position: '未来', name: shuffled[2], image: tarotCardImageMap[shuffled[2]] }
+                    { position: '', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] }
                 ];
             }
             
@@ -1090,6 +1088,9 @@
                 // 選択されたカード情報をコンテナに保存（ボタンクリック時に使用）
                 cardsContainer.dataset.tarotCards = JSON.stringify(selectedCards);
                 
+                // すべてのカードで共有するめくられたカードのセット
+                const flippedCards = new Set();
+                
                 selectedCards.forEach(card => {
                     const cardWrapper = document.createElement('div');
                     cardWrapper.style.display = 'flex';
@@ -1097,9 +1098,9 @@
                     cardWrapper.style.alignItems = 'center';
                     cardWrapper.style.gap = '6px';
                     
-                    // カードラベル（めくった後に表示）
+                    // カードラベル（めくった後に表示）- 1枚のカードなので位置ラベルは不要
                     const cardLabel = document.createElement('div');
-                    cardLabel.textContent = `【${card.position}】`;
+                    cardLabel.textContent = ''; // 位置ラベルは表示しない
                     cardLabel.style.fontSize = '12px';
                     cardLabel.style.color = 'rgba(255, 255, 255, 0.8)';
                     cardLabel.style.fontWeight = '600';
@@ -1281,8 +1282,8 @@
                 explanationButton.textContent = '説明を生成中...';
                 
                 // カード情報をメッセージとして送信（APIがカード情報に基づいて解説できるように）
-                const cardInfo = cards.map(card => `【${card.position}】${card.name}`).join('\n');
-                const message = `以下のタロットカードについて、詳しく解説してください。\n${cardInfo}\n\n各カードの意味、3枚のカードの組み合わせから読み取れる全体的なメッセージ、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
+                const cardInfo = cards.map(card => card.name).join('\n');
+                const message = `以下のタロットカードについて、詳しく解説してください。\n${cardInfo}\n\nこのカードの意味、私の状況にどのように関連しているか、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
                 
                 console.log('タロットカード解説リクエスト:', message);
                 
