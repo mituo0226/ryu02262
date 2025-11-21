@@ -257,6 +257,11 @@ export const onRequestPost: PagesFunction = async (context) => {
         .first();
 
       if (!record) {
+        console.error('User not found in database:', {
+          userId: tokenPayload.userId,
+          tokenValid: true,
+          characterId: characterId
+        });
         return new Response(
           JSON.stringify({
             needsRegistration: true,

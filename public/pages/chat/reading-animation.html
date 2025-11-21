@@ -268,7 +268,12 @@
                         payload.guestMetadata = { messageCount: guestCount };
                     }
 
-                    console.log('Calling API with:', { character, messageLength: decodedMessage.length, hasToken: !!userToken });
+                    console.log('Calling API with:', { 
+                        character, 
+                        messageLength: decodedMessage.length, 
+                        hasToken: !!userToken,
+                        tokenPreview: userToken ? userToken.substring(0, 20) + '...' : 'none'
+                    });
                     
                     // タイムアウト処理（30秒）
                     const timeoutPromise = new Promise((_, reject) => {
@@ -306,8 +311,12 @@
                         needsRegistration: !!data.needsRegistration 
                     });
                     
-                    // エラーがある場合でもレスポンスとして保存（エラーメッセージを表示するため）
-                    if (data.error && !data.message) {
+                    // needsRegistrationがtrueの場合は、エラーではなくレスポンスとして保存
+                    // （chat.htmlで適切に処理される）
+                    if (data.needsRegistration) {
+                        sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                        console.log('Response with needsRegistration saved to sessionStorage');
+                    } else if (data.error && !data.message) {
                         // エラーのみでメッセージがない場合はエラーとして扱う
                         sessionStorage.setItem('lastConsultError', data.error || 'APIエラーが発生しました');
                     } else {

@@ -1214,7 +1214,8 @@
                 try {
                     const data = JSON.parse(consultResponse);
                     
-                    if (data.needsRegistration) {
+                    // needsRegistrationまたは認証エラーを最初にチェック
+                    if (data.needsRegistration || (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token')))) {
                         // localStorageをクリア
                         if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
                             AuthState.clearAuth();
@@ -1223,26 +1224,13 @@
                             localStorage.removeItem('userNickname');
                             localStorage.removeItem('assignedDeity');
                         }
-                        addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
+                        // エラーメッセージを表示せず、直接ログインページにリダイレクト
                         window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                         return;
                     }
                     
                     if (data.error) {
-                        if (data.error.includes('user not found') || data.error.includes('invalid user token')) {
-                            // localStorageをクリア
-                            if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
-                                AuthState.clearAuth();
-                            } else {
-                                localStorage.removeItem('userToken');
-                                localStorage.removeItem('userNickname');
-                                localStorage.removeItem('assignedDeity');
-                            }
-                            addMessage('warning', '認証情報が無効です。再度ログインしてください。', 'システム');
-                            window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
-                        } else {
-                            addMessage('error', data.error, 'システム');
-                        }
+                        addMessage('error', data.error, 'システム');
                     } else if (data.isInappropriate) {
                         addMessage('warning', data.message, data.characterName);
                     } else                     if (data.message) {
