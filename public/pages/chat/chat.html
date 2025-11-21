@@ -1057,31 +1057,28 @@
             '世界': 'THE WORLD.png',
         };
 
-        // タロットカード名を検出して裏面カードを表示（クリックでめくれる）
+        // タロットカードをランダムに選択して裏面カードを表示（クリックでめくれる）
         function detectAndDisplayTarotCards(text, container) {
-            const cardNames = Object.keys(tarotCardImageMap);
-            const detectedCards = [];
+            // タロット占いが開始されたかどうかを検出（【過去】【現在】【未来】のパターンがあるか）
+            const cardPattern = /【(過去|現在|未来)】/g;
+            const hasTarotReading = cardPattern.test(text);
             
-            // カード名を検出（【過去】【現在】【未来】の後に続くカード名を探す）
-            const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
-            let match;
-            
-            while ((match = cardPattern.exec(text)) !== null) {
-                const position = match[1]; // 過去、現在、未来
-                const cardName = match[2].trim();
+            // タロット占いが開始された場合、ランダムに3枚のカードを選択
+            let selectedCards = [];
+            if (hasTarotReading) {
+                const allCardNames = Object.keys(tarotCardImageMap);
+                const shuffled = [...allCardNames].sort(() => Math.random() - 0.5);
                 
-                // カード名がマッピングに存在するか確認
-                if (tarotCardImageMap[cardName]) {
-                    detectedCards.push({
-                        position: position,
-                        name: cardName,
-                        image: tarotCardImageMap[cardName]
-                    });
-                }
+                // 過去、現在、未来の3枚をランダムに選択
+                selectedCards = [
+                    { position: '過去', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] },
+                    { position: '現在', name: shuffled[1], image: tarotCardImageMap[shuffled[1]] },
+                    { position: '未来', name: shuffled[2], image: tarotCardImageMap[shuffled[2]] }
+                ];
             }
             
             // カードを裏面から表示（クリックでめくれる）
-            if (detectedCards.length > 0) {
+            if (selectedCards.length > 0) {
                 const cardsContainer = document.createElement('div');
                 cardsContainer.style.display = 'flex';
                 cardsContainer.style.flexWrap = 'wrap';
@@ -1090,7 +1087,10 @@
                 cardsContainer.style.justifyContent = 'center';
                 cardsContainer.style.alignItems = 'center';
                 
-                detectedCards.forEach(card => {
+                // 選択されたカード情報をコンテナに保存（ボタンクリック時に使用）
+                cardsContainer.dataset.tarotCards = JSON.stringify(selectedCards);
+                
+                selectedCards.forEach(card => {
                     const cardWrapper = document.createElement('div');
                     cardWrapper.style.display = 'flex';
                     cardWrapper.style.flexDirection = 'column';
@@ -1203,9 +1203,9 @@
                             }, 300);
                             
                             // すべてのカードがめくられたかチェック
-                            if (flippedCards.size === detectedCards.length) {
+                            if (flippedCards.size === selectedCards.length) {
                                 allCardsFlipped = true;
-                                showExplanationButton(container, detectedCards);
+                                showExplanationButton(container, selectedCards);
                             }
                         }
                     });
@@ -1280,9 +1280,9 @@
                 explanationButton.disabled = true;
                 explanationButton.textContent = '説明を生成中...';
                 
-                // カード情報をメッセージとして送信
+                // カード情報をメッセージとして送信（APIがカード情報に基づいて解説できるように）
                 const cardInfo = cards.map(card => `【${card.position}】${card.name}`).join('\n');
-                const message = `タロットカードの説明をお願いします。\n${cardInfo}`;
+                const message = `以下のタロットカードについて、詳しく解説してください。\n${cardInfo}\n\n各カードの意味、3枚のカードの組み合わせから読み取れる全体的なメッセージ、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
                 
                 // メッセージを送信
                 const messageInputEl = document.getElementById('messageInput');
