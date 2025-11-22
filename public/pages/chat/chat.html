@@ -997,7 +997,7 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        async function sendMessage(skipUserMessage = false) {
+        async function sendMessage(skipUserMessage = false, skipAnimation = false) {
             const message = messageInput.value.trim();
             const character = currentCharacter;
 
@@ -1023,6 +1023,107 @@
             if (sendButton) sendButton.disabled = true;
             
             const messageToSend = message;
+            
+            // skipAnimationがtrueの場合は、アニメーションをスキップして直接APIを呼び出す（タロットカードがめくられた時など）
+            if (skipAnimation) {
+                try {
+                    // APIを直接呼び出す
+                    const userToken = AuthState.getUserToken() || localStorage.getItem('userToken');
+                    const payload = { message: messageToSend, character };
+                    
+                    if (userToken) {
+                        payload.userToken = userToken;
+                        const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                        if (pendingMigration) {
+                            try {
+                                const migrationData = JSON.parse(pendingMigration);
+                                if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
+                                    payload.migrateHistory = true;
+                                    payload.clientHistory = migrationData.history.map((entry) => ({
+                                        role: entry.role,
+                                        content: entry.content,
+                                    }));
+                                }
+                            } catch (error) {
+                                console.error('Error parsing pending guest history migration:', error);
+                            }
+                        }
+                    }
+
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('API呼び出しがタイムアウトしました')), 30000);
+                    });
+
+                    const fetchPromise = fetch('/api/consult', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorMessage = `APIエラー (${response.status})`;
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            if (errorData.error) {
+                                errorMessage = errorData.error;
+                            }
+                        } catch {}
+                        addMessage('error', errorMessage, 'システム');
+                        if (sendButton) sendButton.disabled = false;
+                        return;
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.needsRegistration) {
+                        addMessage('warning', '正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
+                        if (sendButton) sendButton.disabled = false;
+                        return;
+                    }
+                    
+                    if (data.error && !data.message) {
+                        addMessage('error', data.error || 'APIエラーが発生しました', 'システム');
+                        if (sendButton) sendButton.disabled = false;
+                        return;
+                    }
+                    
+                    if (data.message) {
+                        addMessage('character', data.message, data.characterName || characterInfo[character].name);
+                        if (messageInput) messageInput.blur();
+                        setTimeout(() => scrollToLatest(), 100);
+                    } else {
+                        addMessage('error', '返信が取得できませんでした', 'システム');
+                    }
+                    
+                    // ゲスト履歴の移行が完了した場合、クリア
+                    const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                    if (pendingMigration) {
+                        try {
+                            const migrationData = JSON.parse(pendingMigration);
+                            if (migrationData.character === character) {
+                                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                                    AuthState.clearGuestHistory(migrationData.character);
+                                }
+                                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                            }
+                        } catch (error) {
+                            console.error('Error clearing guest history migration:', error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error calling API:', error);
+                    const errorMessage = error instanceof Error ? error.message : '通信エラーが発生しました';
+                    addMessage('error', errorMessage, 'システム');
+                } finally {
+                    if (sendButton) sendButton.disabled = false;
+                }
+                return;
+            }
+            
+            // 通常のフロー（アニメーションに移動）
             const userMessageData = {
                 message: messageToSend,
                 character: character,
@@ -1230,7 +1331,7 @@
                                     const messageInputEl = document.getElementById('messageInput');
                                     if (messageInputEl && typeof sendMessage === 'function') {
                                         messageInputEl.value = message;
-                                        await sendMessage(true); // skipUserMessage = true（ユーザーメッセージは表示しない）
+                                        await sendMessage(true, true); // skipUserMessage = true, skipAnimation = true（ユーザーメッセージは表示しない、アニメーションもスキップ）
                                     } else {
                                         console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessage=', typeof sendMessage);
                                     }
