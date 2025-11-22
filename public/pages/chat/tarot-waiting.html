@@ -158,9 +158,30 @@
         const messageText = document.getElementById('messageText');
         
         let useImageFallback = false; // 画像フォールバックを使用するかどうか
+        let videoLoaded = false; // 動画が読み込まれたかどうか
 
         let apiPromise = null;
         let apiCompleted = false;
+        
+        // iPhone判定（簡易版）
+        const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
+        
+        // 動画のリロード関数（iPhone対策）
+        const reloadVideo = () => {
+            // 動画を一時停止
+            video.pause();
+            // 現在の再生位置を0にリセット
+            video.currentTime = 0;
+            // srcを一度空にしてから再設定（強制リロード）
+            const currentSrc = video.src;
+            video.src = '';
+            video.load();
+            // 少し待ってからsrcを再設定
+            setTimeout(() => {
+                video.src = currentSrc;
+                video.load();
+            }, 50);
+        };
 
         // API呼び出し
         function startApiCall() {
@@ -271,46 +292,83 @@
             video.loop = true;
             video.muted = true;
             video.playsInline = true;
-            video.preload = 'metadata'; // メタデータのみ先に読み込む
+            video.preload = 'auto'; // iPhoneでリロードを確実にするためautoに変更
+            video.setAttribute('webkit-playsinline', 'true');
+            video.setAttribute('x5-video-player-type', 'h5');
+            video.setAttribute('x5-video-player-fullscreen', 'true');
+            video.setAttribute('x5-video-orientation', 'portrait');
             
-            // 動画の読み込みタイムアウト（3秒）
+            // iPhone対策：動画をリロード
+            reloadVideo();
+            
+            // iPhoneの場合、最初に画像を表示
+            if (isIPhone) {
+                imageLayer.classList.add('active');
+                await delay(300); // 0.3秒で画像を表示
+            }
+            
+            // 動画の読み込みタイムアウト（2秒に短縮）
             const videoLoadTimeout = setTimeout(() => {
-                // 3秒経過しても動画が読み込めない場合は画像にフォールバック
-                if (video.readyState < 2) {
+                // 2秒経過しても動画が読み込めない場合は画像にフォールバック
+                if (!videoLoaded && video.readyState < 2) {
                     console.warn('Video failed to load, using image fallback');
                     useImageFallback = true;
                     videoLayer.classList.remove('active');
-                    imageLayer.classList.add('active');
+                    if (!isIPhone) {
+                        imageLayer.classList.add('active');
+                    }
                 }
-            }, 3000);
+            }, 2000);
             
             // 動画の読み込みをバックグラウンドで待つ（非ブロッキング、iPhone最適化）
             const tryPlayVideo = async () => {
-                // readyState >= 2 (HAVE_CURRENT_DATA) でも再生を試みる（より緩い条件）
-                if (video.readyState >= 2) {
-                    clearTimeout(videoLoadTimeout);
+                // iPhone対策：動画をリロードしてから再生を試みる
+                if (isIPhone) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+                
+                const attemptPlay = async () => {
                     try {
+                        // iPhone対策：load()を再度呼び出してから再生
+                        if (video.readyState < 2) {
+                            video.load();
+                            await delay(100);
+                        }
                         await video.play();
+                        videoLoaded = true;
+                        clearTimeout(videoLoadTimeout);
                         // 再生成功したらフォールバックをキャンセル
                         useImageFallback = false;
+                        
+                        // iPhoneの場合、画像から動画に切り替え
+                        if (isIPhone && imageLayer.classList.contains('active')) {
+                            // 動画をフェードイン開始（画像と重なり合う）
+                            videoLayer.classList.add('active');
+                            await delay(1000); // 1秒重なって表示
+                            // 画像をフェードアウト
+                            imageLayer.classList.remove('active');
+                            await delay(2000); // フェードアウト完了まで待機
+                        }
                     } catch (error) {
                         console.error('Video play error:', error);
                         // 再生に失敗した場合は画像にフォールバック
                         useImageFallback = true;
                         videoLayer.classList.remove('active');
-                        imageLayer.classList.add('active');
+                        if (!isIPhone) {
+                            imageLayer.classList.add('active');
+                        }
                     }
+                };
+                
+                // readyState >= 2 (HAVE_CURRENT_DATA) でも再生を試みる（より緩い条件）
+                if (video.readyState >= 2) {
+                    await attemptPlay();
                 } else {
                     // 読み込みを待つ
-                    const playWhenReady = () => {
+                    const playWhenReady = async () => {
                         clearTimeout(videoLoadTimeout);
-                        video.play().catch(err => {
-                            console.error('Video play error:', err);
-                            // 再生に失敗した場合は画像にフォールバック
-                            useImageFallback = true;
-                            videoLayer.classList.remove('active');
-                            imageLayer.classList.add('active');
-                        });
+                        await attemptPlay();
                     };
                     
                     // より早い段階で再生を試みる（canplayより前でも）
@@ -327,7 +385,11 @@
                         console.warn('Video load error, using image fallback');
                         useImageFallback = true;
                         videoLayer.classList.remove('active');
-                        imageLayer.classList.add('active');
+                        if (!isIPhone) {
+                            imageLayer.classList.add('active');
+                        }
+                        // エラー時もリロードを試みる
+                        reloadVideo();
                     }, { once: true });
                 }
             };
@@ -335,13 +397,18 @@
             // 動画の再生を試みる（非ブロッキング）
             tryPlayVideo();
             
-            // 動画または画像レイヤーをすぐにフェードイン（動画の読み込みを待たない）
-            if (!useImageFallback) {
-                videoLayer.classList.add('active');
+            // iPhone以外の場合、動画または画像レイヤーをすぐにフェードイン
+            if (!isIPhone) {
+                if (!useImageFallback) {
+                    videoLayer.classList.add('active');
+                } else {
+                    imageLayer.classList.add('active');
+                }
+                await delay(2000); // 2秒でフェードイン
             } else {
-                imageLayer.classList.add('active');
+                // iPhoneの場合、画像は既に表示されているので、動画の読み込みを待つ
+                await delay(500); // 少し待機
             }
-            await delay(2000); // 2秒でフェードイン
 
             // メッセージオーバーレイをフェードイン
             messageOverlay.classList.add('active');
