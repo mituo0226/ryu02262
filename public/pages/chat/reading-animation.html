@@ -170,6 +170,7 @@
 
         let apiPromise = null;
         let apiCompleted = false;
+        let animationStarted = false; // アニメーション開始済みかどうかのフラグ
 
         // API呼び出し
         function startApiCall() {
@@ -269,6 +270,21 @@
         }
 
         apiPromise = startApiCall();
+
+        // アニメーション開始処理を1回にまとめる関数
+        function startAnimationOnce() {
+            // すでにアニメーションが開始されている場合は何もしない
+            if (animationStarted) return;
+
+            animationStarted = true;
+
+            // ローディングオーバーレイを消してからアニメーション開始
+            loadingOverlay.classList.remove('active');
+
+            setTimeout(() => {
+                playAnimation();
+            }, 500);
+        }
 
         // アニメーション実行
         async function playAnimation() {
@@ -435,7 +451,7 @@
         videoLayer.className = 'video-layer';
         const video = document.createElement('video');
         video.src = '../../photo/sakura.mp4';
-        video.loop = true;
+        video.loop = false; // 1回だけ再生
         video.muted = true;
         video.playsInline = true;
         video.preload = 'auto';
@@ -453,10 +469,7 @@
 
         function checkAllLoaded() {
             if (loadedCount === totalImages && videoLoaded) {
-                loadingOverlay.classList.remove('active');
-                setTimeout(() => {
-                    playAnimation();
-                }, 500);
+                startAnimationOnce();
             }
         }
 
@@ -511,10 +524,10 @@
 
         // タイムアウト処理（15秒）
         setTimeout(() => {
-            if (loadedCount < totalImages || !videoLoaded) {
+            // まだアニメーションが開始されていない場合だけ強制スタートする
+            if (!animationStarted && (loadedCount < totalImages || !videoLoaded)) {
                 console.warn('Some assets failed to load, starting animation anyway');
-                loadingOverlay.classList.remove('active');
-                playAnimation();
+                startAnimationOnce();
             }
         }, 15000);
     </script>
