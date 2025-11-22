@@ -1049,12 +1049,15 @@
             }
             
             // 通常のフロー（アニメーションに移動）
-            const userMessageData = {
-                message: messageToSend,
-                character: character,
-                timestamp: new Date().toISOString()
-            };
-            sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
+            // skipUserMessageがtrueの場合は、sessionStorageに保存しない（自動送信されたメッセージは表示しない）
+            if (!skipUserMessage) {
+                const userMessageData = {
+                    message: messageToSend,
+                    character: character,
+                    timestamp: new Date().toISOString()
+                };
+                sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
+            }
             
             const currentUrl = window.location.href;
             const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
