@@ -71,8 +71,7 @@
         }
 
         /* 動画レイヤー */
-        /* 動画iframe用のコンテナ */
-        .video-iframe-container {
+        .video-layer {
             position: absolute;
             top: 0;
             left: 0;
@@ -82,18 +81,17 @@
             transition: opacity 2s ease-in-out;
             background: #000;
             z-index: 20;
-            pointer-events: none;
         }
 
-        .video-iframe-container.active {
+        .video-layer.active {
             opacity: 1;
         }
 
-        .video-iframe-container iframe {
+        .video-layer video {
             width: 100%;
             height: 100%;
-            border: none;
-            background: #000;
+            object-fit: cover;
+            display: block;
         }
 
         /* ローディングオーバーレイ */
@@ -312,91 +310,25 @@
             // 6. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
 
-            // 7. sakura.mp4をループ動画として表示（別ファイルのアニメーション）
-            // iframeの読み込み完了とスクリプト実行完了を待つ
-            await new Promise((resolve) => {
-                let iframeLoaded = false;
-                let scriptReady = false;
-                
-                const checkReady = () => {
-                    if (iframeLoaded && scriptReady) {
-                        console.log('Video iframe and script ready');
-                        resolve();
-                    }
-                };
-                
-                // iframeの読み込み完了を待つ
-                videoIframe.onload = () => {
-                    console.log('Video iframe loaded');
-                    iframeLoaded = true;
-                    checkReady();
-                };
-                
-                // iframe内のスクリプト実行完了を待つ（videoAnimationReadyメッセージ）
-                const messageHandler = (event) => {
-                    if (event.data === 'videoAnimationReady') {
-                        console.log('Video animation script ready');
-                        scriptReady = true;
-                        window.removeEventListener('message', messageHandler);
-                        checkReady();
-                    }
-                };
-                window.addEventListener('message', messageHandler);
-                
-                // タイムアウト（10秒）
-                setTimeout(() => {
-                    console.warn('Video iframe/script ready timeout');
-                    iframeLoaded = true;
-                    scriptReady = true;
-                    window.removeEventListener('message', messageHandler);
-                    resolve();
-                }, 10000);
-            });
-            
+            // 7. sakura.mp4をループ動画として表示
             await delay(500);
-            videoIframeContainer.classList.add('active');
+            videoLayer.classList.add('active');
             
-            // 初期化情報を送信
+            // 動画の再生
             try {
-                videoIframe.contentWindow.postMessage({
-                    type: 'init',
-                    characterName: characterNameLabel,
-                    returnUrl: returnUrl
-                }, '*');
-                console.log('Init message sent to video iframe');
+                if (video.paused) {
+                    await video.play();
+                }
             } catch (error) {
-                console.error('Error sending init message:', error);
-            }
-            
-            // 動画を表示（初期化後に少し待つ）
-            await delay(500);
-            try {
-                videoIframe.contentWindow.postMessage('showVideo', '*');
-                console.log('Show video message sent');
-            } catch (error) {
-                console.error('Error sending showVideo message:', error);
+                console.error('Video play error:', error);
             }
 
-            // 動画アニメーションの完了を待つ
-            await new Promise((resolve) => {
-                const messageHandler = (event) => {
-                    if (event.data === 'videoAnimationComplete') {
-                        console.log('Video animation completed');
-                        window.removeEventListener('message', messageHandler);
-                        resolve();
-                    }
-                };
-                window.addEventListener('message', messageHandler);
-                
-                // タイムアウト（60秒）
-                setTimeout(() => {
-                    console.warn('Video animation completion timeout');
-                    window.removeEventListener('message', messageHandler);
-                    resolve();
-                }, 60000);
-            });
+            // 8. ステータスメッセージを表示
+            loadingOverlay.classList.add('active');
+            loadingMessageEl.textContent = `${characterNameLabel}の返答が来ます`;
+            loadingMessageEl.classList.add('visible');
 
-            // 8. APIの完了を待つ
+            // 9. APIの完了を待つ
             if (apiPromise) {
                 await apiPromise.catch(() => {});
             } else if (!apiCompleted) {
@@ -405,8 +337,16 @@
                 }
             }
 
-            // 9. チャット画面にフェードインして切り替え（動画アニメーション側で処理済み）
-            // 動画アニメーションが完了したら、このページもフェードアウト
+            // 10. メッセージを非表示
+            loadingMessageEl.classList.remove('visible');
+            await delay(500);
+            loadingOverlay.classList.remove('active');
+
+            // 11. 動画をフェードアウト
+            videoLayer.classList.remove('active');
+            await delay(2000);
+
+            // 12. チャット画面にフェードインして切り替え
             document.body.style.transition = 'opacity 1.5s ease-out';
             document.body.style.opacity = '0';
             await delay(1500);
@@ -431,7 +371,6 @@
             const messages = [
                 `${characterNameLabel}の精神世界に入っていく`,
                 `${characterNameLabel}が${nickname}の魂と交信中`,
-                `${characterNameLabel}の返答が来ます`,
             ];
 
             (async () => {
@@ -468,25 +407,30 @@
             layers.push(layer);
         });
 
-        // 動画iframeコンテナを作成（別ファイルのアニメーションを読み込む）
-        const videoIframeContainer = document.createElement('div');
-        videoIframeContainer.className = 'video-iframe-container';
-        const videoIframe = document.createElement('iframe');
-        videoIframe.src = 'video-animation.html';
-        videoIframe.allow = 'autoplay; muted';
-        videoIframeContainer.appendChild(videoIframe);
-        container.appendChild(videoIframeContainer);
+        // 動画レイヤーを作成（事前に読み込む）
+        const videoLayer = document.createElement('div');
+        videoLayer.className = 'video-layer';
+        const video = document.createElement('video');
+        video.src = '../../photo/sakura.mp4';
+        video.loop = true;
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.setAttribute('webkit-playsinline', 'true');
+        videoLayer.appendChild(video);
+        container.appendChild(videoLayer);
 
         // 画面をフェードイン
         document.body.classList.add('loaded');
 
-        // すべての画像が読み込まれたらアニメーション開始
+        // すべての画像と動画が読み込まれたらアニメーション開始
         let loadedCount = 0;
         const totalImages = images.length;
+        let videoLoaded = false;
 
         function checkAllLoaded() {
-            loadedCount++;
-            if (loadedCount === totalImages) {
+            if (loadedCount === totalImages && videoLoaded) {
                 loadingOverlay.classList.remove('active');
                 setTimeout(() => {
                     playAnimation();
@@ -498,21 +442,59 @@
         layers.forEach(layer => {
             const img = layer.querySelector('img');
             if (img.complete) {
+                loadedCount++;
                 checkAllLoaded();
             } else {
-                img.onload = checkAllLoaded;
-                img.onerror = checkAllLoaded;
+                img.onload = () => {
+                    loadedCount++;
+                    checkAllLoaded();
+                };
+                img.onerror = () => {
+                    loadedCount++;
+                    checkAllLoaded();
+                };
             }
         });
 
-        // タイムアウト処理（10秒）
+        // 動画の読み込みを監視
+        function checkVideoLoaded() {
+            if (video.readyState >= 3) { // HAVE_FUTURE_DATA以上
+                videoLoaded = true;
+                checkAllLoaded();
+            }
+        }
+
+        if (video.readyState >= 3) {
+            videoLoaded = true;
+            checkAllLoaded();
+        } else {
+            video.addEventListener('loadeddata', () => {
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+            video.addEventListener('canplay', () => {
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+            video.addEventListener('canplaythrough', () => {
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+            video.addEventListener('error', () => {
+                console.warn('Video load error, continuing anyway');
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+        }
+
+        // タイムアウト処理（15秒）
         setTimeout(() => {
-            if (loadedCount < totalImages) {
-                console.warn('Some images failed to load, starting animation anyway');
+            if (loadedCount < totalImages || !videoLoaded) {
+                console.warn('Some assets failed to load, starting animation anyway');
                 loadingOverlay.classList.remove('active');
                 playAnimation();
             }
-        }, 10000);
+        }, 15000);
     </script>
 </body>
 </html>
