@@ -991,7 +991,7 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        async function sendMessage() {
+        async function sendMessage(skipUserMessage = false) {
             const message = messageInput.value.trim();
             const character = currentCharacter;
 
@@ -1004,9 +1004,12 @@
                 return;
             }
 
-            addMessage('user', message, 'あなた');
-            await delay(100);
-            scrollToLatest();
+            // skipUserMessageがtrueの場合は、ユーザーメッセージを表示しない
+            if (!skipUserMessage) {
+                addMessage('user', message, 'あなた');
+                await delay(100);
+                scrollToLatest();
+            }
 
             messageInput.value = '';
             updateSendButtonVisibility();
@@ -1310,12 +1313,12 @@
                 
                 console.log('タロットカード解説リクエスト:', message);
                 
-                // メッセージを送信
+                // メッセージを送信（ユーザーメッセージは表示しない）
                 const messageInputEl = document.getElementById('messageInput');
                 if (messageInputEl && typeof sendMessage === 'function') {
                     messageInputEl.value = message;
-                    console.log('メッセージを送信します:', message);
-                    await sendMessage();
+                    console.log('メッセージを送信します（表示なし）:', message);
+                    await sendMessage(true); // skipUserMessage = true
                 } else {
                     console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessage=', typeof sendMessage);
                     explanationButton.disabled = false;

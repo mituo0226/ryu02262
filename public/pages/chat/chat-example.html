@@ -1539,7 +1539,7 @@
             });
         }
 
-        async function sendMessage() {
+        async function sendMessage(skipUserMessage = false) {
             const message = messageInput.value.trim();
             const character = characterSelect.value;
 
@@ -1558,9 +1558,12 @@
                 return;
             }
 
-            addMessage('user', message, 'あなた');
-            await delay(100);
-            scrollToLatest();
+            // skipUserMessageがtrueの場合は、ユーザーメッセージを表示しない
+            if (!skipUserMessage) {
+                addMessage('user', message, 'あなた');
+                await delay(100);
+                scrollToLatest();
+            }
 
             if (!isRegistered) {
                 AuthState.recordGuestMessage('user', message, character);
@@ -2182,12 +2185,12 @@
                 
                 console.log('タロットカード解説リクエスト:', message);
                 
-                // メッセージを送信
+                // メッセージを送信（ユーザーメッセージは表示しない）
                 const messageInputEl = document.getElementById('messageInput');
                 if (messageInputEl && window.sendMessage) {
                     messageInputEl.value = message;
-                    console.log('メッセージを送信します:', message);
-                    await window.sendMessage();
+                    console.log('メッセージを送信します（表示なし）:', message);
+                    await window.sendMessage(true); // skipUserMessage = true
                 } else {
                     console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'window.sendMessage=', window.sendMessage);
                     explanationButton.disabled = false;
