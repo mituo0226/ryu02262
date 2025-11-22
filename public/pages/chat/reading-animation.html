@@ -310,55 +310,19 @@
             // 6. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
 
-            // 7. sakura.mp4をループ動画として表示
-            const videoLayer = document.createElement('div');
-            videoLayer.className = 'video-layer';
-            const video = document.createElement('video');
-            video.src = '../../photo/sakura.mp4';
-            video.loop = true;
-            video.autoplay = true;
-            video.muted = true;
-            video.playsInline = true;
-            video.preload = 'auto';
-            video.setAttribute('webkit-playsinline', 'true');
-            videoLayer.appendChild(video);
-            container.appendChild(videoLayer);
-
-            // 動画の読み込みを待つ
-            await new Promise((resolve) => {
-                let resolved = false;
-                const onLoaded = () => {
-                    if (!resolved) {
-                        resolved = true;
-                        resolve();
-                    }
-                };
-                video.addEventListener('loadeddata', onLoaded);
-                video.addEventListener('canplay', onLoaded);
-                video.addEventListener('canplaythrough', onLoaded);
-                video.addEventListener('error', () => {
-                    if (!resolved) {
-                        resolved = true;
-                        resolve();
-                    }
-                });
-                setTimeout(() => {
-                    if (!resolved) {
-                        resolved = true;
-                        resolve();
-                    }
-                }, 5000);
-            });
-
+            // 7. sakura.mp4をループ動画として表示（既に読み込まれている）
             // 動画をフェードイン
             await delay(500);
             videoLayer.classList.add('active');
             
-            // 動画の再生
+            // 動画の再生（既に読み込まれているので、すぐに再生できる）
             try {
-                await video.play();
+                if (video.paused) {
+                    await video.play();
+                }
             } catch (error) {
                 console.error('Video play error:', error);
+                // 再生に失敗しても続行
             }
 
             // 8. APIの完了を待つ
@@ -436,16 +400,30 @@
             layers.push(layer);
         });
 
+        // ビデオを事前に作成して読み込む
+        const videoLayer = document.createElement('div');
+        videoLayer.className = 'video-layer';
+        const video = document.createElement('video');
+        video.src = '../../photo/sakura.mp4';
+        video.loop = true;
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.setAttribute('webkit-playsinline', 'true');
+        videoLayer.appendChild(video);
+        container.appendChild(videoLayer);
+
         // 画面をフェードイン
         document.body.classList.add('loaded');
 
-        // すべての画像が読み込まれたらアニメーション開始
+        // すべての画像とビデオが読み込まれたらアニメーション開始
         let loadedCount = 0;
         const totalImages = images.length;
+        let videoLoaded = false;
 
         function checkAllLoaded() {
-            loadedCount++;
-            if (loadedCount === totalImages) {
+            if (loadedCount === totalImages && videoLoaded) {
                 loadingOverlay.classList.remove('active');
                 setTimeout(() => {
                     playAnimation();
@@ -453,24 +431,63 @@
             }
         }
 
+        // 画像の読み込みを監視
         layers.forEach(layer => {
             const img = layer.querySelector('img');
             if (img.complete) {
+                loadedCount++;
                 checkAllLoaded();
             } else {
-                img.onload = checkAllLoaded;
-                img.onerror = checkAllLoaded;
+                img.onload = () => {
+                    loadedCount++;
+                    checkAllLoaded();
+                };
+                img.onerror = () => {
+                    loadedCount++;
+                    checkAllLoaded();
+                };
             }
         });
 
-        // タイムアウト処理（10秒）
+        // ビデオの読み込みを監視
+        function checkVideoLoaded() {
+            if (video.readyState >= 3) { // HAVE_FUTURE_DATA以上
+                videoLoaded = true;
+                checkAllLoaded();
+            }
+        }
+
+        if (video.readyState >= 3) {
+            videoLoaded = true;
+            checkAllLoaded();
+        } else {
+            video.addEventListener('loadeddata', () => {
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+            video.addEventListener('canplay', () => {
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+            video.addEventListener('canplaythrough', () => {
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+            video.addEventListener('error', () => {
+                console.warn('Video load error, continuing anyway');
+                videoLoaded = true;
+                checkAllLoaded();
+            });
+        }
+
+        // タイムアウト処理（15秒）
         setTimeout(() => {
-            if (loadedCount < totalImages) {
-                console.warn('Some images failed to load, starting animation anyway');
+            if (loadedCount < totalImages || !videoLoaded) {
+                console.warn('Some assets failed to load, starting animation anyway');
                 loadingOverlay.classList.remove('active');
                 playAnimation();
             }
-        }, 10000);
+        }, 15000);
     </script>
 </body>
 </html>
