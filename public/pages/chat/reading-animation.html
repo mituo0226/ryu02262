@@ -381,28 +381,8 @@
             }
         }
 
-        // ステータスメッセージ
-        function startStatusSequence() {
-            if (!loadingMessageEl) return;
-            const messages = [
-                `${characterNameLabel}が魂を読み込む`,
-                `精神を読みこんでいる`,
-                `もうすぐ返事が来ます`,
-            ];
-
-            (async () => {
-                for (let i = 0; i < messages.length; i++) {
-                    loadingMessageEl.textContent = messages[i];
-                    loadingMessageEl.classList.add('visible');
-                    const displayTime = 2000; // 各メッセージを2秒表示
-                    await delay(displayTime);
-                    if (i < messages.length - 1) {
-                        loadingMessageEl.classList.remove('visible');
-                        await delay(300);
-                    }
-                }
-            })();
-        }
+        // ステータスメッセージ（使用しない - 各タイミングで個別に表示）
+        // この関数は削除または空にしておく
 
         function delay(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
