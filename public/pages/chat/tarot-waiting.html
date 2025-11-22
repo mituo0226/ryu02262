@@ -65,6 +65,33 @@
             display: block;
         }
 
+        /* 画像レイヤー（フォールバック用） */
+        .image-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            background: #000;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-layer.active {
+            opacity: 1;
+        }
+
+        .image-layer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+
         .message-overlay {
             position: absolute;
             top: 0;
@@ -108,6 +135,9 @@
                 <source src="../../photo/yukino.mp4" type="video/mp4">
             </video>
         </div>
+        <div class="image-layer" id="imageLayer">
+            <img src="../../photo/yukino2.png" alt="笹岡雪乃" id="fallbackImage">
+        </div>
         <div class="message-overlay" id="messageOverlay">
             <div class="message-text" id="messageText">タロットカードの解説を返信していますから、待っていてくださいね</div>
         </div>
@@ -123,8 +153,11 @@
 
         const video = document.getElementById('video');
         const videoLayer = document.getElementById('videoLayer');
+        const imageLayer = document.getElementById('imageLayer');
         const messageOverlay = document.getElementById('messageOverlay');
         const messageText = document.getElementById('messageText');
+        
+        let useImageFallback = false; // 画像フォールバックを使用するかどうか
 
         let apiPromise = null;
         let apiCompleted = false;
@@ -240,30 +273,44 @@
             video.playsInline = true;
             video.preload = 'metadata'; // メタデータのみ先に読み込む
             
-            // 動画レイヤーをすぐにフェードイン（動画の読み込みを待たない）
-            videoLayer.classList.add('active');
+            // 動画の読み込みタイムアウト（3秒）
+            const videoLoadTimeout = setTimeout(() => {
+                // 3秒経過しても動画が読み込めない場合は画像にフォールバック
+                if (video.readyState < 2) {
+                    console.warn('Video failed to load, using image fallback');
+                    useImageFallback = true;
+                    videoLayer.classList.remove('active');
+                    imageLayer.classList.add('active');
+                }
+            }, 3000);
             
             // 動画の読み込みをバックグラウンドで待つ（非ブロッキング、iPhone最適化）
             const tryPlayVideo = async () => {
                 // readyState >= 2 (HAVE_CURRENT_DATA) でも再生を試みる（より緩い条件）
                 if (video.readyState >= 2) {
+                    clearTimeout(videoLoadTimeout);
                     try {
                         await video.play();
+                        // 再生成功したらフォールバックをキャンセル
+                        useImageFallback = false;
                     } catch (error) {
                         console.error('Video play error:', error);
+                        // 再生に失敗した場合は画像にフォールバック
+                        useImageFallback = true;
+                        videoLayer.classList.remove('active');
+                        imageLayer.classList.add('active');
                     }
                 } else {
-                    // 読み込みを待つ（タイムアウトを短縮）
-                    const loadTimeout = setTimeout(() => {
-                        // 3秒経過しても読み込まれない場合は、読み込み済みの状態で再生を試みる
-                        if (video.readyState >= 2) {
-                            video.play().catch(err => console.error('Video play error:', err));
-                        }
-                    }, 3000);
-                    
+                    // 読み込みを待つ
                     const playWhenReady = () => {
-                        clearTimeout(loadTimeout);
-                        video.play().catch(err => console.error('Video play error:', err));
+                        clearTimeout(videoLoadTimeout);
+                        video.play().catch(err => {
+                            console.error('Video play error:', err);
+                            // 再生に失敗した場合は画像にフォールバック
+                            useImageFallback = true;
+                            videoLayer.classList.remove('active');
+                            imageLayer.classList.add('active');
+                        });
                     };
                     
                     // より早い段階で再生を試みる（canplayより前でも）
@@ -275,13 +322,25 @@
                     
                     video.addEventListener('canplay', playWhenReady, { once: true });
                     video.addEventListener('canplaythrough', playWhenReady, { once: true });
+                    video.addEventListener('error', () => {
+                        clearTimeout(videoLoadTimeout);
+                        console.warn('Video load error, using image fallback');
+                        useImageFallback = true;
+                        videoLayer.classList.remove('active');
+                        imageLayer.classList.add('active');
+                    }, { once: true });
                 }
             };
             
             // 動画の再生を試みる（非ブロッキング）
             tryPlayVideo();
             
-            // フェードインはすぐに開始（動画の読み込みを待たない）
+            // 動画または画像レイヤーをすぐにフェードイン（動画の読み込みを待たない）
+            if (!useImageFallback) {
+                videoLayer.classList.add('active');
+            } else {
+                imageLayer.classList.add('active');
+            }
             await delay(2000); // 2秒でフェードイン
 
             // メッセージオーバーレイをフェードイン
@@ -305,8 +364,12 @@
             messageOverlay.classList.remove('active');
             await delay(500);
 
-            // 動画をフェードアウト
-            videoLayer.classList.remove('active');
+            // 動画または画像をフェードアウト
+            if (useImageFallback) {
+                imageLayer.classList.remove('active');
+            } else {
+                videoLayer.classList.remove('active');
+            }
             await delay(2000); // 2秒でフェードアウト
 
             // チャット画面にフェードインして切り替え
