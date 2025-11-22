@@ -124,11 +124,12 @@
             letter-spacing: 0.08em;
             text-align: center;
             opacity: 0;
-            transition: opacity 0.6s ease;
+            transition: opacity 1.5s ease-in-out;
         }
 
         .loading-message.visible {
             opacity: 1;
+            transition: opacity 1.5s ease-in;
         }
     </style>
 </head>
@@ -292,10 +293,11 @@
                 // 「(鑑定師)が魂を読み込む」メッセージを表示
                 loadingMessageEl.textContent = `${characterNameLabel}が魂を読み込む`;
                 loadingMessageEl.classList.add('visible');
-                await delay(2000); // 2秒表示
+                await delay(2500); // 2.5秒表示
+                // フェードアウト（だんだん薄くなって消える）
                 loadingMessageEl.classList.remove('visible');
+                await delay(2000); // フェードアウト完了まで待機（1.5秒 + 余裕）
                 loadingMessageEl.textContent = ''; // メッセージをクリア
-                await delay(300);
             }
 
             // 3. 3.pngをフェードイン（前の画像と重なり合う - 黒い画面にならないように）
@@ -311,10 +313,11 @@
                 // 「精神を読みこんでいる」メッセージを表示
                 loadingMessageEl.textContent = '精神を読みこんでいる';
                 loadingMessageEl.classList.add('visible');
-                await delay(2000); // 2秒表示
+                await delay(2500); // 2.5秒表示
+                // フェードアウト（だんだん薄くなって消える）
                 loadingMessageEl.classList.remove('visible');
+                await delay(2000); // フェードアウト完了まで待機（1.5秒 + 余裕）
                 loadingMessageEl.textContent = ''; // メッセージをクリア
-                await delay(300);
             }
 
             // 4. 3.pngをしっかりと表示（2.5秒）
@@ -379,9 +382,9 @@
                 // すでにエラーログは出ているのでそのまま進む
             }
 
-            // 10. メッセージを非表示
+            // 10. メッセージを非表示（だんだん薄くなって消える）
             loadingMessageEl.classList.remove('visible');
-            await delay(500);
+            await delay(2000); // フェードアウト完了まで待機（1.5秒 + 余裕）
             loadingOverlay.classList.remove('active');
 
             // 11. 動画をフェードアウト
