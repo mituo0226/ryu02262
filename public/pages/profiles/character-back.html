@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>運命の扉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            background: #000;
+        }
+
+        body {
+            opacity: 0;
+            transition: opacity 1.5s ease-in;
+        }
+
+        body.fade-in {
+            opacity: 1;
+        }
+
+        .animation-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* 画像レイヤー */
+        .image-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 2.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .image-layer.active {
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .image-layer.fade-out {
+            opacity: 0;
+            z-index: 5;
+        }
+
+        .image-layer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        /* 動画レイヤー */
+        .video-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 2.5s ease-in-out;
+            background: #000;
+            z-index: 20;
+        }
+
+        .video-layer.active {
+            opacity: 1;
+        }
+
+        .video-layer video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+        }
+
+        /* ボタンコンテナ */
+        .button-container {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            pointer-events: none;
+        }
+
+        .button-container.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .talk-button {
+            display: inline-block;
+            padding: 16px 32px;
+            background: rgba(139, 61, 255, 0.9);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 999px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 20px rgba(139, 61, 255, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .talk-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(139, 61, 255, 0.6);
+        }
+
+        .talk-button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="animation-container" id="animationContainer"></div>
+    <div class="button-container" id="buttonContainer">
+        <a href="#" id="chatLink" class="talk-button">鑑定に進む</a>
+    </div>
+
+    <script src="../../js/auth-state.js"></script>
+    <script>
+        // URLパラメータから取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const character = urlParams.get('character') || 'kaede';
+
+        // 各鑑定士の情報
+        const characterData = {
+            kaede: {
+                name: '楓',
+                image: '../../photo/kaede.png',
+                buttonText: '楓とつながる'
+            },
+            yukino: {
+                name: '笹岡雪乃',
+                image: '../../photo/yukino.png',
+                buttonText: '笹岡雪乃とつながる'
+            },
+            kaon: {
+                name: '三崎花音',
+                image: '../../photo/kaon.png',
+                buttonText: '三崎花音とつながる'
+            },
+            sora: {
+                name: '水野ソラ',
+                image: '../../photo/sora.png',
+                buttonText: '水野ソラとつながる'
+            }
+        };
+
+        const currentCharacterData = characterData[character] || characterData.kaede;
+        const container = document.getElementById('animationContainer');
+        const buttonContainer = document.getElementById('buttonContainer');
+        const chatLink = document.getElementById('chatLink');
+
+        // すべての鑑定士の画像を順番に表示
+        const allCharacterImages = [
+            characterData.kaede.image,
+            characterData.yukino.image,
+            characterData.kaon.image,
+            characterData.sora.image
+        ];
+
+        // 画像レイヤーを作成
+        const imageLayers = [];
+        allCharacterImages.forEach((src, index) => {
+            const layer = document.createElement('div');
+            layer.className = 'image-layer';
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = `鑑定士 ${index + 1}`;
+            img.onerror = () => {
+                console.warn(`Failed to load image: ${src}`);
+            };
+            layer.appendChild(img);
+            container.appendChild(layer);
+            imageLayers.push(layer);
+        });
+
+        // 動画レイヤーを作成
+        const videoLayer = document.createElement('div');
+        videoLayer.className = 'video-layer';
+        const video = document.createElement('video');
+        video.src = '../../photo/sakura2.mp4';
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'metadata'; // iPhone最適化
+        video.setAttribute('webkit-playsinline', 'true');
+        videoLayer.appendChild(video);
+        container.appendChild(videoLayer);
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ユーザーの登録状況に応じてリンク先を設定（トークンの有効性も確認）
+        async function setChatLink() {
+            if (!chatLink) return;
+            
+            // AuthStateを初期化
+            if (window.AuthState && typeof window.AuthState.init === 'function') {
+                window.AuthState.init();
+            }
+            
+            // まず、localStorageにuserTokenがあるか確認
+            const userToken = window.AuthState && typeof window.AuthState.getUserToken === 'function' 
+                ? window.AuthState.getUserToken() 
+                : localStorage.getItem('userToken');
+            
+            if (!userToken) {
+                // トークンがない場合 → chat-example.html
+                chatLink.href = `../chat/chat-example.html?character=${character}`;
+                return;
+            }
+            
+            // トークンがある場合、有効性を確認
+            try {
+                const response = await fetch(
+                    `/api/conversation-history?userToken=${encodeURIComponent(userToken)}&character=${encodeURIComponent(character)}`
+                );
+                
+                if (!response.ok) {
+                    // 401または404エラーの場合、レスポンスボディを確認
+                    let errorData = null;
+                    try {
+                        const responseText = await response.text();
+                        if (responseText) {
+                            errorData = JSON.parse(responseText);
+                        }
+                    } catch (e) {
+                        // JSON解析に失敗した場合は無視
+                    }
+                    
+                    // user not found または invalid token の場合は無効
+                    if (response.status === 401 || 
+                        (response.status === 404 && errorData && errorData.error && 
+                         (errorData.error.includes('user not found') || errorData.error.includes('invalid user token')))) {
+                        // 無効なトークンの場合、認証情報をクリアしてchat-example.htmlへ
+                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                            AuthState.clearAuth();
+                        } else {
+                            localStorage.removeItem('userToken');
+                            localStorage.removeItem('userNickname');
+                            localStorage.removeItem('assignedDeity');
+                        }
+                        chatLink.href = `../chat/chat-example.html?character=${character}`;
+                        return;
+                    }
+                }
+                
+                // トークンが有効な場合 → chat.html
+                chatLink.href = `../chat/chat.html?character=${character}`;
+            } catch (error) {
+                // エラーが発生した場合、安全のためchat-example.htmlへ
+                console.error('Error checking token validity:', error);
+                chatLink.href = `../chat/chat-example.html?character=${character}`;
+            }
+        }
+
+        // ボタンのテキストを設定
+        chatLink.textContent = currentCharacterData.buttonText;
+
+        // アニメーション実行
+        async function playAnimation() {
+            // 画面をフェードイン
+            document.body.classList.add('fade-in');
+            await delay(1500);
+
+            // 各鑑定士の画像を順番にフェードイン/フェードアウト（重なり合うように）
+            for (let i = 0; i < imageLayers.length; i++) {
+                // 次の画像を先にフェードイン開始（前の画像と重なる）
+                imageLayers[i].classList.add('active');
+                await delay(1500); // 1.5秒重なって表示
+                
+                // 前の画像をフェードアウト開始（まだ重なっている状態）
+                if (i > 0) {
+                    imageLayers[i - 1].classList.remove('active');
+                    imageLayers[i - 1].classList.add('fade-out');
+                }
+                await delay(2000); // 2秒でフェードアウト完了
+            }
+
+            // 最後の画像を表示（2秒）
+            await delay(2000);
+
+            // sakura2.mp4を先にフェードイン開始（最後の画像と重なり合う）
+            videoLayer.classList.add('active');
+            await delay(1500); // 1.5秒重なって表示
+
+            // すべての画像レイヤーをフェードアウト（動画と重なっている状態）
+            imageLayers.forEach(layer => {
+                layer.classList.remove('active');
+                layer.classList.add('fade-out');
+            });
+            await delay(2000); // フェードアウト完了まで待機
+
+            // 動画の再生を試みる（iPhone最適化）
+            const tryPlayVideo = async () => {
+                if (video.readyState >= 2) {
+                    try {
+                        await video.play();
+                    } catch (error) {
+                        console.error('Video play error:', error);
+                    }
+                } else {
+                    // 読み込みを待つ（タイムアウト付き）
+                    const loadTimeout = setTimeout(() => {
+                        if (video.readyState >= 2) {
+                            video.play().catch(err => console.error('Video play error:', err));
+                        }
+                    }, 3000);
+                    
+                    const playWhenReady = () => {
+                        clearTimeout(loadTimeout);
+                        video.play().catch(err => console.error('Video play error:', err));
+                    };
+                    
+                    video.addEventListener('loadeddata', () => {
+                        if (video.readyState >= 2) {
+                            playWhenReady();
+                        }
+                    }, { once: true });
+                    
+                    video.addEventListener('canplay', playWhenReady, { once: true });
+                    video.addEventListener('canplaythrough', playWhenReady, { once: true });
+                    video.addEventListener('error', () => {
+                        clearTimeout(loadTimeout);
+                        console.warn('Video load error');
+                    }, { once: true });
+                }
+            };
+            
+            tryPlayVideo();
+
+            // 動画を表示（3秒）
+            await delay(3000);
+
+            // ボタンをフェードイン
+            buttonContainer.classList.add('visible');
+        }
+
+        // ページ読み込み時にリンクを設定
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setChatLink();
+                playAnimation();
+            });
+        } else {
+            setChatLink();
+            playAnimation();
+        }
+    </script>
+</body>
+</html>
+
