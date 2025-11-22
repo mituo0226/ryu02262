@@ -1585,6 +1585,12 @@
             
             // skipAnimationがtrueの場合は、アニメーションをスキップして直接APIを呼び出す（タロットカードがめくられた時など）
             if (skipAnimation) {
+                // ローディングメッセージを表示
+                const loadingMessageId = 'tarot-loading-message-' + Date.now();
+                addMessage('loading', '返信中です。お待ちください...', characterInfo[character].name, { id: loadingMessageId });
+                await delay(100);
+                scrollToLatest();
+                
                 try {
                     // APIを直接呼び出す
                     const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
@@ -1614,6 +1620,12 @@
                     });
 
                     const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+                    // ローディングメッセージを削除
+                    const loadingMessageEl = document.getElementById(loadingMessageId);
+                    if (loadingMessageEl && loadingMessageEl.parentElement) {
+                        loadingMessageEl.parentElement.remove();
+                    }
 
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -1651,6 +1663,12 @@
                         addMessage('error', '返信が取得できませんでした', 'システム');
                     }
                 } catch (error) {
+                    // ローディングメッセージを削除
+                    const loadingMessageEl = document.getElementById(loadingMessageId);
+                    if (loadingMessageEl && loadingMessageEl.parentElement) {
+                        loadingMessageEl.parentElement.remove();
+                    }
+                    
                     console.error('Error calling API:', error);
                     const errorMessage = error instanceof Error ? error.message : '通信エラーが発生しました';
                     addMessage('error', errorMessage, 'システム');
@@ -1684,6 +1702,11 @@
         function addMessage(type, text, sender, metadata = {}) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
+            
+            // IDが指定されている場合は設定
+            if (metadata.id) {
+                messageDiv.id = metadata.id;
+            }
             
             if (type === 'character') {
                 messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
