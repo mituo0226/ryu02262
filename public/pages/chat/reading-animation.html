@@ -293,6 +293,7 @@
                 loadingMessageEl.classList.add('visible');
                 await delay(2000); // 2秒表示
                 loadingMessageEl.classList.remove('visible');
+                loadingMessageEl.textContent = ''; // メッセージをクリア
                 await delay(300);
             }
 
@@ -311,6 +312,7 @@
                 loadingMessageEl.classList.add('visible');
                 await delay(2000); // 2秒表示
                 loadingMessageEl.classList.remove('visible');
+                loadingMessageEl.textContent = ''; // メッセージをクリア
                 await delay(300);
             }
 
@@ -344,8 +346,11 @@
             }
 
             // 8. 「もうすぐ返事が来ます」メッセージを表示（sakura.mp4表示中）
-            loadingOverlay.classList.add('active');
+            // 以前のメッセージを確実にクリアしてから新しいメッセージを表示
+            loadingMessageEl.classList.remove('visible');
+            await delay(100); // 少し待ってから新しいメッセージを設定
             loadingMessageEl.textContent = 'もうすぐ返事が来ます';
+            loadingOverlay.classList.add('active');
             loadingMessageEl.classList.add('visible');
 
             // 9. 動画演出として最低4秒間は待機（その間にAPI完了を待つ）
