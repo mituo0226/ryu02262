@@ -2031,6 +2031,12 @@
                                 cardLabel.style.opacity = '1';
                                 cardNameLabel.style.opacity = '1';
                             }, 300);
+                            
+                            // すべてのカードがめくられたかチェック（1枚のカードなので、めくったらすぐにボタンを表示）
+                            if (flippedCards.size === selectedCards.length) {
+                                console.log('すべてのカードがめくられました。ボタンを表示します。');
+                                showExplanationButton(container, selectedCards);
+                            }
                         }
                     });
                     
