@@ -23,7 +23,7 @@
 
         body {
             opacity: 0;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.8s ease-in;
         }
 
         body.loaded {
@@ -35,8 +35,10 @@
             height: 100%;
             position: relative;
             overflow: hidden;
+            background: #000;
         }
 
+        /* 画像レイヤー */
         .image-layer {
             position: absolute;
             top: 0;
@@ -44,7 +46,7 @@
             width: 100%;
             height: 100%;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out;
+            transition: opacity 2s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -68,6 +70,7 @@
             object-position: center;
         }
 
+        /* 動画レイヤー */
         .video-layer {
             position: absolute;
             top: 0;
@@ -75,42 +78,37 @@
             width: 100%;
             height: 100%;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            transition: opacity 2s ease-in-out;
             background: #000;
             z-index: 20;
         }
 
         .video-layer.active {
             opacity: 1;
-            z-index: 20;
         }
 
         .video-layer video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            object-position: center;
-            background: #000;
             display: block;
         }
 
+        /* ローディングオーバーレイ */
         .loading-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0, 0, 0, 0.3);
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.5s ease;
         }
 
         .loading-overlay.active {
@@ -131,102 +129,47 @@
         .loading-message.visible {
             opacity: 1;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="animation-container" id="animationContainer">
-        <!-- 画像レイヤーはJavaScriptで動的に生成 -->
-    </div>
+    <div class="animation-container" id="animationContainer"></div>
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-message" id="loadingMessage">読み込み中...</div>
     </div>
 
     <script src="../../js/auth-state.js"></script>
     <script>
-        // URLパラメータから鑑定士IDを取得
+        // URLパラメータから取得
         const urlParams = new URLSearchParams(window.location.search);
         const character = urlParams.get('character') || 'kaede';
         const returnUrl = urlParams.get('return') || '../chat/chat.html';
         const message = urlParams.get('message') ? decodeURIComponent(urlParams.get('message')) : '';
 
-        // 各鑑定士の画像シーケンス（関係者の画像→2.png→3.png→sakura.mp4）
+        // 各鑑定士の画像シーケンス
         const characterSequences = {
-            kaede: [
-                '../../photo/kaede2.png',
-                '../../photo/2.png',
-                '../../photo/3.png'
-            ],
-            kaon: [
-                '../../photo/kaon2.png',
-                '../../photo/2.png',
-                '../../photo/3.png'
-            ],
-            yukino: [
-                '../../photo/yukino2.png',
-                '../../photo/2.png',
-                '../../photo/3.png'
-            ],
-            sora: [
-                '../../photo/sora2.png',
-                '../../photo/2.png',
-                '../../photo/3.png'
-            ]
+            kaede: ['../../photo/kaede2.png', '../../photo/2.png', '../../photo/3.png'],
+            kaon: ['../../photo/kaon2.png', '../../photo/2.png', '../../photo/3.png'],
+            yukino: ['../../photo/yukino2.png', '../../photo/2.png', '../../photo/3.png'],
+            sora: ['../../photo/sora2.png', '../../photo/2.png', '../../photo/3.png']
         };
 
-        const images = characterSequences[character] || characterSequences.kaede;
         const characterDisplayNames = {
             kaede: '楓',
             kaon: '三崎花音',
             yukino: '笹岡雪乃',
             sora: '水野ソラ',
         };
+
+        const images = characterSequences[character] || characterSequences.kaede;
         const characterNameLabel = characterDisplayNames[character] || '鑑定士';
         const container = document.getElementById('animationContainer');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const loadingMessageEl = document.getElementById('loadingMessage');
 
-        // 画像レイヤーを作成
-        const layers = [];
-        images.forEach((src, index) => {
-            const layer = document.createElement('div');
-            layer.className = 'image-layer';
-            layer.dataset.index = index;
-            
-            const img = document.createElement('img');
-            img.src = src;
-            img.alt = `鑑定中 ${index + 1}`;
-            
-            // 画像読み込みエラー処理
-            img.onerror = () => {
-                console.warn(`Failed to load image: ${src}`);
-            };
-            
-            layer.appendChild(img);
-            container.appendChild(layer);
-            layers.push(layer);
-        });
-
         let apiPromise = null;
         let apiCompleted = false;
 
+        // API呼び出し
         function startApiCall() {
             if (!message) {
                 apiCompleted = true;
@@ -241,34 +184,22 @@
                     if (window.AuthState && typeof window.AuthState.init === 'function') {
                         window.AuthState.init();
                     }
-                    // chat-example.htmlから来た場合は、ゲストユーザーとして扱う（userTokenを無視）
+
                     const isFromChatExample = returnUrl.includes('chat-example.html');
-                    
                     const userToken = isFromChatExample ? null :
-                        (window.AuthState &&
-                            typeof window.AuthState.getUserToken === 'function' &&
-                            window.AuthState.getUserToken()) ||
+                        (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) ||
                         localStorage.getItem('userToken');
 
-                    // messageはURLパラメータから取得しているので、すでにデコードされている
                     const decodedMessage = decodeURIComponent(message);
-                    
-                    const payload = {
-                        message: decodedMessage,
-                        character,
-                    };
+                    const payload = { message: decodedMessage, character };
 
-                    // 登録済みユーザーの場合のみuserTokenを追加（chat-example.htmlから来た場合は無視）
                     if (userToken && !isFromChatExample) {
                         payload.userToken = userToken;
-                        
-                        // ゲスト履歴の移行をチェック
                         const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                         if (pendingMigration) {
                             try {
                                 const migrationData = JSON.parse(pendingMigration);
                                 if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
-                                    // ゲスト履歴を移行
                                     payload.migrateHistory = true;
                                     payload.clientHistory = migrationData.history.map((entry) => ({
                                         role: entry.role,
@@ -280,14 +211,10 @@
                             }
                         }
                     } else {
-                        // ゲストユーザーの場合、guestMetadataを追加
-                        // 鑑定士ごとのメッセージカウントを取得（chat-example.htmlで使用）
                         const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
                         const key = GUEST_COUNT_KEY_PREFIX + character;
                         const characterSpecificCount = sessionStorage.getItem(key);
                         const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
-                        
-                        // 鑑定士ごとのカウントが存在する場合はそれを使用、なければ全体のカウントを使用
                         const guestCount = guestCountForCharacter > 0 
                             ? guestCountForCharacter 
                             : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
@@ -296,60 +223,38 @@
                         payload.guestMetadata = { messageCount: guestCount };
                     }
 
-                    console.log('Calling API with:', { 
-                        character, 
-                        messageLength: decodedMessage.length, 
-                        hasToken: !!userToken,
-                        tokenPreview: userToken ? userToken.substring(0, 20) + '...' : 'none'
-                    });
-                    
-                    // タイムアウト処理（30秒）
                     const timeoutPromise = new Promise((_, reject) => {
                         setTimeout(() => reject(new Error('API呼び出しがタイムアウトしました')), 30000);
                     });
-                    
+
                     const fetchPromise = fetch('/api/consult', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     });
-                    
+
                     const response = await Promise.race([fetchPromise, timeoutPromise]);
 
                     if (!response.ok) {
                         const errorText = await response.text();
-                        console.error('API response not OK:', response.status, errorText);
                         let errorMessage = `APIエラー (${response.status})`;
                         try {
                             const errorData = JSON.parse(errorText);
                             if (errorData.error) {
                                 errorMessage = errorData.error;
                             }
-                        } catch {
-                            // JSON解析に失敗した場合はデフォルトメッセージを使用
-                        }
+                        } catch {}
                         throw new Error(errorMessage);
                     }
 
                     const data = await response.json();
-                    console.log('API response received:', { 
-                        hasError: !!data.error, 
-                        hasMessage: !!data.message, 
-                        isInappropriate: !!data.isInappropriate,
-                        needsRegistration: !!data.needsRegistration 
-                    });
                     
-                    // needsRegistrationがtrueの場合は、エラーではなくレスポンスとして保存
-                    // （chat.htmlで適切に処理される）
                     if (data.needsRegistration) {
                         sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
-                        console.log('Response with needsRegistration saved to sessionStorage');
                     } else if (data.error && !data.message) {
-                        // エラーのみでメッセージがない場合はエラーとして扱う
                         sessionStorage.setItem('lastConsultError', data.error || 'APIエラーが発生しました');
                     } else {
                         sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
-                        console.log('Response saved to sessionStorage');
                     }
                 } catch (error) {
                     console.error('Error calling API:', error);
@@ -367,190 +272,123 @@
         async function playAnimation() {
             loadingOverlay.classList.add('active');
             startStatusSequence();
-            
-            // 最初の画像を表示（フェードイン）
+
+            // 1. 最初の画像（鑑定士の画像）をゆっくりとフェードイン（3秒かけて）
             if (layers.length > 0) {
                 layers[0].classList.add('active');
-                await delay(2500); // 最初の画像を2.5秒表示
+                await delay(3000); // 3秒表示
             }
 
-            // 各画像を順番に表示（重なり合うように）
-            for (let i = 1; i < layers.length; i++) {
-                // 次のレイヤーをフェードイン開始（前のレイヤーと重なる）
-                layers[i].classList.add('active');
-                
-                // 少し待ってから前のレイヤーをフェードアウト開始
+            // 2. 2.pngをフェードイン（前の画像と重なり合う）
+            if (layers.length > 1) {
+                layers[1].classList.add('active');
                 await delay(500);
-                if (layers[i - 1]) {
-                    layers[i - 1].classList.remove('active');
-                    layers[i - 1].classList.add('fade-out');
-                }
-                
-                // フェードアウトが完了するまで待機
-                await delay(1500);
+                layers[0].classList.remove('active');
+                layers[0].classList.add('fade-out');
+                await delay(2000); // フェードアウト完了まで待機
             }
 
-            // 最後の画像（3.png）をしっかりと表示（長めに表示）
-            await delay(3000); // 3秒表示
+            // 3. 3.pngをフェードイン（前の画像と重なり合う）
+            if (layers.length > 2) {
+                layers[2].classList.add('active');
+                await delay(500);
+                layers[1].classList.remove('active');
+                layers[1].classList.add('fade-out');
+                await delay(2000); // フェードアウト完了まで待機
+            }
 
-            // すべての画像レイヤーをフェードアウト（しっかりとフェードアウト）
+            // 4. 3.pngをしっかりと表示（3秒）
+            await delay(3000);
+
+            // 5. すべての画像レイヤーをフェードアウト
             layers.forEach(layer => {
                 layer.classList.remove('active');
                 layer.classList.add('fade-out');
             });
+            await delay(2000); // フェードアウト完了まで待機
 
-            // フェードアウトが完了するまで待機
-            await delay(1500);
-
-            // loading-overlayを非表示にする（動画の上に表示されないように）
+            // 6. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
 
-            console.log('Creating sakura.mp4 video layer...');
-            
-            // sakura.mp4をループ動画として表示（フェードイン）
+            // 7. sakura.mp4をループ動画として表示
             const videoLayer = document.createElement('div');
             videoLayer.className = 'video-layer';
             const video = document.createElement('video');
-            
-            // 動画の属性を設定
+            video.src = '../../photo/sakura.mp4';
             video.loop = true;
             video.autoplay = true;
             video.muted = true;
             video.playsInline = true;
             video.preload = 'auto';
             video.setAttribute('webkit-playsinline', 'true');
-            video.setAttribute('playsinline', 'true');
-            video.style.width = '100%';
-            video.style.height = '100%';
-            video.style.objectFit = 'cover';
-            video.style.display = 'block';
-            
-            // 動画のソースを設定
-            const videoPath = '../../photo/sakura.mp4';
-            console.log('Setting video source to:', videoPath);
-            video.src = videoPath;
-            
-            // 動画要素を先にDOMに追加
             videoLayer.appendChild(video);
             container.appendChild(videoLayer);
-            console.log('Video layer added to DOM');
-            
+
             // 動画の読み込みを待つ
             await new Promise((resolve) => {
                 let resolved = false;
-                
                 const onLoaded = () => {
                     if (!resolved) {
                         resolved = true;
-                        console.log('sakura.mp4 loaded and ready, readyState:', video.readyState);
                         resolve();
                     }
                 };
-                
-                const onError = (error) => {
+                video.addEventListener('loadeddata', onLoaded);
+                video.addEventListener('canplay', onLoaded);
+                video.addEventListener('canplaythrough', onLoaded);
+                video.addEventListener('error', () => {
                     if (!resolved) {
                         resolved = true;
-                        console.error('sakura.mp4 load error:', error);
-                        console.error('Video error details:', video.error);
-                        console.error('Video networkState:', video.networkState);
-                        // エラーでも続行
                         resolve();
                     }
-                };
-                
-                // 複数のイベントをリッスン
-                video.addEventListener('loadeddata', () => {
-                    console.log('loadeddata event fired');
-                    onLoaded();
                 });
-                video.addEventListener('canplay', () => {
-                    console.log('canplay event fired');
-                    onLoaded();
-                });
-                video.addEventListener('canplaythrough', () => {
-                    console.log('canplaythrough event fired');
-                    onLoaded();
-                });
-                video.addEventListener('error', onError);
-                video.addEventListener('loadstart', () => {
-                    console.log('loadstart event fired');
-                });
-                
-                // タイムアウト（10秒）
                 setTimeout(() => {
                     if (!resolved) {
                         resolved = true;
-                        console.warn('sakura.mp4 load timeout, continuing anyway');
-                        console.warn('Video readyState:', video.readyState);
-                        console.warn('Video networkState:', video.networkState);
                         resolve();
                     }
-                }, 10000);
+                }, 5000);
             });
 
-            // 動画をフェードイン（少し待ってから）
-            console.log('Fading in video layer...');
-            await delay(300);
+            // 動画をフェードイン
+            await delay(500);
             videoLayer.classList.add('active');
-            console.log('Video layer active class added, opacity should be 1');
             
-            // 動画の再生を確認
+            // 動画の再生
             try {
-                console.log('Attempting to play video...');
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    await playPromise;
-                    console.log('sakura.mp4 playing successfully');
-                } else {
-                    console.log('sakura.mp4 play() returned undefined');
-                }
+                await video.play();
             } catch (error) {
-                console.error('sakura.mp4 play error:', error);
-                // 再生に失敗しても続行
+                console.error('Video play error:', error);
             }
-            
-            // 動画の状態を確認
-            console.log('Video final state:', {
-                readyState: video.readyState,
-                networkState: video.networkState,
-                paused: video.paused,
-                currentTime: video.currentTime,
-                duration: video.duration
-            });
 
-            // APIの完了を待つ（動画はループ再生し続ける）
+            // 8. APIの完了を待つ
             if (apiPromise) {
                 await apiPromise.catch(() => {});
             } else if (!apiCompleted) {
-                // APIがまだ完了していない場合は、完了するまで待機
                 while (!apiCompleted) {
                     await delay(100);
                 }
             }
 
-            // 動画をフェードアウト
+            // 9. 動画をフェードアウト
             videoLayer.classList.remove('active');
-            await delay(1500);
+            await delay(2000);
 
-            // チャット画面にフェードインして切り替える
-            // 新しいウィンドウ/タブでチャット画面を開き、現在のページをフェードアウト
+            // 10. チャット画面にフェードインして切り替え
+            document.body.style.transition = 'opacity 1s ease-out';
+            document.body.style.opacity = '0';
+            await delay(1000);
+            
             if (returnUrl) {
-                // フェードアウトアニメーション
-                document.body.style.transition = 'opacity 1s ease-out';
-                document.body.style.opacity = '0';
-                
-                await delay(1000);
-                
-                // チャット画面にリダイレクト（フェードインはチャット画面側で処理）
                 window.location.href = returnUrl;
             } else {
                 window.history.back();
             }
         }
 
+        // ステータスメッセージ
         function startStatusSequence() {
             if (!loadingMessageEl) return;
-            // ゲストユーザーの場合、localStorageからuserNicknameを読み取らない
             let nickname = 'あなた';
             if (window.AuthState && typeof window.AuthState.isRegistered === 'function' && window.AuthState.isRegistered()) {
                 const token = window.AuthState && typeof window.AuthState.getUserToken === 'function' ? window.AuthState.getUserToken() : null;
@@ -568,7 +406,6 @@
                 for (let i = 0; i < messages.length; i++) {
                     loadingMessageEl.textContent = messages[i];
                     loadingMessageEl.classList.add('visible');
-                    // 最初のメッセージ「精神世界に入っていく」は長めに表示
                     const displayTime = i === 0 ? 3000 : 1800;
                     await delay(displayTime);
                     if (i < messages.length - 1) {
@@ -583,6 +420,22 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
+        // 画像レイヤーを作成
+        const layers = [];
+        images.forEach((src, index) => {
+            const layer = document.createElement('div');
+            layer.className = 'image-layer';
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = `鑑定中 ${index + 1}`;
+            img.onerror = () => {
+                console.warn(`Failed to load image: ${src}`);
+            };
+            layer.appendChild(img);
+            container.appendChild(layer);
+            layers.push(layer);
+        });
+
         // 画面をフェードイン
         document.body.classList.add('loaded');
 
@@ -596,22 +449,21 @@
                 loadingOverlay.classList.remove('active');
                 setTimeout(() => {
                     playAnimation();
-                }, 300);
+                }, 500);
             }
         }
 
-        // 画像の読み込みを監視
         layers.forEach(layer => {
             const img = layer.querySelector('img');
             if (img.complete) {
                 checkAllLoaded();
             } else {
                 img.onload = checkAllLoaded;
-                img.onerror = checkAllLoaded; // エラーでも続行
+                img.onerror = checkAllLoaded;
             }
         });
 
-        // タイムアウト処理（10秒経過したら強制的に開始）
+        // タイムアウト処理（10秒）
         setTimeout(() => {
             if (loadedCount < totalImages) {
                 console.warn('Some images failed to load, starting animation anyway');
@@ -622,4 +474,3 @@
     </script>
 </body>
 </html>
-
