@@ -1595,12 +1595,6 @@
             
             // skipAnimationがtrueの場合は、アニメーションをスキップして直接APIを呼び出す（タロットカードがめくられた時など）
             if (skipAnimation) {
-                // ローディングメッセージを表示
-                const loadingMessageId = 'tarot-loading-message-' + Date.now();
-                addMessage('loading', 'タロットの説明の文章を返信している最中です。もう少しお待ちください。', characterInfo[character].name, { id: loadingMessageId });
-                await delay(100);
-                scrollToLatest();
-                
                 try {
                     // APIを直接呼び出す
                     const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
@@ -1673,12 +1667,6 @@
                         addMessage('error', '返信が取得できませんでした', 'システム');
                     }
                 } catch (error) {
-                    // ローディングメッセージを削除
-                    const loadingMessageEl = document.getElementById(loadingMessageId);
-                    if (loadingMessageEl) {
-                        loadingMessageEl.remove();
-                    }
-                    
                     console.error('Error calling API:', error);
                     const errorMessage = error instanceof Error ? error.message : '通信エラーが発生しました';
                     addMessage('error', errorMessage, 'システム');
