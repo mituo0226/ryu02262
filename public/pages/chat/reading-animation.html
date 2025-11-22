@@ -304,19 +304,19 @@
             // 4. 3.pngをしっかりと表示（2.5秒）
             await delay(2500);
 
-            // 5. すべての画像レイヤーをフェードアウト
+            // 5. sakura.mp4を先にフェードイン開始（3.pngと重なり合う）
+            videoLayer.classList.add('active');
+            await delay(1000); // 1秒重なって表示
+
+            // 6. すべての画像レイヤーをフェードアウト（動画と重なっている状態）
             layers.forEach(layer => {
                 layer.classList.remove('active');
                 layer.classList.add('fade-out');
             });
-            await delay(2000); // フェードアウト完了まで待機
+            await delay(1500); // フェードアウト完了まで待機
 
-            // 6. loading-overlayを非表示
+            // 7. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
-
-            // 7. sakura.mp4を必ず表示（APIの状態に関わらず実行）
-            await delay(500);
-            videoLayer.classList.add('active');
             
             let videoError = false;
             try {
