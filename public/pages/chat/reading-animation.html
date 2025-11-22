@@ -71,7 +71,8 @@
         }
 
         /* 動画レイヤー */
-        .video-layer {
+        /* 動画iframe用のコンテナ */
+        .video-iframe-container {
             position: absolute;
             top: 0;
             left: 0;
@@ -81,17 +82,18 @@
             transition: opacity 2s ease-in-out;
             background: #000;
             z-index: 20;
+            pointer-events: none;
         }
 
-        .video-layer.active {
+        .video-iframe-container.active {
             opacity: 1;
         }
 
-        .video-layer video {
+        .video-iframe-container iframe {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            display: block;
+            border: none;
+            background: #000;
         }
 
         /* ローディングオーバーレイ */
@@ -310,20 +312,11 @@
             // 6. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
 
-            // 7. sakura.mp4をループ動画として表示（既に読み込まれている）
-            // 動画をフェードイン
+            // 7. sakura.mp4をループ動画として表示（別ファイルのアニメーション）
+            // 動画iframeにメッセージを送信して表示
             await delay(500);
-            videoLayer.classList.add('active');
-            
-            // 動画の再生（既に読み込まれているので、すぐに再生できる）
-            try {
-                if (video.paused) {
-                    await video.play();
-                }
-            } catch (error) {
-                console.error('Video play error:', error);
-                // 再生に失敗しても続行
-            }
+            videoIframeContainer.classList.add('active');
+            videoIframe.contentWindow.postMessage('showVideo', '*');
 
             // 8. APIの完了を待つ
             if (apiPromise) {
@@ -400,30 +393,25 @@
             layers.push(layer);
         });
 
-        // ビデオを事前に作成して読み込む
-        const videoLayer = document.createElement('div');
-        videoLayer.className = 'video-layer';
-        const video = document.createElement('video');
-        video.src = '../../photo/sakura.mp4';
-        video.loop = true;
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = 'auto';
-        video.setAttribute('webkit-playsinline', 'true');
-        videoLayer.appendChild(video);
-        container.appendChild(videoLayer);
+        // 動画iframeコンテナを作成（別ファイルのアニメーションを読み込む）
+        const videoIframeContainer = document.createElement('div');
+        videoIframeContainer.className = 'video-iframe-container';
+        const videoIframe = document.createElement('iframe');
+        videoIframe.src = 'video-animation.html';
+        videoIframe.allow = 'autoplay; muted';
+        videoIframeContainer.appendChild(videoIframe);
+        container.appendChild(videoIframeContainer);
 
         // 画面をフェードイン
         document.body.classList.add('loaded');
 
-        // すべての画像とビデオが読み込まれたらアニメーション開始
+        // すべての画像が読み込まれたらアニメーション開始
         let loadedCount = 0;
         const totalImages = images.length;
-        let videoLoaded = false;
 
         function checkAllLoaded() {
-            if (loadedCount === totalImages && videoLoaded) {
+            loadedCount++;
+            if (loadedCount === totalImages) {
                 loadingOverlay.classList.remove('active');
                 setTimeout(() => {
                     playAnimation();
@@ -435,59 +423,21 @@
         layers.forEach(layer => {
             const img = layer.querySelector('img');
             if (img.complete) {
-                loadedCount++;
                 checkAllLoaded();
             } else {
-                img.onload = () => {
-                    loadedCount++;
-                    checkAllLoaded();
-                };
-                img.onerror = () => {
-                    loadedCount++;
-                    checkAllLoaded();
-                };
+                img.onload = checkAllLoaded;
+                img.onerror = checkAllLoaded;
             }
         });
 
-        // ビデオの読み込みを監視
-        function checkVideoLoaded() {
-            if (video.readyState >= 3) { // HAVE_FUTURE_DATA以上
-                videoLoaded = true;
-                checkAllLoaded();
-            }
-        }
-
-        if (video.readyState >= 3) {
-            videoLoaded = true;
-            checkAllLoaded();
-        } else {
-            video.addEventListener('loadeddata', () => {
-                videoLoaded = true;
-                checkAllLoaded();
-            });
-            video.addEventListener('canplay', () => {
-                videoLoaded = true;
-                checkAllLoaded();
-            });
-            video.addEventListener('canplaythrough', () => {
-                videoLoaded = true;
-                checkAllLoaded();
-            });
-            video.addEventListener('error', () => {
-                console.warn('Video load error, continuing anyway');
-                videoLoaded = true;
-                checkAllLoaded();
-            });
-        }
-
-        // タイムアウト処理（15秒）
+        // タイムアウト処理（10秒）
         setTimeout(() => {
-            if (loadedCount < totalImages || !videoLoaded) {
-                console.warn('Some assets failed to load, starting animation anyway');
+            if (loadedCount < totalImages) {
+                console.warn('Some images failed to load, starting animation anyway');
                 loadingOverlay.classList.remove('active');
                 playAnimation();
             }
-        }, 15000);
+        }, 10000);
     </script>
 </body>
 </html>
