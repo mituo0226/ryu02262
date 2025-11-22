@@ -219,17 +219,39 @@
         const videoLayer = document.createElement('div');
         videoLayer.className = 'video-layer';
         const video = document.createElement('video');
-        video.src = '../../photo/sakura2.mp4';
+        const videoSrc = '../../photo/sakura2.mp4';
         video.loop = true;
         video.muted = true;
         video.playsInline = true;
-        video.preload = 'metadata'; // iPhone最適化
+        video.preload = 'auto'; // iPhoneでリロードを確実にするためautoに変更
         video.setAttribute('webkit-playsinline', 'true');
         video.setAttribute('x5-video-player-type', 'h5');
         video.setAttribute('x5-video-player-fullscreen', 'true');
         video.setAttribute('x5-video-orientation', 'portrait');
+        
+        // iPhoneでの動画リロード対策：srcを設定してload()を呼び出す
+        video.src = videoSrc;
+        video.load(); // 明示的にロードを開始
+        
         videoLayer.appendChild(video);
         container.appendChild(videoLayer);
+        
+        // 動画のリロード関数（iPhone対策）
+        const reloadVideo = () => {
+            // 動画を一時停止
+            video.pause();
+            // 現在の再生位置を0にリセット
+            video.currentTime = 0;
+            // srcを一度空にしてから再設定（強制リロード）
+            const currentSrc = video.src;
+            video.src = '';
+            video.load();
+            // 少し待ってからsrcを再設定
+            setTimeout(() => {
+                video.src = currentSrc;
+                video.load();
+            }, 50);
+        };
 
         // 画像読み込み完了を待つ（タイムアウト付き、さらに短縮）
         let imagesLoaded = false;
@@ -354,25 +376,50 @@
             // 選択された鑑定士の画像をフェードイン
             imageLayer.classList.add('active');
             
-            // 動画の再生を早めに開始（画像表示と同時に準備）
+            // 動画の再生を早めに開始（画像表示と同時に準備、iPhone対策付き）
             const tryPlayVideo = async () => {
-                if (video.readyState >= 2) {
+                // iPhone対策：動画をリロード
+                reloadVideo();
+                
+                // 少し待ってから再生を試みる
+                await delay(100);
+                
+                // 動画を一時停止してから再生位置をリセット
+                video.pause();
+                video.currentTime = 0;
+                
+                // 再生を試みる
+                const attemptPlay = async () => {
                     try {
+                        // iPhone対策：load()を再度呼び出してから再生
+                        if (video.readyState < 2) {
+                            video.load();
+                            await delay(200);
+                        }
                         await video.play();
                     } catch (error) {
                         console.error('Video play error:', error);
+                        // エラー時は再試行
+                        setTimeout(() => {
+                            video.load();
+                            video.play().catch(err => console.error('Video play retry error:', err));
+                        }, 500);
                     }
+                };
+                
+                if (video.readyState >= 2) {
+                    await attemptPlay();
                 } else {
                     // 読み込みを待つ（タイムアウト付き）
                     const loadTimeout = setTimeout(() => {
                         if (video.readyState >= 2) {
-                            video.play().catch(err => console.error('Video play error:', err));
+                            attemptPlay().catch(err => console.error('Video play error:', err));
                         }
                     }, 2000); // タイムアウトを短縮
                     
-                    const playWhenReady = () => {
+                    const playWhenReady = async () => {
                         clearTimeout(loadTimeout);
-                        video.play().catch(err => console.error('Video play error:', err));
+                        await attemptPlay();
                     };
                     
                     video.addEventListener('loadeddata', () => {
@@ -386,6 +433,8 @@
                     video.addEventListener('error', () => {
                         clearTimeout(loadTimeout);
                         console.warn('Video load error');
+                        // エラー時もリロードを試みる
+                        reloadVideo();
                     }, { once: true });
                 }
             };
