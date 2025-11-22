@@ -271,9 +271,8 @@
         // アニメーション実行
         async function playAnimation() {
             loadingOverlay.classList.add('active');
-            startStatusSequence();
 
-            // 1. 最初の画像（鑑定士の画像）をチャット画面からフェードイン（重なり合うように）
+            // 1. 最初の画像（鑑定士の画像）をチャット画面からフェードイン（メッセージなし）
             if (layers.length > 0) {
                 layers[0].classList.add('active');
                 await delay(2500); // 2.5秒表示
@@ -288,6 +287,13 @@
                 layers[0].classList.remove('active');
                 layers[0].classList.add('fade-out');
                 await delay(1500); // フェードアウト完了まで待機
+                
+                // 「(鑑定師)が魂を読み込む」メッセージを表示
+                loadingMessageEl.textContent = `${characterNameLabel}が魂を読み込む`;
+                loadingMessageEl.classList.add('visible');
+                await delay(2000); // 2秒表示
+                loadingMessageEl.classList.remove('visible');
+                await delay(300);
             }
 
             // 3. 3.pngをフェードイン（前の画像と重なり合う - 黒い画面にならないように）
@@ -299,6 +305,13 @@
                 layers[1].classList.remove('active');
                 layers[1].classList.add('fade-out');
                 await delay(1500); // フェードアウト完了まで待機
+                
+                // 「精神を読みこんでいる」メッセージを表示
+                loadingMessageEl.textContent = '精神を読みこんでいる';
+                loadingMessageEl.classList.add('visible');
+                await delay(2000); // 2秒表示
+                loadingMessageEl.classList.remove('visible');
+                await delay(300);
             }
 
             // 4. 3.pngをしっかりと表示（2.5秒）
@@ -330,9 +343,9 @@
                 videoError = true;
             }
 
-            // 8. ステータスメッセージを表示
+            // 8. 「もうすぐ返事が来ます」メッセージを表示（sakura.mp4表示中）
             loadingOverlay.classList.add('active');
-            loadingMessageEl.textContent = `${characterNameLabel}の返答が来ます`;
+            loadingMessageEl.textContent = 'もうすぐ返事が来ます';
             loadingMessageEl.classList.add('visible');
 
             // 9. 動画演出として最低4秒間は待機（その間にAPI完了を待つ）
