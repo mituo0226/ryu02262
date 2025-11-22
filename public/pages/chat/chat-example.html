@@ -1665,8 +1665,8 @@
                 } catch (error) {
                     // ローディングメッセージを削除
                     const loadingMessageEl = document.getElementById(loadingMessageId);
-                    if (loadingMessageEl && loadingMessageEl.parentElement) {
-                        loadingMessageEl.parentElement.remove();
+                    if (loadingMessageEl) {
+                        loadingMessageEl.remove();
                     }
                     
                     console.error('Error calling API:', error);
