@@ -61,6 +61,12 @@
             padding: 18px;
             color: var(--text-light);
             -webkit-overflow-scrolling: touch;
+            opacity: 0;
+            transition: opacity 1s ease-in;
+        }
+
+        body.fade-in {
+            opacity: 1;
         }
 
         main {
@@ -2290,6 +2296,9 @@
 
         window.sendMessage = sendMessage;
         window.addEventListener('DOMContentLoaded', async () => {
+            // フェードイン処理
+            document.body.classList.add('fade-in');
+            
             await initPage();
             setTimeout(() => {
                 handleReturnFromAnimation();
