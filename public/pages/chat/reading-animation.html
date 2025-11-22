@@ -277,26 +277,26 @@
             // 1. 最初の画像（鑑定士の画像）をチャット画面からフェードイン（メッセージなし）
             if (layers.length > 0) {
                 layers[0].classList.add('active');
-                await delay(2500); // 2.5秒表示
+                await delay(1500); // 1.5秒表示（短縮）
             }
 
             // 2. 2.pngをフェードイン（前の画像と重なり合う - 黒い画面にならないように）
             if (layers.length > 1) {
                 // 次の画像を先にフェードイン開始（前の画像と重なる）
                 layers[1].classList.add('active');
-                await delay(1000); // 1秒重なって表示
+                await delay(500); // 0.5秒重なって表示（短縮）
                 // 前の画像をフェードアウト開始（まだ重なっている状態）
                 layers[0].classList.remove('active');
                 layers[0].classList.add('fade-out');
-                await delay(1500); // フェードアウト完了まで待機
+                await delay(800); // フェードアウト完了まで待機（短縮）
                 
                 // 「(鑑定師)が魂を読み込む」メッセージを表示
                 loadingMessageEl.textContent = `${characterNameLabel}が魂を読み込む`;
                 loadingMessageEl.classList.add('visible');
-                await delay(2500); // 2.5秒表示
+                await delay(2000); // 2秒表示（少し短縮）
                 // フェードアウト（だんだん薄くなって消える）
                 loadingMessageEl.classList.remove('visible');
-                await delay(2000); // フェードアウト完了まで待機（1.5秒 + 余裕）
+                await delay(1200); // フェードアウト完了まで待機（短縮）
                 loadingMessageEl.textContent = ''; // メッセージをクリア
             }
 
@@ -304,35 +304,35 @@
             if (layers.length > 2) {
                 // 次の画像を先にフェードイン開始（前の画像と重なる）
                 layers[2].classList.add('active');
-                await delay(1000); // 1秒重なって表示
+                await delay(500); // 0.5秒重なって表示（短縮）
                 // 前の画像をフェードアウト開始（まだ重なっている状態）
                 layers[1].classList.remove('active');
                 layers[1].classList.add('fade-out');
-                await delay(1500); // フェードアウト完了まで待機
+                await delay(800); // フェードアウト完了まで待機（短縮）
                 
                 // 「精神を読みこんでいる」メッセージを表示
                 loadingMessageEl.textContent = '精神を読みこんでいる';
                 loadingMessageEl.classList.add('visible');
-                await delay(2500); // 2.5秒表示
+                await delay(2000); // 2秒表示（少し短縮）
                 // フェードアウト（だんだん薄くなって消える）
                 loadingMessageEl.classList.remove('visible');
-                await delay(2000); // フェードアウト完了まで待機（1.5秒 + 余裕）
+                await delay(1200); // フェードアウト完了まで待機（短縮）
                 loadingMessageEl.textContent = ''; // メッセージをクリア
             }
 
-            // 4. 3.pngをしっかりと表示（2.5秒）
-            await delay(2500);
+            // 4. 3.pngをしっかりと表示（短縮）
+            await delay(1000);
 
             // 5. sakura.mp4を先にフェードイン開始（3.pngと重なり合う）
             videoLayer.classList.add('active');
-            await delay(1000); // 1秒重なって表示
+            await delay(500); // 0.5秒重なって表示（短縮）
 
             // 6. すべての画像レイヤーをフェードアウト（動画と重なっている状態）
             layers.forEach(layer => {
                 layer.classList.remove('active');
                 layer.classList.add('fade-out');
             });
-            await delay(1500); // フェードアウト完了まで待機
+            await delay(800); // フェードアウト完了まで待機（短縮）
 
             // 7. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
@@ -386,7 +386,7 @@
 
             // 10. 動画をフェードアウト（メッセージは表示し続ける）
             videoLayer.classList.remove('active');
-            await delay(2000);
+            await delay(1000); // 短縮
 
             // 11. チャット画面にフェードインして切り替え（メッセージも一緒にフェードアウト）
             // メッセージをゆっくりとフェードアウト（bodyと一緒に）
