@@ -104,7 +104,7 @@
 <body>
     <div class="video-container" id="videoContainer">
         <div class="video-layer" id="videoLayer">
-            <video id="video" muted playsinline preload="auto">
+            <video id="video" muted playsinline preload="metadata">
                 <source src="../../photo/yukino.mp4" type="video/mp4">
             </video>
         </div>
@@ -234,45 +234,47 @@
 
         // アニメーション実行（動画の読み込みを待たずに開始）
         async function playAnimation() {
-            // 動画の設定
+            // 動画の設定（iPhone最適化）
             video.loop = true;
             video.muted = true;
             video.playsInline = true;
-            video.preload = 'auto';
+            video.preload = 'metadata'; // メタデータのみ先に読み込む
             
             // 動画レイヤーをすぐにフェードイン（動画の読み込みを待たない）
             videoLayer.classList.add('active');
             
-            // 動画の読み込みをバックグラウンドで待つ（非ブロッキング）
+            // 動画の読み込みをバックグラウンドで待つ（非ブロッキング、iPhone最適化）
             const tryPlayVideo = async () => {
-                if (video.readyState >= 3) {
-                    // すでに読み込まれている場合はすぐに再生
+                // readyState >= 2 (HAVE_CURRENT_DATA) でも再生を試みる（より緩い条件）
+                if (video.readyState >= 2) {
                     try {
                         await video.play();
                     } catch (error) {
                         console.error('Video play error:', error);
                     }
                 } else {
-                    // 読み込みを待つ（タイムアウト付き）
+                    // 読み込みを待つ（タイムアウトを短縮）
                     const loadTimeout = setTimeout(() => {
-                        // 5秒経過しても読み込まれない場合は、読み込み済みの状態で再生を試みる
+                        // 3秒経過しても読み込まれない場合は、読み込み済みの状態で再生を試みる
                         if (video.readyState >= 2) {
                             video.play().catch(err => console.error('Video play error:', err));
                         }
-                    }, 5000);
+                    }, 3000);
                     
                     const playWhenReady = () => {
                         clearTimeout(loadTimeout);
                         video.play().catch(err => console.error('Video play error:', err));
                     };
                     
-                    video.addEventListener('canplay', playWhenReady, { once: true });
-                    video.addEventListener('canplaythrough', playWhenReady, { once: true });
+                    // より早い段階で再生を試みる（canplayより前でも）
                     video.addEventListener('loadeddata', () => {
-                        if (video.readyState >= 3) {
+                        if (video.readyState >= 2) {
                             playWhenReady();
                         }
                     }, { once: true });
+                    
+                    video.addEventListener('canplay', playWhenReady, { once: true });
+                    video.addEventListener('canplaythrough', playWhenReady, { once: true });
                 }
             };
             

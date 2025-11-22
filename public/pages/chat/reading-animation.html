@@ -446,7 +446,7 @@
             layers.push(layer);
         });
 
-        // 動画レイヤーを作成（事前に読み込む）
+        // 動画レイヤーを作成（メタデータのみ先に読み込む - iPhone最適化）
         const videoLayer = document.createElement('div');
         videoLayer.className = 'video-layer';
         const video = document.createElement('video');
@@ -454,7 +454,7 @@
         video.loop = false; // 1回だけ再生
         video.muted = true;
         video.playsInline = true;
-        video.preload = 'auto';
+        video.preload = 'metadata'; // メタデータのみ先に読み込む（iPhone最適化）
         video.setAttribute('webkit-playsinline', 'true');
         videoLayer.appendChild(video);
         container.appendChild(videoLayer);
@@ -462,14 +462,24 @@
         // 画面をフェードイン
         document.body.classList.add('loaded');
 
-        // すべての画像と動画が読み込まれたらアニメーション開始
+        // 画像のみの読み込みを待ってアニメーション開始（動画は後から読み込む）
         let loadedCount = 0;
         const totalImages = images.length;
         let videoLoaded = false;
+        let animationStartedFromImages = false;
 
         function checkAllLoaded() {
-            if (loadedCount === totalImages && videoLoaded) {
+            // 画像がすべて読み込まれたらアニメーションを開始（動画は待たない）
+            if (loadedCount === totalImages && !animationStartedFromImages) {
+                animationStartedFromImages = true;
                 startAnimationOnce();
+            }
+        }
+        
+        // 動画の読み込みは非ブロッキング（アニメーション開始後に読み込む）
+        function checkVideoLoaded() {
+            if (video.readyState >= 2) { // HAVE_CURRENT_DATA以上（より緩い条件）
+                videoLoaded = true;
             }
         }
 
@@ -491,45 +501,35 @@
             }
         });
 
-        // 動画の読み込みを監視
-        function checkVideoLoaded() {
-            if (video.readyState >= 3) { // HAVE_FUTURE_DATA以上
-                videoLoaded = true;
-                checkAllLoaded();
-            }
-        }
-
-        if (video.readyState >= 3) {
+        // 動画の読み込みを監視（非ブロッキング）
+        if (video.readyState >= 2) {
             videoLoaded = true;
-            checkAllLoaded();
         } else {
+            // 動画のメタデータが読み込まれたらフラグを立てる（アニメーション開始には影響しない）
+            video.addEventListener('loadedmetadata', () => {
+                checkVideoLoaded();
+            }, { once: true });
             video.addEventListener('loadeddata', () => {
-                videoLoaded = true;
-                checkAllLoaded();
-            });
+                checkVideoLoaded();
+            }, { once: true });
             video.addEventListener('canplay', () => {
-                videoLoaded = true;
-                checkAllLoaded();
-            });
-            video.addEventListener('canplaythrough', () => {
-                videoLoaded = true;
-                checkAllLoaded();
-            });
+                checkVideoLoaded();
+            }, { once: true });
             video.addEventListener('error', () => {
                 console.warn('Video load error, continuing anyway');
                 videoLoaded = true;
-                checkAllLoaded();
-            });
+            }, { once: true });
         }
 
-        // タイムアウト処理（15秒）
+        // タイムアウト処理（3秒 - iPhone最適化）
+        // 画像の読み込みが遅い場合でも、3秒経過したらアニメーションを開始
         setTimeout(() => {
-            // まだアニメーションが開始されていない場合だけ強制スタートする
-            if (!animationStarted && (loadedCount < totalImages || !videoLoaded)) {
-                console.warn('Some assets failed to load, starting animation anyway');
+            if (!animationStarted && !animationStartedFromImages) {
+                console.warn('Starting animation after timeout (images may still be loading)');
+                animationStartedFromImages = true;
                 startAnimationOnce();
             }
-        }, 15000);
+        }, 3000);
     </script>
 </body>
 </html>
