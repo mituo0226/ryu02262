@@ -1625,12 +1625,6 @@
 
                     const response = await Promise.race([fetchPromise, timeoutPromise]);
 
-                    // ローディングメッセージを削除
-                    const loadingMessageEl = document.getElementById(loadingMessageId);
-                    if (loadingMessageEl && loadingMessageEl.parentElement) {
-                        loadingMessageEl.parentElement.remove();
-                    }
-
                     if (!response.ok) {
                         const errorText = await response.text();
                         let errorMessage = `APIエラー (${response.status})`;
