@@ -273,32 +273,36 @@
             loadingOverlay.classList.add('active');
             startStatusSequence();
 
-            // 1. 最初の画像（鑑定士の画像）をゆっくりとフェードイン（3秒かけて）
+            // 1. 最初の画像（鑑定士の画像）をチャット画面からフェードイン（重なり合うように）
             if (layers.length > 0) {
                 layers[0].classList.add('active');
-                await delay(3000); // 3秒表示
+                await delay(2500); // 2.5秒表示
             }
 
-            // 2. 2.pngをフェードイン（前の画像と重なり合う）
+            // 2. 2.pngをフェードイン（前の画像と重なり合う - 黒い画面にならないように）
             if (layers.length > 1) {
+                // 次の画像を先にフェードイン開始（前の画像と重なる）
                 layers[1].classList.add('active');
-                await delay(500);
+                await delay(1000); // 1秒重なって表示
+                // 前の画像をフェードアウト開始（まだ重なっている状態）
                 layers[0].classList.remove('active');
                 layers[0].classList.add('fade-out');
-                await delay(2000); // フェードアウト完了まで待機
+                await delay(1500); // フェードアウト完了まで待機
             }
 
-            // 3. 3.pngをフェードイン（前の画像と重なり合う）
+            // 3. 3.pngをフェードイン（前の画像と重なり合う - 黒い画面にならないように）
             if (layers.length > 2) {
+                // 次の画像を先にフェードイン開始（前の画像と重なる）
                 layers[2].classList.add('active');
-                await delay(500);
+                await delay(1000); // 1秒重なって表示
+                // 前の画像をフェードアウト開始（まだ重なっている状態）
                 layers[1].classList.remove('active');
                 layers[1].classList.add('fade-out');
-                await delay(2000); // フェードアウト完了まで待機
+                await delay(1500); // フェードアウト完了まで待機
             }
 
-            // 4. 3.pngをしっかりと表示（3秒）
-            await delay(3000);
+            // 4. 3.pngをしっかりと表示（2.5秒）
+            await delay(2500);
 
             // 5. すべての画像レイヤーをフェードアウト
             layers.forEach(layer => {
@@ -380,27 +384,21 @@
         // ステータスメッセージ
         function startStatusSequence() {
             if (!loadingMessageEl) return;
-            let nickname = 'あなた';
-            if (window.AuthState && typeof window.AuthState.isRegistered === 'function' && window.AuthState.isRegistered()) {
-                const token = window.AuthState && typeof window.AuthState.getUserToken === 'function' ? window.AuthState.getUserToken() : null;
-                if (token) {
-                    nickname = localStorage.getItem('userNickname') || 'あなた';
-                }
-            }
             const messages = [
-                `${characterNameLabel}の精神世界に入っていく`,
-                `${characterNameLabel}が${nickname}の魂と交信中`,
+                `${characterNameLabel}が魂を読み込む`,
+                `精神を読みこんでいる`,
+                `もうすぐ返事が来ます`,
             ];
 
             (async () => {
                 for (let i = 0; i < messages.length; i++) {
                     loadingMessageEl.textContent = messages[i];
                     loadingMessageEl.classList.add('visible');
-                    const displayTime = i === 0 ? 3000 : 1800;
+                    const displayTime = 2000; // 各メッセージを2秒表示
                     await delay(displayTime);
                     if (i < messages.length - 1) {
                         loadingMessageEl.classList.remove('visible');
-                        await delay(400);
+                        await delay(300);
                     }
                 }
             })();
