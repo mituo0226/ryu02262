@@ -215,6 +215,16 @@
             text-align: center;
             color: var(--text-light);
             font-weight: 600;
+            animation: loadingPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes loadingPulse {
+            0%, 100% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
         }
         
         .message-header {
@@ -1587,7 +1597,7 @@
             if (skipAnimation) {
                 // ローディングメッセージを表示
                 const loadingMessageId = 'tarot-loading-message-' + Date.now();
-                addMessage('loading', '返信中です。お待ちください...', characterInfo[character].name, { id: loadingMessageId });
+                addMessage('loading', 'タロットの説明の文章を返信している最中です。もう少しお待ちください。', characterInfo[character].name, { id: loadingMessageId });
                 await delay(100);
                 scrollToLatest();
                 
