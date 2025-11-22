@@ -313,30 +313,64 @@
             loadingOverlay.classList.remove('active');
 
             // 7. sakura.mp4をループ動画として表示（別ファイルのアニメーション）
-            // 動画iframeに初期化情報と表示指示を送信
+            // iframeの読み込み完了を待つ
+            await new Promise((resolve) => {
+                if (videoIframe.contentWindow) {
+                    resolve();
+                } else {
+                    videoIframe.onload = () => {
+                        console.log('Video iframe loaded');
+                        resolve();
+                    };
+                    // タイムアウト（5秒）
+                    setTimeout(() => {
+                        console.warn('Video iframe load timeout');
+                        resolve();
+                    }, 5000);
+                }
+            });
+            
             await delay(500);
             videoIframeContainer.classList.add('active');
             
             // 初期化情報を送信
-            videoIframe.contentWindow.postMessage({
-                type: 'init',
-                characterName: characterNameLabel,
-                returnUrl: returnUrl
-            }, '*');
+            try {
+                videoIframe.contentWindow.postMessage({
+                    type: 'init',
+                    characterName: characterNameLabel,
+                    returnUrl: returnUrl
+                }, '*');
+                console.log('Init message sent to video iframe');
+            } catch (error) {
+                console.error('Error sending init message:', error);
+            }
             
             // 動画を表示
-            await delay(300);
-            videoIframe.contentWindow.postMessage('showVideo', '*');
+            await delay(500);
+            try {
+                videoIframe.contentWindow.postMessage('showVideo', '*');
+                console.log('Show video message sent');
+            } catch (error) {
+                console.error('Error sending showVideo message:', error);
+            }
 
             // 動画アニメーションの完了を待つ
             await new Promise((resolve) => {
                 const messageHandler = (event) => {
                     if (event.data === 'videoAnimationComplete') {
+                        console.log('Video animation completed');
                         window.removeEventListener('message', messageHandler);
                         resolve();
                     }
                 };
                 window.addEventListener('message', messageHandler);
+                
+                // タイムアウト（60秒）
+                setTimeout(() => {
+                    console.warn('Video animation completion timeout');
+                    window.removeEventListener('message', messageHandler);
+                    resolve();
+                }, 60000);
             });
 
             // 8. APIの完了を待つ

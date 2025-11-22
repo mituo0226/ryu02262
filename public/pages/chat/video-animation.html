@@ -212,23 +212,30 @@
 
         // 親ウィンドウからのメッセージをリッスン
         window.addEventListener('message', (event) => {
-            if (event.data === 'showVideo') {
-                showVideo();
-            } else if (event.data === 'hideVideo') {
-                videoLayer.classList.remove('active');
-            } else if (event.data && event.data.type === 'init') {
+            console.log('Video animation received message:', event.data);
+            
+            if (event.data && event.data.type === 'init') {
                 // 初期化情報を受け取る
+                console.log('Initializing video animation with:', event.data);
                 if (event.data.characterName) {
                     characterNameLabel = event.data.characterName;
                 }
                 if (event.data.returnUrl) {
                     returnUrl = event.data.returnUrl;
                 }
+            } else if (event.data === 'showVideo') {
+                console.log('Show video command received');
+                showVideo();
+            } else if (event.data === 'hideVideo') {
+                videoLayer.classList.remove('active');
             }
         });
 
-        // 自動的に読み込んで表示（親ウィンドウからの指示を待つ）
-        // showVideo()は親ウィンドウからのメッセージで呼び出される
+        // 親ウィンドウに準備完了を通知
+        if (window.parent) {
+            window.parent.postMessage('videoAnimationReady', '*');
+            console.log('Video animation ready message sent');
+        }
     </script>
 </body>
 </html>
