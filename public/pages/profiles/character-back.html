@@ -231,18 +231,18 @@
         videoLayer.appendChild(video);
         container.appendChild(videoLayer);
 
-        // 画像読み込み完了を待つ（タイムアウト付き、短縮版）
+        // 画像読み込み完了を待つ（タイムアウト付き、さらに短縮）
         let imagesLoaded = false;
         const waitForImages = async () => {
-            const maxWaitTime = 2000; // 最大2秒待機（短縮）
+            const maxWaitTime = 1000; // 最大1秒待機（さらに短縮）
             const startTime = Date.now();
             
-            // プリロードを開始
-            await preloadImages();
+            // プリロードを開始（並行処理）
+            const preloadPromise = preloadImages();
             
-            // 画像の読み込み完了を確認
+            // 画像の読み込み完了を確認（タイムアウトを短縮）
             const imageElement = imageLayer.querySelector('img');
-            await new Promise((resolve) => {
+            const imageLoadPromise = new Promise((resolve) => {
                 if (imageElement.complete && imageElement.naturalHeight !== 0) {
                     resolve();
                 } else {
@@ -263,9 +263,12 @@
                 }
             });
             
+            // プリロードと画像読み込みを並行して待つ
+            await Promise.all([preloadPromise, imageLoadPromise]);
+            
             imagesLoaded = true;
             
-            // 最小待機時間を削除して即座に表示
+            // 即座に表示（待機時間なし）
         };
 
         function delay(ms) {
@@ -344,9 +347,9 @@
             // 画像の読み込みを待つ（iPhone最適化）
             await waitForImages();
             
-            // 画面をフェードイン
+            // 画面をフェードイン（さらに短縮）
             document.body.classList.add('fade-in');
-            await delay(500); // 短縮
+            await delay(200); // 200msに短縮
 
             // 選択された鑑定士の画像をフェードイン
             imageLayer.classList.add('active');
@@ -390,8 +393,8 @@
             // 動画の再生を開始（画像表示と同時）
             tryPlayVideo();
             
-            // 画像を1.5秒表示
-            await delay(1500);
+            // 画像を3.5秒表示（長くする）
+            await delay(3500);
 
             // sakura2.mp4をフェードイン開始（画像と重なり合う）
             videoLayer.classList.add('active');
