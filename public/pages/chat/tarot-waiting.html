@@ -320,7 +320,7 @@
                 }
             }, 2000);
             
-            // 動画の読み込みをバックグラウンドで待つ（非ブロッキング、iPhone最適化）
+            // 動画の読み込みを待つ（iPhone最適化）
             const tryPlayVideo = async () => {
                 // iPhone対策：動画をリロードしてから再生を試みる
                 if (isIPhone) {
@@ -333,7 +333,7 @@
                         // iPhone対策：load()を再度呼び出してから再生
                         if (video.readyState < 2) {
                             video.load();
-                            await delay(100);
+                            await delay(200);
                         }
                         await video.play();
                         videoLoaded = true;
@@ -350,6 +350,7 @@
                             imageLayer.classList.remove('active');
                             await delay(2000); // フェードアウト完了まで待機
                         }
+                        return true; // 成功
                     } catch (error) {
                         console.error('Video play error:', error);
                         // 再生に失敗した場合は画像にフォールバック
@@ -358,48 +359,59 @@
                         if (!isIPhone) {
                             imageLayer.classList.add('active');
                         }
+                        return false; // 失敗
                     }
                 };
                 
                 // readyState >= 2 (HAVE_CURRENT_DATA) でも再生を試みる（より緩い条件）
                 if (video.readyState >= 2) {
-                    await attemptPlay();
+                    return await attemptPlay();
                 } else {
-                    // 読み込みを待つ
-                    const playWhenReady = async () => {
-                        clearTimeout(videoLoadTimeout);
-                        await attemptPlay();
-                    };
-                    
-                    // より早い段階で再生を試みる（canplayより前でも）
-                    video.addEventListener('loadeddata', () => {
-                        if (video.readyState >= 2) {
-                            playWhenReady();
-                        }
-                    }, { once: true });
-                    
-                    video.addEventListener('canplay', playWhenReady, { once: true });
-                    video.addEventListener('canplaythrough', playWhenReady, { once: true });
-                    video.addEventListener('error', () => {
-                        clearTimeout(videoLoadTimeout);
-                        console.warn('Video load error, using image fallback');
-                        useImageFallback = true;
-                        videoLayer.classList.remove('active');
-                        if (!isIPhone) {
-                            imageLayer.classList.add('active');
-                        }
-                        // エラー時もリロードを試みる
-                        reloadVideo();
-                    }, { once: true });
+                    // 読み込みを待つ（Promiseでラップ）
+                    return new Promise((resolve) => {
+                        const playWhenReady = async () => {
+                            clearTimeout(videoLoadTimeout);
+                            const success = await attemptPlay();
+                            resolve(success);
+                        };
+                        
+                        // より早い段階で再生を試みる（canplayより前でも）
+                        video.addEventListener('loadeddata', () => {
+                            if (video.readyState >= 2) {
+                                playWhenReady();
+                            }
+                        }, { once: true });
+                        
+                        video.addEventListener('canplay', playWhenReady, { once: true });
+                        video.addEventListener('canplaythrough', playWhenReady, { once: true });
+                        video.addEventListener('error', async () => {
+                            clearTimeout(videoLoadTimeout);
+                            console.warn('Video load error, using image fallback');
+                            useImageFallback = true;
+                            videoLayer.classList.remove('active');
+                            if (!isIPhone) {
+                                imageLayer.classList.add('active');
+                            }
+                            // エラー時もリロードを試みる
+                            reloadVideo();
+                            resolve(false);
+                        }, { once: true });
+                        
+                        // タイムアウト時も解決
+                        setTimeout(() => {
+                            if (!videoLoaded) {
+                                resolve(false);
+                            }
+                        }, 3000);
+                    });
                 }
             };
             
-            // 動画の再生を試みる（非ブロッキング）
-            tryPlayVideo();
-            
             // iPhone以外の場合、動画または画像レイヤーをすぐにフェードイン
             if (!isIPhone) {
-                if (!useImageFallback) {
+                // 動画の再生を試みる
+                const videoSuccess = await tryPlayVideo();
+                if (videoSuccess && !useImageFallback) {
                     videoLayer.classList.add('active');
                 } else {
                     imageLayer.classList.add('active');
@@ -407,7 +419,8 @@
                 await delay(2000); // 2秒でフェードイン
             } else {
                 // iPhoneの場合、画像は既に表示されているので、動画の読み込みを待つ
-                await delay(500); // 少し待機
+                // 動画の再生を試みる（awaitで確実に待つ）
+                await tryPlayVideo();
             }
 
             // メッセージオーバーレイをフェードイン
