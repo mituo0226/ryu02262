@@ -313,21 +313,44 @@
             loadingOverlay.classList.remove('active');
 
             // 7. sakura.mp4をループ動画として表示（別ファイルのアニメーション）
-            // iframeの読み込み完了を待つ
+            // iframeの読み込み完了とスクリプト実行完了を待つ
             await new Promise((resolve) => {
-                if (videoIframe.contentWindow) {
+                let iframeLoaded = false;
+                let scriptReady = false;
+                
+                const checkReady = () => {
+                    if (iframeLoaded && scriptReady) {
+                        console.log('Video iframe and script ready');
+                        resolve();
+                    }
+                };
+                
+                // iframeの読み込み完了を待つ
+                videoIframe.onload = () => {
+                    console.log('Video iframe loaded');
+                    iframeLoaded = true;
+                    checkReady();
+                };
+                
+                // iframe内のスクリプト実行完了を待つ（videoAnimationReadyメッセージ）
+                const messageHandler = (event) => {
+                    if (event.data === 'videoAnimationReady') {
+                        console.log('Video animation script ready');
+                        scriptReady = true;
+                        window.removeEventListener('message', messageHandler);
+                        checkReady();
+                    }
+                };
+                window.addEventListener('message', messageHandler);
+                
+                // タイムアウト（10秒）
+                setTimeout(() => {
+                    console.warn('Video iframe/script ready timeout');
+                    iframeLoaded = true;
+                    scriptReady = true;
+                    window.removeEventListener('message', messageHandler);
                     resolve();
-                } else {
-                    videoIframe.onload = () => {
-                        console.log('Video iframe loaded');
-                        resolve();
-                    };
-                    // タイムアウト（5秒）
-                    setTimeout(() => {
-                        console.warn('Video iframe load timeout');
-                        resolve();
-                    }, 5000);
-                }
+                }, 10000);
             });
             
             await delay(500);
@@ -345,7 +368,7 @@
                 console.error('Error sending init message:', error);
             }
             
-            // 動画を表示
+            // 動画を表示（初期化後に少し待つ）
             await delay(500);
             try {
                 videoIframe.contentWindow.postMessage('showVideo', '*');
