@@ -313,10 +313,31 @@
             loadingOverlay.classList.remove('active');
 
             // 7. sakura.mp4をループ動画として表示（別ファイルのアニメーション）
-            // 動画iframeにメッセージを送信して表示
+            // 動画iframeに初期化情報と表示指示を送信
             await delay(500);
             videoIframeContainer.classList.add('active');
+            
+            // 初期化情報を送信
+            videoIframe.contentWindow.postMessage({
+                type: 'init',
+                characterName: characterNameLabel,
+                returnUrl: returnUrl
+            }, '*');
+            
+            // 動画を表示
+            await delay(300);
             videoIframe.contentWindow.postMessage('showVideo', '*');
+
+            // 動画アニメーションの完了を待つ
+            await new Promise((resolve) => {
+                const messageHandler = (event) => {
+                    if (event.data === 'videoAnimationComplete') {
+                        window.removeEventListener('message', messageHandler);
+                        resolve();
+                    }
+                };
+                window.addEventListener('message', messageHandler);
+            });
 
             // 8. APIの完了を待つ
             if (apiPromise) {
@@ -327,14 +348,11 @@
                 }
             }
 
-            // 9. 動画をフェードアウト
-            videoLayer.classList.remove('active');
-            await delay(2000);
-
-            // 10. チャット画面にフェードインして切り替え
-            document.body.style.transition = 'opacity 1s ease-out';
+            // 9. チャット画面にフェードインして切り替え（動画アニメーション側で処理済み）
+            // 動画アニメーションが完了したら、このページもフェードアウト
+            document.body.style.transition = 'opacity 1.5s ease-out';
             document.body.style.opacity = '0';
-            await delay(1000);
+            await delay(1500);
             
             if (returnUrl) {
                 window.location.href = returnUrl;

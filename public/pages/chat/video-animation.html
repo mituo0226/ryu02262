@@ -49,13 +49,54 @@
             object-fit: cover;
             display: block;
         }
+
+        /* ローディングオーバーレイ */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .loading-message {
+            color: #fff;
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .loading-message.visible {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <div class="video-container" id="videoContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-message" id="loadingMessage"></div>
+    </div>
 
     <script>
         const container = document.getElementById('videoContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessageEl = document.getElementById('loadingMessage');
         const videoLayer = document.createElement('div');
         videoLayer.className = 'video-layer';
         const video = document.createElement('video');
@@ -70,6 +111,10 @@
         
         videoLayer.appendChild(video);
         container.appendChild(videoLayer);
+
+        let characterNameLabel = '鑑定士';
+        let returnUrl = '../chat/chat.html';
+        let apiCompleted = false;
 
         // 動画の読み込みを待つ
         function initVideo() {
@@ -103,6 +148,33 @@
             });
         }
 
+        // APIの完了を待つ
+        function waitForApiCompletion() {
+            return new Promise((resolve) => {
+                const checkApi = () => {
+                    const response = sessionStorage.getItem('lastConsultResponse');
+                    const error = sessionStorage.getItem('lastConsultError');
+                    
+                    if (response || error) {
+                        apiCompleted = true;
+                        resolve();
+                    } else {
+                        setTimeout(checkApi, 100);
+                    }
+                };
+                checkApi();
+            });
+        }
+
+        // ステータスメッセージを表示
+        function showStatusMessage() {
+            if (!loadingMessageEl) return;
+            
+            loadingOverlay.classList.add('active');
+            loadingMessageEl.textContent = `${characterNameLabel}の返答が来ます`;
+            loadingMessageEl.classList.add('visible');
+        }
+
         // 動画を表示
         async function showVideo() {
             await initVideo();
@@ -116,6 +188,26 @@
             } catch (error) {
                 console.error('Video play error:', error);
             }
+
+            // ステータスメッセージを表示
+            showStatusMessage();
+
+            // APIの完了を待つ
+            await waitForApiCompletion();
+
+            // メッセージを非表示
+            loadingMessageEl.classList.remove('visible');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            loadingOverlay.classList.remove('active');
+
+            // 動画をフェードアウト
+            videoLayer.classList.remove('active');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 親ウィンドウに完了を通知
+            if (window.parent) {
+                window.parent.postMessage('videoAnimationComplete', '*');
+            }
         }
 
         // 親ウィンドウからのメッセージをリッスン
@@ -124,11 +216,19 @@
                 showVideo();
             } else if (event.data === 'hideVideo') {
                 videoLayer.classList.remove('active');
+            } else if (event.data && event.data.type === 'init') {
+                // 初期化情報を受け取る
+                if (event.data.characterName) {
+                    characterNameLabel = event.data.characterName;
+                }
+                if (event.data.returnUrl) {
+                    returnUrl = event.data.returnUrl;
+                }
             }
         });
 
-        // 自動的に読み込んで表示
-        showVideo();
+        // 自動的に読み込んで表示（親ウィンドウからの指示を待つ）
+        // showVideo()は親ウィンドウからのメッセージで呼び出される
     </script>
 </body>
 </html>
