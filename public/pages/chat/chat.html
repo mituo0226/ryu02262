@@ -1534,13 +1534,22 @@
             if (lastUserMessage) {
                 try {
                     const userMsgData = JSON.parse(lastUserMessage);
+                    const messageToCheck = userMsgData.message.trim();
+                    
+                    // タロットカードの自動送信メッセージは表示しない
+                    if (messageToCheck.includes('以下のタロットカードについて') || 
+                        messageToCheck.includes('このカードの意味、私の状況にどのように関連しているか')) {
+                        // 自動送信メッセージの場合は表示せずに削除
+                        sessionStorage.removeItem('lastUserMessage');
+                        return;
+                    }
+                    
                     const existingUserMessages = messagesDiv.querySelectorAll('.message.user');
                     const messageTexts = Array.from(existingUserMessages).map(msg => {
                         const textDiv = msg.querySelector('div:last-child');
                         return textDiv ? textDiv.textContent.trim() : '';
                     });
                     
-                    const messageToCheck = userMsgData.message.trim();
                     const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
                     
                     if (!messageExists) {
