@@ -310,17 +310,20 @@
             // 6. loading-overlayを非表示
             loadingOverlay.classList.remove('active');
 
-            // 7. sakura.mp4をループ動画として表示
+            // 7. sakura.mp4を必ず表示（APIの状態に関わらず実行）
             await delay(500);
             videoLayer.classList.add('active');
             
-            // 動画の再生
+            let videoError = false;
             try {
+                // 動画を最初から再生
+                video.currentTime = 0;
                 if (video.paused) {
                     await video.play();
                 }
             } catch (error) {
                 console.error('Video play error:', error);
+                videoError = true;
             }
 
             // 8. ステータスメッセージを表示
@@ -328,13 +331,29 @@
             loadingMessageEl.textContent = `${characterNameLabel}の返答が来ます`;
             loadingMessageEl.classList.add('visible');
 
-            // 9. APIの完了を待つ
+            // 9. 動画演出として最低4秒間は待機（その間にAPI完了を待つ）
+            const videoDuration = 4000; // 4秒固定
+            const waitStart = Date.now();
+
+            // APIの完了を待つ
             if (apiPromise) {
                 await apiPromise.catch(() => {});
             } else if (!apiCompleted) {
                 while (!apiCompleted) {
                     await delay(100);
+                    // 4秒以上経過し、かつAPIもまだなら待ち続ける
                 }
+            }
+
+            // APIが終わっていても、最低4秒経過するまでは待機する
+            const elapsed = Date.now() - waitStart;
+            if (elapsed < videoDuration) {
+                await delay(videoDuration - elapsed);
+            }
+
+            // 動画再生エラーがあった場合は即座に進む
+            if (videoError) {
+                // すでにエラーログは出ているのでそのまま進む
             }
 
             // 10. メッセージを非表示
