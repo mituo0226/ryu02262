@@ -235,36 +235,55 @@
         // 画面をフェードイン
         document.body.classList.add('fade-in');
 
-        // 動画の読み込みを待つ
-        async function waitForVideoLoad() {
-            return new Promise((resolve) => {
-                if (video.readyState >= 3) {
-                    resolve();
-                } else {
-                    video.addEventListener('loadeddata', () => resolve(), { once: true });
-                    video.addEventListener('canplay', () => resolve(), { once: true });
-                    video.addEventListener('canplaythrough', () => resolve(), { once: true });
-                    video.addEventListener('error', () => resolve(), { once: true });
-                }
-            });
-        }
-
-        // アニメーション実行
+        // アニメーション実行（動画の読み込みを待たずに開始）
         async function playAnimation() {
-            // 動画レイヤーをフェードイン
-            videoLayer.classList.add('active');
-            await delay(2000); // 2秒でフェードイン
-
-            // 動画を再生
+            // 動画の設定
             video.loop = true;
             video.muted = true;
             video.playsInline = true;
+            video.preload = 'auto';
             
-            try {
-                await video.play();
-            } catch (error) {
-                console.error('Video play error:', error);
-            }
+            // 動画レイヤーをすぐにフェードイン（動画の読み込みを待たない）
+            videoLayer.classList.add('active');
+            
+            // 動画の読み込みをバックグラウンドで待つ（非ブロッキング）
+            const tryPlayVideo = async () => {
+                if (video.readyState >= 3) {
+                    // すでに読み込まれている場合はすぐに再生
+                    try {
+                        await video.play();
+                    } catch (error) {
+                        console.error('Video play error:', error);
+                    }
+                } else {
+                    // 読み込みを待つ（タイムアウト付き）
+                    const loadTimeout = setTimeout(() => {
+                        // 5秒経過しても読み込まれない場合は、読み込み済みの状態で再生を試みる
+                        if (video.readyState >= 2) {
+                            video.play().catch(err => console.error('Video play error:', err));
+                        }
+                    }, 5000);
+                    
+                    const playWhenReady = () => {
+                        clearTimeout(loadTimeout);
+                        video.play().catch(err => console.error('Video play error:', err));
+                    };
+                    
+                    video.addEventListener('canplay', playWhenReady, { once: true });
+                    video.addEventListener('canplaythrough', playWhenReady, { once: true });
+                    video.addEventListener('loadeddata', () => {
+                        if (video.readyState >= 3) {
+                            playWhenReady();
+                        }
+                    }, { once: true });
+                }
+            };
+            
+            // 動画の再生を試みる（非ブロッキング）
+            tryPlayVideo();
+            
+            // フェードインはすぐに開始（動画の読み込みを待たない）
+            await delay(2000); // 2秒でフェードイン
 
             // メッセージオーバーレイをフェードイン
             messageOverlay.classList.add('active');
@@ -303,14 +322,10 @@
             }
         }
 
-        // 動画の読み込みを待ってからアニメーション開始
-        waitForVideoLoad().then(() => {
-            playAnimation();
-        }).catch((error) => {
-            console.error('Error loading video:', error);
-            // 動画の読み込みに失敗してもアニメーションを開始
-            playAnimation();
-        });
+        // アニメーションをすぐに開始（動画の読み込みを待たない）
+        // 画面のフェードインと同時にアニメーションを開始
+        document.body.classList.add('fade-in');
+        playAnimation();
     </script>
 </body>
 </html>
