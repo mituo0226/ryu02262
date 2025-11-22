@@ -164,31 +164,27 @@
         const returnUrl = urlParams.get('return') || '../chat/chat.html';
         const message = urlParams.get('message') ? decodeURIComponent(urlParams.get('message')) : '';
 
-        // 各鑑定士の画像シーケンス
+        // 各鑑定士の画像シーケンス（関係者の画像→2.png→3.png→sakura.mp4）
         const characterSequences = {
             kaede: [
                 '../../photo/kaede2.png',
                 '../../photo/2.png',
-                '../../photo/3.png',
-                '../../photo/4.png'
+                '../../photo/3.png'
             ],
             kaon: [
                 '../../photo/kaon2.png',
                 '../../photo/2.png',
-                '../../photo/3.png',
-                '../../photo/4.png'
+                '../../photo/3.png'
             ],
             yukino: [
                 '../../photo/yukino2.png',
                 '../../photo/2.png',
-                '../../photo/3.png',
-                '../../photo/4.png'
+                '../../photo/3.png'
             ],
             sora: [
                 '../../photo/sora2.png',
                 '../../photo/2.png',
-                '../../photo/3.png',
-                '../../photo/4.png'
+                '../../photo/3.png'
             ]
         };
 
@@ -391,10 +387,10 @@
                 await delay(1500);
             }
 
-            // 最後の画像を少し長めに表示
+            // 最後の画像（3.png）を少し長めに表示
             await delay(2500);
 
-            // すべてのレイヤーをフェードアウト
+            // すべての画像レイヤーをフェードアウト
             layers.forEach(layer => {
                 layer.classList.remove('active');
                 layer.classList.add('fade-out');
@@ -402,7 +398,7 @@
 
             await delay(500);
 
-            // sakura.mp4をループ動画として表示
+            // sakura.mp4をループ動画として表示（フェードイン）
             const videoLayer = document.createElement('div');
             videoLayer.className = 'video-layer';
             const video = document.createElement('video');
