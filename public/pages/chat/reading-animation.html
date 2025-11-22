@@ -382,16 +382,14 @@
                 // すでにエラーログは出ているのでそのまま進む
             }
 
-            // 10. メッセージを非表示（だんだん薄くなって消える）
-            loadingMessageEl.classList.remove('visible');
-            await delay(2000); // フェードアウト完了まで待機（1.5秒 + 余裕）
-            loadingOverlay.classList.remove('active');
-
-            // 11. 動画をフェードアウト
+            // 10. 動画をフェードアウト（メッセージは表示し続ける）
             videoLayer.classList.remove('active');
             await delay(2000);
 
-            // 12. チャット画面にフェードインして切り替え
+            // 11. チャット画面にフェードインして切り替え（メッセージも一緒にフェードアウト）
+            // メッセージをゆっくりとフェードアウト（bodyと一緒に）
+            loadingMessageEl.classList.remove('visible');
+            // bodyと一緒にフェードアウト
             document.body.style.transition = 'opacity 1.5s ease-out';
             document.body.style.opacity = '0';
             await delay(1500);
