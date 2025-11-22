@@ -1034,8 +1034,23 @@
             
             const messageToSend = message;
             
-            // skipAnimationがtrueの場合は、アニメーションをスキップして直接APIを呼び出す（タロットカードがめくられた時など）
+            // skipAnimationがtrueの場合は、タロット待機アニメーションを表示してからAPIを呼び出す（タロットカードがめくられた時など）
             if (skipAnimation) {
+                // タロット待機アニメーションに移動
+                const currentUrl = window.location.href;
+                const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
+                
+                document.body.style.transition = 'opacity 0.5s ease';
+                document.body.style.opacity = '0';
+                
+                await delay(500);
+                window.location.href = waitingUrl;
+                return;
+            }
+            
+            // 以下は通常のフロー（アニメーションに移動）
+            // この部分は以前のコードを保持（念のため）
+            if (false) {
                 try {
                     // APIを直接呼び出す
                     const userToken = AuthState.getUserToken() || localStorage.getItem('userToken');

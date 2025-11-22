@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>タロット解説中...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            background: #000;
+        }
+
+        body {
+            opacity: 0;
+            transition: opacity 1.5s ease-in;
+        }
+
+        body.fade-in {
+            opacity: 1;
+        }
+
+        .video-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            background: #000;
+            z-index: 10;
+        }
+
+        .video-layer.active {
+            opacity: 1;
+        }
+
+        .video-layer video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+        }
+
+        .message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            pointer-events: none;
+        }
+
+        .message-overlay.active {
+            opacity: 1;
+        }
+
+        .message-text {
+            color: #fff;
+            font-size: clamp(18px, 4vw, 24px);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-align: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .message-text.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container" id="videoContainer">
+        <div class="video-layer" id="videoLayer">
+            <video id="video" muted playsinline preload="auto">
+                <source src="../../photo/yukino.mp4" type="video/mp4">
+            </video>
+        </div>
+        <div class="message-overlay" id="messageOverlay">
+            <div class="message-text" id="messageText">タロットカードの解説を返信していますから、待っていてくださいね</div>
+        </div>
+    </div>
+
+    <script>
+        // URLパラメータから取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const character = urlParams.get('character') || 'yukino';
+        const returnUrl = urlParams.get('return') || '../chat/chat.html';
+        const message = urlParams.get('message') ? decodeURIComponent(urlParams.get('message')) : '';
+
+        const video = document.getElementById('video');
+        const videoLayer = document.getElementById('videoLayer');
+        const messageOverlay = document.getElementById('messageOverlay');
+        const messageText = document.getElementById('messageText');
+
+        let apiPromise = null;
+        let apiCompleted = false;
+
+        // API呼び出し
+        function startApiCall() {
+            if (!message) {
+                apiCompleted = true;
+                return Promise.resolve();
+            }
+
+            sessionStorage.removeItem('lastConsultResponse');
+            sessionStorage.removeItem('lastConsultError');
+
+            return (async () => {
+                try {
+                    if (window.AuthState && typeof window.AuthState.init === 'function') {
+                        window.AuthState.init();
+                    }
+
+                    const isFromChatExample = returnUrl.includes('chat-example.html');
+                    const userToken = isFromChatExample ? null :
+                        (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) ||
+                        localStorage.getItem('userToken');
+
+                    const decodedMessage = decodeURIComponent(message);
+                    const payload = { message: decodedMessage, character };
+
+                    if (userToken && !isFromChatExample) {
+                        payload.userToken = userToken;
+                        const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                        if (pendingMigration) {
+                            try {
+                                const migrationData = JSON.parse(pendingMigration);
+                                if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
+                                    payload.migrateHistory = true;
+                                    payload.clientHistory = migrationData.history.map((entry) => ({
+                                        role: entry.role,
+                                        content: entry.content,
+                                    }));
+                                }
+                            } catch (error) {
+                                console.error('Error parsing pending guest history migration:', error);
+                            }
+                        }
+                    } else {
+                        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+                        const key = GUEST_COUNT_KEY_PREFIX + character;
+                        const characterSpecificCount = sessionStorage.getItem(key);
+                        const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
+                        const guestCount = guestCountForCharacter > 0 
+                            ? characterSpecificCount 
+                            : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
+                                ? window.AuthState.getGuestMessageCount() 
+                                : 0);
+                        payload.guestMetadata = { messageCount: guestCount };
+                    }
+
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('API呼び出しがタイムアウトしました')), 30000);
+                    });
+
+                    const fetchPromise = fetch('/api/consult', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorMessage = `APIエラー (${response.status})`;
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            if (errorData.error) {
+                                errorMessage = errorData.error;
+                            }
+                        } catch {}
+                        throw new Error(errorMessage);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.needsRegistration) {
+                        sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                    } else if (data.error && !data.message) {
+                        sessionStorage.setItem('lastConsultError', data.error || 'APIエラーが発生しました');
+                    } else {
+                        sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
+                    }
+                } catch (error) {
+                    console.error('Error calling API:', error);
+                    const errorMessage = error instanceof Error ? error.message : '通信エラーが発生しました';
+                    sessionStorage.setItem('lastConsultError', errorMessage);
+                } finally {
+                    apiCompleted = true;
+                }
+            })();
+        }
+
+        apiPromise = startApiCall();
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 画面をフェードイン
+        document.body.classList.add('fade-in');
+
+        // 動画の読み込みを待つ
+        async function waitForVideoLoad() {
+            return new Promise((resolve) => {
+                if (video.readyState >= 3) {
+                    resolve();
+                } else {
+                    video.addEventListener('loadeddata', () => resolve(), { once: true });
+                    video.addEventListener('canplay', () => resolve(), { once: true });
+                    video.addEventListener('canplaythrough', () => resolve(), { once: true });
+                    video.addEventListener('error', () => resolve(), { once: true });
+                }
+            });
+        }
+
+        // アニメーション実行
+        async function playAnimation() {
+            // 動画レイヤーをフェードイン
+            videoLayer.classList.add('active');
+            await delay(2000); // 2秒でフェードイン
+
+            // 動画を再生
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            
+            try {
+                await video.play();
+            } catch (error) {
+                console.error('Video play error:', error);
+            }
+
+            // メッセージオーバーレイをフェードイン
+            messageOverlay.classList.add('active');
+            await delay(1000); // 1秒待機
+            messageText.classList.add('visible');
+            await delay(2000); // 2秒でフェードイン
+
+            // APIの完了を待つ
+            if (apiPromise) {
+                await apiPromise.catch(() => {});
+            } else if (!apiCompleted) {
+                while (!apiCompleted) {
+                    await delay(100);
+                }
+            }
+
+            // メッセージをフェードアウト
+            messageText.classList.remove('visible');
+            await delay(1500); // 1.5秒でフェードアウト
+            messageOverlay.classList.remove('active');
+            await delay(500);
+
+            // 動画をフェードアウト
+            videoLayer.classList.remove('active');
+            await delay(2000); // 2秒でフェードアウト
+
+            // チャット画面にフェードインして切り替え
+            document.body.style.transition = 'opacity 1.5s ease-out';
+            document.body.style.opacity = '0';
+            await delay(1500);
+            
+            if (returnUrl) {
+                window.location.href = returnUrl;
+            } else {
+                window.history.back();
+            }
+        }
+
+        // 動画の読み込みを待ってからアニメーション開始
+        waitForVideoLoad().then(() => {
+            playAnimation();
+        }).catch((error) => {
+            console.error('Error loading video:', error);
+            // 動画の読み込みに失敗してもアニメーションを開始
+            playAnimation();
+        });
+    </script>
+</body>
+</html>
+
