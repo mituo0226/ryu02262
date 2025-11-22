@@ -185,48 +185,35 @@
         const buttonContainer = document.getElementById('buttonContainer');
         const chatLink = document.getElementById('chatLink');
 
-        // すべての鑑定士の画像を順番に表示
-        const allCharacterImages = [
-            characterData.kaede.image,
-            characterData.yukino.image,
-            characterData.kaon.image,
-            characterData.sora.image
-        ];
+        // 選択された鑑定士の画像のみを表示
+        const currentCharacterImage = currentCharacterData.image;
 
         // 画像のプリロード（iPhone最適化）
         const preloadImages = () => {
-            return Promise.all(
-                allCharacterImages.map(src => {
-                    return new Promise((resolve, reject) => {
-                        const img = new Image();
-                        img.onload = () => resolve(img);
-                        img.onerror = () => {
-                            console.warn(`Failed to preload image: ${src}`);
-                            resolve(null); // エラーでも続行
-                        };
-                        img.src = src;
-                    });
-                })
-            );
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    console.warn(`Failed to preload image: ${currentCharacterImage}`);
+                    resolve(null); // エラーでも続行
+                };
+                img.src = currentCharacterImage;
+            });
         };
 
-        // 画像レイヤーを作成
-        const imageLayers = [];
-        allCharacterImages.forEach((src, index) => {
-            const layer = document.createElement('div');
-            layer.className = 'image-layer';
-            const img = document.createElement('img');
-            img.src = src;
-            img.alt = `鑑定士 ${index + 1}`;
-            img.loading = 'eager'; // 優先読み込み
-            img.decoding = 'async'; // 非同期デコード
-            img.onerror = () => {
-                console.warn(`Failed to load image: ${src}`);
-            };
-            layer.appendChild(img);
-            container.appendChild(layer);
-            imageLayers.push(layer);
-        });
+        // 画像レイヤーを作成（選択された鑑定士のみ）
+        const imageLayer = document.createElement('div');
+        imageLayer.className = 'image-layer';
+        const img = document.createElement('img');
+        img.src = currentCharacterImage;
+        img.alt = currentCharacterData.name;
+        img.loading = 'eager'; // 優先読み込み
+        img.decoding = 'async'; // 非同期デコード
+        img.onerror = () => {
+            console.warn(`Failed to load image: ${currentCharacterImage}`);
+        };
+        imageLayer.appendChild(img);
+        container.appendChild(imageLayer);
 
         // 動画レイヤーを作成
         const videoLayer = document.createElement('div');
@@ -253,31 +240,29 @@
             // プリロードを開始
             await preloadImages();
             
-            // 各画像の読み込み完了を確認
-            const imagePromises = Array.from(container.querySelectorAll('.image-layer img')).map(img => {
-                return new Promise((resolve) => {
-                    if (img.complete && img.naturalHeight !== 0) {
+            // 画像の読み込み完了を確認
+            const imageElement = imageLayer.querySelector('img');
+            await new Promise((resolve) => {
+                if (imageElement.complete && imageElement.naturalHeight !== 0) {
+                    resolve();
+                } else {
+                    const timeout = setTimeout(() => {
+                        console.warn(`Image load timeout: ${imageElement.src}`);
+                        resolve(); // タイムアウトでも続行
+                    }, maxWaitTime);
+                    
+                    imageElement.addEventListener('load', () => {
+                        clearTimeout(timeout);
                         resolve();
-                    } else {
-                        const timeout = setTimeout(() => {
-                            console.warn(`Image load timeout: ${img.src}`);
-                            resolve(); // タイムアウトでも続行
-                        }, maxWaitTime);
-                        
-                        img.addEventListener('load', () => {
-                            clearTimeout(timeout);
-                            resolve();
-                        }, { once: true });
-                        
-                        img.addEventListener('error', () => {
-                            clearTimeout(timeout);
-                            resolve(); // エラーでも続行
-                        }, { once: true });
-                    }
-                });
+                    }, { once: true });
+                    
+                    imageElement.addEventListener('error', () => {
+                        clearTimeout(timeout);
+                        resolve(); // エラーでも続行
+                    }, { once: true });
+                }
             });
             
-            await Promise.all(imagePromises);
             imagesLoaded = true;
             
             const elapsed = Date.now() - startTime;
@@ -367,32 +352,17 @@
             document.body.classList.add('fade-in');
             await delay(1500);
 
-            // 各鑑定士の画像を順番にフェードイン/フェードアウト（重なり合うように）
-            for (let i = 0; i < imageLayers.length; i++) {
-                // 次の画像を先にフェードイン開始（前の画像と重なる）
-                imageLayers[i].classList.add('active');
-                await delay(1500); // 1.5秒重なって表示
-                
-                // 前の画像をフェードアウト開始（まだ重なっている状態）
-                if (i > 0) {
-                    imageLayers[i - 1].classList.remove('active');
-                    imageLayers[i - 1].classList.add('fade-out');
-                }
-                await delay(2000); // 2秒でフェードアウト完了
-            }
+            // 選択された鑑定士の画像をフェードイン
+            imageLayer.classList.add('active');
+            await delay(3000); // 3秒表示
 
-            // 最後の画像を表示（2秒）
-            await delay(2000);
-
-            // sakura2.mp4を先にフェードイン開始（最後の画像と重なり合う）
+            // sakura2.mp4を先にフェードイン開始（画像と重なり合う）
             videoLayer.classList.add('active');
             await delay(1500); // 1.5秒重なって表示
 
-            // すべての画像レイヤーをフェードアウト（動画と重なっている状態）
-            imageLayers.forEach(layer => {
-                layer.classList.remove('active');
-                layer.classList.add('fade-out');
-            });
+            // 画像レイヤーをフェードアウト（動画と重なっている状態）
+            imageLayer.classList.remove('active');
+            imageLayer.classList.add('fade-out');
             await delay(2000); // フェードアウト完了まで待機
 
             // 動画の再生を試みる（iPhone最適化）
