@@ -232,9 +232,6 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // 画面をフェードイン
-        document.body.classList.add('fade-in');
-
         // アニメーション実行（動画の読み込みを待たずに開始）
         async function playAnimation() {
             // 動画の設定
