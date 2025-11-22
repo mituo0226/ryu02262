@@ -90,8 +90,9 @@
         .video-layer video {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             object-position: center;
+            background: #000;
         }
 
         .loading-overlay {
@@ -403,43 +404,75 @@
             const videoLayer = document.createElement('div');
             videoLayer.className = 'video-layer';
             const video = document.createElement('video');
-            video.src = '../../photo/sakura.mp4';
+            
+            // 動画の属性を設定
             video.loop = true;
             video.autoplay = true;
             video.muted = true;
             video.playsInline = true;
+            video.preload = 'auto';
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.objectFit = 'cover';
             
-            // 動画の読み込みを待つ
-            await new Promise((resolve, reject) => {
-                video.onloadeddata = () => {
-                    console.log('sakura.mp4 loaded');
-                    resolve();
-                };
-                video.onerror = (error) => {
-                    console.error('sakura.mp4 load error:', error);
-                    // エラーでも続行
-                    resolve();
-                };
-                // タイムアウト（5秒）
-                setTimeout(() => {
-                    console.warn('sakura.mp4 load timeout');
-                    resolve();
-                }, 5000);
-            });
-            
+            // 動画要素を先にDOMに追加
             videoLayer.appendChild(video);
             container.appendChild(videoLayer);
+            
+            // 動画の読み込みを待つ
+            await new Promise((resolve) => {
+                let resolved = false;
+                
+                const onLoaded = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        console.log('sakura.mp4 loaded and ready');
+                        resolve();
+                    }
+                };
+                
+                const onError = (error) => {
+                    if (!resolved) {
+                        resolved = true;
+                        console.error('sakura.mp4 load error:', error);
+                        // エラーでも続行（動画が表示されない可能性があるが、処理は続ける）
+                        resolve();
+                    }
+                };
+                
+                // 複数のイベントをリッスン
+                video.addEventListener('loadeddata', onLoaded);
+                video.addEventListener('canplay', onLoaded);
+                video.addEventListener('canplaythrough', onLoaded);
+                video.addEventListener('error', onError);
+                
+                // 動画のソースを設定（イベントリスナーを設定した後）
+                video.src = '../../photo/sakura.mp4';
+                
+                // タイムアウト（10秒）
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        console.warn('sakura.mp4 load timeout, continuing anyway');
+                        resolve();
+                    }
+                }, 10000);
+            });
 
             // 動画をフェードイン（少し待ってから）
-            await delay(300);
+            await delay(500);
             videoLayer.classList.add('active');
             
             // 動画の再生を確認
             try {
-                await video.play();
-                console.log('sakura.mp4 playing');
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    await playPromise;
+                    console.log('sakura.mp4 playing');
+                }
             } catch (error) {
                 console.error('sakura.mp4 play error:', error);
+                // 再生に失敗しても続行
             }
 
             // APIの完了を待つ（動画はループ再生し続ける）
