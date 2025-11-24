@@ -112,6 +112,26 @@ export class ResponseModule {
       };
     }
 
+    // 2通目：曖昧な質問の場合
+    if (stage === 'vague_second') {
+      const secondResponse = this.flowManager.generateSecondVagueResponse(userMessage);
+      return {
+        response: secondResponse,
+        isInappropriate: false,
+        warnings: validation.warnings,
+      };
+    }
+
+    // 3通目：曖昧な質問の場合の性格診断
+    if (stage === 'vague_third') {
+      const thirdResponse = this.flowManager.generateThirdVagueResponse(userMessage, conversationHistory);
+      return {
+        response: thirdResponse,
+        isInappropriate: false,
+        warnings: validation.warnings,
+      };
+    }
+
     // 2〜3通目：具体的な質問を返す
     if (stage === 'questioning') {
       const questionType = this.questioningSystem.determineQuestionType(userMessage);
