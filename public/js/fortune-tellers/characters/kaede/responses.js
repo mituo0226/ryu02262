@@ -5,6 +5,8 @@
 import { randomChoice, replaceTemplate } from '../../utils/helpers.js';
 import { createValidator } from '../../utils/validators.js';
 import { createConcreteQuestioningSystem } from './concrete-questions.js';
+import { createFortuneTellingModule } from './fortune-telling.js';
+import { createConversationFlowManager } from './conversation-flow.js';
 
 /**
  * 通常の応答テンプレート（優しい敬語で紳士的に）
@@ -46,6 +48,8 @@ export class ResponseModule {
   constructor() {
     this.validator = createValidator();
     this.questioningSystem = createConcreteQuestioningSystem();
+    this.fortuneTellingModule = createFortuneTellingModule();
+    this.flowManager = createConversationFlowManager();
   }
 
   /**
@@ -95,28 +99,82 @@ export class ResponseModule {
       };
     }
 
-    // 相談タイプを判定
-    const questionType = this.questioningSystem.determineQuestionType(userMessage);
+    // 会話のステージを取得
+    const stage = this.flowManager.getCurrentStage();
     
-    // 具体的な質問を生成
-    const specificQuestion = this.questioningSystem.generateSpecificQuestions(
-      questionType,
-      userMessage,
-      conversationHistory
-    );
-    
-    // 優しい前置きと具体的な質問を組み合わせ
-    const gentlePrefix = randomChoice([
-      'おつらいお気持ち、よくわかります。',
-      'お気持ち、よくわかります。',
-      '大変な思いをなさっているのですね。',
-      'お話をうかがっていますと、お気持ちがよく伝わってまいります。'
-    ]);
-    
-    const response = `${gentlePrefix}\n\n${specificQuestion}`;
+    // 1通目：最初の質問への応答
+    if (stage === 'first') {
+      const firstResponse = this.flowManager.generateFirstResponse(userMessage);
+      return {
+        response: firstResponse,
+        isInappropriate: false,
+        warnings: validation.warnings,
+      };
+    }
 
+    // 2〜3通目：具体的な質問を返す
+    if (stage === 'questioning') {
+      const questionType = this.questioningSystem.determineQuestionType(userMessage);
+      const specificQuestion = this.questioningSystem.generateSpecificQuestions(
+        questionType,
+        userMessage,
+        conversationHistory
+      );
+      
+      const questionResponse = this.flowManager.generateQuestionResponse(
+        userMessage,
+        specificQuestion
+      );
+      
+      return {
+        response: questionResponse,
+        isInappropriate: false,
+        warnings: validation.warnings,
+      };
+    }
+
+    // 4通目以降：人間性の分析
+    if (stage === 'analysis') {
+      const personalityAnalysis = this.flowManager.generatePersonalityAnalysis(conversationHistory);
+      
+      // 守護神呼び出しの提案をチェック
+      const guardianProposal = this.flowManager.proposeGuardianSummoning();
+      if (guardianProposal) {
+        return {
+          response: `${personalityAnalysis}\n\n${guardianProposal}`,
+          isInappropriate: false,
+          warnings: validation.warnings,
+        };
+      }
+      
+      return {
+        response: personalityAnalysis,
+        isInappropriate: false,
+        warnings: validation.warnings,
+      };
+    }
+
+    // 守護神呼び出しの提案後
+    if (stage === 'guardian_proposal') {
+      // ユーザーが「お願いします」「OK」などと返答した場合の処理は後で実装
+      // 今は通常の応答を返す
+      const questionType = this.questioningSystem.determineQuestionType(userMessage);
+      const specificQuestion = this.questioningSystem.generateSpecificQuestions(
+        questionType,
+        userMessage,
+        conversationHistory
+      );
+      
+      return {
+        response: specificQuestion,
+        isInappropriate: false,
+        warnings: validation.warnings,
+      };
+    }
+
+    // フォールバック
     return {
-      response: response,
+      response: 'お話をうかがわせていただき、ありがとうございます。',
       isInappropriate: false,
       warnings: validation.warnings,
     };

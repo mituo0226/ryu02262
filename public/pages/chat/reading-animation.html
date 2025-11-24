@@ -214,15 +214,27 @@
                             }
                         }
                     } else {
-                        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
-                        const key = GUEST_COUNT_KEY_PREFIX + character;
-                        const characterSpecificCount = sessionStorage.getItem(key);
-                        const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
-                        const guestCount = guestCountForCharacter > 0 
-                            ? guestCountForCharacter 
-                            : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
-                                ? window.AuthState.getGuestMessageCount() 
-                                : 0);
+                        // まず、chat-example.htmlで保存されたカウントを確認
+                        const lastGuestMessageCount = sessionStorage.getItem('lastGuestMessageCount');
+                        let guestCount = 0;
+                        
+                        if (lastGuestMessageCount !== null) {
+                            // chat-example.htmlで保存されたカウントを使用
+                            guestCount = Number.parseInt(lastGuestMessageCount, 10);
+                            // 使用後は削除
+                            sessionStorage.removeItem('lastGuestMessageCount');
+                        } else {
+                            // フォールバック：sessionStorageから取得
+                            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+                            const key = GUEST_COUNT_KEY_PREFIX + character;
+                            const characterSpecificCount = sessionStorage.getItem(key);
+                            const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
+                            guestCount = guestCountForCharacter > 0 
+                                ? guestCountForCharacter 
+                                : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
+                                    ? window.AuthState.getGuestMessageCount() 
+                                    : 0);
+                        }
                         payload.guestMetadata = { messageCount: guestCount };
                     }
 

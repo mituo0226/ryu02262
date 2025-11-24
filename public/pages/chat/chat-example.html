@@ -1620,6 +1620,12 @@
                     timestamp: new Date().toISOString()
                 };
                 sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
+                
+                // ゲストユーザーの場合、メッセージカウントを保存（API呼び出し前に）
+                if (!isRegistered) {
+                    const currentCount = getGuestMessageCountForCharacter(character);
+                    sessionStorage.setItem('lastGuestMessageCount', String(currentCount));
+                }
             }
             
             const currentUrl = window.location.href;
