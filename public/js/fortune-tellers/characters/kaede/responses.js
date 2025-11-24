@@ -99,8 +99,8 @@ export class ResponseModule {
       };
     }
 
-    // 会話のステージを取得
-    const stage = this.flowManager.getCurrentStage();
+    // 会話のステージを取得（会話履歴と現在のメッセージを渡す）
+    const stage = this.flowManager.getCurrentStage(conversationHistory, userMessage);
     
     // 1通目：最初の質問への応答
     if (stage === 'first') {

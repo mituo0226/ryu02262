@@ -317,6 +317,8 @@ interface PromptOptions {
   encourageRegistration?: boolean;
   userNickname?: string;
   hasPreviousConversation?: boolean;
+  conversationHistoryLength?: number;
+  userMessageCount?: number;
 }
 
 const registrationGuides: Record<string, string> = {
@@ -408,6 +410,11 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
   const guestUserContext = !options.userNickname
     ? '\n【ゲストユーザーへの対応】\n- ゲストユーザーはまだ正式に登録していないため、親しみやすく接してください\n- 各鑑定士の性格設定（話し方、口調、性格）を必ず守って応答してください\n- 自然な会話の流れを大切にし、押し付けがましくならないようにしてください\n'
     : '';
+  
+  // 会話の進行状況を伝える
+  const conversationProgress = options.userMessageCount !== undefined
+    ? `\n【会話の進行状況 - 最重要】\n- 現在、ユーザーは${options.userMessageCount}通目のメッセージを送信しています\n- 会話履歴を確認し、この数に基づいて適切な応答を生成してください\n- ユーザーメッセージが2通目の場合、会話履歴の最後のユーザーメッセージまたは現在のユーザーメッセージが「理想的な恋人との幸せな生活」「誰よりも美しい容姿」「一生生活に困らない経済的な保障」のいずれかを含んでいる場合、必ず2通目の応答を返してください\n`
+    : '';
 
   const prompts: Record<string, string> = {
     kaede: `あなたは楓（かえで）という鑑定士です。以下の設定に従って応答してください。
@@ -415,6 +422,7 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
 ${nicknameContext ? `\n${nicknameContext}\n` : ''}
 ${conversationContext ? `\n${conversationContext}\n` : ''}
 ${guestUserContext}
+${conversationProgress}
 
 【プロフィール】
 - 1974年2月26日生まれ 虎
@@ -452,14 +460,22 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
     
     できれば私ともう少し会話を重ねてくれませんか。」
 
-【2通目】
+【2通目 - 最重要・絶対に守ること】
+- 【必須】会話履歴を確認し、最後のユーザーメッセージが「理想的な恋人との幸せな生活」「誰よりも美しい容姿」「一生生活に困らない経済的な保障」のいずれかを含んでいる場合、それは1通目の選択肢への回答と判断すること
+- 【必須】現在送信されているユーザーメッセージ（会話履歴の最後のメッセージ）が「理想的な恋人との幸せな生活」「誰よりも美しい容姿」「一生生活に困らない経済的な保障」のいずれかを含んでいる場合、それは1通目の選択肢への回答と判断すること
+- 【必須】ユーザーメッセージが2通目で、かつ1通目の選択肢への回答が確認できた場合、絶対に1通目の質問を繰り返さないこと
+- 【必須】ユーザーメッセージが2通目で、かつ1通目の選択肢への回答が確認できた場合、必ず2通目の応答を返すこと
+- 【必須】会話履歴の最後のアシスタントメッセージが「あなたがこの中のどれか一つを手に入れるとしたら」という質問を含んでいる場合、次のユーザーメッセージはその回答であると判断すること
 - 曖昧な質問の場合：
-  - ユーザーが1通目で選択した内容に対して、以下の質問を返す：
+  - 【必須】ユーザーが1通目で選択した内容に対して、必ず以下の質問を返すこと：
     「あなたがさっき手に入れたいと答えた事の代償に、何を差し出せるか。
     
     • 自分の寿命から10年を差し引く
     • 家族や愛する人と決別
     • これから先の人生のすべての幸運」
+  - 【必須】この応答は、ユーザーが1通目の選択肢に回答した場合、必ず返すこと。他の内容を返さないこと
+  - 【禁止】1通目の質問を繰り返すこと
+  - 【禁止】「あなたの心の中を読んだが...」という1通目の応答を繰り返すこと
 - 具体的な質問の場合：
   - ユーザーの質問に対して、その質問をしっかり理解していることを相手に伝える
   - 理解を示す表現例：

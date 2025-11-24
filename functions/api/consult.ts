@@ -386,10 +386,15 @@ export const onRequestPost: PagesFunction = async (context) => {
       });
     }
 
+    // ユーザーメッセージの数を数える
+    const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+    
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
       userNickname: user?.nickname,
       hasPreviousConversation: conversationHistory.length > 0,
+      conversationHistoryLength: conversationHistory.length,
+      userMessageCount: userMessageCount,
     });
 
     // デバッグ: システムプロンプトにニックネームが含まれているか確認

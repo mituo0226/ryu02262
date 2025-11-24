@@ -297,18 +297,30 @@ export class ConversationFlowManager {
 
   /**
    * 現在の会話ステージを取得
+   * @param {Array} conversationHistory - 会話履歴（オプション）
+   * @param {string} currentUserMessage - 現在のユーザーメッセージ（オプション）
    * @returns {string} ステージ（'first', 'vague_second', 'vague_third', 'questioning', 'analysis', 'guardian_proposal'）
    */
-  getCurrentStage() {
-    if (this.messageCount === 1) {
+  getCurrentStage(conversationHistory = [], currentUserMessage = '') {
+    // 会話履歴からユーザーメッセージの数を数える
+    const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+    
+    // 現在のユーザーメッセージも含めてカウント（送信されている場合）
+    // 会話履歴に現在のメッセージがまだ含まれていない可能性があるため、+1する
+    const effectiveCount = userMessageCount + (currentUserMessage ? 1 : 0);
+    
+    // デバッグ用：会話履歴がない場合は、messageCountを使用（フォールバック）
+    const finalCount = effectiveCount > 0 ? effectiveCount : this.messageCount;
+    
+    if (finalCount === 1) {
       return 'first';
-    } else if (this.isVagueQuestion && this.messageCount === 2) {
+    } else if (this.isVagueQuestion && finalCount === 2) {
       return 'vague_second';
-    } else if (this.isVagueQuestion && this.messageCount === 3) {
+    } else if (this.isVagueQuestion && finalCount === 3) {
       return 'vague_third';
-    } else if (this.messageCount >= 2 && this.messageCount <= 3 && !this.isVagueQuestion) {
+    } else if (finalCount >= 2 && finalCount <= 3 && !this.isVagueQuestion) {
       return 'questioning';
-    } else if (this.messageCount >= 4 && !this.hasProposedGuardian) {
+    } else if (finalCount >= 4 && !this.hasProposedGuardian) {
       return 'analysis';
     } else {
       return 'guardian_proposal';
