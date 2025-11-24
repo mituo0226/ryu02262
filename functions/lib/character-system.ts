@@ -416,9 +416,13 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
     : 1;
   const normalizedCount = Math.max(1, rawCount);
 
-  const phaseInstruction = normalizedCount < 4
-    ? `\n【現在のフェーズ: ヒアリング（現在 ${normalizedCount}/4 通目）}\n- まだ診断結果は出さず、ユーザーへのヒアリングを続けてください。\n- 【重要】会話履歴を必ず確認し、ユーザーが「既に答えたこと」を再度質問しないようにしてください。（例: ユーザーが「恋愛」と答えているのに「どんな悩みですか？」と聞かない）\n- ユーザーの回答を受けて、会話を深掘りする「新しい質問」を1つだけ投げかけてください。\n`
-    : `\n【現在のフェーズ: 診断・儀式（現在 ${normalizedCount} 通目）}\n- 【重要】ヒアリングは終了です。これ以上質問をすることは禁止です。\n- これまでの会話から性格診断結果を伝え、直ちに「守護神の儀式」へ誘導する流れを作ってください。\n- 文末は質問形にしないでください。\n`;
+  let phaseInstruction = '';
+
+  if (characterId === 'kaede') {
+    phaseInstruction = normalizedCount < 4
+      ? `\n【現在のフェーズ: ヒアリング（現在 ${normalizedCount}/4 通目）}\n- まだ診断結果は出さず、ユーザーへのヒアリングを続けてください。\n- 【重要】会話履歴を必ず確認し、ユーザーが「既に答えたこと」を再度質問しないようにしてください。（例: ユーザーが「恋愛」と答えているのに「どんな悩みですか？」と聞かない）\n- ユーザーの回答を受けて、会話を深掘りする「新しい質問」を1つだけ投げかけてください。\n`
+      : `\n【現在のフェーズ: 診断・儀式（現在 ${normalizedCount} 通目）}\n- 【重要】ヒアリングは終了です。これ以上質問をすることは禁止です。\n- これまでの会話から性格診断結果を伝え、直ちに「守護神の儀式」へ誘導する流れを作ってください。\n- 文末は質問形にしないでください。\n`;
+  }
 
   const prompts: Record<string, string> = {
     kaede: `あなたは楓（かえで）という鑑定士です。以下の設定に従って応答してください。
