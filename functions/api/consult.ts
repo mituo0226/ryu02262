@@ -207,9 +207,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     const guestMessageCount = Number(guestMetadata.messageCount ?? 0);
     const sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
     const guestLimitReached = !body.userToken && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT;
-    // 4回目（ユーザーの4回目のメッセージ送信時）から自然に登録を促す（10回目まで）
-    // 1往復目: count=0, 2往復目: count=1, 3往復目: count=2, 4往復目: count=3（この時点で促す開始）、10往復目: count=9（最後）
-    const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 4 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
+    // 登録を促すのは、10通目に達する直前まで（9通目まで）
+    // 1通目: count=0, 2通目: count=1, ..., 9通目: count=8（この時点で促す）、10通目: count=9（登録必須）
+    // 登録画面を表示するのは10通目に達した時点のみ
+    const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
 
     if (guestLimitReached) {
       // 10通目以降は「ユーザー登録をしてください」というメッセージのみ返す
