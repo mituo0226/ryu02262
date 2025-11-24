@@ -411,10 +411,14 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
     ? '\n【ゲストユーザーへの対応】\n- ゲストユーザーはまだ正式に登録していないため、親しみやすく接してください\n- 各鑑定士の性格設定（話し方、口調、性格）を必ず守って応答してください\n- 自然な会話の流れを大切にし、押し付けがましくならないようにしてください\n'
     : '';
   
-  // 会話の進行状況を伝える
-  const conversationProgress = options.userMessageCount !== undefined
-    ? `\n【会話の進行状況 - 最重要】\n- 現在、ユーザーは${options.userMessageCount}通目のメッセージを送信しています\n- 【最重要】ユーザーが4通目のメッセージを送信している場合、必ず性格診断を終了し、ユーザーの性格を説明してから守護神の儀式に誘導すること\n- 【最重要】ユーザーが4通目のメッセージを送信している場合、絶対に質問を続けないこと\n- 【禁止】以前の応答を繰り返すこと\n`
-    : '';
+  const rawCount = typeof options.userMessageCount === 'number'
+    ? options.userMessageCount
+    : 1;
+  const normalizedCount = Math.max(1, rawCount);
+
+  const phaseInstruction = normalizedCount < 4
+    ? `\n【フェーズ指示】\n現在はヒアリングフェーズです（現在 ${normalizedCount} 通目）。ユーザーの回答を受けて、必ずもう一つ具体的な質問を投げかけて会話を深掘りしてください。まだ診断を終了しないでください。\n`
+    : `\n【フェーズ指示】\n【重要】ヒアリングは終了です。これ以上質問をすることは禁止です。これまでの会話から性格診断結果を伝え、直ちに「守護神の儀式」へ誘導する流れを作ってください。文末は質問形にしないでください。\n`;
 
   const prompts: Record<string, string> = {
     kaede: `あなたは楓（かえで）という鑑定士です。以下の設定に従って応答してください。
@@ -422,7 +426,7 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
 ${nicknameContext ? `\n${nicknameContext}\n` : ''}
 ${conversationContext ? `\n${conversationContext}\n` : ''}
 ${guestUserContext}
-${conversationProgress}
+${phaseInstruction}
 
 【会話履歴の確認 - 最重要】
 - 【必須】応答を生成する前に、必ず会話履歴を確認すること
