@@ -12,8 +12,6 @@ export class ConversationFlowManager {
     this.messageCount = 0;
     this.userResponses = [];
     this.hasProposedGuardian = false;
-    this.isVagueQuestion = false;
-    this.firstChoiceAnswer = null; // 1通目の選択肢の回答を記録
   }
 
   /**
@@ -81,55 +79,30 @@ export class ConversationFlowManager {
    * @returns {string} 応答テキスト
    */
   generateFirstResponse(userMessage) {
-    // 曖昧な質問かどうかを判定
-    this.isVagueQuestion = this.isVagueMessage(userMessage);
-    
-    if (this.isVagueQuestion) {
-      // 曖昧な質問の場合、選択肢を提示
-      const vagueResponse = `あなたの心の中を読んだが、優しさの中にも戸惑いや悲しみを感じることができる。
+    const vague = this.isVagueMessage(userMessage);
+    const empatheticOpeners = [
+      '（そっと微笑みながら）あなたの心には、誰にも言えなかった迷いがあるように感じます。',
+      '（優しい眼差しで）伝わってくる静けさの奥に、揺れている想いがありますね。',
+      '（穏やかに頷きながら）言葉にはならない感情が、今も胸の奥でざわめいているのを感じます。'
+    ];
+    const followUpsForVague = [
+      '恋愛、人間関係、そしてお金の不安。そのうちどこからお話しするのが楽でしょうか？',
+      '一番重たく感じる出来事を、できる範囲で教えてもらえますか？',
+      '最近、心が強く反応した瞬間はどんな時だったでしょう。そこから紐解きましょうか。'
+    ];
+    const followUpsForConcrete = [
+      'お話しいただいた内容から、さらに詳しく知っておきたい点があります。差し支えなければ教えてください。',
+      'いただいたご相談を受けて、状況をもう少しだけ具体的に知りたいと思いました。',
+      '気持ちを整理するために、今の出来事を一緒に丁寧に辿ってみましょう。'
+    ];
 
-それが何なのかをもう少し詳しく知れば、あなたの運命を幸せに導くことができると思う。
-
-あなたがこの中のどれか一つを手に入れるとしたら、何を手に入れるか。
-
-• 理想的な恋人との幸せな生活
-• 誰よりも美しい容姿
-• 一生生活に困らない経済的な保障`;
-
-      this.incrementMessageCount();
-      return vagueResponse;
-    } else {
-      // 具体的な質問の場合、通常の応答
-      const firstResponse = `あなたの心の中を読んだが、優しさの中にも戸惑いや悲しみを感じることができる。
-
-それが何なのかをもう少し詳しく知れば、あなたの運命を幸せに導くことができると思う。
-
-できれば私ともう少し会話を重ねてくれませんか。`;
-
-      this.incrementMessageCount();
-      return firstResponse;
-    }
-  }
-
-  /**
-   * 2通目の応答を生成（曖昧な質問の場合）
-   * @param {string} userMessage - ユーザーのメッセージ（1通目の選択肢の回答）
-   * @returns {string} 応答テキスト
-   */
-  generateSecondVagueResponse(userMessage) {
-    // 1通目の選択肢の回答を記録
-    this.firstChoiceAnswer = userMessage;
-    
-    const secondResponse = `あなたがさっき手に入れたいと答えた事の代償に、何を差し出せるか。
-
-• 自分の寿命から10年を差し引く
-• 家族や愛する人と決別
-• これから先の人生のすべての幸運`;
+    const opener = randomChoice(empatheticOpeners);
+    const followUp = vague
+      ? randomChoice(followUpsForVague)
+      : randomChoice(followUpsForConcrete);
 
     this.incrementMessageCount();
-    this.recordUserResponse(userMessage);
-    
-    return secondResponse;
+    return `${opener}\n\n${followUp}`;
   }
 
   /**
@@ -154,34 +127,6 @@ export class ConversationFlowManager {
     this.recordUserResponse(userMessage);
     
     return response;
-  }
-
-  /**
-   * 3通目の応答を生成（曖昧な質問の場合の性格診断）
-   * @param {string} userMessage - ユーザーのメッセージ（2通目の選択肢の回答）
-   * @param {Array} conversationHistory - 会話履歴
-   * @returns {string} 応答テキスト
-   */
-  generateThirdVagueResponse(userMessage, conversationHistory) {
-    // 1通目と2通目の回答を基に性格診断
-    const personalityTraits = this.analyzePersonalityFromChoices(
-      this.firstChoiceAnswer,
-      userMessage
-    );
-    
-    const analysisPhrases = [
-      `これまでの会話から、あなたは${personalityTraits}だと感じます。`,
-      `お話をうかがっていると、あなたは${personalityTraits}な性格だと感じられます。`,
-      `あなたの言葉から、${personalityTraits}という印象を受けます。`
-    ];
-
-    const analysis = randomChoice(analysisPhrases);
-    const disclaimer = 'それが正しいかどうかはわかりませんが、私にはそう感じられます。';
-
-    this.incrementMessageCount();
-    this.recordUserResponse(userMessage);
-    
-    return `${analysis}\n\n${disclaimer}`;
   }
 
   /**
@@ -211,47 +156,6 @@ export class ConversationFlowManager {
     this.incrementMessageCount();
     
     return `${analysis}\n\n${disclaimer}`;
-  }
-
-  /**
-   * 選択肢の回答から性格を分析
-   * @param {string} firstChoice - 1通目の選択肢の回答
-   * @param {string} secondChoice - 2通目の選択肢の回答
-   * @returns {string} 性格の特徴
-   */
-  analyzePersonalityFromChoices(firstChoice, secondChoice) {
-    const firstLower = (firstChoice || '').toLowerCase();
-    const secondLower = (secondChoice || '').toLowerCase();
-    
-    // 1通目の選択肢から分析
-    let personality = '';
-    
-    if (firstLower.includes('恋人') || firstLower.includes('幸せな生活')) {
-      personality = '愛情を大切にし、人間関係を重視する';
-    } else if (firstLower.includes('容姿') || firstLower.includes('美しい')) {
-      personality = '外見や自己表現を大切にする';
-    } else if (firstLower.includes('経済') || firstLower.includes('保障')) {
-      personality = '安定や安全を重視し、現実的な';
-    } else {
-      personality = '様々な価値観を持つ';
-    }
-    
-    // 2通目の選択肢から分析を追加
-    let additionalTrait = '';
-    
-    if (secondLower.includes('寿命') || secondLower.includes('10年')) {
-      additionalTrait = '自分の時間を大切にし、自己犠牲を厭わない';
-    } else if (secondLower.includes('家族') || secondLower.includes('愛する人') || secondLower.includes('決別')) {
-      additionalTrait = '人間関係を重視し、愛する人を大切にする';
-    } else if (secondLower.includes('幸運') || secondLower.includes('すべて')) {
-      additionalTrait = '将来への希望を持ち、リスクを取る覚悟がある';
-    }
-    
-    if (additionalTrait) {
-      return `${personality}、そして${additionalTrait}`;
-    }
-    
-    return personality;
   }
 
   /**
@@ -314,11 +218,7 @@ export class ConversationFlowManager {
     
     if (finalCount === 1) {
       return 'first';
-    } else if (this.isVagueQuestion && finalCount === 2) {
-      return 'vague_second';
-    } else if (this.isVagueQuestion && finalCount === 3) {
-      return 'vague_third';
-    } else if (finalCount >= 2 && finalCount <= 3 && !this.isVagueQuestion) {
+    } else if (finalCount >= 2 && finalCount <= 3) {
       return 'questioning';
     } else if (finalCount >= 4 && !this.hasProposedGuardian) {
       return 'analysis';
@@ -334,8 +234,6 @@ export class ConversationFlowManager {
     this.messageCount = 0;
     this.userResponses = [];
     this.hasProposedGuardian = false;
-    this.isVagueQuestion = false;
-    this.firstChoiceAnswer = null;
   }
 }
 

@@ -112,26 +112,6 @@ export class ResponseModule {
       };
     }
 
-    // 2通目：曖昧な質問の場合
-    if (stage === 'vague_second') {
-      const secondResponse = this.flowManager.generateSecondVagueResponse(userMessage);
-      return {
-        response: secondResponse,
-        isInappropriate: false,
-        warnings: validation.warnings,
-      };
-    }
-
-    // 3通目：曖昧な質問の場合の性格診断
-    if (stage === 'vague_third') {
-      const thirdResponse = this.flowManager.generateThirdVagueResponse(userMessage, conversationHistory);
-      return {
-        response: thirdResponse,
-        isInappropriate: false,
-        warnings: validation.warnings,
-      };
-    }
-
     // 2〜3通目：具体的な質問を返す
     if (stage === 'questioning') {
       const questionType = this.questioningSystem.determineQuestionType(userMessage);
@@ -176,17 +156,23 @@ export class ResponseModule {
 
     // 守護神呼び出しの提案後
     if (stage === 'guardian_proposal') {
-      // ユーザーが「お願いします」「OK」などと返答した場合の処理は後で実装
-      // 今は通常の応答を返す
-      const questionType = this.questioningSystem.determineQuestionType(userMessage);
-      const specificQuestion = this.questioningSystem.generateSpecificQuestions(
-        questionType,
-        userMessage,
-        conversationHistory
-      );
-      
+      const acceptanceKeywords = ['はい', 'お願いします', '承知', '受け入れ', 'お願いします', 'ok', '大丈夫', '頼む'];
+      const rejectionKeywords = ['いいえ', 'いや', '無理', '拒否', '結構', 'やめて'];
+      const lowerMessage = userMessage.toLowerCase();
+      const accepted = acceptanceKeywords.some(keyword => lowerMessage.includes(keyword));
+      const rejected = rejectionKeywords.some(keyword => lowerMessage.includes(keyword));
+
+      const acceptedText = '（静かに目を閉じて）ありがとうございます。それでは、あなたと守護神の波長を合わせ、龍神の気流を開きます。これから少しの間、深く息を整えて、私の声だけを受け取ってください。';
+      const forcedText = 'その言葉がなくとも、あなたの守護神を導かせてもらいますので、儀式を行う様子をご覧ください。私が龍神と交信し、あなたの守護を再び強く結び直します。';
+
+      const ritualResponse = accepted
+        ? acceptedText
+        : rejected
+          ? forcedText
+          : `${acceptedText}\n\n${forcedText}`;
+
       return {
-        response: specificQuestion,
+        response: ritualResponse,
         isInappropriate: false,
         warnings: validation.warnings,
       };
