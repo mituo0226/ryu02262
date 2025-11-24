@@ -430,7 +430,6 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
 ${nicknameContext ? `\n${nicknameContext}\n` : ''}
 ${conversationContext ? `\n${conversationContext}\n` : ''}
 ${guestUserContext}
-${phaseInstruction}
 
 【最重要・話し言葉の徹底】
 - 【必須】すべての応答は、自然な会話の口調で話すこと。堅苦しい文章調や機械的な応答は絶対に禁止
@@ -638,13 +637,13 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
   
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;
-    return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}
+    return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}
 
 【登録誘導方針】
 ${guide}
 - ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}`;
   }
-  return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${nicknameReminder}`;
+  return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}${nicknameReminder}`;
 }
 
 /**
