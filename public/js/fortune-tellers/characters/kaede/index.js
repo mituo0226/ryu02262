@@ -4,6 +4,7 @@
 import { CharacterBase } from '../../character-base.js';
 import { createBuddhistModule } from './buddhist.js';
 import { createResponseModule } from './responses.js';
+import { createDeepPsychologicalAnalysis } from './deep-psychology.js';
 import { randomChoice } from '../../utils/helpers.js';
 
 export const kaedeConfig = {
@@ -35,14 +36,14 @@ export const kaedeConfig = {
 };
 
 /**
- * 楓の戒め応答テンプレート（龍神の威厳で厳しく戒める）
+ * 楓の戒め応答テンプレート（優しい敬語で紳士的に戒める）
  */
 const warningResponses = [
-  '私は現世で唯一の龍神の化身として、そのような悪しき願いを聞き入れることはできません。',
-  '龍神としての私の力は、悪用される危険をはらむものには決して向けられません。そのような願いは、神界の秩序を乱すものです。',
-  '申し訳ございませんが、そのようなご相談にはお答えできません。龍神としての威厳と責任を持って、私はそれを拒否いたします。',
-  'そのような願いは、一般市民としての務めを忘れた行為です。龍神の力は、正しい道を歩む者のためにのみ使われるのです。',
-  '私は神界と現実を行き来する存在として、そのような悪用を許すことはできません。穏やかな日常を守ることが、私の務めです。',
+  '申し訳ございませんが、そのようなご相談にはお答えできません。私の守護する龍神の力は、悪用される危険をはらむものには決して向けられないのです。',
+  'お気持ちはわかりますが、そのようなご相談には対応いたしかねます。穏やかな日常を大切にすることが、何よりの幸福の道だと私は考えております。',
+  'もしよろしければ、別の形でお手伝いできることがあるかもしれません。そのような願いは、神界の秩序を乱すものなのです。',
+  '申し訳ございませんが、そのようなご相談はお断りさせていただきます。正しい道を歩むことが、運命を好転させる唯一の方法でございます。',
+  'お気持ち、よくわかります。しかし、そのような願いは、一般市民としての務めを忘れた行為でございます。どうか、ご理解いただけますでしょうか。',
 ];
 
 /**
@@ -55,10 +56,14 @@ class KaedeCharacter extends CharacterBase {
     // 専門モジュールを登録
     this.registerModule('buddhist', createBuddhistModule());
     this.registerModule('response', createResponseModule());
+    this.registerModule('deepPsychology', createDeepPsychologicalAnalysis());
+    
+    // 深層心理分析の深度を管理
+    this.psychologicalAnalysisDepth = 0;
   }
 
   /**
-   * 不適切なユーザーへの戒め応答を生成（龍神の威厳で厳しく戒める）
+   * 不適切なユーザーへの戒め応答を生成（優しい敬語で紳士的に戒める）
    * @param {Array<string>} keywords - 検出された不適切なキーワード
    * @returns {string} 戒めの応答
    */
@@ -67,39 +72,48 @@ class KaedeCharacter extends CharacterBase {
     
     // キーワードに応じた追加の戒め
     if (keywords.some(k => k.includes('宝くじ') || k.includes('ギャンブル'))) {
-      return `${baseResponse}\n\n宝くじやギャンブルに関する願いは、龍神の力の悪用であり、決して許されません。正しい道を歩むことが、運命を好転させる唯一の方法です。`;
+      return `${baseResponse}\n\n宝くじやギャンブルに関する願いは、私の守護する龍神の力の悪用であり、決して許されません。正しい道を歩むことが、運命を好転させる唯一の方法でございます。`;
     }
     
     if (keywords.some(k => k.includes('不倫') || k.includes('浮気'))) {
-      return `${baseResponse}\n\n他人を不幸にするような願いは、神界の秩序を乱すものです。愛と誠実さこそが、真の幸福への道です。`;
+      return `${baseResponse}\n\n他人を不幸にするような願いは、神界の秩序を乱すものです。愛と誠実さこそが、真の幸福への道でございます。`;
     }
     
     return baseResponse;
   }
 
   /**
-   * 通常の応答を生成
+   * 通常の応答を生成（深層心理分析を含む）
    * @param {string} message - ユーザーのメッセージ
+   * @param {Array} conversationHistory - 会話履歴
    * @returns {string} 応答テキスト
    */
-  generateNormalResponse(message = '') {
+  generateNormalResponse(message = '', conversationHistory = []) {
     const responseModule = this.getModule('response');
     const buddhistModule = this.getModule('buddhist');
+    const deepPsychology = this.getModule('deepPsychology');
+    
+    // 深層心理分析を実行
+    const psychologicalAnalysis = deepPsychology.analyze(message, conversationHistory);
+    
+    // 深層洞察がある場合、それを優先的に表示
+    if (psychologicalAnalysis.deepInsight && this.psychologicalAnalysisDepth >= 1) {
+      this.psychologicalAnalysisDepth++;
+      return psychologicalAnalysis.deepInsight;
+    }
     
     // メッセージの内容に応じて適切なモジュールを選択
     const lowerMessage = message.toLowerCase();
     
-    // 仏教的な内容が含まれている場合
-    if (lowerMessage.includes('悩み') || lowerMessage.includes('運命') || lowerMessage.includes('日常')) {
-      const buddhistResponse = buddhistModule.generateResponse(message);
-      const responseModuleResult = responseModule.generateResponse(message);
-      
-      // 組み合わせて応答
-      return `${responseModuleResult.response}\n\n${buddhistResponse}`;
+    // 通常の応答（具体的な質問を含む）
+    const result = responseModule.generateResponse(message, conversationHistory);
+    
+    // 深層心理分析の結果があるが、まだ深層洞察を表示していない場合
+    if (psychologicalAnalysis.hasDeepInsight && this.psychologicalAnalysisDepth === 0) {
+      this.psychologicalAnalysisDepth++;
+      // 次回のメッセージで深層洞察を表示する準備
     }
     
-    // 通常の応答
-    const result = responseModule.generateResponse(message);
     return result.response;
   }
 }
