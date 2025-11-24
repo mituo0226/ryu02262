@@ -387,8 +387,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       });
     }
 
-    // ユーザーメッセージの数を数える
-    const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+    // ユーザーメッセージの数を数える（今回送信されたメッセージを含む）
+    // conversationHistoryには過去のメッセージのみが含まれているため、今回のメッセージを+1する
+    const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length + 1;
     
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
