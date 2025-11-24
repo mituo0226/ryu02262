@@ -3,7 +3,7 @@ import { isInappropriate, generateSystemPrompt, getCharacterName } from '../lib/
 import { isValidCharacter } from '../lib/character-loader.js';
 import { verifyUserToken } from '../lib/token.js';
 
-const GUEST_MESSAGE_LIMIT = 5;
+const GUEST_MESSAGE_LIMIT = 10;
 
 type ConversationRole = 'user' | 'assistant';
 
@@ -207,12 +207,12 @@ export const onRequestPost: PagesFunction = async (context) => {
     const guestMessageCount = Number(guestMetadata.messageCount ?? 0);
     const sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
     const guestLimitReached = !body.userToken && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT;
-    // 5通目（ユーザーの5通目のメッセージ送信時）から自然に登録を促す
-    // 1往復目: count=0, 2往復目: count=1, 3往復目: count=2, 4往復目: count=3, 5往復目: count=4（この時点で促す）
+    // 4回目（ユーザーの4回目のメッセージ送信時）から自然に登録を促す（10回目まで）
+    // 1往復目: count=0, 2往復目: count=1, 3往復目: count=2, 4往復目: count=3（この時点で促す開始）、10往復目: count=9（最後）
     const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 4 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
 
     if (guestLimitReached) {
-      // 5通目以降は「ユーザー登録をしてください」というメッセージのみ返す
+      // 10通目以降は「ユーザー登録をしてください」というメッセージのみ返す
       const characterName = getCharacterName(characterId);
       const registrationMessage = 'これ以上鑑定を続けるには、ユーザー登録が必要です。生年月日とニックネームを教えていただくことで、より深い鑑定ができるようになります。登録ボタンから手続きをお願いします。';
       

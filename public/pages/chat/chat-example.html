@@ -1832,7 +1832,7 @@
                     console.log('API応答を受信:', data);
                     
                     if (data.needsRegistration) {
-                        // 5通目以降は「ユーザー登録をしてください」というメッセージを表示
+                        // 10通目以降は「ユーザー登録をしてください」というメッセージを表示
                         if (data.message) {
                             addMessage('character', data.message, data.characterName, {
                                 detectedKeywords: data.detectedKeywords,
