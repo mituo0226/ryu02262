@@ -284,13 +284,42 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
 }
 
 async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResult> {
+  const { forceProvider, fallbackApiKey, fallbackModel } = params;
+
+  // テスト用: プロバイダーが強制指定されている場合
+  if (forceProvider === 'openai') {
+    if (!fallbackApiKey) {
+      return {
+        success: false,
+        error: 'OpenAI API key is not configured',
+        provider: 'openai',
+      };
+    }
+    return await callOpenAI({
+      systemPrompt: params.systemPrompt,
+      conversationHistory: params.conversationHistory,
+      userMessage: params.userMessage,
+      temperature: params.temperature,
+      maxTokens: params.maxTokens,
+      topP: params.topP,
+      apiKey: fallbackApiKey,
+      model: fallbackModel || DEFAULT_FALLBACK_MODEL,
+    });
+  }
+
+  if (forceProvider === 'deepseek') {
+    const result = await callDeepSeek(params);
+    // DeepSeekが失敗してもフォールバックしない（テスト用）
+    return result;
+  }
+
+  // 通常の動作: DeepSeekを試して、失敗したらOpenAIにフォールバック
   const deepseekResult = await callDeepSeek(params);
 
   if (deepseekResult.success) {
     return deepseekResult;
   }
 
-  const fallbackApiKey = params.fallbackApiKey;
   if (!fallbackApiKey) {
     return deepseekResult;
   }
@@ -299,7 +328,17 @@ async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResu
     error: deepseekResult.error,
   });
 
-  const openAiResult = await callOpenAI(params);
+  const openAiResult = await callOpenAI({
+    systemPrompt: params.systemPrompt,
+    conversationHistory: params.conversationHistory,
+    userMessage: params.userMessage,
+    temperature: params.temperature,
+    maxTokens: params.maxTokens,
+    topP: params.topP,
+    apiKey: fallbackApiKey,
+    model: fallbackModel || DEFAULT_FALLBACK_MODEL,
+  });
+  
   if (openAiResult.success) {
     return openAiResult;
   }
