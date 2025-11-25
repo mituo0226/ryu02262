@@ -333,7 +333,8 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // デバッグログ用フラグ（本番では false に設定）
-    const DEBUG_MODE = false;
+    // 一時的に true にして問題を調査する場合は true に変更
+    const DEBUG_MODE = true;
 
     let conversationHistory: ClientHistoryEntry[] = [];
 
@@ -389,14 +390,26 @@ export const onRequestPost: PagesFunction = async (context) => {
       }
     } else {
       // ゲストユーザーの場合: クライアントから送られてきた履歴を使用
-      // sanitizedHistory が空の場合は、clientHistory を直接使用
-      if (sanitizedHistory.length === 0 && body.clientHistory && Array.isArray(body.clientHistory)) {
+      // 複数のソースから履歴を取得を試みる
+      if (sanitizedHistory.length > 0) {
+        conversationHistory = sanitizedHistory;
+      } else if (body.clientHistory && Array.isArray(body.clientHistory) && body.clientHistory.length > 0) {
+        // sanitizedHistory が空の場合は、clientHistory を直接使用
         conversationHistory = body.clientHistory.map((entry: any) => ({
           role: entry.role || 'user',
           content: entry.content || entry.message || '',
         }));
       } else {
-        conversationHistory = sanitizedHistory;
+        conversationHistory = [];
+      }
+      
+      if (DEBUG_MODE) {
+        console.log('🔍 DEBUG: Guest user history', {
+          sanitizedHistoryLength: sanitizedHistory.length,
+          clientHistoryLength: body.clientHistory?.length || 0,
+          finalConversationHistoryLength: conversationHistory.length,
+          guestMetadataMessageCount: sanitizedGuestCount,
+        });
       }
     }
 
@@ -413,25 +426,40 @@ export const onRequestPost: PagesFunction = async (context) => {
     // conversationHistory から user ロールのメッセージ数を取得
     const userMessagesInHistory = (conversationHistory || []).filter(msg => msg.role === 'user').length;
     // 今回送信されたメッセージを +1
-    // ゲストユーザーの場合、guestMetadata.messageCount も参考にするが、conversationHistory を優先
     const calculatedUserMessageCount = userMessagesInHistory + 1;
     
-    // ゲストユーザーの場合、guestMetadata.messageCount と比較して整合性を確認
-    let userMessageCount = calculatedUserMessageCount;
+    // ゲストユーザーの場合、guestMetadata.messageCount を優先的に使用
+    // （履歴が正しく送られていない可能性があるため）
+    let userMessageCount: number;
     if (!user && sanitizedGuestCount > 0) {
-      // guestMetadata.messageCount は「これまでのメッセージ数」なので、+1 した値と比較
+      // guestMetadata.messageCount は「これまでのメッセージ数」なので、+1 した値が今回のメッセージ数
       const expectedCount = sanitizedGuestCount + 1;
-      // 大きな差がある場合は、guestMetadata を優先（履歴が正しく送られていない可能性）
-      if (Math.abs(calculatedUserMessageCount - expectedCount) > 2) {
+      
+      // conversationHistory から計算した値と guestMetadata から計算した値を比較
+      // どちらかが明らかに正しい場合はそれを使用、そうでない場合は大きい方を使用
+      if (userMessagesInHistory === 0 && expectedCount > 1) {
+        // 履歴が全くない場合は guestMetadata を信頼
         userMessageCount = expectedCount;
-        if (DEBUG_MODE) {
-          console.log('🔍 DEBUG: userMessageCount mismatch, using guestMetadata', {
-            calculated: calculatedUserMessageCount,
-            expected: expectedCount,
-            using: userMessageCount,
-          });
-        }
+      } else if (Math.abs(calculatedUserMessageCount - expectedCount) <= 1) {
+        // 差が1以内の場合は、conversationHistory を優先
+        userMessageCount = calculatedUserMessageCount;
+      } else {
+        // 差が大きい場合は、大きい方を使用（より多くの情報を含む方）
+        userMessageCount = Math.max(calculatedUserMessageCount, expectedCount);
       }
+      
+      if (DEBUG_MODE) {
+        console.log('🔍 DEBUG: Guest userMessageCount calculation', {
+          userMessagesInHistory,
+          calculatedUserMessageCount,
+          sanitizedGuestCount,
+          expectedCount,
+          finalUserMessageCount: userMessageCount,
+        });
+      }
+    } else {
+      // ログインユーザーの場合、conversationHistory から計算した値を使用
+      userMessageCount = calculatedUserMessageCount;
     }
     
     // 最終的な userMessageCount を保証（最小値1、NaN や undefined を防ぐ）
