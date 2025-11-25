@@ -541,9 +541,9 @@ export const onRequestPost: PagesFunction = async (context) => {
           ...conversationHistory,
           { role: 'user', content: trimmedMessage },
         ],
-        temperature: 0.3,  // 0.9 → 0.3 (指示遵守↑)
-        max_tokens: 300,   // 2000 → 300 (短応答・フェーズ推進)
-        top_p: 0.8,        // 新規追加 (多様性抑え・ループ防止)
+        temperature: 0.5,  // 指示遵守と応答生成のバランス
+        max_tokens: 800,   // 適切な応答長を確保
+        top_p: 0.8,        // 多様性抑え・ループ防止
       }),
     });
 
@@ -575,8 +575,37 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     const deepseekData = await deepseekResponse.json();
+    
+    if (DEBUG_MODE) {
+      console.log('🔍 DEBUG: DeepSeek API response', {
+        hasChoices: !!deepseekData.choices,
+        choicesLength: deepseekData.choices?.length || 0,
+        firstChoiceContent: deepseekData.choices?.[0]?.message?.content?.substring(0, 100) || 'N/A',
+        finishReason: deepseekData.choices?.[0]?.finish_reason || 'N/A',
+      });
+    }
+    
     const responseMessage =
       deepseekData.choices?.[0]?.message?.content || '申し訳ございませんが、応答を生成できませんでした。';
+    
+    if (!responseMessage || responseMessage.trim().length === 0) {
+      console.error('Empty response from DeepSeek API', {
+        deepseekData,
+        characterId,
+        userMessageCount: finalUserMessageCount,
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Empty response from API',
+          message: '申し訳ございませんが、応答を生成できませんでした。しばらく時間をおいて再度お試しください。',
+          character: characterId,
+          characterName,
+          isInappropriate: false,
+          detectedKeywords: [],
+        } as ResponseBody),
+        { status: 500, headers: corsHeaders }
+      );
+    }
     
     // タロットカード関連のキーワードを検出（笹岡雪乃の場合のみ）
     const tarotKeywords = ['タロット', 'タロットカード', 'カードを', 'カードをめく', 'カードを占', 'カードを引'];

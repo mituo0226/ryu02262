@@ -729,8 +729,9 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
     : '';
   
   // 楓（kaede）の場合、phaseInstructionを先頭に配置（指示遵守率向上）
+  // ただし、プロンプトが長すぎるとAPIが応答を生成しない可能性があるため、適切な構造を維持
   const promptOrder = characterId === 'kaede' && phaseInstruction
-    ? `${phaseInstruction}\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`
+    ? `${phaseInstruction}\n\n=== 以下、楓の基本設定 ===\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`
     : `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}`;
   
   if (options.encourageRegistration) {
