@@ -210,6 +210,14 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 登録を促すのは、10通目に達する直前まで（9通目まで）
     // 1通目: count=0, 2通目: count=1, ..., 9通目: count=8（この時点で促す）、10通目: count=9（登録必須）
     // 登録画面を表示するのは10通目に達した時点のみ
+    // 
+    // 【将来の拡張用】楓（kaede）だけ特別扱いする場合の例：
+    // if (characterId === 'kaede') {
+    //   // 楓は「3〜4通で性格診断 → 守護神の儀式 → その後のタイミングで登録ガイド」の流れを優先
+    //   // 登録誘導は、儀式完了後かつ messageCount が一定以上の場合のみ
+    //   // 例: shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 12 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
+    //   // または、別のフラグ（例: hasCompletedGuardianRitual）で制御する
+    // }
     const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
 
     if (guestLimitReached) {
