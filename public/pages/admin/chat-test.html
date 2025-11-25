@@ -329,6 +329,9 @@
                     <div>
                         <strong>現在のフェーズ:</strong> <span id="currentPhase">-</span>
                     </div>
+                    <div style="margin-top: 10px;">
+                        <strong>使用プロバイダー:</strong> <span id="providerInfo" style="color: #81c784;">-</span>
+                    </div>
                 </div>
 
                 <div class="debug-section">
@@ -489,6 +492,21 @@
                 // デバッグ情報を更新
                 document.getElementById('lastResponse').textContent = 
                     JSON.stringify(data, null, 2);
+
+                // 使用プロバイダーを表示
+                if (data.provider) {
+                    const providerInfo = document.getElementById('providerInfo');
+                    if (data.provider === 'deepseek') {
+                        providerInfo.textContent = 'DeepSeek';
+                        providerInfo.style.color = '#64b5f6';
+                    } else if (data.provider === 'openai') {
+                        providerInfo.textContent = 'OpenAI (GPT-API)';
+                        providerInfo.style.color = '#ffb74d';
+                    } else {
+                        providerInfo.textContent = data.provider;
+                        providerInfo.style.color = '#e8d5ff';
+                    }
+                }
 
                 if (data.error) {
                     setStatus('error', 'エラー: ' + data.error);

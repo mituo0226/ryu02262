@@ -4,6 +4,9 @@ import { isValidCharacter } from '../lib/character-loader.js';
 import { verifyUserToken } from '../lib/token.js';
 
 const GUEST_MESSAGE_LIMIT = 10;
+const MAX_DEEPSEEK_RETRIES = 3;
+const DEBUG_MODE = true;
+const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
 
 type ConversationRole = 'user' | 'assistant';
 
@@ -37,6 +40,7 @@ interface ResponseBody {
   guestMode?: boolean;
   remainingGuestMessages?: number;
   showTarotCard?: boolean;
+  provider?: 'deepseek' | 'openai'; // 使用したLLMプロバイダー（デバッグ用）
 }
 
 interface UserRecord {
@@ -70,6 +74,239 @@ function sanitizeClientHistory(entries?: ClientHistoryEntry[]): ClientHistoryEnt
     })
     .filter((entry): entry is ClientHistoryEntry => Boolean(entry))
     .slice(-12);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isServiceBusyError = (status: number, errorText: string) => {
+  const normalized = (errorText || '').toLowerCase();
+  return (
+    status === 429 ||
+    status === 503 ||
+    normalized.includes('service is too busy') ||
+    normalized.includes('please try again later') ||
+    normalized.includes('rate limit')
+  );
+};
+
+const extractErrorMessage = (text: string, fallback: string) => {
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed?.error?.message) {
+      return parsed.error.message as string;
+    }
+    if (typeof parsed?.message === 'string') {
+      return parsed.message;
+    }
+  } catch {
+    // ignore JSON parse errors
+  }
+  return text || fallback;
+};
+
+interface LLMResponseResult {
+  success: boolean;
+  message?: string;
+  provider?: 'deepseek' | 'openai';
+  rawResponse?: unknown;
+  error?: string;
+  status?: number;
+}
+
+interface LLMRequestParams {
+  systemPrompt: string;
+  conversationHistory: ClientHistoryEntry[];
+  userMessage: string;
+  temperature: number;
+  maxTokens: number;
+  topP: number;
+  deepseekApiKey: string;
+  fallbackApiKey?: string;
+  fallbackModel?: string;
+}
+
+async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult> {
+  const {
+    systemPrompt,
+    conversationHistory,
+    userMessage,
+    temperature,
+    maxTokens,
+    topP,
+    deepseekApiKey,
+  } = params;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...conversationHistory,
+    { role: 'user', content: userMessage },
+  ];
+
+  let lastError = 'DeepSeek API did not respond';
+
+  for (let attempt = 1; attempt <= MAX_DEEPSEEK_RETRIES; attempt++) {
+    try {
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${deepseekApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          top_p: topP,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const message = data?.choices?.[0]?.message?.content;
+        if (DEBUG_MODE) {
+          console.log('🔍 DEBUG: DeepSeek API response', {
+            attempt,
+            hasChoices: !!data.choices,
+            choicesLength: data.choices?.length || 0,
+            finishReason: data.choices?.[0]?.finish_reason || 'N/A',
+          });
+        }
+        return {
+          success: Boolean(message?.trim()),
+          message: message?.trim(),
+          provider: 'deepseek',
+          rawResponse: data,
+        };
+      }
+
+      const errorText = await response.text();
+      lastError = extractErrorMessage(errorText, 'Failed to get response from DeepSeek API');
+      console.error('DeepSeek API error:', {
+        attempt,
+        status: response.status,
+        errorText,
+      });
+
+      if (!isServiceBusyError(response.status, errorText)) {
+        return {
+          success: false,
+          error: lastError,
+          status: response.status,
+        };
+      }
+
+      if (attempt < MAX_DEEPSEEK_RETRIES) {
+        await sleep(300 * attempt * attempt);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown DeepSeek error';
+      lastError = message;
+      console.error('DeepSeek API fetch error:', { attempt, message });
+      if (attempt < MAX_DEEPSEEK_RETRIES) {
+        await sleep(300 * attempt * attempt);
+      }
+    }
+  }
+
+  return {
+    success: false,
+    error: lastError,
+  };
+}
+
+async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> {
+  const {
+    systemPrompt,
+    conversationHistory,
+    userMessage,
+    temperature,
+    maxTokens,
+    topP,
+    fallbackApiKey,
+    fallbackModel,
+  } = params;
+
+  if (!fallbackApiKey) {
+    return { success: false, error: 'OpenAI fallback API key is not configured' };
+  }
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...conversationHistory,
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${fallbackApiKey}`,
+    },
+    body: JSON.stringify({
+      model: fallbackModel || DEFAULT_FALLBACK_MODEL,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      top_p: topP,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('OpenAI API error:', errorText);
+    return {
+      success: false,
+      error: extractErrorMessage(errorText, 'Failed to get response from OpenAI API'),
+      status: response.status,
+    };
+  }
+
+  const data = await response.json();
+  const message = data?.choices?.[0]?.message?.content;
+
+  if (DEBUG_MODE) {
+    console.log('🔍 DEBUG: OpenAI API response', {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length || 0,
+      finishReason: data.choices?.[0]?.finish_reason || 'N/A',
+    });
+  }
+
+  return {
+    success: Boolean(message?.trim()),
+    message: message?.trim(),
+    provider: 'openai',
+    rawResponse: data,
+  };
+}
+
+async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResult> {
+  const deepseekResult = await callDeepSeek(params);
+
+  if (deepseekResult.success) {
+    return deepseekResult;
+  }
+
+  const fallbackApiKey = params.fallbackApiKey;
+  if (!fallbackApiKey) {
+    return deepseekResult;
+  }
+
+  console.warn('DeepSeek unavailable, attempting fallback provider...', {
+    error: deepseekResult.error,
+  });
+
+  const openAiResult = await callOpenAI(params);
+  if (openAiResult.success) {
+    return openAiResult;
+  }
+
+  return {
+    success: false,
+    error: openAiResult.error || deepseekResult.error || 'Failed to generate response',
+    status: openAiResult.status,
+  };
 }
 
 export const onRequestPost: PagesFunction = async (context) => {
@@ -342,8 +579,6 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // デバッグログ用フラグ（本番では false に設定）
     // 一時的に true にして問題を調査する場合は true に変更
-    const DEBUG_MODE = true;
-
     let conversationHistory: ClientHistoryEntry[] = [];
 
     if (user) {
@@ -528,39 +763,33 @@ export const onRequestPost: PagesFunction = async (context) => {
       console.log('Nickname in prompt:', user.nickname);
     }
 
-    const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationHistory,
-          { role: 'user', content: trimmedMessage },
-        ],
-        temperature: 0.5,  // 指示遵守と応答生成のバランス
-        max_tokens: 800,   // 適切な応答長を確保
-        top_p: 0.8,        // 多様性抑え・ループ防止
-      }),
+    // GPT-API という名前で登録されている環境変数を優先的に使用
+    const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
+    const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+
+    const llmResult = await getLLMResponse({
+      systemPrompt,
+      conversationHistory,
+      userMessage: trimmedMessage,
+      temperature: 0.5,
+      maxTokens: 800,
+      topP: 0.8,
+      deepseekApiKey: apiKey,
+      fallbackApiKey,
+      fallbackModel,
     });
 
-    if (!deepseekResponse.ok) {
-      const errorText = await deepseekResponse.text();
-      console.error('DeepSeek API error:', errorText);
+    if (DEBUG_MODE) {
+      console.log('🔍 DEBUG: LLM result summary', {
+        provider: llmResult.provider || 'unknown',
+        success: llmResult.success,
+        hasMessage: !!llmResult.message,
+        error: llmResult.error,
+      });
+    }
 
-      let errorMessage = 'Failed to get response from DeepSeek API';
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message;
-        }
-      } catch {
-        // ignore
-      }
-
+    if (!llmResult.success || !llmResult.message) {
+      const errorMessage = llmResult.error || '申し訳ございませんが、応答を生成できませんでした。';
       return new Response(
         JSON.stringify({
           error: errorMessage,
@@ -570,42 +799,11 @@ export const onRequestPost: PagesFunction = async (context) => {
           isInappropriate: false,
           detectedKeywords: [],
         } as ResponseBody),
-        { status: deepseekResponse.status, headers: corsHeaders }
+        { status: llmResult.status || 503, headers: corsHeaders }
       );
     }
 
-    const deepseekData = await deepseekResponse.json();
-    
-    if (DEBUG_MODE) {
-      console.log('🔍 DEBUG: DeepSeek API response', {
-        hasChoices: !!deepseekData.choices,
-        choicesLength: deepseekData.choices?.length || 0,
-        firstChoiceContent: deepseekData.choices?.[0]?.message?.content?.substring(0, 100) || 'N/A',
-        finishReason: deepseekData.choices?.[0]?.finish_reason || 'N/A',
-      });
-    }
-    
-    const responseMessage =
-      deepseekData.choices?.[0]?.message?.content || '申し訳ございませんが、応答を生成できませんでした。';
-    
-    if (!responseMessage || responseMessage.trim().length === 0) {
-      console.error('Empty response from DeepSeek API', {
-        deepseekData,
-        characterId,
-        userMessageCount: finalUserMessageCount,
-      });
-      return new Response(
-        JSON.stringify({
-          error: 'Empty response from API',
-          message: '申し訳ございませんが、応答を生成できませんでした。しばらく時間をおいて再度お試しください。',
-          character: characterId,
-          characterName,
-          isInappropriate: false,
-          detectedKeywords: [],
-        } as ResponseBody),
-        { status: 500, headers: corsHeaders }
-      );
-    }
+    const responseMessage = llmResult.message;
     
     // タロットカード関連のキーワードを検出（笹岡雪乃の場合のみ）
     const tarotKeywords = ['タロット', 'タロットカード', 'カードを', 'カードをめく', 'カードを占', 'カードを引'];
@@ -691,6 +889,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           ? undefined
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
         showTarotCard: showTarotCard,
+        provider: llmResult.provider, // 使用したLLMプロバイダーを返す（デバッグ用）
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );
