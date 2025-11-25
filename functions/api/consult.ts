@@ -491,7 +491,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (guestLimitReached) {
       // 10通目以降は「ユーザー登録をしてください」というメッセージのみ返す
       const characterName = getCharacterName(characterId);
-      const registrationMessage = 'これ以上鑑定を続けるには、ユーザー登録が必要です。生年月日とニックネームを教えていただくことで、より深い鑑定ができるようになります。登録ボタンから手続きをお願いします。';
+      const registrationMessage =
+        characterId === 'kaede'
+          ? '無料でお話できるのはここまでです。守護神を最後まで導き出すには登録ボタンから簡単な情報を記入していただく必要があります。費用は一切かからず、危険もありませんのでご安心ください。登録が完了次第、守護神の儀式の準備を一緒に進めましょう。'
+          : 'これ以上鑑定を続けるには、ユーザー登録が必要です。生年月日とニックネームを教えていただくことで、より深い鑑定ができるようになります。登録ボタンから手続きをお願いします。';
       
       return new Response(
         JSON.stringify({
