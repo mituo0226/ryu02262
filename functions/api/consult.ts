@@ -439,21 +439,28 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ゲストユーザーの場合、guestMetadata.messageCount を優先的に使用
     // （履歴が正しく送られていない可能性があるため）
     let userMessageCount: number;
-    if (!user && sanitizedGuestCount > 0) {
+    if (!user) {
+      // ゲストユーザーの場合
       // guestMetadata.messageCount は「これまでのメッセージ数」なので、+1 した値が今回のメッセージ数
       const expectedCount = sanitizedGuestCount + 1;
       
       // conversationHistory から計算した値と guestMetadata から計算した値を比較
-      // どちらかが明らかに正しい場合はそれを使用、そうでない場合は大きい方を使用
-      if (userMessagesInHistory === 0 && expectedCount > 1) {
-        // 履歴が全くない場合は guestMetadata を信頼
-        userMessageCount = expectedCount;
-      } else if (Math.abs(calculatedUserMessageCount - expectedCount) <= 1) {
-        // 差が1以内の場合は、conversationHistory を優先
-        userMessageCount = calculatedUserMessageCount;
+      // より信頼性の高い方を使用
+      if (sanitizedGuestCount > 0) {
+        // guestMetadata が存在する場合
+        if (userMessagesInHistory === 0) {
+          // 履歴が全くない場合は guestMetadata を信頼
+          userMessageCount = expectedCount;
+        } else if (Math.abs(calculatedUserMessageCount - expectedCount) <= 2) {
+          // 差が2以内の場合は、conversationHistory を優先（より正確）
+          userMessageCount = calculatedUserMessageCount;
+        } else {
+          // 差が大きい場合は、大きい方を使用（より多くの情報を含む方）
+          userMessageCount = Math.max(calculatedUserMessageCount, expectedCount);
+        }
       } else {
-        // 差が大きい場合は、大きい方を使用（より多くの情報を含む方）
-        userMessageCount = Math.max(calculatedUserMessageCount, expectedCount);
+        // guestMetadata がない場合は conversationHistory を使用
+        userMessageCount = calculatedUserMessageCount;
       }
       
       if (DEBUG_MODE) {
@@ -461,7 +468,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           userMessagesInHistory,
           calculatedUserMessageCount,
           sanitizedGuestCount,
-          expectedCount,
+          expectedCount: sanitizedGuestCount > 0 ? sanitizedGuestCount + 1 : undefined,
           finalUserMessageCount: userMessageCount,
         });
       }
@@ -473,24 +480,25 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 最終的な userMessageCount を保証（最小値1、NaN や undefined を防ぐ）
     userMessageCount = Math.max(1, Number.isFinite(userMessageCount) ? userMessageCount : 1);
 
+    // userMessageCount が正しく渡されることを保証
+    const finalUserMessageCount = Number.isFinite(userMessageCount) && userMessageCount > 0 
+      ? userMessageCount 
+      : 1;
+    
     if (DEBUG_MODE) {
+      console.log('🔍 DEBUG: Final userMessageCount:', finalUserMessageCount);
       console.log('🔍 DEBUG: userMessageCount calculation', {
         conversationHistoryLength: conversationHistory.length,
         userMessagesInHistory: userMessagesInHistory,
         calculatedUserMessageCount: calculatedUserMessageCount,
         sanitizedGuestCount: sanitizedGuestCount,
-        finalUserMessageCount: userMessageCount,
+        finalUserMessageCount: finalUserMessageCount,
         conversationHistory: conversationHistory.map(msg => ({ 
           role: msg.role, 
           content: msg.content.substring(0, 50) 
         })),
       });
     }
-    
-    // userMessageCount が正しく渡されることを保証
-    const finalUserMessageCount = Number.isFinite(userMessageCount) && userMessageCount > 0 
-      ? userMessageCount 
-      : 1;
 
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
@@ -531,7 +539,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           ...conversationHistory,
           { role: 'user', content: trimmedMessage },
         ],
-        temperature: 0.7,
+        temperature: 0.9,
         max_tokens: 2000,
       }),
     });
