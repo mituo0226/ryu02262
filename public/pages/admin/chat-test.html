@@ -296,6 +296,7 @@
                 <label>ユーザートークン:</label>
                 <input type="text" id="userTokenInput" placeholder="（ゲストの場合は空欄）" style="flex: 1;">
                 <button onclick="resetChat()">会話をリセット</button>
+                <button onclick="clearAllHistory()" style="background: linear-gradient(135deg, rgba(244, 67, 54, 0.8), rgba(198, 40, 40, 0.8));">全履歴を削除</button>
             </div>
         </div>
 
@@ -543,6 +544,56 @@
                     document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
                     sendMessage();
                 }, 500);
+            }
+        }
+
+        function clearAllHistory() {
+            if (!confirm('ブラウザに保存されている全ての履歴（localStorage、sessionStorage、クッキー）を削除しますか？\n\nこの操作は取り消せません。')) {
+                return;
+            }
+
+            try {
+                // localStorage をクリア
+                localStorage.clear();
+                console.log('localStorage cleared');
+
+                // sessionStorage をクリア
+                sessionStorage.clear();
+                console.log('sessionStorage cleared');
+
+                // クッキーをクリア（可能な範囲で）
+                // 現在のドメインのクッキーを削除
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const eqPos = cookie.indexOf('=');
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    // クッキーを削除（有効期限を過去に設定）
+                    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+                    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+                    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.' + window.location.hostname;
+                }
+                console.log('Cookies cleared');
+
+                // 会話履歴もリセット
+                resetChat();
+
+                setStatus('success', '全履歴を削除しました');
+                
+                // 成功メッセージを表示
+                const messagesContainer = document.getElementById('messagesContainer');
+                const successDiv = document.createElement('div');
+                successDiv.className = 'message assistant';
+                successDiv.innerHTML = `
+                    <div class="message-header">システム</div>
+                    <div style="color: #81c784;">✅ 全履歴を削除しました（localStorage、sessionStorage、クッキー）</div>
+                `;
+                messagesContainer.appendChild(successDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            } catch (error) {
+                console.error('Error clearing history:', error);
+                setStatus('error', '履歴削除中にエラーが発生しました');
+                alert('履歴削除中にエラーが発生しました: ' + error.message);
             }
         }
 
