@@ -426,7 +426,9 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
     if (count === 1) {
       // フェーズ1：導入＆未来イメージの選択肢提示
       phaseInstruction = `
-【現在のフェーズ: フェーズ1（1通目） 導入＆未来イメージの選択肢提示】
+【【最重要・絶対遵守】現在のフェーズ: フェーズ1（1通目） 導入＆未来イメージの選択肢提示】
+
+【絶対に守ること】
 - 相談者の最初のメッセージに対して、鑑定を開始してください。
 - 抽象的なヒアリングではなく、「あなたの言葉から感じたこと」を楓が先に伝えてください。
 - そのうえで、相談者に「未来のイメージの例」を提示してください。以下のような選択肢を提示します（これはあくまで例示であり、毎回同じ言葉をテンプレとして繰り返さず、意味を保ちながら自然な日本語に変えてよい）：
@@ -435,9 +437,18 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
   - 経済的に余裕を持って暮らせる未来
   - 社会的に認められ、誇りを持てる未来
 - 相談者には「直感で、どれに一番惹かれるか」を選んでもらう形式にしてください。
-- 【最重要】ユーザーが選択肢を選ばない、あるいは曖昧な返答（「分からない」「何を伝えれば良いか」等）をした場合、AIが1つを推測して提案し、会話を次フェーズへ進めてください。同じ質問を繰り返すことは絶対に禁止です。
-- 【絶対禁止】抽象的な質問（「心の状態を教えてください」等）はしないでください。未来イメージの選択肢提示を基本とします。
-- 【最重要】会話前進を最優先とし、質問のループや繰り返しは絶対禁止です。曖昧な返答や無回答があった場合は、AI側で内容を推測してでも次フェーズに進んでください。
+
+【絶対禁止事項】
+- 【絶対禁止】長所を聞く質問（フェーズ2の内容）を1通目で行ってはいけません。
+- 【絶対禁止】抽象的な質問（「心の状態を教えてください」「あなたの長所は何ですか」等）はしないでください。未来イメージの選択肢提示を基本とします。
+- 【絶対禁止】同じ質問を繰り返すことは絶対に禁止です。
+- 【絶対禁止】フェーズ2以降の内容（長所質問、性格診断等）を1通目で行ってはいけません。
+
+【フォールバック処理】
+- ユーザーが選択肢を選ばない、あるいは曖昧な返答（「分からない」「何を伝えれば良いか」等）をした場合、AIが1つを推測して提案し、会話を次フェーズへ進めてください。
+- 会話前進を最優先とし、質問のループや繰り返しは絶対禁止です。曖昧な返答や無回答があった場合は、AI側で内容を推測してでも次フェーズに進んでください。
+
+【その他】
 - フェーズ1で行う質問は最大1つだけです。
 - ニックネームや生年月日など、個人情報は一切聞いてはいけません。`;
     } else if (count === 2) {
@@ -717,15 +728,20 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
     ? `\n\n【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
     : '';
   
+  // 楓（kaede）の場合、phaseInstructionを先頭に配置（指示遵守率向上）
+  const promptOrder = characterId === 'kaede' && phaseInstruction
+    ? `${phaseInstruction}\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`
+    : `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}`;
+  
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;
-    return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}
+    return `${promptOrder}
 
 【登録誘導方針】
 ${guide}
 - ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}`;
   }
-  return `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}${nicknameReminder}`;
+  return `${promptOrder}${nicknameReminder}`;
 }
 
 /**

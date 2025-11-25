@@ -517,6 +517,8 @@ export const onRequestPost: PagesFunction = async (context) => {
         includesDiagnosisPhase: systemPrompt.includes('診断・儀式'),
         includesGuardianRitual: systemPrompt.includes('守護神'),
         systemPromptLength: systemPrompt.length,
+        phaseInstructionAtStart: characterId === 'kaede' ? systemPrompt.substring(0, 200).includes('フェーズ1') : false,
+        phaseInstructionAtEnd: characterId === 'kaede' ? systemPrompt.substring(systemPrompt.length - 200).includes('フェーズ1') : false,
       });
     }
 
@@ -539,8 +541,9 @@ export const onRequestPost: PagesFunction = async (context) => {
           ...conversationHistory,
           { role: 'user', content: trimmedMessage },
         ],
-        temperature: 0.9,
-        max_tokens: 2000,
+        temperature: 0.3,  // 0.9 → 0.3 (指示遵守↑)
+        max_tokens: 300,   // 2000 → 300 (短応答・フェーズ推進)
+        top_p: 0.8,        // 新規追加 (多様性抑え・ループ防止)
       }),
     });
 
