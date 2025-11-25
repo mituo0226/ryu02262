@@ -51,6 +51,29 @@
             color: #d4c4e8;
         }
 
+        .user-mode-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .user-mode-badge.guest {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #e8d5ff;
+        }
+
+        .user-mode-badge.registered {
+            background: linear-gradient(135deg, rgba(139, 61, 255, 0.8), rgba(75, 0, 130, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+
         .controls-row input,
         .controls-row select,
         .controls-row button {
@@ -130,6 +153,13 @@
             background: rgba(75, 0, 130, 0.5);
             margin-right: auto;
             border: 1px solid rgba(75, 0, 130, 0.7);
+        }
+
+        .message.system {
+            background: rgba(0, 0, 0, 0.5);
+            margin: 0 auto 15px auto;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            max-width: 90%;
         }
 
         .message-header {
@@ -304,6 +334,18 @@
                 <button onclick="resetChat()">会話をリセット</button>
                 <button onclick="clearAllHistory()" style="background: linear-gradient(135deg, rgba(244, 67, 54, 0.8), rgba(198, 40, 40, 0.8));">全履歴を削除</button>
             </div>
+            <div class="controls-row">
+                <label>現在のモード:</label>
+                <span id="userModeBadge" class="user-mode-badge guest">ゲスト</span>
+                <button onclick="switchToGuest()" id="switchGuestButton" disabled style="background: transparent; border: 1px solid rgba(255,255,255,0.3);">ゲストに戻る</button>
+            </div>
+            <div class="controls-row" style="flex-wrap: wrap; gap: 10px;">
+                <label>テスト用ユーザー登録:</label>
+                <input type="text" id="registerNickname" placeholder="ニックネーム" style="min-width: 180px;">
+                <input type="date" id="registerBirthDate" style="min-width: 170px;">
+                <button onclick="registerTestUser()" style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(56, 142, 60, 0.8));">登録してログイン</button>
+                <span id="registerStatus" style="font-size: 13px; color: #e8d5ff;"></span>
+            </div>
         </div>
 
         <div class="chat-container">
@@ -338,6 +380,9 @@
                     <div style="margin-top: 10px;">
                         <strong>実際に使用したプロバイダー:</strong> <span id="providerInfo" style="color: #81c784;">-</span>
                     </div>
+                    <div style="margin-top: 10px;">
+                        <strong>ユーザーモード:</strong> <span id="debugUserMode">ゲスト</span>
+                    </div>
                 </div>
 
                 <div class="debug-section">
@@ -365,6 +410,9 @@
         let conversationHistory = [];
         let messageCount = 0;
         let lastMessages = []; // ループ検出用
+        let currentUserMode = 'guest';
+        let currentUserNickname = '';
+        let currentUserToken = '';
 
         const API_BASE_URL = '/api/consult';
 
@@ -392,6 +440,60 @@
             
             document.getElementById('historyJson').textContent = 
                 JSON.stringify(conversationHistory, null, 2);
+        }
+
+        function setProviderInfoDisplay(provider) {
+            const providerInfo = document.getElementById('providerInfo');
+            if (!provider) {
+                providerInfo.textContent = '-';
+                providerInfo.style.color = '#e8d5ff';
+                return;
+            }
+            if (provider === 'deepseek') {
+                providerInfo.textContent = 'DeepSeek';
+                providerInfo.style.color = '#64b5f6';
+            } else if (provider === 'openai') {
+                providerInfo.textContent = 'OpenAI (GPT-API)';
+                providerInfo.style.color = '#ffb74d';
+            } else {
+                providerInfo.textContent = provider;
+                providerInfo.style.color = '#e8d5ff';
+            }
+        }
+
+        function updateUserModeDisplay() {
+            const badge = document.getElementById('userModeBadge');
+            const debugMode = document.getElementById('debugUserMode');
+            const switchButton = document.getElementById('switchGuestButton');
+
+            if (currentUserMode === 'registered') {
+                badge.textContent = currentUserNickname ? `登録済: ${currentUserNickname}` : '登録済';
+                badge.classList.remove('guest');
+                badge.classList.add('registered');
+                debugMode.textContent = currentUserNickname ? `登録済 (${currentUserNickname})` : '登録済';
+                switchButton.disabled = false;
+            } else {
+                badge.textContent = 'ゲスト';
+                badge.classList.remove('registered');
+                badge.classList.add('guest');
+                debugMode.textContent = 'ゲスト';
+                switchButton.disabled = true;
+            }
+        }
+
+        function addSystemMessage(content) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.textContent = 'システム';
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = content;
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
         function checkForLoop(newMessage) {
@@ -425,7 +527,13 @@
             
             const header = document.createElement('div');
             header.className = 'message-header';
-            header.textContent = isUser ? 'あなた' : document.getElementById('characterSelect').value === 'kaede' ? '楓' : '鑑定士';
+            if (role === 'system') {
+                header.textContent = 'システム';
+            } else if (isUser) {
+                header.textContent = 'あなた';
+            } else {
+                header.textContent = document.getElementById('characterSelect').value === 'kaede' ? '楓' : '鑑定士';
+            }
             
             const contentDiv = document.createElement('div');
             contentDiv.textContent = content;
@@ -468,6 +576,7 @@
             input.value = '';
             setStatus('loading', '送信中...');
             document.getElementById('sendButton').disabled = true;
+            setProviderInfoDisplay(null);
 
             // 会話履歴を更新
             conversationHistory.push({ role: 'user', content: message });
@@ -481,12 +590,14 @@
                     character: characterId,
                     userToken: userToken || undefined,
                     clientHistory: conversationHistory.slice(0, -1), // 現在のメッセージを除く
-                    guestMetadata: {
-                        messageCount: messageCount - 1
-                    },
                     // テスト用: プロバイダーを強制指定
                     forceProvider: selectedProvider !== 'auto' ? selectedProvider : undefined
                 };
+                if (currentUserMode === 'guest') {
+                    requestBody.guestMetadata = {
+                        messageCount: messageCount - 1
+                    };
+                }
 
                 const response = await fetch(API_BASE_URL, {
                     method: 'POST',
@@ -502,20 +613,7 @@
                 document.getElementById('lastResponse').textContent = 
                     JSON.stringify(data, null, 2);
 
-                // 使用プロバイダーを表示
-                if (data.provider) {
-                    const providerInfo = document.getElementById('providerInfo');
-                    if (data.provider === 'deepseek') {
-                        providerInfo.textContent = 'DeepSeek';
-                        providerInfo.style.color = '#64b5f6';
-                    } else if (data.provider === 'openai') {
-                        providerInfo.textContent = 'OpenAI (GPT-API)';
-                        providerInfo.style.color = '#ffb74d';
-                    } else {
-                        providerInfo.textContent = data.provider;
-                        providerInfo.style.color = '#e8d5ff';
-                    }
-                }
+                setProviderInfoDisplay(data.provider);
 
                 if (data.error) {
                     setStatus('error', 'エラー: ' + data.error);
@@ -575,6 +673,7 @@
             document.getElementById('loopWarning').style.display = 'none';
             setStatus('success', 'リセット完了');
             updateDebugInfo();
+            setProviderInfoDisplay(null);
             
             // 楓が選択されている場合、自動的に最初のメッセージを送信
             setTimeout(() => {
@@ -640,8 +739,80 @@
             }, 300);
         });
 
+        function switchToGuest() {
+            if (currentUserMode === 'guest') {
+                return;
+            }
+            currentUserMode = 'guest';
+            currentUserNickname = '';
+            currentUserToken = '';
+            document.getElementById('userTokenInput').value = '';
+            document.getElementById('registerStatus').textContent = 'ゲストモードに戻りました。';
+            document.getElementById('registerStatus').style.color = '#e8d5ff';
+            updateUserModeDisplay();
+            addSystemMessage('ゲストモードに戻りました。会話はゲストとして続行されます。');
+        }
+
+        async function registerTestUser() {
+            const nicknameInput = document.getElementById('registerNickname');
+            const birthInput = document.getElementById('registerBirthDate');
+            const statusEl = document.getElementById('registerStatus');
+            const nickname = nicknameInput.value.trim();
+            const birthDate = birthInput.value;
+
+            if (!nickname || !birthDate) {
+                statusEl.textContent = 'ニックネームと生年月日を入力してください。';
+                statusEl.style.color = '#ffcdd2';
+                return;
+            }
+
+            const [year, month, day] = birthDate.split('-').map(Number);
+            if (!year || !month || !day) {
+                statusEl.textContent = '生年月日の形式が正しくありません。';
+                statusEl.style.color = '#ffcdd2';
+                return;
+            }
+
+            statusEl.textContent = '登録処理中...';
+            statusEl.style.color = '#ffeb3b';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nickname,
+                        birthYear: year,
+                        birthMonth: month,
+                        birthDay: day
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    statusEl.textContent = data.error || '登録に失敗しました。';
+                    statusEl.style.color = '#ffcdd2';
+                    return;
+                }
+
+                currentUserMode = 'registered';
+                currentUserNickname = data.nickname || nickname;
+                currentUserToken = data.userToken;
+                document.getElementById('userTokenInput').value = currentUserToken;
+                statusEl.textContent = `登録完了: ${currentUserNickname} さんとしてログインしました。`;
+                statusEl.style.color = '#81c784';
+                updateUserModeDisplay();
+                addSystemMessage('テスト用ユーザー登録が完了しました。会話は登録ユーザーとして続行されます。');
+                resetChat();
+            } catch (error) {
+                statusEl.textContent = '登録中にエラーが発生しました: ' + error.message;
+                statusEl.style.color = '#ffcdd2';
+            }
+        }
+
         // 初期化
         updateDebugInfo();
+        updateUserModeDisplay();
         
         // 初期表示時に楓が選択されている場合、自動的に最初のメッセージを送信
         setTimeout(() => {
