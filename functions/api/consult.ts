@@ -26,6 +26,7 @@ interface RequestBody {
   clientHistory?: ClientHistoryEntry[];
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;
+  forceProvider?: 'deepseek' | 'openai'; // テスト用: プロバイダーを強制指定
 }
 
 interface ResponseBody {
@@ -123,6 +124,7 @@ interface LLMRequestParams {
   deepseekApiKey: string;
   fallbackApiKey?: string;
   fallbackModel?: string;
+  forceProvider?: 'deepseek' | 'openai'; // テスト用: プロバイダーを強制指定
 }
 
 async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult> {
@@ -767,6 +769,9 @@ export const onRequestPost: PagesFunction = async (context) => {
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
+    // テスト用: プロバイダーを強制指定
+    const forceProvider = body.forceProvider as 'deepseek' | 'openai' | undefined;
+
     const llmResult = await getLLMResponse({
       systemPrompt,
       conversationHistory,
@@ -777,6 +782,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       deepseekApiKey: apiKey,
       fallbackApiKey,
       fallbackModel,
+      forceProvider,
     });
 
     if (DEBUG_MODE) {

@@ -295,6 +295,12 @@
                 </select>
                 <label>ユーザートークン:</label>
                 <input type="text" id="userTokenInput" placeholder="（ゲストの場合は空欄）" style="flex: 1;">
+                <label>使用プロバイダー:</label>
+                <select id="providerSelect">
+                    <option value="auto" selected>自動（DeepSeek優先）</option>
+                    <option value="deepseek">DeepSeek（強制）</option>
+                    <option value="openai">OpenAI / GPT-API（強制）</option>
+                </select>
                 <button onclick="resetChat()">会話をリセット</button>
                 <button onclick="clearAllHistory()" style="background: linear-gradient(135deg, rgba(244, 67, 54, 0.8), rgba(198, 40, 40, 0.8));">全履歴を削除</button>
             </div>
@@ -330,7 +336,7 @@
                         <strong>現在のフェーズ:</strong> <span id="currentPhase">-</span>
                     </div>
                     <div style="margin-top: 10px;">
-                        <strong>使用プロバイダー:</strong> <span id="providerInfo" style="color: #81c784;">-</span>
+                        <strong>実際に使用したプロバイダー:</strong> <span id="providerInfo" style="color: #81c784;">-</span>
                     </div>
                 </div>
 
@@ -469,6 +475,7 @@
             updateDebugInfo();
 
             try {
+                const selectedProvider = document.getElementById('providerSelect').value;
                 const requestBody = {
                     message: message,
                     character: characterId,
@@ -476,7 +483,9 @@
                     clientHistory: conversationHistory.slice(0, -1), // 現在のメッセージを除く
                     guestMetadata: {
                         messageCount: messageCount - 1
-                    }
+                    },
+                    // テスト用: プロバイダーを強制指定
+                    forceProvider: selectedProvider !== 'auto' ? selectedProvider : undefined
                 };
 
                 const response = await fetch(API_BASE_URL, {
