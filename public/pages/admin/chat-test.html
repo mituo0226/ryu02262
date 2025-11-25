@@ -522,6 +522,18 @@
             }
         }
 
+        function autoSendFirstMessage() {
+            const characterId = document.getElementById('characterSelect').value;
+            // 楓が選択されていて、会話履歴が空の場合のみ自動送信
+            if (characterId === 'kaede' && conversationHistory.length === 0 && messageCount === 0) {
+                const input = document.getElementById('messageInput');
+                input.value = '未来の姿を占って欲しいです。';
+                sendMessage();
+                return true;
+            }
+            return false;
+        }
+
         function resetChat() {
             conversationHistory = [];
             messageCount = 0;
@@ -538,13 +550,9 @@
             updateDebugInfo();
             
             // 楓が選択されている場合、自動的に最初のメッセージを送信
-            const characterId = document.getElementById('characterSelect').value;
-            if (characterId === 'kaede') {
-                setTimeout(() => {
-                    document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
-                    sendMessage();
-                }, 500);
-            }
+            setTimeout(() => {
+                autoSendFirstMessage();
+            }, 300);
         }
 
         function clearAllHistory() {
@@ -599,29 +607,22 @@
 
         // キャラクター変更時の処理
         document.getElementById('characterSelect').addEventListener('change', function() {
-            const characterId = this.value;
-            if (characterId === 'kaede' && conversationHistory.length === 0) {
-                // 会話が空で楓が選択された場合、自動的に最初のメッセージを送信
-                setTimeout(() => {
-                    document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
-                    sendMessage();
-                }, 500);
-            }
+            // 会話が空で楓が選択された場合、自動的に最初のメッセージを送信
+            setTimeout(() => {
+                autoSendFirstMessage();
+            }, 300);
         });
 
         // 初期化
         updateDebugInfo();
         
         // 初期表示時に楓が選択されている場合、自動的に最初のメッセージを送信
-        const initialCharacterId = document.getElementById('characterSelect').value;
-        if (initialCharacterId === 'kaede') {
-            setTimeout(() => {
-                document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
-                sendMessage();
-            }, 1000);
-        } else {
-            document.getElementById('messageInput').focus();
-        }
+        setTimeout(() => {
+            if (!autoSendFirstMessage()) {
+                // 楓でない場合は入力欄にフォーカス
+                document.getElementById('messageInput').focus();
+            }
+        }, 500);
     </script>
 </body>
 </html>
