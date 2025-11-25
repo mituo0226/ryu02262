@@ -296,14 +296,9 @@ async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResu
       };
     }
     return await callOpenAI({
-      systemPrompt: params.systemPrompt,
-      conversationHistory: params.conversationHistory,
-      userMessage: params.userMessage,
-      temperature: params.temperature,
-      maxTokens: params.maxTokens,
-      topP: params.topP,
-      apiKey: fallbackApiKey,
-      model: fallbackModel || DEFAULT_FALLBACK_MODEL,
+      ...params,
+      fallbackApiKey,
+      fallbackModel: fallbackModel || DEFAULT_FALLBACK_MODEL,
     });
   }
 
@@ -329,14 +324,9 @@ async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResu
   });
 
   const openAiResult = await callOpenAI({
-    systemPrompt: params.systemPrompt,
-    conversationHistory: params.conversationHistory,
-    userMessage: params.userMessage,
-    temperature: params.temperature,
-    maxTokens: params.maxTokens,
-    topP: params.topP,
-    apiKey: fallbackApiKey,
-    model: fallbackModel || DEFAULT_FALLBACK_MODEL,
+    ...params,
+    fallbackApiKey,
+    fallbackModel: fallbackModel || DEFAULT_FALLBACK_MODEL,
   });
   
   if (openAiResult.success) {
