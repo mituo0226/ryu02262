@@ -332,9 +332,13 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
+    // デバッグログ用フラグ（本番では false に設定）
+    const DEBUG_MODE = false;
+
     let conversationHistory: ClientHistoryEntry[] = [];
 
     if (user) {
+      // ログインユーザーの場合: データベースから履歴を取得
       const historyResults = await env.DB.prepare<ConversationRow>(
         `SELECT role, message
          FROM conversations
@@ -351,6 +355,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           content: row.message,
         })) ?? [];
 
+      // ゲスト履歴の移行処理
       if (body.migrateHistory && sanitizedHistory.length > 0) {
         for (const entry of sanitizedHistory) {
           try {
@@ -370,12 +375,29 @@ export const onRequestPost: PagesFunction = async (context) => {
               .run();
           }
         }
-        conversationHistory = [...sanitizedHistory, ...dbHistory];
+        // 移行した履歴とDB履歴をマージ（重複を避ける）
+        const sanitizedUserMessages = new Set(sanitizedHistory.filter(msg => msg.role === 'user').map(msg => msg.content));
+        const uniqueDbHistory = dbHistory.filter(msg => {
+          if (msg.role === 'user') {
+            return !sanitizedUserMessages.has(msg.content);
+          }
+          return true;
+        });
+        conversationHistory = [...sanitizedHistory, ...uniqueDbHistory];
       } else {
         conversationHistory = dbHistory;
       }
     } else {
-      conversationHistory = sanitizedHistory;
+      // ゲストユーザーの場合: クライアントから送られてきた履歴を使用
+      // sanitizedHistory が空の場合は、clientHistory を直接使用
+      if (sanitizedHistory.length === 0 && body.clientHistory && Array.isArray(body.clientHistory)) {
+        conversationHistory = body.clientHistory.map((entry: any) => ({
+          role: entry.role || 'user',
+          content: entry.content || entry.message || '',
+        }));
+      } else {
+        conversationHistory = sanitizedHistory;
+      }
     }
 
     // デバッグ: ユーザー情報とニックネームを確認
@@ -387,17 +409,72 @@ export const onRequestPost: PagesFunction = async (context) => {
       });
     }
 
-    // ユーザーメッセージの数を数える（今回送信されたメッセージを含む）
-    // conversationHistoryには過去のメッセージのみが含まれているため、今回のメッセージを+1する
-    const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length + 1;
+    // ユーザーメッセージの数を正しく計算
+    // conversationHistory から user ロールのメッセージ数を取得
+    const userMessagesInHistory = (conversationHistory || []).filter(msg => msg.role === 'user').length;
+    // 今回送信されたメッセージを +1
+    // ゲストユーザーの場合、guestMetadata.messageCount も参考にするが、conversationHistory を優先
+    const calculatedUserMessageCount = userMessagesInHistory + 1;
     
+    // ゲストユーザーの場合、guestMetadata.messageCount と比較して整合性を確認
+    let userMessageCount = calculatedUserMessageCount;
+    if (!user && sanitizedGuestCount > 0) {
+      // guestMetadata.messageCount は「これまでのメッセージ数」なので、+1 した値と比較
+      const expectedCount = sanitizedGuestCount + 1;
+      // 大きな差がある場合は、guestMetadata を優先（履歴が正しく送られていない可能性）
+      if (Math.abs(calculatedUserMessageCount - expectedCount) > 2) {
+        userMessageCount = expectedCount;
+        if (DEBUG_MODE) {
+          console.log('🔍 DEBUG: userMessageCount mismatch, using guestMetadata', {
+            calculated: calculatedUserMessageCount,
+            expected: expectedCount,
+            using: userMessageCount,
+          });
+        }
+      }
+    }
+    
+    // 最終的な userMessageCount を保証（最小値1、NaN や undefined を防ぐ）
+    userMessageCount = Math.max(1, Number.isFinite(userMessageCount) ? userMessageCount : 1);
+
+    if (DEBUG_MODE) {
+      console.log('🔍 DEBUG: userMessageCount calculation', {
+        conversationHistoryLength: conversationHistory.length,
+        userMessagesInHistory: userMessagesInHistory,
+        calculatedUserMessageCount: calculatedUserMessageCount,
+        sanitizedGuestCount: sanitizedGuestCount,
+        finalUserMessageCount: userMessageCount,
+        conversationHistory: conversationHistory.map(msg => ({ 
+          role: msg.role, 
+          content: msg.content.substring(0, 50) 
+        })),
+      });
+    }
+    
+    // userMessageCount が正しく渡されることを保証
+    const finalUserMessageCount = Number.isFinite(userMessageCount) && userMessageCount > 0 
+      ? userMessageCount 
+      : 1;
+
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
       userNickname: user?.nickname,
       hasPreviousConversation: conversationHistory.length > 0,
       conversationHistoryLength: conversationHistory.length,
-      userMessageCount: userMessageCount,
+      userMessageCount: finalUserMessageCount, // 必ず正しい数値が渡される
     });
+
+    if (DEBUG_MODE) {
+      console.log('🔍 DEBUG: systemPrompt generation', {
+        characterId,
+        userMessageCount: finalUserMessageCount,
+        includesPhaseInstruction: systemPrompt.includes('現在のフェーズ'),
+        includesHearingPhase: systemPrompt.includes('ヒアリング'),
+        includesDiagnosisPhase: systemPrompt.includes('診断・儀式'),
+        includesGuardianRitual: systemPrompt.includes('守護神'),
+        systemPromptLength: systemPrompt.length,
+      });
+    }
 
     // デバッグ: システムプロンプトにニックネームが含まれているか確認
     if (user?.nickname) {

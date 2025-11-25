@@ -214,6 +214,7 @@
                             }
                         }
                     } else {
+                        // ゲストユーザーの場合: clientHistory と guestMetadata を送信
                         // まず、chat-example.htmlで保存されたカウントを確認
                         const lastGuestMessageCount = sessionStorage.getItem('lastGuestMessageCount');
                         let guestCount = 0;
@@ -236,6 +237,43 @@
                                     : 0);
                         }
                         payload.guestMetadata = { messageCount: guestCount };
+                        
+                        // ゲストユーザーの会話履歴を取得して送信
+                        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                        const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                        const storedHistory = sessionStorage.getItem(historyKey);
+                        
+                        if (storedHistory) {
+                            try {
+                                const parsedHistory = JSON.parse(storedHistory);
+                                if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                                    payload.clientHistory = parsedHistory.map((entry) => ({
+                                        role: entry.role || 'user',
+                                        content: entry.content || entry.message || '',
+                                    }));
+                                }
+                            } catch (error) {
+                                console.error('Error parsing stored guest history:', error);
+                            }
+                        }
+                        
+                        // フォールバック: pendingGuestHistoryMigration からも取得を試みる
+                        if (!payload.clientHistory || payload.clientHistory.length === 0) {
+                            const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                            if (pendingMigration) {
+                                try {
+                                    const migrationData = JSON.parse(pendingMigration);
+                                    if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
+                                        payload.clientHistory = migrationData.history.map((entry) => ({
+                                            role: entry.role || 'user',
+                                            content: entry.content || entry.message || '',
+                                        }));
+                                    }
+                                } catch (error) {
+                                    console.error('Error parsing pending guest history migration:', error);
+                                }
+                            }
+                        }
                     }
 
                     const timeoutPromise = new Promise((_, reject) => {
