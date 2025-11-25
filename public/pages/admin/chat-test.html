@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャットテスト - 管理画面</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            color: #e8d5ff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #8b3dff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .controls {
+            background: rgba(75, 0, 130, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(138, 61, 255, 0.3);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls-row label {
+            min-width: 120px;
+            color: #d4c4e8;
+        }
+
+        .controls-row input,
+        .controls-row select,
+        .controls-row button {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid rgba(138, 61, 255, 0.5);
+            background: rgba(26, 10, 46, 0.8);
+            color: #e8d5ff;
+            font-size: 14px;
+        }
+
+        .controls-row button {
+            background: linear-gradient(135deg, rgba(138, 61, 255, 0.8), rgba(75, 0, 130, 0.8));
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .controls-row button:hover {
+            background: linear-gradient(135deg, rgba(138, 61, 255, 1), rgba(75, 0, 130, 1));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(138, 61, 255, 0.4);
+        }
+
+        .controls-row button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 968px) {
+            .chat-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chat-area {
+            background: rgba(75, 0, 130, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(138, 61, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: rgba(138, 61, 255, 0.3);
+            margin-left: auto;
+            text-align: right;
+            border: 1px solid rgba(138, 61, 255, 0.5);
+        }
+
+        .message.assistant {
+            background: rgba(75, 0, 130, 0.5);
+            margin-right: auto;
+            border: 1px solid rgba(75, 0, 130, 0.7);
+        }
+
+        .message-header {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid rgba(138, 61, 255, 0.5);
+            background: rgba(26, 10, 46, 0.8);
+            color: #e8d5ff;
+            font-size: 14px;
+        }
+
+        .input-area button {
+            padding: 12px 25px;
+            border-radius: 5px;
+            border: none;
+            background: linear-gradient(135deg, rgba(138, 61, 255, 0.8), rgba(75, 0, 130, 0.8));
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .input-area button:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(138, 61, 255, 1), rgba(75, 0, 130, 1));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(138, 61, 255, 0.4);
+        }
+
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .debug-panel {
+            background: rgba(75, 0, 130, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(138, 61, 255, 0.3);
+            height: 600px;
+            overflow-y: auto;
+        }
+
+        .debug-panel h3 {
+            color: #8b3dff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .debug-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            border-left: 3px solid #8b3dff;
+        }
+
+        .debug-section h4 {
+            color: #d4c4e8;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .debug-section pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            color: #e8d5ff;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.success {
+            background: #4caf50;
+        }
+
+        .status-indicator.error {
+            background: #f44336;
+        }
+
+        .status-indicator.loading {
+            background: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loop-warning {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            color: #ffcdd2;
+        }
+
+        .phase-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .phase-badge.phase1 {
+            background: rgba(76, 175, 80, 0.3);
+            color: #81c784;
+        }
+
+        .phase-badge.phase2 {
+            background: rgba(33, 150, 243, 0.3);
+            color: #64b5f6;
+        }
+
+        .phase-badge.phase3 {
+            background: rgba(156, 39, 176, 0.3);
+            color: #ba68c8;
+        }
+
+        .phase-badge.phase4 {
+            background: rgba(255, 152, 0, 0.3);
+            color: #ffb74d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 チャットテスト - 管理画面</h1>
+
+        <div class="controls">
+            <div class="controls-row">
+                <label>キャラクター:</label>
+                <select id="characterSelect">
+                    <option value="kaede" selected>楓（かえで）</option>
+                    <option value="yukino">笹岡雪乃</option>
+                    <option value="sora">水野ソラ</option>
+                    <option value="kaon">三崎花音</option>
+                </select>
+                <label>ユーザートークン:</label>
+                <input type="text" id="userTokenInput" placeholder="（ゲストの場合は空欄）" style="flex: 1;">
+                <button onclick="resetChat()">会話をリセット</button>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-area">
+                <div class="messages" id="messagesContainer">
+                    <div class="message assistant">
+                        <div class="message-header">システム</div>
+                        <div>チャットテストを開始しました。メッセージを送信してください。</div>
+                    </div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="handleKeyPress(event)">
+                    <button id="sendButton" onclick="sendMessage()">送信</button>
+                </div>
+            </div>
+
+            <div class="debug-panel">
+                <h3>📊 デバッグ情報</h3>
+                
+                <div class="debug-section">
+                    <h4>会話状態</h4>
+                    <div>
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="statusText">待機中</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <strong>メッセージ数:</strong> <span id="messageCount">0</span>
+                    </div>
+                    <div>
+                        <strong>現在のフェーズ:</strong> <span id="currentPhase">-</span>
+                    </div>
+                </div>
+
+                <div class="debug-section">
+                    <h4>会話履歴（JSON）</h4>
+                    <pre id="historyJson">[]</pre>
+                </div>
+
+                <div class="debug-section">
+                    <h4>最後のAPI応答</h4>
+                    <pre id="lastResponse">-</pre>
+                </div>
+
+                <div class="debug-section" id="loopWarning" style="display: none;">
+                    <h4>⚠️ ループ検出</h4>
+                    <div class="loop-warning">
+                        <div>同じ内容のメッセージが繰り返されています。</div>
+                        <div id="loopDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        let messageCount = 0;
+        let lastMessages = []; // ループ検出用
+
+        const API_BASE_URL = '/api/consult';
+
+        function getCurrentPhase(count) {
+            if (count === 1) return 'フェーズ1（未来イメージ選択）';
+            if (count === 2) return 'フェーズ2（長所質問）';
+            if (count === 3) return 'フェーズ3（性格診断）';
+            if (count >= 4) return 'フェーズ4（未来・守護・儀式）';
+            return '-';
+        }
+
+        function getPhaseBadgeClass(count) {
+            if (count === 1) return 'phase1';
+            if (count === 2) return 'phase2';
+            if (count === 3) return 'phase3';
+            if (count >= 4) return 'phase4';
+            return '';
+        }
+
+        function updateDebugInfo() {
+            document.getElementById('messageCount').textContent = messageCount;
+            document.getElementById('currentPhase').innerHTML = 
+                getCurrentPhase(messageCount) + 
+                (messageCount > 0 ? `<span class="phase-badge ${getPhaseBadgeClass(messageCount)}">${messageCount}通目</span>` : '');
+            
+            document.getElementById('historyJson').textContent = 
+                JSON.stringify(conversationHistory, null, 2);
+        }
+
+        function checkForLoop(newMessage) {
+            // 直近3件のメッセージと比較
+            if (lastMessages.length >= 2) {
+                const lastTwo = lastMessages.slice(-2);
+                const normalizedNew = newMessage.toLowerCase().trim();
+                
+                for (const msg of lastTwo) {
+                    const normalized = msg.toLowerCase().trim();
+                    // 80%以上一致する場合はループと判定
+                    if (normalized.length > 0 && 
+                        (normalizedNew.includes(normalized.substring(0, Math.min(20, normalized.length))) ||
+                         normalized.includes(normalizedNew.substring(0, Math.min(20, normalizedNew.length))))) {
+                        document.getElementById('loopWarning').style.display = 'block';
+                        document.getElementById('loopDetails').textContent = 
+                            `類似メッセージ: "${msg.substring(0, 50)}..."`;
+                        return true;
+                    }
+                }
+            }
+            
+            document.getElementById('loopWarning').style.display = 'none';
+            return false;
+        }
+
+        function addMessage(role, content, isUser = false) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.textContent = isUser ? 'あなた' : document.getElementById('characterSelect').value === 'kaede' ? '楓' : '鑑定士';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // ループ検出
+            if (role === 'assistant') {
+                lastMessages.push(content);
+                if (lastMessages.length > 3) {
+                    lastMessages.shift();
+                }
+                checkForLoop(content);
+            }
+        }
+
+        function setStatus(status, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = 'status-indicator ' + status;
+            statusText.textContent = text;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            const characterId = document.getElementById('characterSelect').value;
+            const userToken = document.getElementById('userTokenInput').value.trim();
+
+            // UI更新
+            addMessage('user', message, true);
+            input.value = '';
+            setStatus('loading', '送信中...');
+            document.getElementById('sendButton').disabled = true;
+
+            // 会話履歴を更新
+            conversationHistory.push({ role: 'user', content: message });
+            messageCount++;
+            updateDebugInfo();
+
+            try {
+                const requestBody = {
+                    message: message,
+                    character: characterId,
+                    userToken: userToken || undefined,
+                    clientHistory: conversationHistory.slice(0, -1), // 現在のメッセージを除く
+                    guestMetadata: {
+                        messageCount: messageCount - 1
+                    }
+                };
+
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                const data = await response.json();
+
+                // デバッグ情報を更新
+                document.getElementById('lastResponse').textContent = 
+                    JSON.stringify(data, null, 2);
+
+                if (data.error) {
+                    setStatus('error', 'エラー: ' + data.error);
+                    addMessage('assistant', 'エラー: ' + data.error);
+                } else if (data.message) {
+                    setStatus('success', '成功');
+                    addMessage('assistant', data.message);
+                    
+                    // 会話履歴を更新
+                    conversationHistory.push({ role: 'assistant', content: data.message });
+                    updateDebugInfo();
+                } else {
+                    setStatus('error', '応答が空です');
+                    addMessage('assistant', '応答が生成されませんでした。');
+                }
+            } catch (error) {
+                setStatus('error', 'エラー: ' + error.message);
+                addMessage('assistant', 'エラーが発生しました: ' + error.message);
+                document.getElementById('lastResponse').textContent = 
+                    'エラー: ' + error.message;
+            } finally {
+                document.getElementById('sendButton').disabled = false;
+                input.focus();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function resetChat() {
+            conversationHistory = [];
+            messageCount = 0;
+            lastMessages = [];
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="message assistant">
+                    <div class="message-header">システム</div>
+                    <div>会話をリセットしました。新しいメッセージを送信してください。</div>
+                </div>
+            `;
+            document.getElementById('lastResponse').textContent = '-';
+            document.getElementById('loopWarning').style.display = 'none';
+            setStatus('success', 'リセット完了');
+            updateDebugInfo();
+        }
+
+        // 初期化
+        updateDebugInfo();
+        document.getElementById('messageInput').focus();
+    </script>
+</body>
+</html>
+
