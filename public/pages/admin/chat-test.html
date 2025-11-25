@@ -528,18 +528,49 @@
             document.getElementById('messagesContainer').innerHTML = `
                 <div class="message assistant">
                     <div class="message-header">システム</div>
-                    <div>会話をリセットしました。新しいメッセージを送信してください。</div>
+                    <div>会話をリセットしました。楓の場合は自動的に「未来の姿を占って欲しいです。」を送信します。</div>
                 </div>
             `;
             document.getElementById('lastResponse').textContent = '-';
             document.getElementById('loopWarning').style.display = 'none';
             setStatus('success', 'リセット完了');
             updateDebugInfo();
+            
+            // 楓が選択されている場合、自動的に最初のメッセージを送信
+            const characterId = document.getElementById('characterSelect').value;
+            if (characterId === 'kaede') {
+                setTimeout(() => {
+                    document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
+                    sendMessage();
+                }, 500);
+            }
         }
+
+        // キャラクター変更時の処理
+        document.getElementById('characterSelect').addEventListener('change', function() {
+            const characterId = this.value;
+            if (characterId === 'kaede' && conversationHistory.length === 0) {
+                // 会話が空で楓が選択された場合、自動的に最初のメッセージを送信
+                setTimeout(() => {
+                    document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
+                    sendMessage();
+                }, 500);
+            }
+        });
 
         // 初期化
         updateDebugInfo();
-        document.getElementById('messageInput').focus();
+        
+        // 初期表示時に楓が選択されている場合、自動的に最初のメッセージを送信
+        const initialCharacterId = document.getElementById('characterSelect').value;
+        if (initialCharacterId === 'kaede') {
+            setTimeout(() => {
+                document.getElementById('messageInput').value = '未来の姿を占って欲しいです。';
+                sendMessage();
+            }, 1000);
+        } else {
+            document.getElementById('messageInput').focus();
+        }
     </script>
 </body>
 </html>
