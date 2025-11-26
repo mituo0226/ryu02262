@@ -971,10 +971,11 @@
                             showRegistrationButton();
                         }, 3000); // メッセージを読んだ後、3秒後にボタンを表示
                     } else if (data.registrationSuggested && currentUserMode === 'guest') {
-                        // registrationSuggestedフラグでも登録ボタンを表示
+                        // registrationSuggestedフラグでも登録ボタンを表示（守護神の儀式への同意など）
+                        addSystemMessage('✅ 守護神の儀式への同意が検出されました。登録ボタンが表示されます。');
                         setTimeout(() => {
                             showRegistrationButton();
-                        }, 3000);
+                        }, 2000); // 早期表示のため、少し早めに表示
                     }
                 } else {
                     setStatus('error', '応答が空です');

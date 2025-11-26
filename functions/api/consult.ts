@@ -90,6 +90,76 @@ const isServiceBusyError = (status: number, errorText: string) => {
   );
 };
 
+/**
+ * 会話履歴から「守護神の儀式に同意」を検出する関数
+ * フェーズ4でユーザーが儀式に同意した場合、10通の制限に関係なく登録ボタンを表示する
+ */
+function detectGuardianRitualConsent(
+  conversationHistory: ClientHistoryEntry[],
+  currentMessage: string,
+  characterId: string
+): boolean {
+  // 楓（kaede）のみ対象
+  if (characterId !== 'kaede') {
+    return false;
+  }
+
+  // 守護神・儀式に関連するキーワード
+  const ritualKeywords = [
+    '守護神',
+    '儀式',
+    '守護',
+    '導き出す',
+    '呼び出す',
+    '整える',
+    '波長',
+    'エネルギー',
+  ];
+
+  // 同意を示す表現
+  const consentKeywords = [
+    'やってみたい',
+    'やってみます',
+    'お願いします',
+    'お願い',
+    '受けたい',
+    '受けます',
+    'やります',
+    'はい',
+    '同意',
+    '了解',
+    'わかりました',
+    'お願いします',
+    'お願いします',
+    'お願いします',
+    'お願いします',
+  ];
+
+  // 最新のユーザーメッセージ（現在のメッセージを含む）
+  const recentMessages = [...conversationHistory, { role: 'user' as const, content: currentMessage }]
+    .filter(msg => msg.role === 'user')
+    .slice(-3); // 直近3件のユーザーメッセージを確認
+
+  // 会話履歴全体から守護神・儀式の言及を確認
+  const allMessages = [...conversationHistory, { role: 'user' as const, content: currentMessage }];
+  const hasRitualMention = allMessages.some(msg => {
+    const text = msg.content.toLowerCase();
+    return ritualKeywords.some(keyword => text.includes(keyword));
+  });
+
+  if (!hasRitualMention) {
+    return false;
+  }
+
+  // 直近のユーザーメッセージに同意表現があるか確認
+  const hasConsent = recentMessages.some(msg => {
+    const text = msg.content.toLowerCase();
+    return consentKeywords.some(keyword => text.includes(keyword));
+  });
+
+  return hasConsent;
+}
+
 const extractErrorMessage = (text: string, fallback: string) => {
   try {
     const parsed = JSON.parse(text);
@@ -486,7 +556,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     //   // 例: shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 12 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
     //   // または、別のフラグ（例: hasCompletedGuardianRitual）で制御する
     // }
-    const shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
+    let shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
 
     if (guestLimitReached) {
       // 10通目以降は「ユーザー登録をしてください」というメッセージのみ返す
@@ -687,6 +757,22 @@ export const onRequestPost: PagesFunction = async (context) => {
           finalConversationHistoryLength: conversationHistory.length,
           guestMetadataMessageCount: sanitizedGuestCount,
         });
+      }
+    }
+
+    // フェーズ4（未来・守護・儀式）で守護神の儀式に同意した場合、10通の制限に関係なく登録ボタンを表示
+    if (!body.userToken && characterId === 'kaede') {
+      const hasConsentedToRitual = detectGuardianRitualConsent(
+        conversationHistory,
+        body.message,
+        characterId
+      );
+      
+      if (hasConsentedToRitual) {
+        shouldEncourageRegistration = true;
+        if (DEBUG_MODE) {
+          console.log('🔍 DEBUG: Guardian ritual consent detected - showing registration button early');
+        }
       }
     }
 
