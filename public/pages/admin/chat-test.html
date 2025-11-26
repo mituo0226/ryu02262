@@ -308,6 +308,43 @@
             background: rgba(255, 152, 0, 0.3);
             color: #ffb74d;
         }
+
+        /* 登録ボタン */
+        .registration-button-container {
+            padding: 16px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            margin-top: 10px;
+        }
+        
+        .registration-button-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .registration-button {
+            background: linear-gradient(135deg, #8b3dff 0%, #6b2acc 100%);
+            color: #ffffff;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(139, 61, 255, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .registration-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 61, 255, 0.4);
+        }
+        
+        .registration-button:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -355,6 +392,12 @@
                         <div class="message-header">システム</div>
                         <div>チャットテストを開始しました。メッセージを送信してください。</div>
                     </div>
+                </div>
+                <!-- 登録ボタン（フェードインで表示） -->
+                <div class="registration-button-container" id="registrationButtonContainer" style="display: none;">
+                    <button class="registration-button" id="registrationButton" onclick="openRegistrationFromChat()">
+                        ユーザー登録をして鑑定を続ける
+                    </button>
                 </div>
                 <div class="input-area">
                     <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="handleKeyPress(event)">
@@ -625,6 +668,13 @@
                     // 会話履歴を更新
                     conversationHistory.push({ role: 'assistant', content: data.message });
                     updateDebugInfo();
+                    
+                    // needsRegistrationフラグが立っている場合、登録ボタンを表示
+                    if (data.needsRegistration && currentUserMode === 'guest') {
+                        setTimeout(() => {
+                            showRegistrationButton();
+                        }, 3000); // メッセージを読んだ後、3秒後にボタンを表示
+                    }
                 } else {
                     setStatus('error', '応答が空です');
                     addMessage('assistant', '応答が生成されませんでした。');
@@ -674,6 +724,9 @@
             setStatus('success', 'リセット完了');
             updateDebugInfo();
             setProviderInfoDisplay(null);
+            
+            // 登録ボタンを非表示にする
+            hideRegistrationButton();
             
             // 楓が選択されている場合、自動的に最初のメッセージを送信
             setTimeout(() => {
@@ -751,6 +804,50 @@
             document.getElementById('registerStatus').style.color = '#e8d5ff';
             updateUserModeDisplay();
             addSystemMessage('ゲストモードに戻りました。会話はゲストとして続行されます。');
+            
+            // 登録ボタンを非表示にする（ゲストモードに戻った時点では表示しない）
+            hideRegistrationButton();
+        }
+
+        function showRegistrationButton() {
+            const registrationButtonContainer = document.getElementById('registrationButtonContainer');
+            if (registrationButtonContainer) {
+                registrationButtonContainer.style.display = 'block';
+                // 強制的に再描画をトリガーしてからクラスを追加
+                requestAnimationFrame(() => {
+                    registrationButtonContainer.classList.add('visible');
+                });
+            }
+        }
+
+        function hideRegistrationButton() {
+            const registrationButtonContainer = document.getElementById('registrationButtonContainer');
+            if (registrationButtonContainer) {
+                registrationButtonContainer.classList.remove('visible');
+                setTimeout(() => {
+                    registrationButtonContainer.style.display = 'none';
+                }, 500); // アニメーション完了後に非表示
+            }
+        }
+
+        function openRegistrationFromChat() {
+            // 登録フォームのセクションまでスクロール
+            const nicknameInput = document.getElementById('registerNickname');
+            if (nicknameInput) {
+                // 親要素のcontrols-rowを探す
+                let registerSection = nicknameInput.closest('.controls-row');
+                if (!registerSection) {
+                    // 見つからない場合は、controls要素全体にスクロール
+                    registerSection = document.querySelector('.controls');
+                }
+                if (registerSection) {
+                    registerSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // フォーカスをニックネーム入力欄に
+                    setTimeout(() => {
+                        nicknameInput.focus();
+                    }, 500);
+                }
+            }
         }
 
         async function registerTestUser() {
@@ -803,6 +900,10 @@
                 statusEl.style.color = '#81c784';
                 updateUserModeDisplay();
                 addSystemMessage('テスト用ユーザー登録が完了しました。会話は登録ユーザーとして続行されます。');
+                
+                // 登録ボタンを非表示にする
+                hideRegistrationButton();
+                
                 resetChat();
             } catch (error) {
                 statusEl.textContent = '登録中にエラーが発生しました: ' + error.message;
