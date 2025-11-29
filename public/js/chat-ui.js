@@ -1,14 +1,6 @@
 /**
  * chat-ui.js
  * UI更新とレンダリングを担当
- * 
- * 重要: このファイルは chat.html（本番版）のメイン実装です。
- * 優先順位: chat.html（本番版）が優先で会話の進行を行い、chat-test.html（テスト版）がそれを同期します。
- * 
- * chat-test.html は本番環境のチャットの動きを簡易的に試験するために設置されたテスト版です。
- * 変更を行う際は、まずchat.htmlを更新し、その後chat-test.htmlを同期してください。
- * 
- * 詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
  */
 
 const ChatUI = {

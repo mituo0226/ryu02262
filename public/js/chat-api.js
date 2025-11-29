@@ -1,14 +1,6 @@
 /**
  * chat-api.js
  * API通信処理を担当
- * 
- * 重要: このファイルは chat.html（本番版）のメイン実装です。
- * 優先順位: chat.html（本番版）が優先で会話の進行を行い、chat-test.html（テスト版）がそれを同期します。
- * 
- * chat-test.html は本番環境のチャットの動きを簡易的に試験するために設置されたテスト版です。
- * 変更を行う際は、まずchat.htmlを更新し、その後chat-test.htmlを同期してください。
- * 
- * 詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
  */
 
 const ChatAPI = {
@@ -89,9 +81,9 @@ const ChatAPI = {
      * @param {string} message - 送信するメッセージ
      * @param {string} characterId - キャラクターID
      * @param {Array} conversationHistory - 会話履歴
-     * @param {Object} options - オプション（テスト環境用など）
-     * @param {string} options.userToken - ユーザートークン（テスト環境用）
-     * @param {string} options.forceProvider - プロバイダーを強制指定（テスト環境用: 'deepseek' | 'openai'）
+     * @param {Object} options - オプション
+     * @param {string} options.userToken - ユーザートークン（オプション）
+     * @param {string} options.forceProvider - プロバイダーを強制指定（オプション: 'deepseek' | 'openai'）
      * @param {Object} options.guestMetadata - ゲストメタデータ（メッセージカウントなど）
      * @returns {Promise<Object>} APIレスポンス
      */
@@ -120,7 +112,7 @@ const ChatAPI = {
             payload.userToken = token;
         }
         
-        // テスト環境用オプション
+        // オプション設定
         if (options.forceProvider) {
             payload.forceProvider = options.forceProvider;
         }
