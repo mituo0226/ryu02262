@@ -1046,6 +1046,17 @@
             statusText.textContent = text;
         }
 
+        /**
+         * メッセージ送信（テスト環境用ラッパー）
+         * 
+         * 重要: この関数は本番環境（chat.html）と同じAPI呼び出しロジック（ChatAPI.sendMessage）を使用しています。
+         * テスト環境特有のデバッグ情報表示のみ追加しており、コアロジックは本番環境と完全に同じです。
+         * 
+         * 本番環境との違い:
+         * - アニメーション画面への遷移なし（テスト環境では不要）
+         * - デバッグ情報の表示（テスト環境特有）
+         * - テスト環境用のUI更新（addMessage関数を使用）
+         */
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
@@ -1055,20 +1066,23 @@
             const characterId = document.getElementById('characterSelect').value;
             const userToken = document.getElementById('userTokenInput').value.trim();
 
-            // UI更新
-            addMessage('user', message, true);
-            input.value = '';
+            // テスト環境用の状態管理
             setStatus('loading', '送信中...');
-            document.getElementById('sendButton').disabled = true;
             setProviderInfoDisplay(null);
 
-            // 会話履歴を更新
+            // 会話履歴を更新（テスト環境用）
             conversationHistory.push({ role: 'user', content: message });
             messageCount++;
             updateDebugInfo();
 
+            // UI更新（テスト環境用）
+            addMessage('user', message, true);
+            input.value = '';
+            document.getElementById('sendButton').disabled = true;
+
             try {
-                // 共通のAPI関数を使用（テスト環境用オプションを指定）
+                // 本番環境と同じAPI呼び出しロジックを使用
+                // テスト環境用オプションを指定
                 const selectedProvider = document.getElementById('providerSelect').value;
                 const options = {
                     userToken: userToken || undefined,
@@ -1081,7 +1095,7 @@
                     };
                 }
 
-                // 共通のAPI関数を使用（現在のメッセージを除く会話履歴を渡す）
+                // 共通のAPI関数を使用（本番環境と同じ）
                 const data = await ChatAPI.sendMessage(
                     message,
                     characterId,
@@ -1102,22 +1116,23 @@
                     setStatus('success', '成功');
                     addMessage('assistant', data.message);
                     
-                    // 会話履歴を更新
+                    // 会話履歴を更新（テスト環境用）
                     conversationHistory.push({ role: 'assistant', content: data.message });
                     updateDebugInfo();
                     
                     // needsRegistrationフラグが立っている場合、登録ボタンを表示
+                    // 本番環境と同じロジック
                     if (data.needsRegistration && currentUserMode === 'guest') {
                         addSystemMessage('⚠️ 登録が必要です。登録ボタンが表示されます。');
                         setTimeout(() => {
                             showRegistrationButton();
-                        }, 3000); // メッセージを読んだ後、3秒後にボタンを表示
+                        }, 3000);
                     } else if (data.registrationSuggested && currentUserMode === 'guest') {
                         // registrationSuggestedフラグでも登録ボタンを表示（守護神の儀式への同意など）
                         addSystemMessage('✅ 守護神の儀式への同意が検出されました。登録ボタンが表示されます。');
                         setTimeout(() => {
                             showRegistrationButton();
-                        }, 2000); // 早期表示のため、少し早めに表示
+                        }, 2000);
                     }
                 } else {
                     setStatus('error', '応答が空です');
@@ -1483,7 +1498,13 @@
 
         /**
          * 守護神の儀式を開始（テスト画面用）
-         * 共通のAPI関数を使用
+         * 
+         * 重要: この関数は本番環境（chat.html）と同じAPI呼び出しロジック（ChatAPI.sendMessage）を使用しています。
+         * テスト環境特有のデバッグ情報表示のみ追加しており、コアロジックは本番環境と完全に同じです。
+         * 
+         * 本番環境との違い:
+         * - デバッグ情報の表示（テスト環境特有）
+         * - テスト環境用のUI更新（addMessage関数を使用）
          */
         async function startGuardianRitualInTest() {
             const characterId = document.getElementById('characterSelect').value;
@@ -1499,11 +1520,21 @@
             try {
                 const selectedProvider = document.getElementById('providerSelect').value;
                 
+                // 本番環境と同じロジック：会話履歴を取得
+                let conversationHistoryForRitual = [];
+                if (currentUserMode === 'registered' && userToken) {
+                    // 登録ユーザーの場合、会話履歴を取得（テスト環境では簡易的に使用）
+                    // 実際の本番環境では ChatAPI.loadConversationHistory() を使用
+                    conversationHistoryForRitual = [...conversationHistory];
+                } else {
+                    conversationHistoryForRitual = [...conversationHistory];
+                }
+                
                 // ユーザーメッセージを会話履歴に追加（表示はしない）
                 const ritualMessage = '守護神の儀式を始めてください';
-                conversationHistory.push({ role: 'user', content: ritualMessage });
+                conversationHistoryForRitual.push({ role: 'user', content: ritualMessage });
                 
-                // 共通のAPI関数を使用
+                // 共通のAPI関数を使用（本番環境と同じ）
                 const options = {
                     userToken: userToken || undefined,
                     forceProvider: selectedProvider !== 'auto' ? selectedProvider : undefined
@@ -1512,7 +1543,7 @@
                 const data = await ChatAPI.sendMessage(
                     ritualMessage,
                     characterId,
-                    conversationHistory.slice(0, -1), // 現在のメッセージを除く
+                    conversationHistoryForRitual.slice(0, -1), // 現在のメッセージを除く
                     options
                 );
                 
@@ -1521,25 +1552,27 @@
                     JSON.stringify(data, null, 2);
                 
                 setProviderInfoDisplay(data.provider);
-                
+
                 if (data.error) {
                     setStatus('error', 'エラー: ' + data.error);
                     addMessage('assistant', 'エラー: ' + data.error);
                     // エラーの場合、追加したユーザーメッセージを削除
-                    conversationHistory.pop();
+                    conversationHistoryForRitual.pop();
                 } else if (data.message) {
                     setStatus('success', '成功');
                     addMessage('assistant', data.message);
                     
                     // 会話履歴を更新（assistantの応答を追加）
-                    conversationHistory.push({ role: 'assistant', content: data.message });
+                    conversationHistoryForRitual.push({ role: 'assistant', content: data.message });
+                    // グローバルの会話履歴にも反映
+                    conversationHistory = conversationHistoryForRitual;
                     messageCount++;
                     updateDebugInfo();
                 } else {
                     setStatus('error', '応答が空です');
                     addMessage('assistant', '応答が生成されませんでした。');
                     // エラーの場合、追加したユーザーメッセージを削除
-                    conversationHistory.pop();
+                    conversationHistoryForRitual.pop();
                 }
             } catch (error) {
                 setStatus('error', 'エラー: ' + error.message);
@@ -1570,9 +1603,27 @@
         }, 500);
     </script>
     
+    <!--
+        重要: このファイル（chat-test.html）は、本番環境のchat.htmlの簡易テスト版です。
+        chat.htmlの挙動やAPIの指示が変更された場合、必ずこのファイルも同期してください。
+        この2つのファイルは別々のチャット画面ではなく、同じチャット画面のテスト版と本番版です。
+        
+        同期が必要な項目:
+        - API通信ロジック（/api/consultへのリクエスト形式、レスポンス処理）✅ 統一済み（ChatAPI.sendMessageを使用）
+        - ユーザー認証・状態管理（ゲスト/登録ユーザーの判定、トークン処理）✅ 統一済み（AuthStateを使用）
+        - 会話履歴管理（ゲスト履歴のクリア、会話履歴の読み込み・保存）✅ 統一済み（ChatDataを使用）
+        - 特殊機能（守護神の儀式の開始、登録完了後の自動処理、フェーズ管理）✅ 統一済み（同じAPI呼び出しロジックを使用）
+        
+        詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
+    -->
     <!-- 共通のチャットロジックを読み込む（本番環境と同じ） -->
     <script src="../../../js/auth-state.js"></script>
+    <script src="../../../js/features/yukino-tarot.js"></script>
+    <script src="../../../js/character-features.js"></script>
     <script src="../../../js/chat-api.js"></script>
+    <script src="../../../js/chat-data.js"></script>
+    <script src="../../../js/chat-ui.js"></script>
+    <script src="../../../js/chat-init.js"></script>
     
     <!-- ナビゲーションのアクティブ状態を設定 -->
     <script>

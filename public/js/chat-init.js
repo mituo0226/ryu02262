@@ -563,45 +563,78 @@ const ChatInit = {
      */
     async startGuardianRitual(character) {
         console.log('[守護神の儀式] 開始:', character);
+        
+        // 送信ボタンを無効化
+        if (ChatUI.sendButton) ChatUI.sendButton.disabled = true;
+        
         try {
             // 会話履歴を取得（登録直後は空のはず）
             const historyData = await ChatAPI.loadConversationHistory(character);
             console.log('[守護神の儀式] 会話履歴データ:', historyData);
             
             // 登録直後は会話履歴が空なので、空配列を使用
-            const conversationHistory = (historyData && historyData.hasHistory && historyData.recentMessages) 
-                ? historyData.recentMessages 
+            let conversationHistory = (historyData && historyData.hasHistory && historyData.recentMessages) 
+                ? [...historyData.recentMessages] // コピーを作成
                 : [];
+            
+            // ChatData.conversationHistoryを更新（存在する場合）
+            if (historyData) {
+                ChatData.conversationHistory = historyData;
+            }
             
             console.log('[守護神の儀式] 使用する会話履歴:', conversationHistory);
             
-            // 守護神の儀式開始メッセージをAPIに送信
+            // 守護神の儀式開始メッセージを会話履歴に追加（表示はしない）
             const ritualMessage = '守護神の儀式を始めてください';
+            conversationHistory.push({ role: 'user', content: ritualMessage });
+            
             console.log('[守護神の儀式] APIに送信:', ritualMessage);
             
-            const response = await ChatAPI.sendMessage(ritualMessage, character, conversationHistory);
+            // 共通のAPI関数を使用（現在のメッセージを除く）
+            const response = await ChatAPI.sendMessage(
+                ritualMessage,
+                character,
+                conversationHistory.slice(0, -1) // 現在のメッセージを除く
+            );
+            
             console.log('[守護神の儀式] APIレスポンス:', response);
             
             if (response.error) {
                 console.error('[守護神の儀式] エラー:', response.error);
                 ChatUI.addMessage('error', response.error, 'システム');
+                // エラーの場合、追加したユーザーメッセージを削除
+                conversationHistory.pop();
                 return;
             }
             
             if (response.message) {
                 console.log('[守護神の儀式] 成功、メッセージを表示:', response.message);
                 ChatUI.addMessage('character', response.message, response.characterName || ChatData.characterInfo[character].name);
+                
+                // 会話履歴を更新（assistantの応答を追加）
+                conversationHistory.push({ role: 'assistant', content: response.message });
+                
+                // 会話履歴を保存（登録ユーザーの場合）
+                if (AuthState.isRegistered() && ChatData.conversationHistory) {
+                    ChatData.conversationHistory.recentMessages = conversationHistory;
+                }
+                
                 ChatUI.scrollToLatest();
                 
                 // アニメーション画面に遷移せず、直接メッセージを表示
-                // 必要に応じて追加の処理を行う
             } else {
                 console.error('[守護神の儀式] レスポンスにメッセージがありません:', response);
                 ChatUI.addMessage('error', '守護神の儀式の開始に失敗しました（メッセージが空です）', 'システム');
+                // エラーの場合、追加したユーザーメッセージを削除
+                conversationHistory.pop();
             }
         } catch (error) {
             console.error('[守護神の儀式] 例外エラー:', error);
             ChatUI.addMessage('error', '守護神の儀式の開始に失敗しました: ' + error.message, 'システム');
+        } finally {
+            // 送信ボタンを再有効化
+            if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+            if (ChatUI.messageInput) ChatUI.messageInput.focus();
         }
     },
 
