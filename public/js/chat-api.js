@@ -74,6 +74,59 @@ const ChatAPI = {
             console.error('Failed to load conversation history:', error);
             return null;
         }
+    },
+
+    /**
+     * メッセージを送信してAI応答を取得
+     * @param {string} message - 送信するメッセージ
+     * @param {string} characterId - キャラクターID
+     * @param {Array} conversationHistory - 会話履歴
+     * @returns {Promise<Object>} APIレスポンス
+     */
+    async sendMessage(message, characterId, conversationHistory = []) {
+        const token = AuthState.isRegistered() ? AuthState.getUserToken() : null;
+        
+        // 会話履歴の形式を変換（{role, content}形式に統一）
+        const clientHistory = conversationHistory.map(entry => {
+            if (typeof entry === 'string') {
+                return { role: 'user', content: entry };
+            }
+            return {
+                role: entry.role || 'user',
+                content: entry.content || entry.message || ''
+            };
+        });
+        
+        const payload = {
+            message: message,
+            character: characterId,
+            clientHistory: clientHistory
+        };
+
+        if (token) {
+            payload.userToken = token;
+        }
+
+        try {
+            const response = await fetch('/api/consult', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return { error: errorData.error || 'メッセージの送信に失敗しました' };
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            return { error: 'メッセージの送信に失敗しました' };
+        }
     }
 };
 

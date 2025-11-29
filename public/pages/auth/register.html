@@ -356,6 +356,9 @@
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('assignedDeity', data.assignedDeity);
         localStorage.setItem('hasAccount', 'true');
+        localStorage.setItem('birthYear', String(payload.birthYear));
+        localStorage.setItem('birthMonth', String(payload.birthMonth));
+        localStorage.setItem('birthDay', String(payload.birthDay));
 
         resultMessage.textContent = '登録が完了しました。合言葉を必ず控えてください。';
         resultMessage.classList.add('success');
@@ -375,7 +378,15 @@
       passphraseOverlay.classList.remove('visible');
       passphraseOverlay.setAttribute('aria-hidden', 'true');
       const target = redirectTargetCache || '../main.html';
-      window.location.href = target;
+      
+      // チャット画面へのリダイレクトの場合、登録完了フラグを追加
+      if (target.includes('/chat/chat') || target.includes('/chat?character=')) {
+        const url = new URL(target, window.location.origin);
+        url.searchParams.set('justRegistered', 'true');
+        window.location.href = url.toString();
+      } else {
+        window.location.href = target;
+      }
     });
   </script>
 </body>
