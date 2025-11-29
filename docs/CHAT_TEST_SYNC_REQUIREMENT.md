@@ -4,8 +4,12 @@
 
 **`chat-test.html`と`chat.html`は別々のチャット画面ではなく、同じチャット画面の簡易テスト版と本番版です。**
 
-- `chat-test.html`: 本番環境のチャットの動きを簡易的に試験するために設置されたテスト版
-- `chat.html`: 本番環境のチャット画面
+### 優先順位（重要）
+
+**`chat.html`（本番版）が優先で会話の進行を行い、`chat-test.html`（テスト版）がそれを同期します。**
+
+- `chat.html`: 本番環境のチャット画面（**メイン実装・優先**）
+- `chat-test.html`: 本番環境のチャットの動きを簡易的に試験するために設置されたテスト版（**同期版**）
 
 ## 同期の必要性
 
@@ -36,16 +40,21 @@
    - 登録完了後の自動処理
    - フェーズ管理
 
-### 変更時の手順
+### 変更時の手順（重要）
 
-1. **本番環境（`chat.html`）を変更する場合**
-   - `chat.html`と関連するJavaScriptファイル（`chat-init.js`, `chat-api.js`, `chat-data.js`, `chat-ui.js`）を修正
-   - **必ず`chat-test.html`にも同じ変更を反映する**
+**基本方針: `chat.html`が優先で、`chat-test.html`がそれを同期する**
+
+1. **本番環境（`chat.html`）を変更する場合（推奨）**
+   - まず`chat.html`と関連するJavaScriptファイル（`chat-init.js`, `chat-api.js`, `chat-data.js`, `chat-ui.js`）を修正
+   - **その後、`chat-test.html`を`chat.html`に合わせて同期する**
    - テスト環境で動作確認
 
 2. **テスト環境（`chat-test.html`）で変更を試す場合**
-   - 動作確認後、**必ず本番環境（`chat.html`）にも反映する**
+   - テスト環境で動作確認後、**必ず本番環境（`chat.html`）に反映する**
+   - その後、`chat-test.html`を`chat.html`に合わせて再同期する
    - テスト環境のみに変更を残さない
+
+**重要**: `chat.html`が優先であり、すべての変更は`chat.html`から始めるべきです。`chat-test.html`は常に`chat.html`の動作を同期する形で維持してください。
 
 ## 現在の実装状況
 
