@@ -377,16 +377,37 @@
     confirmPassphraseButton.addEventListener('click', () => {
       passphraseOverlay.classList.remove('visible');
       passphraseOverlay.setAttribute('aria-hidden', 'true');
-      const target = redirectTargetCache || '../main.html';
+      let target = redirectTargetCache || '../main.html';
       
       // チャット画面へのリダイレクトの場合、登録完了フラグを追加
-      if (target.includes('/chat/chat') || target.includes('/chat?character=')) {
-        const url = new URL(target, window.location.origin);
-        url.searchParams.set('justRegistered', 'true');
-        window.location.href = url.toString();
-      } else {
-        window.location.href = target;
+      // chat.html または chat?character= を含むURLを検出
+      if (target.includes('chat.html') || target.includes('chat?character=') || target.includes('/chat/chat') || target.includes('/chat?character=')) {
+        console.log('[登録完了] チャット画面へのリダイレクトを検出:', target);
+        
+        // 相対パスを絶対URLに変換
+        try {
+          let url;
+          if (target.startsWith('http://') || target.startsWith('https://')) {
+            url = new URL(target);
+          } else {
+            // 相対パスの場合、現在のページを基準に解決
+            url = new URL(target, window.location.href);
+          }
+          
+          // justRegisteredパラメータを追加
+          url.searchParams.set('justRegistered', 'true');
+          target = url.toString();
+          console.log('[登録完了] リダイレクト先URL:', target);
+        } catch (error) {
+          console.error('[登録完了] URL構築エラー:', error);
+          // フォールバック: シンプルにクエリパラメータを追加
+          const separator = target.includes('?') ? '&' : '?';
+          target = target + separator + 'justRegistered=true';
+        }
       }
+      
+      console.log('[登録完了] 最終リダイレクト先:', target);
+      window.location.href = target;
     });
   </script>
 </body>
