@@ -700,12 +700,18 @@
         </div>
     </main>
 
-    <script src="../../js/auth-state.js"></script>
-    <script src="../../js/features/yukino-tarot.js"></script>
-    <script src="../../js/character-features.js"></script>
-    <script src="../../js/chat-api.js"></script>
-    <script src="../../js/chat-data.js"></script>
-    <script src="../../js/chat-ui.js"></script>
-    <script src="../../js/chat-init.js"></script>
+           <!--
+               重要: このチャット画面のロジックは chat-test.html（テスト環境）と同期する必要があります。
+               chat-test.html は本番環境のチャットの動きを簡易的に試験するために設置されたテスト版です。
+               この2つのファイルは別々のチャット画面ではなく、同じチャット画面のテスト版と本番版です。
+               詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
+           -->
+           <script src="../../js/auth-state.js"></script>
+           <script src="../../js/features/yukino-tarot.js"></script>
+           <script src="../../js/character-features.js"></script>
+           <script src="../../js/chat-api.js"></script>
+           <script src="../../js/chat-data.js"></script>
+           <script src="../../js/chat-ui.js"></script>
+           <script src="../../js/chat-init.js"></script>
 </body>
 </html>

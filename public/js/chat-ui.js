@@ -1,6 +1,10 @@
 /**
  * chat-ui.js
  * UI更新とレンダリングを担当
+ * 
+ * 重要: このファイルの変更は、chat-test.html（テスト環境）にも必ず反映してください。
+ * chat-test.html は本番環境のチャットの動きを簡易的に試験するために設置されたテスト版です。
+ * 詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
  */
 
 const ChatUI = {

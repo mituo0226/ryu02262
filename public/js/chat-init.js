@@ -1,6 +1,11 @@
 /**
  * chat-init.js
  * 初期化とメインロジックを担当
+ * 
+ * 重要: このファイルの変更は、chat-test.html（テスト環境）にも必ず反映してください。
+ * chat-test.html は本番環境のチャットの動きを簡易的に試験するために設置されたテスト版です。
+ * この2つのファイルは別々のチャット画面ではなく、同じチャット画面のテスト版と本番版です。
+ * 詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
  */
 
 const ChatInit = {
@@ -69,8 +74,34 @@ const ChatInit = {
             // 会話履歴を読み込む
             const historyData = await ChatAPI.loadConversationHistory(character);
             
-            // 登録完了時、カエデの場合は守護神の儀式を自動開始
-            if (justRegistered && character === 'kaede' && AuthState.isRegistered()) {
+            // 登録完了時の処理
+            if (justRegistered && AuthState.isRegistered()) {
+                // ゲスト履歴を完全にクリア（全キャラクター共通）
+                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                    AuthState.clearGuestHistory(character);
+                }
+                // sessionStorageのゲスト履歴もクリア
+                const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                sessionStorage.removeItem(historyKey);
+                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                // ゲストメッセージカウントもリセット
+                ChatData.setGuestMessageCount(character, 0);
+                
+                // カエデの場合は守護神の儀式を自動開始
+                if (character === 'kaede') {
+                // ゲスト履歴を完全にクリア
+                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                    AuthState.clearGuestHistory(character);
+                }
+                // sessionStorageのゲスト履歴もクリア
+                const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                sessionStorage.removeItem(historyKey);
+                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                // ゲストメッセージカウントもリセット
+                ChatData.setGuestMessageCount(character, 0);
+                
                 // ユーザーデータを更新（会話履歴から取得、なければlocalStorageから）
                 if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
                     ChatUI.updateUserStatus(true, {
@@ -97,6 +128,9 @@ const ChatInit = {
                     });
                 }
                 
+                // 会話履歴をクリア（新規登録なので空から始める）
+                ChatData.conversationHistory = null;
+                
                 // 前置きなしで「それでは守護神の儀式を始めます」と表示
                 const ritualStartMessage = 'それでは守護神の儀式を始めます';
                 ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
@@ -105,12 +139,25 @@ const ChatInit = {
                 await this.delay(1000);
                 await this.startGuardianRitual(character);
                 
-                // URLパラメータからjustRegisteredを削除
-                urlParams.delete('justRegistered');
-                const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-                window.history.replaceState({}, '', newUrl);
-                
-                return;
+                    // URLパラメータからjustRegisteredを削除
+                    urlParams.delete('justRegistered');
+                    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                    window.history.replaceState({}, '', newUrl);
+                    
+                    return;
+                } else {
+                    // 他のキャラクターの場合、通常の初回メッセージを表示
+                    const info = ChatData.characterInfo[character];
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    
+                    // URLパラメータからjustRegisteredを削除
+                    urlParams.delete('justRegistered');
+                    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                    window.history.replaceState({}, '', newUrl);
+                    
+                    return;
+                }
             }
             
             // ゲスト履歴を取得
@@ -490,9 +537,12 @@ const ChatInit = {
      */
     async startGuardianRitual(character) {
         try {
-            // 会話履歴を取得
+            // 会話履歴を取得（登録直後は空のはず）
             const historyData = await ChatAPI.loadConversationHistory(character);
-            const conversationHistory = historyData?.recentMessages || [];
+            // 登録直後は会話履歴が空なので、空配列を使用
+            const conversationHistory = (historyData && historyData.hasHistory && historyData.recentMessages) 
+                ? historyData.recentMessages 
+                : [];
             
             // 守護神の儀式開始メッセージをAPIに送信
             const ritualMessage = '守護神の儀式を始めてください';

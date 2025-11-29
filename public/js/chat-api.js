@@ -1,6 +1,10 @@
 /**
  * chat-api.js
  * API通信処理を担当
+ * 
+ * 重要: このファイルの変更は、chat-test.html（テスト環境）にも必ず反映してください。
+ * chat-test.html は本番環境のチャットの動きを簡易的に試験するために設置されたテスト版です。
+ * 詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
  */
 
 const ChatAPI = {
@@ -81,10 +85,15 @@ const ChatAPI = {
      * @param {string} message - 送信するメッセージ
      * @param {string} characterId - キャラクターID
      * @param {Array} conversationHistory - 会話履歴
+     * @param {Object} options - オプション（テスト環境用など）
+     * @param {string} options.userToken - ユーザートークン（テスト環境用）
+     * @param {string} options.forceProvider - プロバイダーを強制指定（テスト環境用: 'deepseek' | 'openai'）
+     * @param {Object} options.guestMetadata - ゲストメタデータ（メッセージカウントなど）
      * @returns {Promise<Object>} APIレスポンス
      */
-    async sendMessage(message, characterId, conversationHistory = []) {
-        const token = AuthState.isRegistered() ? AuthState.getUserToken() : null;
+    async sendMessage(message, characterId, conversationHistory = [], options = {}) {
+        // トークンの取得（オプションで指定されていればそれを使用、なければAuthStateから取得）
+        const token = options.userToken || (AuthState.isRegistered() ? AuthState.getUserToken() : null);
         
         // 会話履歴の形式を変換（{role, content}形式に統一）
         const clientHistory = conversationHistory.map(entry => {
@@ -105,6 +114,15 @@ const ChatAPI = {
 
         if (token) {
             payload.userToken = token;
+        }
+        
+        // テスト環境用オプション
+        if (options.forceProvider) {
+            payload.forceProvider = options.forceProvider;
+        }
+        
+        if (options.guestMetadata) {
+            payload.guestMetadata = options.guestMetadata;
         }
 
         try {

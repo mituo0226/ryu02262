@@ -745,6 +745,20 @@
     </div>
 
     <script>
+        /**
+         * 重要: このファイル（chat-test.html）は、本番環境のchat.htmlの簡易テスト版です。
+         * chat.htmlの挙動やAPIの指示が変更された場合、必ずこのファイルも同期してください。
+         * この2つのファイルは別々のチャット画面ではなく、同じチャット画面のテスト版と本番版です。
+         * 
+         * 同期が必要な項目:
+         * - API通信ロジック（/api/consultへのリクエスト形式、レスポンス処理）
+         * - ユーザー認証・状態管理（ゲスト/登録ユーザーの判定、トークン処理）
+         * - 会話履歴管理（ゲスト履歴のクリア、会話履歴の読み込み・保存）
+         * - UI動作（メッセージ表示、ユーザーステータス表示、登録ボタン表示/非表示）
+         * - 特殊機能（守護神の儀式の開始、登録完了後の自動処理、フェーズ管理）
+         * 
+         * 詳細は docs/CHAT_TEST_SYNC_REQUIREMENT.md を参照してください。
+         */
         let conversationHistory = [];
         let messageCount = 0;
         let lastMessages = []; // ループ検出用
@@ -752,7 +766,7 @@
         let currentUserNickname = '';
         let currentUserToken = '';
 
-        const API_BASE_URL = '/api/consult';
+        // API_BASE_URLは使用しない（共通のChatAPI.sendMessageを使用）
 
         function getCurrentPhase(count) {
             if (count === 1) return 'フェーズ1（未来イメージ選択）';
@@ -922,32 +936,28 @@
             updateDebugInfo();
 
             try {
+                // 共通のAPI関数を使用（テスト環境用オプションを指定）
                 const selectedProvider = document.getElementById('providerSelect').value;
-                const requestBody = {
-                    message: message,
-                    character: characterId,
+                const options = {
                     userToken: userToken || undefined,
-                    clientHistory: conversationHistory.slice(0, -1), // 現在のメッセージを除く
-                    // テスト用: プロバイダーを強制指定
                     forceProvider: selectedProvider !== 'auto' ? selectedProvider : undefined
                 };
+                
                 if (currentUserMode === 'guest') {
-                    requestBody.guestMetadata = {
+                    options.guestMetadata = {
                         messageCount: messageCount - 1
                     };
                 }
 
-                const response = await fetch(API_BASE_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestBody),
-                });
+                // 共通のAPI関数を使用（現在のメッセージを除く会話履歴を渡す）
+                const data = await ChatAPI.sendMessage(
+                    message,
+                    characterId,
+                    conversationHistory.slice(0, -1), // 現在のメッセージを除く
+                    options
+                );
 
-                const data = await response.json();
-
-                // デバッグ情報を更新
+                // デバッグ情報を更新（テスト環境特有）
                 document.getElementById('lastResponse').textContent = 
                     JSON.stringify(data, null, 2);
 
@@ -1265,13 +1275,29 @@
                 // 登録ボタンを非表示にする
                 hideRegistrationButton();
                 
+                // ゲスト履歴を完全にクリア
+                const characterId = document.getElementById('characterSelect').value;
+                conversationHistory = []; // 会話履歴をクリア
+                messageCount = 0; // メッセージカウントをリセット
+                lastMessages = []; // ループ検出用の履歴もクリア
+                
+                // sessionStorageのゲスト履歴もクリア
+                const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                const historyKey = GUEST_HISTORY_KEY_PREFIX + characterId;
+                sessionStorage.removeItem(historyKey);
+                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                sessionStorage.removeItem('auth.guestConversationHistory');
+                sessionStorage.removeItem('auth.guestMessageCount');
+                
+                // メッセージコンテナをクリア
+                document.getElementById('messagesContainer').innerHTML = '';
+                
                 // モーダルを閉じる
                 setTimeout(() => {
                     closeRegistrationModal();
                 }, 2000);
                 
                 // カエデの場合、自動的に守護神の儀式を開始
-                const characterId = document.getElementById('characterSelect').value;
                 if (characterId === 'kaede') {
                     // ユーザー情報を表示
                     addSystemMessage(`ユーザー登録が完了しました。\n鑑定名義: ${currentUserNickname} ｜ 生年月日: ${payload.birthYear}年${payload.birthMonth}月${payload.birthDay}日 ｜ 守護: ${data.assignedDeity}`);
@@ -1325,6 +1351,7 @@
 
         /**
          * 守護神の儀式を開始（テスト画面用）
+         * 共通のAPI関数を使用
          */
         async function startGuardianRitualInTest() {
             const characterId = document.getElementById('characterSelect').value;
@@ -1344,25 +1371,20 @@
                 const ritualMessage = '守護神の儀式を始めてください';
                 conversationHistory.push({ role: 'user', content: ritualMessage });
                 
-                const requestBody = {
-                    message: ritualMessage,
-                    character: characterId,
+                // 共通のAPI関数を使用
+                const options = {
                     userToken: userToken || undefined,
-                    clientHistory: conversationHistory.slice(0, -1), // 現在のメッセージを除く
                     forceProvider: selectedProvider !== 'auto' ? selectedProvider : undefined
                 };
                 
-                const response = await fetch(API_BASE_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestBody),
-                });
+                const data = await ChatAPI.sendMessage(
+                    ritualMessage,
+                    characterId,
+                    conversationHistory.slice(0, -1), // 現在のメッセージを除く
+                    options
+                );
                 
-                const data = await response.json();
-                
-                // デバッグ情報を更新
+                // デバッグ情報を更新（テスト環境特有）
                 document.getElementById('lastResponse').textContent = 
                     JSON.stringify(data, null, 2);
                 
@@ -1415,6 +1437,10 @@
             }
         }, 500);
     </script>
+    
+    <!-- 共通のチャットロジックを読み込む（本番環境と同じ） -->
+    <script src="../../../js/auth-state.js"></script>
+    <script src="../../../js/chat-api.js"></script>
 </body>
 </html>
 
