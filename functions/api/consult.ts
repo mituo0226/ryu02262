@@ -805,23 +805,33 @@ export const onRequestPost: PagesFunction = async (context) => {
       // guestMetadata.messageCount は「これまでのメッセージ数」なので、+1 した値が今回のメッセージ数
       const expectedCount = sanitizedGuestCount + 1;
       
-      // conversationHistory から計算した値と guestMetadata から計算した値を比較
-      // より信頼性の高い方を使用
-      if (sanitizedGuestCount > 0) {
-        // guestMetadata が存在する場合
-        if (userMessagesInHistory === 0) {
-          // 履歴が全くない場合は guestMetadata を信頼
-          userMessageCount = expectedCount;
-        } else if (Math.abs(calculatedUserMessageCount - expectedCount) <= 2) {
-          // 差が2以内の場合は、conversationHistory を優先（より正確）
-          userMessageCount = calculatedUserMessageCount;
-        } else {
-          // 差が大きい場合は、大きい方を使用（より多くの情報を含む方）
-          userMessageCount = Math.max(calculatedUserMessageCount, expectedCount);
+      // 【重要】ゲストユーザーの場合、guestMetadata.messageCount を優先的に使用
+      // 1通目の場合: sanitizedGuestCount = 0, expectedCount = 1
+      // 2通目の場合: sanitizedGuestCount = 1, expectedCount = 2
+      // というように、guestMetadata が正しく送信されていれば、それが最も信頼できる
+      if (sanitizedGuestCount >= 0 && Number.isFinite(sanitizedGuestCount)) {
+        // guestMetadata が存在し、有効な値の場合、それを優先使用
+        userMessageCount = expectedCount;
+        
+        // ただし、conversationHistory から計算した値と大きく乖離している場合は警告
+        if (calculatedUserMessageCount > 0 && Math.abs(calculatedUserMessageCount - expectedCount) > 3) {
+          console.warn('⚠️ WARNING: Large discrepancy between guestMetadata and conversationHistory', {
+            guestMetadataCount: sanitizedGuestCount,
+            expectedCount,
+            calculatedFromHistory: calculatedUserMessageCount,
+            using: expectedCount
+          });
         }
       } else {
-        // guestMetadata がない場合は conversationHistory を使用
+        // guestMetadata がない、または無効な値の場合は conversationHistory を使用
         userMessageCount = calculatedUserMessageCount;
+        
+        if (DEBUG_MODE) {
+          console.warn('⚠️ WARNING: No valid guestMetadata, using conversationHistory count', {
+            sanitizedGuestCount,
+            calculatedUserMessageCount
+          });
+        }
       }
       
       if (DEBUG_MODE) {
@@ -829,7 +839,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           userMessagesInHistory,
           calculatedUserMessageCount,
           sanitizedGuestCount,
-          expectedCount: sanitizedGuestCount > 0 ? sanitizedGuestCount + 1 : undefined,
+          expectedCount: sanitizedGuestCount >= 0 ? sanitizedGuestCount + 1 : undefined,
           finalUserMessageCount: userMessageCount,
         });
       }

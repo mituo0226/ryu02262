@@ -421,7 +421,19 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
   let phaseInstruction = '';
 
   if (characterId === 'kaede') {
-    const count = Math.max(1, Math.floor(typeof options.userMessageCount === 'number' ? options.userMessageCount : 1));
+    // userMessageCountを正しく取得（デフォルトは1）
+    let count = 1;
+    if (typeof options.userMessageCount === 'number' && Number.isFinite(options.userMessageCount)) {
+      count = Math.max(1, Math.floor(options.userMessageCount));
+    }
+    
+    if (DEBUG_MODE) {
+      console.log('🔍 DEBUG: Kaede phase determination', {
+        rawUserMessageCount: options.userMessageCount,
+        finalCount: count,
+        phase: count === 1 ? 'phase1' : count === 2 ? 'phase2' : count === 3 ? 'phase3' : 'phase4'
+      });
+    }
     
     if (count === 1) {
       // フェーズ1：導入＆未来イメージの選択肢提示
