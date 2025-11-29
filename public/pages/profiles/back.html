@@ -143,9 +143,49 @@
         .talk-button:active {
             transform: scale(0.98);
         }
+
+        /* スキップリンク */
+        .skip-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            padding: 10px 20px;
+            background: rgba(139, 61, 255, 0.8);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            box-shadow: 0 2px 10px rgba(139, 61, 255, 0.3);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .skip-link:hover {
+            background: rgba(139, 61, 255, 1);
+            box-shadow: 0 4px 15px rgba(139, 61, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .skip-link:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .skip-link {
+                top: 15px;
+                right: 15px;
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
+    <a href="#" id="skipLink" class="skip-link">スキップ</a>
     <div class="animation-container" id="animationContainer"></div>
     <div class="button-container" id="buttonContainer">
         <a href="#" id="chatLink" class="talk-button">鑑定に進む</a>
@@ -192,10 +232,16 @@
         const container = document.getElementById('animationContainer');
         const buttonContainer = document.getElementById('buttonContainer');
         const chatLink = document.getElementById('chatLink');
+        const skipLink = document.getElementById('skipLink');
 
-        // チャットリンクを設定
-        chatLink.href = `../chat/chat?character=${encodeURIComponent(character)}`;
+        // チャットURLを設定
+        const chatUrl = `../chat/chat?character=${encodeURIComponent(character)}`;
+        chatLink.href = chatUrl;
         chatLink.textContent = currentCharacterData.buttonText;
+
+        // アニメーション中断用のフラグ
+        let animationCancelled = false;
+        let video = null; // video変数を先に宣言
 
         // 画像レイヤー1（各鑑定士の画像）
         const imageLayer1 = document.createElement('div');
@@ -222,7 +268,7 @@
         // 動画レイヤー
         const videoLayer = document.createElement('div');
         videoLayer.className = 'video-layer';
-        const video = document.createElement('video');
+        video = document.createElement('video');
         video.src = currentCharacterData.video;
         video.loop = true;
         video.muted = true;
@@ -235,8 +281,40 @@
         videoLayer.appendChild(video);
         container.appendChild(videoLayer);
 
+        // スキップリンクの処理（video変数の定義後に設定）
+        skipLink.href = chatUrl;
+        skipLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // アニメーションを中断
+            animationCancelled = true;
+            
+            // 動画の再生を停止
+            if (video && !video.paused) {
+                video.pause();
+            }
+            
+            // チャット画面に遷移
+            window.location.href = chatUrl;
+        });
+
+        // 中断チェック付きのdelay関数
         function delay(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+            return new Promise(resolve => {
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (animationCancelled) {
+                        clearInterval(checkInterval);
+                        resolve();
+                        return;
+                    }
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed >= ms) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50); // 50msごとにチェック
+            });
         }
 
         // アニメーション実行
@@ -244,42 +322,51 @@
             // 画面をフェードイン
             document.body.classList.add('fade-in');
             await delay(500);
+            if (animationCancelled) return;
 
             // ステップ1: 各鑑定士の画像をフェードイン（3秒表示）
             imageLayer1.classList.add('active');
             await delay(3000);
+            if (animationCancelled) return;
 
             // ステップ2: 2.pngをフェードイン（重ね合わせ、1秒重なる）
             imageLayer2.classList.add('active');
             await delay(1000);
+            if (animationCancelled) return;
 
             // ステップ3: 画像1をフェードアウト（2秒かけて）
             imageLayer1.classList.remove('active');
             imageLayer1.classList.add('fade-out');
             await delay(2000);
+            if (animationCancelled) return;
 
             // ステップ4: 2.pngを2秒表示
             await delay(2000);
+            if (animationCancelled) return;
 
             // ステップ5: 動画をフェードイン（重ね合わせ、1秒重なる）
             // 動画の再生を開始
             try {
                 video.load();
                 await delay(200);
+                if (animationCancelled) return;
                 await video.play();
             } catch (error) {
                 console.error('Video play error:', error);
             }
             videoLayer.classList.add('active');
             await delay(1000);
+            if (animationCancelled) return;
 
             // ステップ6: 画像2をフェードアウト（2秒かけて）
             imageLayer2.classList.remove('active');
             imageLayer2.classList.add('fade-out');
             await delay(2000);
+            if (animationCancelled) return;
 
             // ステップ7: 動画を2秒表示
             await delay(2000);
+            if (animationCancelled) return;
 
             // ステップ8: ボタンをフェードイン
             buttonContainer.classList.add('visible');
