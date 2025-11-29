@@ -2,478 +2,91 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>運命の扉</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鑑定士とのつながり</title>
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            position: fixed;
-            background: #000;
-        }
-
         body {
-            opacity: 0;
-            transition: opacity 1.5s ease-in;
-        }
-
-        body.fade-in {
-            opacity: 1;
-        }
-
-        .animation-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-            background: #000;
-        }
-
-        /* 画像レイヤー */
-        .image-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 2.5s ease-in-out;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #050016;
+            color: #f9f5ff;
+            padding: 16px;
         }
-
-        .image-layer.active {
-            opacity: 1;
-            z-index: 10;
-        }
-
-        .image-layer.fade-out {
-            opacity: 0;
-            z-index: 5;
-        }
-
-        .image-layer img {
+        .card {
+            max-width: 420px;
             width: 100%;
-            height: 100%;
-            max-width: 100vw;
-            max-height: 100vh;
-            object-fit: contain;
-            object-position: center;
-            /* PCでもスマートフォンと同じ実寸サイズで表示 */
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
+            padding: 24px 20px 20px;
+            border-radius: 16px;
+            background: radial-gradient(circle at top, #2f1b4f 0%, #0a041a 55%, #050016 100%);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            text-align: center;
         }
-
-        /* 動画レイヤー */
-        .video-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 2.5s ease-in-out;
-            background: #000;
-            z-index: 20;
-        }
-
-        .video-layer.active {
-            opacity: 1;
-        }
-
-        .video-layer video {
-            width: 100%;
-            height: 100%;
-            max-width: 100vw;
-            max-height: 100vh;
-            object-fit: contain;
-            object-position: center;
-            display: block;
-            /* PCでもスマートフォンと同じ実寸サイズで表示 */
-        }
-
-        /* ボタンコンテナ */
-        .button-container {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 30;
-            opacity: 0;
-            transition: opacity 2s ease-in-out;
-            pointer-events: none;
-        }
-
-        .button-container.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .talk-button {
-            display: inline-block;
-            padding: 16px 40px;
-            background: rgba(139, 61, 255, 0.9);
-            color: #fff;
-            text-decoration: none;
-            border-radius: 999px;
+        .name {
             font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f6e8ff;
+        }
+        .sub {
+            font-size: 13px;
+            margin-bottom: 18px;
+            color: #d2c3ff;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 32px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #8b3dff, #ff5fd2);
+            color: #fff;
+            font-size: 15px;
             font-weight: 600;
-            letter-spacing: 0.1em;
-            box-shadow: 0 4px 20px rgba(139, 61, 255, 0.4);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            white-space: nowrap; /* テキストの改行を防ぐ */
-            min-width: 200px; /* 最小幅を設定 */
-            text-align: center; /* テキストを中央揃え */
+            text-decoration: none;
+            box-shadow: 0 6px 20px rgba(139, 61, 255, 0.5);
         }
-
-        .talk-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 25px rgba(139, 61, 255, 0.6);
+        .button:hover {
+            filter: brightness(1.05);
         }
-
-        .talk-button:active {
-            transform: scale(0.98);
+        .hint {
+            margin-top: 14px;
+            font-size: 11px;
+            color: #b6a7ff;
         }
     </style>
 </head>
 <body>
-    <div class="animation-container" id="animationContainer"></div>
-    <div class="button-container" id="buttonContainer">
-        <a href="#" id="chatLink" class="talk-button">鑑定に進む</a>
+    <div class="card">
+        <div id="characterName" class="name">鑑定士とのつながり</div>
+        <div class="sub">このままチャット画面へ進みます。</div>
+        <a id="chatLink" class="button" href="#">チャットを開始する</a>
+        <div class="hint">※ ゲスト／登録済みの判定はチャット画面側で自動的に行われます。</div>
     </div>
 
-    <script src="../../js/auth-state.js"></script>
     <script>
-        // URLパラメータから取得
-        const urlParams = new URLSearchParams(window.location.search);
-        const character = urlParams.get('character') || 'kaede';
+        const params = new URLSearchParams(window.location.search);
+        const character = params.get('character') || 'kaede';
 
-        // 各鑑定士の情報
-        const characterData = {
-            kaede: {
-                name: '楓',
-                image: '../../photo/kaede.png',
-                buttonText: '楓とつながる'
-            },
-            yukino: {
-                name: '笹岡雪乃',
-                image: '../../photo/yukino.png',
-                buttonText: '笹岡雪乃とつながる'
-            },
-            kaon: {
-                name: '三崎花音',
-                image: '../../photo/kaon.png',
-                buttonText: '三崎花音とつながる'
-            },
-            sora: {
-                name: '水野ソラ',
-                image: '../../photo/sora.png',
-                buttonText: '水野ソラとつながる'
-            }
+        const CHARACTER_NAMES = {
+            kaede: '楓（かえで）',
+            yukino: '笹岡雪乃（ささおか ゆきの）',
+            kaon: '三崎花音（みさき かおん）',
+            sora: '水野ソラ（みずの そら）',
         };
 
-        const currentCharacterData = characterData[character] || characterData.kaede;
-        const container = document.getElementById('animationContainer');
-        const buttonContainer = document.getElementById('buttonContainer');
+        const safeCharacter = CHARACTER_NAMES[character] ? character : 'kaede';
+
+        document.getElementById('characterName').textContent =
+            CHARACTER_NAMES[safeCharacter] + ' とのつながり';
+
         const chatLink = document.getElementById('chatLink');
-
-        // 選択された鑑定士の画像のみを表示
-        const currentCharacterImage = currentCharacterData.image;
-
-        // 画像のプリロード（iPhone最適化）
-        const preloadImages = () => {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => {
-                    console.warn(`Failed to preload image: ${currentCharacterImage}`);
-                    resolve(null); // エラーでも続行
-                };
-                img.src = currentCharacterImage;
-            });
-        };
-
-        // 画像レイヤーを作成（選択された鑑定士のみ）
-        const imageLayer = document.createElement('div');
-        imageLayer.className = 'image-layer';
-        const img = document.createElement('img');
-        img.src = currentCharacterImage;
-        img.alt = currentCharacterData.name;
-        img.loading = 'eager'; // 優先読み込み
-        img.decoding = 'async'; // 非同期デコード
-        img.onerror = () => {
-            console.warn(`Failed to load image: ${currentCharacterImage}`);
-        };
-        imageLayer.appendChild(img);
-        container.appendChild(imageLayer);
-
-        // 動画レイヤーを作成
-        const videoLayer = document.createElement('div');
-        videoLayer.className = 'video-layer';
-        const video = document.createElement('video');
-        const videoSrc = '../../photo/sakura2.mp4';
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = 'auto'; // iPhoneでリロードを確実にするためautoに変更
-        video.setAttribute('webkit-playsinline', 'true');
-        video.setAttribute('x5-video-player-type', 'h5');
-        video.setAttribute('x5-video-player-fullscreen', 'true');
-        video.setAttribute('x5-video-orientation', 'portrait');
-        
-        // iPhoneでの動画リロード対策：srcを設定してload()を呼び出す
-        video.src = videoSrc;
-        video.load(); // 明示的にロードを開始
-        
-        videoLayer.appendChild(video);
-        container.appendChild(videoLayer);
-        
-        // 動画のリロード関数（iPhone対策）
-        const reloadVideo = () => {
-            // 動画を一時停止
-            video.pause();
-            // 現在の再生位置を0にリセット
-            video.currentTime = 0;
-            // srcを一度空にしてから再設定（強制リロード）
-            const currentSrc = video.src;
-            video.src = '';
-            video.load();
-            // 少し待ってからsrcを再設定
-            setTimeout(() => {
-                video.src = currentSrc;
-                video.load();
-            }, 50);
-        };
-
-        // 画像読み込み完了を待つ（タイムアウト付き、さらに短縮）
-        let imagesLoaded = false;
-        const waitForImages = async () => {
-            const maxWaitTime = 1000; // 最大1秒待機（さらに短縮）
-            const startTime = Date.now();
-            
-            // プリロードを開始（並行処理）
-            const preloadPromise = preloadImages();
-            
-            // 画像の読み込み完了を確認（タイムアウトを短縮）
-            const imageElement = imageLayer.querySelector('img');
-            const imageLoadPromise = new Promise((resolve) => {
-                if (imageElement.complete && imageElement.naturalHeight !== 0) {
-                    resolve();
-                } else {
-                    const timeout = setTimeout(() => {
-                        console.warn(`Image load timeout: ${imageElement.src}`);
-                        resolve(); // タイムアウトでも続行
-                    }, maxWaitTime);
-                    
-                    imageElement.addEventListener('load', () => {
-                        clearTimeout(timeout);
-                        resolve();
-                    }, { once: true });
-                    
-                    imageElement.addEventListener('error', () => {
-                        clearTimeout(timeout);
-                        resolve(); // エラーでも続行
-                    }, { once: true });
-                }
-            });
-            
-            // プリロードと画像読み込みを並行して待つ
-            await Promise.all([preloadPromise, imageLoadPromise]);
-            
-            imagesLoaded = true;
-            
-            // 即座に表示（待機時間なし）
-        };
-
-        function delay(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        // ユーザーの登録状況に応じてリンク先を設定（トークンの有効性も確認）
-        async function setChatLink() {
-            if (!chatLink) return;
-            
-            // AuthStateを初期化
-            if (window.AuthState && typeof window.AuthState.init === 'function') {
-                window.AuthState.init();
-            }
-            
-            // まず、localStorageにuserTokenがあるか確認
-            const userToken = window.AuthState && typeof window.AuthState.getUserToken === 'function' 
-                ? window.AuthState.getUserToken() 
-                : localStorage.getItem('userToken');
-            
-            if (!userToken) {
-                // トークンがない場合 → chat-example.html
-                chatLink.href = `../chat/chat-example.html?character=${character}`;
-                return;
-            }
-            
-            // トークンがある場合、有効性を確認
-            try {
-                const response = await fetch(
-                    `/api/conversation-history?userToken=${encodeURIComponent(userToken)}&character=${encodeURIComponent(character)}`
-                );
-                
-                if (!response.ok) {
-                    // 401または404エラーの場合、レスポンスボディを確認
-                    let errorData = null;
-                    try {
-                        const responseText = await response.text();
-                        if (responseText) {
-                            errorData = JSON.parse(responseText);
-                        }
-                    } catch (e) {
-                        // JSON解析に失敗した場合は無視
-                    }
-                    
-                    // user not found または invalid token の場合は無効
-                    if (response.status === 401 || 
-                        (response.status === 404 && errorData && errorData.error && 
-                         (errorData.error.includes('user not found') || errorData.error.includes('invalid user token')))) {
-                        // 無効なトークンの場合、認証情報をクリアしてchat-example.htmlへ
-                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
-                            AuthState.clearAuth();
-                        } else {
-                            localStorage.removeItem('userToken');
-                            localStorage.removeItem('userNickname');
-                            localStorage.removeItem('assignedDeity');
-                        }
-                        chatLink.href = `../chat/chat-example.html?character=${character}`;
-                        return;
-                    }
-                }
-                
-                // トークンが有効な場合 → chat.html
-                chatLink.href = `../chat/chat.html?character=${character}`;
-            } catch (error) {
-                // エラーが発生した場合、安全のためchat-example.htmlへ
-                console.error('Error checking token validity:', error);
-                chatLink.href = `../chat/chat-example.html?character=${character}`;
-            }
-        }
-
-        // ボタンのテキストを設定
-        chatLink.textContent = currentCharacterData.buttonText;
-
-        // アニメーション実行
-        async function playAnimation() {
-            // 画像の読み込みを待つ（iPhone最適化）
-            await waitForImages();
-            
-            // 画面をフェードイン（さらに短縮）
-            document.body.classList.add('fade-in');
-            await delay(200); // 200msに短縮
-
-            // 選択された鑑定士の画像をフェードイン
-            imageLayer.classList.add('active');
-            
-            // 動画の再生を早めに開始（画像表示と同時に準備、iPhone対策付き）
-            const tryPlayVideo = async () => {
-                // iPhone対策：動画をリロード
-                reloadVideo();
-                
-                // 少し待ってから再生を試みる
-                await delay(100);
-                
-                // 動画を一時停止してから再生位置をリセット
-                video.pause();
-                video.currentTime = 0;
-                
-                // 再生を試みる
-                const attemptPlay = async () => {
-                    try {
-                        // iPhone対策：load()を再度呼び出してから再生
-                        if (video.readyState < 2) {
-                            video.load();
-                            await delay(200);
-                        }
-                        await video.play();
-                    } catch (error) {
-                        console.error('Video play error:', error);
-                        // エラー時は再試行
-                        setTimeout(() => {
-                            video.load();
-                            video.play().catch(err => console.error('Video play retry error:', err));
-                        }, 500);
-                    }
-                };
-                
-                if (video.readyState >= 2) {
-                    await attemptPlay();
-                } else {
-                    // 読み込みを待つ（タイムアウト付き）
-                    const loadTimeout = setTimeout(() => {
-                        if (video.readyState >= 2) {
-                            attemptPlay().catch(err => console.error('Video play error:', err));
-                        }
-                    }, 2000); // タイムアウトを短縮
-                    
-                    const playWhenReady = async () => {
-                        clearTimeout(loadTimeout);
-                        await attemptPlay();
-                    };
-                    
-                    video.addEventListener('loadeddata', () => {
-                        if (video.readyState >= 2) {
-                            playWhenReady();
-                        }
-                    }, { once: true });
-                    
-                    video.addEventListener('canplay', playWhenReady, { once: true });
-                    video.addEventListener('canplaythrough', playWhenReady, { once: true });
-                    video.addEventListener('error', () => {
-                        clearTimeout(loadTimeout);
-                        console.warn('Video load error');
-                        // エラー時もリロードを試みる
-                        reloadVideo();
-                    }, { once: true });
-                }
-            };
-            
-            // 動画の再生を開始（画像表示と同時）
-            tryPlayVideo();
-            
-            // 画像を3.5秒表示（長くする）
-            await delay(3500);
-
-            // sakura2.mp4をフェードイン開始（画像と重なり合う）
-            videoLayer.classList.add('active');
-            await delay(1000); // 1秒重なって表示
-
-            // 画像レイヤーをフェードアウト開始（動画と重なっている状態、動画は既に再生中）
-            imageLayer.classList.remove('active');
-            imageLayer.classList.add('fade-out');
-            await delay(2000); // フェードアウト完了まで待機（この時点で動画は既に再生されている）
-
-            // 動画を表示（2秒）
-            await delay(2000);
-
-            // ボタンをフェードイン
-            buttonContainer.classList.add('visible');
-        }
-
-        // ページ読み込み時にリンクを設定
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setChatLink();
-                playAnimation();
-            });
-        } else {
-            setChatLink();
-            playAnimation();
-        }
+        chatLink.href = `../chat/chat?character=${encodeURIComponent(safeCharacter)}`;
     </script>
 </body>
 </html>
