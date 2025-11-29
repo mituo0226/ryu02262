@@ -77,17 +77,22 @@
             display: inline-flex;
             justify-content: center;
             align-items: center;
-            padding: 11px 20px;
-            background: transparent;
+            padding: 12px 24px;
+            background: rgba(139, 61, 255, 0.2);
             color: var(--text-light);
             text-decoration: none;
             border-radius: 999px;
             font-size: 14px;
             font-weight: 600;
-            transition: transform 0.12s ease;
-            box-shadow: none;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(139, 61, 255, 0.4);
             min-width: 180px;
             max-width: 100%;
+        }
+        
+        .navigation-links a:hover {
+            background: rgba(139, 61, 255, 0.3);
+            border-color: rgba(139, 61, 255, 0.6);
         }
         
         .navigation-links a:active {
@@ -110,16 +115,68 @@
             overflow: hidden;
         }
         
-        .user-status {
-            background: transparent;
+        /* キャラクターヘッダー（PC版） */
+        .character-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: rgba(75, 0, 130, 0.3);
+            border-radius: 16px;
+        }
+        
+        .character-header-image {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(139, 61, 255, 0.5);
+        }
+        
+        .character-header-name {
+            font-size: 18px;
+            font-weight: 700;
             color: var(--text-light);
-            padding: 12px 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .character-header {
+                display: none;
+            }
+        }
+        
+        .user-status {
+            background: rgba(75, 0, 130, 0.2);
+            color: var(--text-light);
+            padding: 14px 16px;
             border-radius: 14px;
             font-size: 13px;
-            text-align: center;
-            border: none;
-            line-height: 1.5;
+            text-align: left;
+            border: 1px solid rgba(139, 61, 255, 0.2);
+            line-height: 1.6;
             word-break: break-word;
+        }
+        
+        .user-status.guest {
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+        
+        .user-status.registered {
+            border-color: rgba(139, 61, 255, 0.4);
+        }
+        
+        .user-status-line {
+            margin: 4px 0;
+        }
+        
+        .user-status-line:first-child {
+            margin-top: 0;
+        }
+        
+        .user-status-line:last-child {
+            margin-bottom: 0;
         }
 
         /* ============================================
@@ -604,6 +661,12 @@
 
     <main>
         <div class="chat-container">
+            <!-- PC版キャラクターヘッダー -->
+            <div class="character-header" id="characterHeader">
+                <img id="characterHeaderImage" src="" alt="" class="character-header-image">
+                <div class="character-header-name" id="characterHeaderName">鑑定士</div>
+            </div>
+            
             <div class="navigation-links">
                 <a href="../appraisers-list.html">鑑定師一覧に戻る</a>
             </div>
@@ -640,24 +703,12 @@
     <script src="../../js/auth-state.js"></script>
     <script src="../../js/features/yukino-tarot.js"></script>
     <script src="../../js/character-features.js"></script>
-    <script>
-        const messagesDiv = document.getElementById('messages');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const userStatus = document.getElementById('userStatus');
-
-        let userNickname = null;
-        let conversationHistory = null;
-        let currentCharacter = 'kaede';
-        let characterInfo = {};
-        const GUEST_MESSAGE_LIMIT = 10;
-
-        // 鑑定士情報を外部ファイルから読み込む
-        async function loadCharacterData() {
-            try {
-                const response = await fetch('../../data/characters.json');
-                if (!response.ok) {
-                    throw new Error('Failed to load character data');
+    <script src="../../js/chat-api.js"></script>
+    <script src="../../js/chat-data.js"></script>
+    <script src="../../js/chat-ui.js"></script>
+    <script src="../../js/chat-init.js"></script>
+</body>
+</html>
                 }
                 characterInfo = await response.json();
                 return characterInfo;
