@@ -22,6 +22,68 @@
       border-bottom: 1px solid rgba(255,255,255,0.08);
       background: rgba(0, 0, 0, 0.4);
     }
+    
+    /* ナビゲーション（PC: 左側、モバイル: 上部） */
+    .admin-navigation {
+      background: rgba(0, 0, 0, 0.4);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 240px;
+    }
+    
+    .admin-navigation h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      color: #c7cdff;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 12px;
+    }
+    
+    .admin-nav-item {
+      display: block;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: rgba(138, 43, 226, 0.2);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      color: #f7f5ff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .admin-nav-item:hover {
+      background: rgba(138, 43, 226, 0.35);
+      border-color: rgba(138, 43, 226, 0.5);
+      transform: translateX(4px);
+    }
+    
+    .admin-nav-item.active {
+      background: rgba(138, 43, 226, 0.5);
+      border-color: rgba(138, 43, 226, 0.7);
+    }
+    
+    .admin-nav-url {
+      font-size: 11px;
+      color: #9da2c6;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+    
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+    }
+    
     .dashboard-layout {
       display: flex;
       flex-direction: column;
@@ -146,6 +208,48 @@
     @media (max-width: 768px) {
       table { font-size: 12px; }
       .dashboard-layout { padding: 0 16px 32px; }
+      
+      /* モバイル: ナビゲーションを上部に */
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .admin-navigation {
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        padding: 16px;
+        min-width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      
+      .admin-navigation h2 {
+        width: 100%;
+        margin: 0 0 12px;
+        padding-bottom: 8px;
+      }
+      
+      .admin-nav-item {
+        flex: 1;
+        min-width: calc(50% - 4px);
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      
+      .admin-nav-item:hover {
+        transform: translateY(-2px);
+      }
+      
+      .admin-nav-url {
+        display: none; /* モバイルではURLを非表示 */
+      }
+    }
+    @media (min-width: 769px) {
+      /* PC: ナビゲーションを左側に */
+      .main-container {
+        flex-direction: row;
+      }
     }
     @media (min-width: 960px) {
       .dashboard-columns {
@@ -190,8 +294,24 @@
     </div>
   </header>
 
-  <div class="dashboard-layout">
-    <div class="dashboard-columns">
+  <div class="main-container">
+    <!-- ナビゲーション（PC: 左側、モバイル: 上部） -->
+    <nav class="admin-navigation">
+      <h2>管理メニュー</h2>
+      <a href="dashboard.html" class="admin-nav-item active">
+        ユーザー検索
+        <div class="admin-nav-url">/pages/admin/dashboard.html</div>
+      </a>
+      <a href="chat-test.html" class="admin-nav-item" target="_blank">
+        チャットテスト
+        <div class="admin-nav-url">/pages/admin/chat-test.html</div>
+      </a>
+    </nav>
+    
+    <!-- メインコンテンツエリア -->
+    <div class="content-area">
+      <div class="dashboard-layout">
+        <div class="dashboard-columns">
       <div class="column-left">
         <section class="card">
           <h2>ユーザー検索</h2>
@@ -282,9 +402,24 @@
         </section>
       </div>
     </div>
+    </div>
   </div>
 
   <script>
+    // ナビゲーションのアクティブ状態を設定
+    (function() {
+      const currentPath = window.location.pathname;
+      const navItems = document.querySelectorAll('.admin-nav-item');
+      navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (currentPath.includes(href) || (currentPath.endsWith('/admin/') && href === 'dashboard.html')) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    })();
+    
     const adminTokenInput = document.getElementById('adminToken');
     const connectButton = document.getElementById('connectButton');
     const connectionStatus = document.getElementById('connectionStatus');
