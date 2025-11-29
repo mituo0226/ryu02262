@@ -1261,16 +1261,35 @@
                 modalResultMessage.classList.add('success');
                 
                 updateUserModeDisplay();
-                addSystemMessage('ユーザー登録が完了しました。会話は登録ユーザーとして続行されます。');
                 
                 // 登録ボタンを非表示にする
                 hideRegistrationButton();
                 
-                // 2秒後にモーダルを閉じて会話をリセット
+                // モーダルを閉じる
                 setTimeout(() => {
                     closeRegistrationModal();
-                    resetChat();
                 }, 2000);
+                
+                // カエデの場合、自動的に守護神の儀式を開始
+                const characterId = document.getElementById('characterSelect').value;
+                if (characterId === 'kaede') {
+                    // ユーザー情報を表示
+                    addSystemMessage(`ユーザー登録が完了しました。\n鑑定名義: ${currentUserNickname} ｜ 生年月日: ${payload.birthYear}年${payload.birthMonth}月${payload.birthDay}日 ｜ 守護: ${data.assignedDeity}`);
+                    
+                    // 前置きなしで「それでは守護神の儀式を始めます」と表示
+                    setTimeout(() => {
+                        addMessage('assistant', 'それでは守護神の儀式を始めます');
+                        conversationHistory.push({ role: 'assistant', content: 'それでは守護神の儀式を始めます' });
+                        updateDebugInfo();
+                        
+                        // 自動的に守護神の儀式を開始（APIにメッセージを送信）
+                        setTimeout(async () => {
+                            await startGuardianRitualInTest();
+                        }, 1000);
+                    }, 2500);
+                } else {
+                    addSystemMessage('ユーザー登録が完了しました。会話は登録ユーザーとして続行されます。');
+                }
             } catch (error) {
                 modalResultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';
                 modalResultMessage.classList.add('error');
@@ -1302,6 +1321,85 @@
                     closeRegistrationModal();
                 }
             });
+        }
+
+        /**
+         * 守護神の儀式を開始（テスト画面用）
+         */
+        async function startGuardianRitualInTest() {
+            const characterId = document.getElementById('characterSelect').value;
+            const userToken = document.getElementById('userTokenInput').value.trim();
+            
+            if (characterId !== 'kaede') {
+                return;
+            }
+            
+            setStatus('loading', '守護神の儀式を開始中...');
+            document.getElementById('sendButton').disabled = true;
+            
+            try {
+                const selectedProvider = document.getElementById('providerSelect').value;
+                
+                // ユーザーメッセージを会話履歴に追加（表示はしない）
+                const ritualMessage = '守護神の儀式を始めてください';
+                conversationHistory.push({ role: 'user', content: ritualMessage });
+                
+                const requestBody = {
+                    message: ritualMessage,
+                    character: characterId,
+                    userToken: userToken || undefined,
+                    clientHistory: conversationHistory.slice(0, -1), // 現在のメッセージを除く
+                    forceProvider: selectedProvider !== 'auto' ? selectedProvider : undefined
+                };
+                
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+                
+                const data = await response.json();
+                
+                // デバッグ情報を更新
+                document.getElementById('lastResponse').textContent = 
+                    JSON.stringify(data, null, 2);
+                
+                setProviderInfoDisplay(data.provider);
+                
+                if (data.error) {
+                    setStatus('error', 'エラー: ' + data.error);
+                    addMessage('assistant', 'エラー: ' + data.error);
+                    // エラーの場合、追加したユーザーメッセージを削除
+                    conversationHistory.pop();
+                } else if (data.message) {
+                    setStatus('success', '成功');
+                    addMessage('assistant', data.message);
+                    
+                    // 会話履歴を更新（assistantの応答を追加）
+                    conversationHistory.push({ role: 'assistant', content: data.message });
+                    messageCount++;
+                    updateDebugInfo();
+                } else {
+                    setStatus('error', '応答が空です');
+                    addMessage('assistant', '応答が生成されませんでした。');
+                    // エラーの場合、追加したユーザーメッセージを削除
+                    conversationHistory.pop();
+                }
+            } catch (error) {
+                setStatus('error', 'エラー: ' + error.message);
+                addMessage('assistant', 'エラーが発生しました: ' + error.message);
+                document.getElementById('lastResponse').textContent = 
+                    'エラー: ' + error.message;
+                // エラーの場合、追加したユーザーメッセージを削除
+                if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].content === '守護神の儀式を始めてください') {
+                    conversationHistory.pop();
+                }
+            } finally {
+                document.getElementById('sendButton').disabled = false;
+                document.getElementById('messageInput').focus();
+            }
         }
 
         // 初期化
