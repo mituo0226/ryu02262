@@ -14,6 +14,7 @@ const ChatData = {
     currentCharacter: 'kaede',
     characterInfo: {},
     GUEST_MESSAGE_LIMIT: 10,
+    ritualConsentShown: false, // 守護神の儀式への同意ボタンが表示されたかどうか
 
     /**
      * 鑑定士情報を外部ファイルから読み込む

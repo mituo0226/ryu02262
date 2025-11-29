@@ -23,6 +23,9 @@ const ChatInit = {
             AuthState.init();
         }
         
+        // 守護神の儀式への同意ボタンの表示フラグをリセット（ページ読み込み時）
+        ChatData.ritualConsentShown = false;
+        
         const isGuestMode = !AuthState.isRegistered();
 
         // キャラクター情報を読み込む
@@ -421,11 +424,14 @@ const ChatInit = {
                                 ChatUI.showRitualConsentButtons();
                             }, 3000);
                         } else if (data.registrationSuggested) {
-                            const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                            ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
-                            setTimeout(() => {
-                                ChatUI.showRitualConsentButtons();
-                            }, 2000);
+                            // 既にボタンが表示されている場合は表示しない
+                            if (!ChatData.ritualConsentShown) {
+                                const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
+                                ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                                setTimeout(() => {
+                                    ChatUI.showRitualConsentButtons();
+                                }, 2000);
+                            }
                         } else {
                             setTimeout(() => {
                                 this.openRegistrationModal();
@@ -466,16 +472,22 @@ const ChatInit = {
                             }, 2000);
                         }
                         else if (data.needsRegistration) {
-                            ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
-                            setTimeout(() => {
-                                ChatUI.showRitualConsentButtons();
-                            }, 3000);
+                            // 既にボタンが表示されている場合は表示しない
+                            if (!ChatData.ritualConsentShown) {
+                                ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
+                                setTimeout(() => {
+                                    ChatUI.showRitualConsentButtons();
+                                }, 3000);
+                            }
                         } else if (data.registrationSuggested) {
-                            const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                            ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
-                            setTimeout(() => {
-                                ChatUI.showRitualConsentButtons();
-                            }, 2000);
+                            // 既にボタンが表示されている場合は表示しない
+                            if (!ChatData.ritualConsentShown) {
+                                const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
+                                ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                                setTimeout(() => {
+                                    ChatUI.showRitualConsentButtons();
+                                }, 2000);
+                            }
                         }
                     }
                     
@@ -518,10 +530,22 @@ const ChatInit = {
      * @param {boolean} consent - 同意するかどうか
      */
     handleRitualConsent(consent) {
+        ChatUI.hideRitualConsentButtons();
+        
+        // フラグをリセット（一度処理したので、再度表示されないようにする）
+        ChatData.ritualConsentShown = true;
+        
         if (consent) {
-            this.openRegistrationModal();
+            // 「はい」を押した場合
+            const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
+            ChatUI.addMessage('character', 'ユーザー登録をすることにより、守護神の儀式を進めます', characterName);
+            
+            // メッセージを表示した後、少し待ってから登録画面に遷移
+            setTimeout(() => {
+                this.openRegistrationModal();
+            }, 2000);
         } else {
-            ChatUI.hideRitualConsentButtons();
+            // 「いいえ」を押した場合
             ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
         }
     },

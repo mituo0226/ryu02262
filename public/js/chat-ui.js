@@ -206,8 +206,19 @@ const ChatUI = {
      * 守護神の儀式への同意ボタンを表示
      */
     showRitualConsentButtons() {
+        // 既に表示されている、または一度表示された場合は表示しない
+        if (ChatData.ritualConsentShown) {
+            return;
+        }
+        
         const ritualConsentContainer = document.getElementById('ritualConsentContainer');
         if (ritualConsentContainer) {
+            // 既に表示されている場合は表示しない
+            if (ritualConsentContainer.classList.contains('visible')) {
+                return;
+            }
+            
+            ChatData.ritualConsentShown = true;
             ritualConsentContainer.style.display = 'block';
             requestAnimationFrame(() => {
                 ritualConsentContainer.classList.add('visible');
