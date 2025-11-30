@@ -837,7 +837,8 @@
                // フェーズを計算する関数
                function calculatePhase(messageCount, character) {
                    if (character === 'kaede') {
-                       if (messageCount === 1) {
+                       // メッセージ数が0または1の場合はフェーズ1
+                       if (messageCount === 0 || messageCount === 1) {
                            return {
                                name: 'フェーズ1',
                                description: '導入＆未来イメージの選択肢提示'
