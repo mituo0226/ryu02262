@@ -90,6 +90,43 @@
       overflow: hidden;
     }
     
+    /* モバイル版: ナビゲーションを上部に横並び */
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .admin-navigation {
+        flex-direction: row;
+        gap: 8px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        min-width: auto;
+        padding: 12px;
+        overflow-x: auto;
+      }
+      
+      .admin-navigation h2 {
+        display: none; /* モバイルではタイトルを非表示 */
+      }
+      
+      .admin-nav-item {
+        flex: 1;
+        min-width: 120px;
+        white-space: nowrap;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      
+      .admin-nav-item:hover {
+        transform: translateY(2px); /* モバイルでは下方向に動く */
+      }
+      
+      .admin-nav-url {
+        display: none; /* モバイルではURLを非表示 */
+      }
+    }
+    
     .content-area {
       flex: 1;
       overflow-y: auto;
