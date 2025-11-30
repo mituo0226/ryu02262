@@ -315,6 +315,17 @@
       gap: 10px;
       padding: 20px 20px 0;
       border-bottom: 1px solid rgba(255,255,255,0.08);
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    
+    /* PC版: 左側に配置 */
+    @media (min-width: 769px) {
+      .admin-tabs {
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding-left: 20px;
+      }
     }
     
     .admin-tab {
