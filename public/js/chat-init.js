@@ -87,14 +87,40 @@ const ChatInit = {
                     console.log('[登録完了処理] カエデの場合、守護神の儀式を開始');
                     
                     // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
+                    console.log('[登録完了処理] ゲスト履歴取得を開始:', character);
+                    
+                    // デバッグ: sessionStorageの状態を確認
+                    const guestHistoryKeyPrefix = 'guestConversationHistory_';
+                    const guestHistoryKey = guestHistoryKeyPrefix + character;
+                    const rawStoredHistory = sessionStorage.getItem(guestHistoryKey);
+                    const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                    console.log('[登録完了処理] sessionStorage状態:', {
+                        historyKey: guestHistoryKey,
+                        rawStoredHistory: rawStoredHistory ? '存在' : 'なし',
+                        rawStoredHistoryLength: rawStoredHistory ? JSON.parse(rawStoredHistory).length : 0,
+                        pendingMigration: pendingMigration ? '存在' : 'なし'
+                    });
+                    
                     let guestHistory = this.getGuestHistoryForMigration(character);
-                    if (guestHistory.length === 0) {
-                        // フォールバック: ChatDataから直接取得
-                        guestHistory = ChatData.getGuestHistory(character) || [];
-                    }
-                    console.log('[登録完了処理] ゲスト会話履歴を取得:', {
+                    console.log('[登録完了処理] getGuestHistoryForMigration結果:', {
                         historyLength: guestHistory.length,
                         userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                    });
+                    
+                    if (guestHistory.length === 0) {
+                        // フォールバック: ChatDataから直接取得
+                        console.log('[登録完了処理] ChatDataから直接取得を試行');
+                        guestHistory = ChatData.getGuestHistory(character) || [];
+                        console.log('[登録完了処理] ChatData.getGuestHistory結果:', {
+                            historyLength: guestHistory.length,
+                            userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                        });
+                    }
+                    
+                    console.log('[登録完了処理] ゲスト会話履歴を取得:', {
+                        historyLength: guestHistory.length,
+                        userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length,
+                        fullHistory: guestHistory
                     });
                     
                     // ゲスト会話履歴を一時的に保存（守護神の儀式で使用するため）
@@ -320,29 +346,66 @@ const ChatInit = {
      * @returns {Array} ゲスト履歴
      */
     getGuestHistoryForMigration(character) {
+        console.log('[getGuestHistoryForMigration] 開始:', character);
+        
+        // まずsessionStorageから直接取得を試みる
+        const guestHistoryKeyPrefixForMigration = 'guestConversationHistory_';
+        const guestHistoryKeyForMigration = guestHistoryKeyPrefixForMigration + character;
+        const rawStoredHistory = sessionStorage.getItem(guestHistoryKeyForMigration);
+        if (rawStoredHistory) {
+            try {
+                const parsedHistory = JSON.parse(rawStoredHistory);
+                console.log('[getGuestHistoryForMigration] sessionStorageから取得:', {
+                    historyLength: parsedHistory.length,
+                    userMessages: parsedHistory.filter(msg => msg && msg.role === 'user').length
+                });
+                if (parsedHistory.length > 0) {
+                    return parsedHistory;
+                }
+            } catch (error) {
+                console.error('[getGuestHistoryForMigration] sessionStorage解析エラー:', error);
+            }
+        }
+        
         const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+        console.log('[getGuestHistoryForMigration] pendingMigrationチェック:', {
+            exists: !!pendingMigration
+        });
+        
         if (pendingMigration) {
             try {
                 const migrationData = JSON.parse(pendingMigration);
+                console.log('[getGuestHistoryForMigration] pendingMigrationデータ:', {
+                    character: migrationData.character,
+                    historyLength: migrationData.history ? migrationData.history.length : 0
+                });
                 if (migrationData.character === character && migrationData.history) {
+                    console.log('[getGuestHistoryForMigration] pendingMigrationから返却');
                     return migrationData.history;
                 }
             } catch (error) {
-                console.error('Error parsing pending guest history migration:', error);
+                console.error('[getGuestHistoryForMigration] pendingMigration解析エラー:', error);
             }
         }
         
         if (window.AuthState && typeof window.AuthState.getGuestHistory === 'function') {
+            console.log('[getGuestHistoryForMigration] AuthState.getGuestHistoryを呼び出し');
             const history = AuthState.getGuestHistory(character) || [];
+            console.log('[getGuestHistoryForMigration] AuthState.getGuestHistory結果:', {
+                historyLength: history.length,
+                userMessages: history.filter(msg => msg && msg.role === 'user').length
+            });
             if (history.length > 0) {
                 sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
                     character: character,
                     history: history
                 }));
+                console.log('[getGuestHistoryForMigration] pendingGuestHistoryMigrationに保存');
             }
             return history;
         }
         
+        console.log('[getGuestHistoryForMigration] 空配列を返却');
         return [];
     },
 
