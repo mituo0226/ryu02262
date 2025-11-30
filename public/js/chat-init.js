@@ -341,6 +341,23 @@ const ChatInit = {
             
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'user', messageToSend);
+                
+                // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
+                if (window.parent && window.parent !== window) {
+                    try {
+                        const messageCount = ChatData.getGuestMessageCount(character);
+                        window.parent.postMessage({
+                            type: 'CHAT_MESSAGE_SENT',
+                            character: character,
+                            userType: 'guest',
+                            messageCount: messageCount,
+                            timestamp: Date.now()
+                        }, '*');
+                        console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）');
+                    } catch (error) {
+                        console.error('[iframe] メッセージ送信通知エラー:', error);
+                    }
+                }
             }
         }
         
@@ -449,6 +466,26 @@ const ChatInit = {
                     ChatUI.addMessage('warning', data.message, data.characterName);
                 } else if (data.message) {
                     ChatUI.addMessage('character', data.message, data.characterName);
+                    
+                    // 親ウィンドウにメッセージ送信完了を通知（分析パネル更新用）
+                    if (window.parent && window.parent !== window) {
+                        try {
+                            const character = ChatData?.currentCharacter || 'unknown';
+                            const isRegistered = window.AuthState?.isRegistered() || false;
+                            const messageCount = ChatData?.getGuestMessageCount(character) || 0;
+                            
+                            window.parent.postMessage({
+                                type: 'CHAT_MESSAGE_SENT',
+                                character: character,
+                                userType: isRegistered ? 'registered' : 'guest',
+                                messageCount: messageCount,
+                                timestamp: Date.now()
+                            }, '*');
+                            console.log('[iframe] メッセージ送信完了を親ウィンドウに通知しました（応答受信後）');
+                        } catch (error) {
+                            console.error('[iframe] メッセージ送信通知エラー:', error);
+                        }
+                    }
                     
                     const isGuest = !AuthState.isRegistered();
                     if (isGuest) {
@@ -690,21 +727,68 @@ window.addEventListener('DOMContentLoaded', async () => {
                     messageCount: messageCount,
                     timestamp: Date.now()
                 }, '*');
-                console.log('[iframe] 親ウィンドウに準備完了を通知しました', {
+                console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました', {
                     character,
                     userType: isRegistered ? 'registered' : 'guest',
-                    messageCount
+                    messageCount,
+                    origin: window.location.origin
                 });
             } catch (error) {
-                console.error('[iframe] 親ウィンドウへの通知エラー:', error);
+                console.error('[iframe] ❌ 親ウィンドウへの通知エラー:', error);
             }
+        } else {
+            console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました');
         }
     }
     
-    // 初期化完了後に準備完了を通知
-    setTimeout(() => {
-        notifyParentReady();
-    }, 1000); // 1秒待ってから通知（初期化が完了していることを確実にする）
+    // 初期化完了後に準備完了を通知（複数のタイミングで確実に通知）
+    let notifyAttempts = 0;
+    const maxNotifyAttempts = 5;
+    let notifyInterval = null;
+    
+    // 1. DOMContentLoaded時に即座に1回通知
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (ChatData && window.AuthState) {
+                    notifyParentReady();
+                }
+            }, 500);
+        });
+    } else {
+        // 既にDOMContentLoaded済みの場合は即座に実行
+        setTimeout(() => {
+            if (ChatData && window.AuthState) {
+                notifyParentReady();
+            }
+        }, 500);
+    }
+    
+    // 2. window.load時に1回通知（リソース読み込み完了後）
+    if (document.readyState !== 'complete') {
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (ChatData && window.AuthState) {
+                    notifyParentReady();
+                }
+            }, 500);
+        });
+    }
+    
+    // 3. 念のため定期通知（最大5回）
+    notifyInterval = setInterval(() => {
+        notifyAttempts++;
+        if (ChatData && window.AuthState) {
+            notifyParentReady();
+            if (notifyAttempts >= 3) {
+                // 3回通知したら停止（DOMContentLoaded、load、定期で十分）
+                clearInterval(notifyInterval);
+            }
+        } else if (notifyAttempts >= maxNotifyAttempts) {
+            clearInterval(notifyInterval);
+            console.warn('[iframe] 準備完了通知の最大試行回数に達しました');
+        }
+    }, 1500); // 1.5秒ごとに試行
     
     // 管理者用コマンドハンドラー（postMessage）
     window.addEventListener('message', async (event) => {

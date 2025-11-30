@@ -1374,6 +1374,21 @@
     
     // 分析パネルを更新（グローバル変数に保存）
     let analysisInterval = null;
+    let updateRequestTimeout = null; // デバウンス用
+    
+    // デバウンス処理で重複リクエストを防止
+    function requestChatDataDebounced(iframe, character, userType, delay = 500) {
+      // 既存のタイムアウトをクリア
+      if (updateRequestTimeout) {
+        clearTimeout(updateRequestTimeout);
+      }
+      
+      // 新しいタイムアウトを設定
+      updateRequestTimeout = setTimeout(() => {
+        updateAnalysisPanelPostMessage(iframe, character, userType, false);
+        updateRequestTimeout = null;
+      }, delay);
+    }
     
     function startAnalysisPanel(iframe, character, userType) {
       // 既存のインターバルをクリア
@@ -1383,88 +1398,32 @@
       }
       
       // 分析パネルに読み込み中メッセージを表示
-      const loadingMsg = '<p>チャットを読み込み中...</p>';
-      document.getElementById('analysisCurrentState').innerHTML = loadingMsg;
-      document.getElementById('analysisPhaseInfo').innerHTML = loadingMsg;
-      document.getElementById('analysisHistory').innerHTML = loadingMsg;
+      const loadingMsg = '<p style="color: #c7cdff;">⏳ チャットを読み込み中...</p>';
+      const currentStateDiv = document.getElementById('analysisCurrentState');
+      const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
+      const historyDiv = document.getElementById('analysisHistory');
+      if (currentStateDiv) currentStateDiv.innerHTML = loadingMsg;
+      if (phaseInfoDiv) phaseInfoDiv.innerHTML = loadingMsg;
+      if (historyDiv) historyDiv.innerHTML = loadingMsg;
       
-      // 初回チェック用の関数
-      function tryUpdate() {
-        try {
-          const iframeWindow = iframe.contentWindow;
-          if (iframeWindow && iframeWindow.AuthState && iframeWindow.ChatData) {
-            // オブジェクトが利用可能になったら更新を開始（postMessage方式を使用）
-            updateAnalysisPanelPostMessage(iframe, character, userType, false);
-            // 定期的に更新（2秒ごと）
-            analysisInterval = setInterval(() => {
-              updateAnalysisPanelPostMessage(iframe, character, userType, false);
-            }, 2000);
-            return true;
-          } else {
-            console.log('分析パネル: まだ読み込み中...', {
-              hasWindow: !!iframeWindow,
-              hasAuthState: !!(iframeWindow && iframeWindow.AuthState),
-              hasChatData: !!(iframeWindow && iframeWindow.ChatData)
-            });
-          }
-        } catch (e) {
-          console.log('分析パネル: エラー', e.message);
+      console.log('[分析パネル] postMessage方式で開始', { character, userType });
+      
+      // postMessage方式: iframe準備完了通知を待つ（グローバルリスナーで処理）
+      // 初回更新を準備完了通知後に実行（自動更新で処理される）
+      // 定期更新は控えめに（5秒ごと、または手動更新のみ）
+      
+      // 初回更新を少し待ってから試行
+      setTimeout(() => {
+        updateAnalysisPanelPostMessage(iframe, character, userType, false);
+      }, 2000); // 2秒後に初回更新
+      
+      // 定期更新（30秒ごと - フォールバック用、イベント駆動型を優先）
+      analysisInterval = setInterval(() => {
+        // 準備完了通知を受信している場合のみ更新
+        if (iframeReadyReceived) {
+          updateAnalysisPanelPostMessage(iframe, character, userType, false);
         }
-        return false;
-      }
-      
-      // iframeの読み込み完了を待つ
-      iframe.addEventListener('load', () => {
-        console.log('分析パネル: iframeのloadイベントが発生');
-        // 少し待ってから初回更新を試行（iframe内のスクリプトが読み込まれるまで）
-        let attempts = 0;
-        const maxAttempts = 20; // 最大20回試行（10秒）
-        const checkInterval = setInterval(() => {
-          attempts++;
-          const success = tryUpdate();
-          if (success || attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            if (attempts >= maxAttempts && !success) {
-              const errorMsg = `
-                <p style="color: #ff7a8a;">チャットデータの読み込みに時間がかかっています。</p>
-                <p style="font-size: 11px; color: #9da2c6; margin-top: 8px;">
-                  「更新」ボタンをクリックして再度読み込みを試してください。
-                </p>
-              `;
-              const currentStateDiv = document.getElementById('analysisCurrentState');
-              const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
-              const historyDiv = document.getElementById('analysisHistory');
-              if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
-              if (phaseInfoDiv) phaseInfoDiv.innerHTML = '<p>タイムアウト: データが読み込まれませんでした</p>';
-              if (historyDiv) historyDiv.innerHTML = '<p>タイムアウト: データが読み込まれませんでした</p>';
-              
-              // デバッグ情報を表示
-              const debugInfoDiv = document.getElementById('debugInfo');
-              const debugSection = document.getElementById('debugSection');
-              if (debugInfoDiv && debugSection) {
-                debugInfoDiv.innerHTML = `
-                  タイムアウトエラー（${attempts}回試行）<br>
-                  iframeの読み込み状態を確認してください。
-                `;
-                debugSection.style.display = 'block';
-              }
-            }
-          }
-        }, 500); // 0.5秒ごとにチェック
-      });
-      
-      // 既に読み込まれている場合も対応
-      if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
-        console.log('分析パネル: iframeは既に読み込み完了');
-        let attempts = 0;
-        const maxAttempts = 20;
-        const checkInterval = setInterval(() => {
-          attempts++;
-          if (tryUpdate() || attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-          }
-        }, 500);
-      }
+      }, 30000); // 30秒ごとに更新（フォールバック用）
     }
     
     function stopAnalysisPanel() {
@@ -1474,7 +1433,9 @@
       }
     }
     
-    // iframe準備完了通知を受け取る
+    // iframe準備完了通知を受け取る（グローバルリスナー）
+    let iframeReadyReceived = false; // 準備完了通知を受信済みかどうか
+    
     window.addEventListener('message', (event) => {
       // セキュリティ: 同一オリジンのみ許可
       if (event.origin !== window.location.origin) {
@@ -1482,14 +1443,32 @@
       }
       
       if (event.data.type === 'CHAT_IFRAME_READY') {
+        if (iframeReadyReceived) {
+          console.log('[管理画面] 準備完了通知は既に受信済みです');
+          return; // 2回目以降は無視
+        }
+        iframeReadyReceived = true;
+        
         console.log('[管理画面] iframeが準備完了しました:', event.data);
         
         // 自動的に分析パネルを更新
         const iframe = document.getElementById('chatAdminIframe');
         if (iframe && currentCharacter && currentUserType) {
-          setTimeout(() => {
-            updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType);
-          }, 500);
+          console.log('[管理画面] 準備完了通知を受信、分析パネルを更新します');
+          // すぐに更新を試行
+          updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType, false);
+        }
+      }
+      
+      // メッセージ送信完了通知を受け取る（イベント駆動型更新）
+      if (event.data.type === 'CHAT_MESSAGE_SENT') {
+        console.log('[管理画面] メッセージ送信を検知、分析パネルを即座に更新します:', event.data);
+        
+        const iframe = document.getElementById('chatAdminIframe');
+        if (iframe && currentCharacter && currentUserType) {
+          // メッセージ送信後、少し待ってから更新（AI応答待ち）
+          // デバウンス処理で重複リクエストを防止
+          requestChatDataDebounced(iframe, currentCharacter, currentUserType);
         }
       }
     });
@@ -1647,8 +1626,12 @@
       }
     }
     
-    // 分析パネルの内容を更新（旧実装 - 互換性のため残す）
+    // 分析パネルの内容を更新（旧実装 - 廃止）
+    // この関数は使用しないでください。updateAnalysisPanelPostMessageを使用してください。
     function updateAnalysisPanel(iframe, character, userType, showDebug = false) {
+        console.warn('[非推奨] updateAnalysisPanelは廃止されました。updateAnalysisPanelPostMessageを使用してください。');
+        // 旧実装を呼び出す代わりに、postMessage方式を呼び出す
+        return updateAnalysisPanelPostMessage(iframe, character, userType, showDebug);
       const debugInfo = [];
       const debugSection = document.getElementById('debugSection');
       const debugInfoDiv = document.getElementById('debugInfo');
@@ -1905,7 +1888,7 @@
           if (debugSection.style.display === 'none' || !debugSection.style.display) {
             // デバッグ情報を表示
             if (iframe && currentCharacter && currentUserType) {
-              updateAnalysisPanel(iframe, currentCharacter, currentUserType, true);
+              updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType, true);
             } else {
               debugInfoDiv.innerHTML = 'チャットが読み込まれていません。先にチャットを開始してください。';
               debugSection.style.display = 'block';
@@ -2033,7 +2016,7 @@
             // 分析パネルを更新
             setTimeout(() => {
               if (iframe.contentWindow) {
-                updateAnalysisPanel(iframe, currentCharacter, currentUserType);
+                updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType);
               }
             }, 500);
           }
