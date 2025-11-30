@@ -431,6 +431,23 @@ const ChatInit = {
             
             if (currentCount >= ChatData.GUEST_MESSAGE_LIMIT) {
                 ChatUI.addMessage('error', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
+                
+                // 【重要】登録画面に遷移する前に、ゲスト会話履歴を保存
+                const guestHistory = ChatData.getGuestHistory(character) || [];
+                console.log('[メッセージ制限] ゲスト履歴を保存:', {
+                    character: character,
+                    historyLength: guestHistory.length,
+                    userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                });
+                
+                if (guestHistory.length > 0) {
+                    sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                        character: character,
+                        history: guestHistory
+                    }));
+                    console.log('[メッセージ制限] pendingGuestHistoryMigrationに保存完了');
+                }
+                
                 setTimeout(() => {
                     window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
                 }, 2000);
@@ -813,6 +830,26 @@ const ChatInit = {
      * 登録モーダルを開く
      */
     openRegistrationModal() {
+        // 【重要】登録画面に遷移する前に、ゲスト会話履歴を保存
+        const character = ChatData.currentCharacter;
+        if (character) {
+            const guestHistory = ChatData.getGuestHistory(character) || [];
+            console.log('[登録画面遷移] ゲスト履歴を保存:', {
+                character: character,
+                historyLength: guestHistory.length,
+                userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+            });
+            
+            if (guestHistory.length > 0) {
+                // pendingGuestHistoryMigrationに保存（登録完了後に取得するため）
+                sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                    character: character,
+                    history: guestHistory
+                }));
+                console.log('[登録画面遷移] pendingGuestHistoryMigrationに保存完了');
+            }
+        }
+        
         window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
     },
 
