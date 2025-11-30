@@ -53,10 +53,14 @@ const ChatInit = {
         // 登録完了フラグをチェック
         const urlParams = new URLSearchParams(window.location.search);
         const justRegistered = urlParams.get('justRegistered') === 'true';
-        console.log('[初期化] justRegistered:', justRegistered, 'isRegistered:', AuthState.isRegistered(), 'character:', character);
+        
+        // justRegisteredがtrueの場合、localStorageから直接userTokenをチェック
+        // （AuthStateの初期化が完了する前でも、登録完了処理を実行できるようにするため）
+        const hasUserToken = justRegistered ? !!localStorage.getItem('userToken') : AuthState.isRegistered();
+        console.log('[初期化] justRegistered:', justRegistered, 'hasUserToken:', hasUserToken, 'isRegistered:', AuthState.isRegistered(), 'character:', character);
         
         // ユーザーステータスを更新（登録完了時はすぐに表示）
-        if (justRegistered && AuthState.isRegistered()) {
+        if (justRegistered && hasUserToken) {
             const nickname = localStorage.getItem('userNickname') || '鑑定者';
             const deity = localStorage.getItem('assignedDeity') || '未割当';
             const birthYear = localStorage.getItem('birthYear') || null;
@@ -74,15 +78,15 @@ const ChatInit = {
             ChatUI.updateUserStatus(!isGuestMode);
         }
 
-        try {
-            // 会話履歴を読み込む
-            const historyData = await ChatAPI.loadConversationHistory(character);
+        // 登録完了時の処理を先にチェック（会話履歴を読み込む前に実行）
+        if (justRegistered && hasUserToken) {
+            console.log('[登録完了処理] 開始 - character:', character);
             
-            // 登録完了時の処理
-            if (justRegistered && AuthState.isRegistered()) {
-                console.log('[登録完了処理] 開始 - character:', character);
+            try {
+                // 会話履歴を読み込む（登録完了処理で使用するため）
+                const historyData = await ChatAPI.loadConversationHistory(character);
                 
-                // カエデの場合は守護神の儀式を自動開始
+                // カエデの場合は守護神の儀式を開始
                 if (character === 'kaede') {
                     console.log('[登録完了処理] カエデの場合、守護神の儀式を開始');
                     
@@ -270,7 +274,16 @@ const ChatInit = {
                     
                     return;
                 }
+            } catch (error) {
+                console.error('[登録完了処理] エラー:', error);
+                ChatUI.addMessage('error', '登録完了処理中にエラーが発生しました。ページを再読み込みしてください。', 'システム');
+                return;
             }
+        }
+        
+        try {
+            // 会話履歴を読み込む
+            const historyData = await ChatAPI.loadConversationHistory(character);
             
             // ゲスト履歴を取得
             let guestHistory = this.getGuestHistoryForMigration(character);
