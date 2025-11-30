@@ -675,6 +675,37 @@ window.addEventListener('DOMContentLoaded', async () => {
         ChatInit.handleReturnFromAnimation();
     }, 100);
     
+    // 親ウィンドウに準備完了を通知（分析パネル用）
+    function notifyParentReady() {
+        if (window.parent && window.parent !== window) {
+            try {
+                const character = ChatData?.currentCharacter || 'unknown';
+                const isRegistered = window.AuthState?.isRegistered() || false;
+                const messageCount = ChatData?.getGuestMessageCount(character) || 0;
+                
+                window.parent.postMessage({
+                    type: 'CHAT_IFRAME_READY',
+                    character: character,
+                    userType: isRegistered ? 'registered' : 'guest',
+                    messageCount: messageCount,
+                    timestamp: Date.now()
+                }, '*');
+                console.log('[iframe] 親ウィンドウに準備完了を通知しました', {
+                    character,
+                    userType: isRegistered ? 'registered' : 'guest',
+                    messageCount
+                });
+            } catch (error) {
+                console.error('[iframe] 親ウィンドウへの通知エラー:', error);
+            }
+        }
+    }
+    
+    // 初期化完了後に準備完了を通知
+    setTimeout(() => {
+        notifyParentReady();
+    }, 1000); // 1秒待ってから通知（初期化が完了していることを確実にする）
+    
     // 管理者用コマンドハンドラー（postMessage）
     window.addEventListener('message', async (event) => {
         // セキュリティのため、同じオリジンのみ受け入れる
@@ -747,6 +778,61 @@ window.addEventListener('DOMContentLoaded', async () => {
                 localStorage.removeItem('hasAccount');
                 sessionStorage.clear();
                 location.reload();
+                break;
+                
+            case 'REQUEST_CHAT_DATA':
+                // 分析パネルからのデータリクエスト
+                try {
+                    const character = ChatData?.currentCharacter || 'unknown';
+                    const isRegistered = window.AuthState?.isRegistered() || false;
+                    
+                    // メッセージカウントを取得
+                    let messageCount = 0;
+                    let conversationHistory = [];
+                    
+                    if (isRegistered) {
+                        // 登録ユーザーの場合
+                        const historyData = ChatData?.conversationHistory;
+                        if (historyData && historyData.recentMessages) {
+                            conversationHistory = Array.isArray(historyData.recentMessages) ? historyData.recentMessages : [];
+                            messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                        }
+                    } else {
+                        // ゲストユーザーの場合
+                        messageCount = ChatData?.getGuestMessageCount(character) || 0;
+                        conversationHistory = ChatData?.getGuestHistory(character) || [];
+                    }
+                    
+                    // 現在の状態を取得
+                    const currentState = {
+                        character: character,
+                        userType: isRegistered ? 'registered' : 'guest',
+                        messageCount: messageCount,
+                        conversationHistoryLength: conversationHistory.length,
+                        isRegistered: isRegistered
+                    };
+                    
+                    // 親ウィンドウにデータを送信
+                    event.source.postMessage({
+                        type: 'CHAT_DATA_RESPONSE',
+                        data: {
+                            character: character,
+                            userType: isRegistered ? 'registered' : 'guest',
+                            messageCount: messageCount,
+                            conversationHistory: conversationHistory,
+                            currentState: currentState,
+                            timestamp: Date.now()
+                        }
+                    }, event.origin);
+                    
+                    console.log('[iframe] チャットデータを親ウィンドウに送信しました', currentState);
+                } catch (error) {
+                    console.error('[iframe] チャットデータ取得エラー:', error);
+                    event.source.postMessage({
+                        type: 'CHAT_DATA_ERROR',
+                        error: error.message
+                    }, event.origin);
+                }
                 break;
         }
     });

@@ -1330,7 +1330,10 @@
       chatAdminChat.classList.remove('hidden');
       
       // iframeで本番環境のチャットページを読み込む（同じ動作を確認）
-      const chatUrl = `../chat/chat.html?character=${currentCharacter}&userType=${currentUserType}`;
+      // 絶対パスを使用して確実に読み込む
+      const basePath = window.location.origin + window.location.pathname.replace(/\/[^/]+$/, '');
+      const chatUrl = `${basePath}/../chat/chat.html?character=${currentCharacter}&userType=${currentUserType}`;
+      console.log('分析パネル: iframe読み込みURL', chatUrl);
       
       const chatPanel = document.getElementById('chatPanel');
       
@@ -1347,9 +1350,23 @@
       iframe.style.height = '100%';
       iframe.style.border = 'none';
       iframe.id = 'chatAdminIframe';
+      iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms'); // セキュリティ設定
       
       chatPanel.innerHTML = '';
       chatPanel.appendChild(iframe);
+      
+      // iframeの読み込み状況をログに記録
+      iframe.addEventListener('load', () => {
+        console.log('分析パネル: iframeのloadイベント発生', {
+          src: iframe.src,
+          contentWindow: !!iframe.contentWindow,
+          contentDocument: !!iframe.contentDocument
+        });
+      });
+      
+      iframe.addEventListener('error', (e) => {
+        console.error('分析パネル: iframeの読み込みエラー', e);
+      });
       
       // 分析パネルの更新を開始
       startAnalysisPanel(iframe, currentCharacter, currentUserType);
@@ -1376,11 +1393,11 @@
         try {
           const iframeWindow = iframe.contentWindow;
           if (iframeWindow && iframeWindow.AuthState && iframeWindow.ChatData) {
-            // オブジェクトが利用可能になったら更新を開始
-            updateAnalysisPanel(iframe, character, userType, false);
+            // オブジェクトが利用可能になったら更新を開始（postMessage方式を使用）
+            updateAnalysisPanelPostMessage(iframe, character, userType, false);
             // 定期的に更新（2秒ごと）
             analysisInterval = setInterval(() => {
-              updateAnalysisPanel(iframe, character, userType, false);
+              updateAnalysisPanelPostMessage(iframe, character, userType, false);
             }, 2000);
             return true;
           } else {
@@ -1457,7 +1474,180 @@
       }
     }
     
-    // 分析パネルの内容を更新
+    // iframe準備完了通知を受け取る
+    window.addEventListener('message', (event) => {
+      // セキュリティ: 同一オリジンのみ許可
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      
+      if (event.data.type === 'CHAT_IFRAME_READY') {
+        console.log('[管理画面] iframeが準備完了しました:', event.data);
+        
+        // 自動的に分析パネルを更新
+        const iframe = document.getElementById('chatAdminIframe');
+        if (iframe && currentCharacter && currentUserType) {
+          setTimeout(() => {
+            updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType);
+          }, 500);
+        }
+      }
+    });
+    
+    // 分析パネルの内容を更新（postMessageベース - 新実装）
+    async function updateAnalysisPanelPostMessage(iframe, character, userType, showDebug = false) {
+      const currentStateDiv = document.getElementById('analysisCurrentState');
+      const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
+      const historyDiv = document.getElementById('analysisHistory');
+      const debugSection = document.getElementById('debugSection');
+      const debugInfoDiv = document.getElementById('debugInfo');
+      const debugInfo = [];
+      
+      // ローディング状態を表示
+      const loadingMsg = '<p style="color: #c7cdff;">⏳ 読み込み中...</p>';
+      if (currentStateDiv) currentStateDiv.innerHTML = loadingMsg;
+      if (phaseInfoDiv) phaseInfoDiv.innerHTML = loadingMsg;
+      if (historyDiv) historyDiv.innerHTML = loadingMsg;
+      
+      try {
+        debugInfo.push(`🔍 分析パネル更新開始: ${new Date().toLocaleTimeString()}`);
+        debugInfo.push(`📋 キャラクター: ${character}, ユーザータイプ: ${userType}`);
+        
+        if (!iframe || !iframe.contentWindow) {
+          throw new Error('iframeが見つからないか、contentWindowにアクセスできません');
+        }
+        
+        debugInfo.push(`✅ iframe.src: ${iframe.src}`);
+        
+        // postMessageでデータをリクエスト
+        const chatData = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            window.removeEventListener('message', messageHandler);
+            reject(new Error('タイムアウト: 10秒以内にチャットデータを取得できませんでした'));
+          }, 10000); // 10秒タイムアウト
+          
+          const messageHandler = (event) => {
+            // セキュリティ: 同一オリジンのみ許可
+            if (event.origin !== window.location.origin) {
+              console.warn('[管理画面] 不正なオリジンからのメッセージ:', event.origin);
+              return;
+            }
+            
+            if (event.data.type === 'CHAT_DATA_RESPONSE') {
+              clearTimeout(timeout);
+              window.removeEventListener('message', messageHandler);
+              debugInfo.push('✅ チャットデータを受信しました');
+              resolve(event.data.data);
+            } else if (event.data.type === 'CHAT_DATA_ERROR') {
+              clearTimeout(timeout);
+              window.removeEventListener('message', messageHandler);
+              reject(new Error(event.data.error));
+            }
+          };
+          
+          window.addEventListener('message', messageHandler);
+          
+          // データをリクエスト
+          try {
+            iframe.contentWindow.postMessage({
+              type: 'REQUEST_CHAT_DATA'
+            }, window.location.origin);
+            debugInfo.push('📤 チャットデータをリクエストしました');
+          } catch (error) {
+            clearTimeout(timeout);
+            window.removeEventListener('message', messageHandler);
+            reject(new Error(`postMessage送信エラー: ${error.message}`));
+          }
+        });
+        
+        debugInfo.push(`✅ データ取得成功: メッセージ数=${chatData.messageCount || 0}, 履歴数=${chatData.conversationHistory?.length || 0}`);
+        
+        // データを表示
+        const messageCount = chatData.messageCount || 0;
+        const conversationHistory = Array.isArray(chatData.conversationHistory) ? chatData.conversationHistory : [];
+        const characterName = chatData.character || character || '不明';
+        
+        // 現在の状態を表示
+        if (currentStateDiv) {
+          currentStateDiv.innerHTML = `
+            <div class="analysis-item">
+              <span class="analysis-label">ユーザータイプ:</span>
+              <span class="analysis-value">${chatData.userType === 'registered' ? '登録済み' : 'ゲスト'}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">キャラクター:</span>
+              <span class="analysis-value">${characterName}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">登録状態:</span>
+              <span class="analysis-value">${chatData.currentState?.isRegistered ? '登録済み' : '未登録'}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">ユーザーメッセージ数:</span>
+              <span class="analysis-value">${messageCount}通</span>
+            </div>
+          `;
+        }
+        
+        // フェーズ情報を表示
+        const phase = calculatePhase(messageCount, character);
+        if (phaseInfoDiv) {
+          phaseInfoDiv.innerHTML = `
+            <div class="analysis-item">
+              <span class="analysis-label">現在のフェーズ:</span>
+              <span class="analysis-value">${phase.name}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">説明:</span>
+              <span class="analysis-value">${phase.description}</span>
+            </div>
+          `;
+        }
+        
+        // 会話履歴構造を表示
+        if (historyDiv) {
+          const userMessages = conversationHistory.filter(m => m && m.role === 'user').length;
+          const assistantMessages = conversationHistory.filter(m => m && m.role === 'assistant').length;
+          historyDiv.innerHTML = `
+            <div class="analysis-item">
+              <span class="analysis-label">総メッセージ数:</span>
+              <span class="analysis-value">${conversationHistory.length}件</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">ユーザーメッセージ:</span>
+              <span class="analysis-value">${userMessages}件</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">アシスタントメッセージ:</span>
+              <span class="analysis-value">${assistantMessages}件</span>
+            </div>
+          `;
+        }
+        
+        debugInfo.push('✅ 分析パネル更新完了');
+        
+        if (showDebug && debugInfoDiv) {
+          debugInfoDiv.innerHTML = debugInfo.join('<br>');
+          if (debugSection) debugSection.style.display = 'block';
+        }
+        
+      } catch (error) {
+        console.error('分析パネル更新エラー:', error);
+        debugInfo.push(`❌ エラー: ${error.message}`);
+        
+        const errorMsg = `<p style="color: #ff7a8a;">⚠️ ${error.message}</p>`;
+        if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
+        if (phaseInfoDiv) phaseInfoDiv.innerHTML = errorMsg;
+        if (historyDiv) historyDiv.innerHTML = errorMsg;
+        
+        if (showDebug && debugInfoDiv) {
+          debugInfoDiv.innerHTML = debugInfo.join('<br>') + `<br>❌ スタックトレース: ${error.stack}`;
+          if (debugSection) debugSection.style.display = 'block';
+        }
+      }
+    }
+    
+    // 分析パネルの内容を更新（旧実装 - 互換性のため残す）
     function updateAnalysisPanel(iframe, character, userType, showDebug = false) {
       const debugInfo = [];
       const debugSection = document.getElementById('debugSection');
@@ -1468,6 +1658,19 @@
         debugInfo.push(`更新時刻: ${new Date().toLocaleTimeString()}`);
         debugInfo.push(`character: ${character || '未設定'}`);
         debugInfo.push(`userType: ${userType || '未設定'}`);
+        debugInfo.push(`iframe.src: ${iframe ? iframe.src : '未定義'}`);
+        debugInfo.push(`iframe.contentWindow: ${iframe && iframe.contentWindow ? '存在' : 'なし'}`);
+        debugInfo.push(`iframe.contentDocument: ${iframe && iframe.contentDocument ? '存在' : 'なし'}`);
+        
+        if (iframe && iframe.contentDocument) {
+          const doc = iframe.contentDocument;
+          debugInfo.push(`document.readyState: ${doc.readyState}`);
+          debugInfo.push(`document.title: ${doc.title || 'なし'}`);
+          
+          // スクリプトタグの確認
+          const scripts = doc.querySelectorAll('script');
+          debugInfo.push(`script要素の数: ${scripts.length}`);
+        }
         
         // iframeが存在しない、または読み込まれていない場合
         if (!iframe || !iframe.contentWindow) {
@@ -1490,16 +1693,28 @@
         const iframeWindow = iframe.contentWindow;
         debugInfo.push('✅ iframe.contentWindow: 存在');
         
+        // すべてのグローバルオブジェクトを確認
+        const globalKeys = Object.keys(iframeWindow).filter(key => 
+          key.includes('Chat') || key.includes('Auth') || key.includes('window')
+        );
+        debugInfo.push(`グローバルキー（Chat/Auth関連）: ${globalKeys.length > 0 ? globalKeys.join(', ') : 'なし'}`);
+        
         // 必要なオブジェクトが読み込まれているか確認
         const hasAuthState = !!iframeWindow.AuthState;
         const hasChatData = !!iframeWindow.ChatData;
         const hasChatUI = !!iframeWindow.ChatUI;
         const hasChatInit = !!iframeWindow.ChatInit;
         
-        debugInfo.push(`AuthState: ${hasAuthState ? '✅' : '❌'}`);
-        debugInfo.push(`ChatData: ${hasChatData ? '✅' : '❌'}`);
-        debugInfo.push(`ChatUI: ${hasChatUI ? '✅' : '❌'}`);
-        debugInfo.push(`ChatInit: ${hasChatInit ? '✅' : '❌'}`);
+        debugInfo.push(`AuthState: ${hasAuthState ? '✅' : '❌'} (${hasAuthState ? typeof iframeWindow.AuthState : 'N/A'})`);
+        debugInfo.push(`ChatData: ${hasChatData ? '✅' : '❌'} (${hasChatData ? typeof iframeWindow.ChatData : 'N/A'})`);
+        debugInfo.push(`ChatUI: ${hasChatUI ? '✅' : '❌'} (${hasChatUI ? typeof iframeWindow.ChatUI : 'N/A'})`);
+        debugInfo.push(`ChatInit: ${hasChatInit ? '✅' : '❌'} (${hasChatInit ? typeof iframeWindow.ChatInit : 'N/A'})`);
+        
+        // windowオブジェクトの直接確認
+        if (iframe.contentDocument) {
+          const scripts = iframe.contentDocument.querySelectorAll('script[src]');
+          debugInfo.push(`読み込まれたスクリプト: ${Array.from(scripts).map(s => s.src.split('/').pop()).join(', ')}`);
+        }
         
         if (!hasAuthState || !hasChatData) {
           // オブジェクトが読み込まれていない場合は詳細を表示
@@ -1670,10 +1885,35 @@
       refreshAnalysisBtn.addEventListener('click', () => {
         const iframe = document.getElementById('chatAdminIframe');
         if (iframe && currentCharacter && currentUserType) {
-          console.log('分析パネル: 手動更新を実行', { currentCharacter, currentUserType });
-          updateAnalysisPanel(iframe, currentCharacter, currentUserType, true);
+          console.log('分析パネル: 手動更新を実行（postMessage方式）', { currentCharacter, currentUserType });
+          updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType, true);
         } else {
           alert('チャットが読み込まれていません。先にチャットを開始してください。');
+        }
+      });
+    }
+    
+    // デバッグ情報を表示するボタン
+    const showDebugBtn = document.getElementById('showDebugBtn');
+    if (showDebugBtn) {
+      showDebugBtn.addEventListener('click', () => {
+        const iframe = document.getElementById('chatAdminIframe');
+        const debugSection = document.getElementById('debugSection');
+        const debugInfoDiv = document.getElementById('debugInfo');
+        
+        if (debugSection && debugInfoDiv) {
+          if (debugSection.style.display === 'none' || !debugSection.style.display) {
+            // デバッグ情報を表示
+            if (iframe && currentCharacter && currentUserType) {
+              updateAnalysisPanel(iframe, currentCharacter, currentUserType, true);
+            } else {
+              debugInfoDiv.innerHTML = 'チャットが読み込まれていません。先にチャットを開始してください。';
+              debugSection.style.display = 'block';
+            }
+          } else {
+            // デバッグ情報を非表示
+            debugSection.style.display = 'none';
+          }
         }
       });
     }
