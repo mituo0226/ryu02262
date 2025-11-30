@@ -1331,9 +1331,16 @@
       
       // iframeで本番環境のチャットページを読み込む（同じ動作を確認）
       // 絶対パスを使用して確実に読み込む
-      const basePath = window.location.origin + window.location.pathname.replace(/\/[^/]+$/, '');
-      const chatUrl = `${basePath}/../chat/chat.html?character=${currentCharacter}&userType=${currentUserType}`;
-      console.log('分析パネル: iframe読み込みURL', chatUrl);
+      const currentPath = window.location.pathname;
+      // パスから /pages/admin/dashboard.html を除去して、/pages/chat/chat.html に変換
+      const chatUrl = `${window.location.origin}/pages/chat/chat.html?character=${currentCharacter}&userType=${currentUserType}`;
+      console.log('分析パネル: iframe読み込みURL', {
+        chatUrl,
+        currentPath,
+        origin: window.location.origin,
+        character: currentCharacter,
+        userType: currentUserType
+      });
       
       const chatPanel = document.getElementById('chatPanel');
       
@@ -1350,7 +1357,8 @@
       iframe.style.height = '100%';
       iframe.style.border = 'none';
       iframe.id = 'chatAdminIframe';
-      iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms'); // セキュリティ設定
+      // sandbox属性を削除（postMessageが正しく動作するように）
+      // 同一オリジンなので、sandboxは不要
       
       chatPanel.innerHTML = '';
       chatPanel.appendChild(iframe);
@@ -1360,8 +1368,19 @@
         console.log('分析パネル: iframeのloadイベント発生', {
           src: iframe.src,
           contentWindow: !!iframe.contentWindow,
-          contentDocument: !!iframe.contentDocument
+          contentDocument: !!iframe.contentDocument,
+          origin: window.location.origin
         });
+        
+        // loadイベント後に少し待ってから準備完了通知を待つ
+        setTimeout(() => {
+          console.log('[管理画面] iframe load後、準備完了通知を待機中...');
+        }, 1000);
+      });
+      
+      // エラーハンドリング
+      iframe.addEventListener('error', (e) => {
+        console.error('[管理画面] iframe読み込みエラー:', e);
       });
       
       iframe.addEventListener('error', (e) => {
@@ -1506,9 +1525,23 @@
           }, 10000); // 10秒タイムアウト
           
           const messageHandler = (event) => {
-            // セキュリティ: 同一オリジンのみ許可
+            // デバッグ: すべてのメッセージをログに記録
+            if (showDebug) {
+              console.log('[管理画面] メッセージ受信:', {
+                type: event.data?.type,
+                origin: event.origin,
+                expectedOrigin: window.location.origin,
+                matches: event.origin === window.location.origin
+              });
+            }
+            
+            // セキュリティ: 同一オリジンのみ許可（ただし、開発時は緩和）
+            // 本番環境では厳密にチェック
             if (event.origin !== window.location.origin) {
-              console.warn('[管理画面] 不正なオリジンからのメッセージ:', event.origin);
+              console.warn('[管理画面] 不正なオリジンからのメッセージ:', {
+                received: event.origin,
+                expected: window.location.origin
+              });
               return;
             }
             
@@ -1516,10 +1549,12 @@
               clearTimeout(timeout);
               window.removeEventListener('message', messageHandler);
               debugInfo.push('✅ チャットデータを受信しました');
+              console.log('[管理画面] ✅ チャットデータを受信しました', event.data.data);
               resolve(event.data.data);
             } else if (event.data.type === 'CHAT_DATA_ERROR') {
               clearTimeout(timeout);
               window.removeEventListener('message', messageHandler);
+              console.error('[管理画面] ❌ チャットデータ取得エラー:', event.data.error);
               reject(new Error(event.data.error));
             }
           };
@@ -1528,13 +1563,28 @@
           
           // データをリクエスト
           try {
-            iframe.contentWindow.postMessage({
+            const requestMessage = {
               type: 'REQUEST_CHAT_DATA'
-            }, window.location.origin);
+            };
+            console.log('[管理画面] 📤 チャットデータをリクエスト中...', {
+              iframeSrc: iframe.src,
+              hasContentWindow: !!iframe.contentWindow,
+              targetOrigin: window.location.origin
+            });
+            
+            iframe.contentWindow.postMessage(requestMessage, window.location.origin);
             debugInfo.push('📤 チャットデータをリクエストしました');
+            
+            // リクエスト送信後、iframe側でメッセージを受信しているか確認（デバッグ用）
+            if (showDebug) {
+              setTimeout(() => {
+                console.log('[管理画面] リクエスト後3秒経過、iframeの状態を確認...');
+              }, 3000);
+            }
           } catch (error) {
             clearTimeout(timeout);
             window.removeEventListener('message', messageHandler);
+            console.error('[管理画面] postMessage送信エラー:', error);
             reject(new Error(`postMessage送信エラー: ${error.message}`));
           }
         });
