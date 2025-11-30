@@ -1354,26 +1354,62 @@
         analysisInterval = null;
       }
       
+      // 分析パネルに読み込み中メッセージを表示
+      const loadingMsg = '<p>チャットを読み込み中...</p>';
+      document.getElementById('analysisCurrentState').innerHTML = loadingMsg;
+      document.getElementById('analysisPhaseInfo').innerHTML = loadingMsg;
+      document.getElementById('analysisHistory').innerHTML = loadingMsg;
+      
+      // 初回チェック用の関数
+      function tryUpdate() {
+        try {
+          const iframeWindow = iframe.contentWindow;
+          if (iframeWindow && iframeWindow.AuthState && iframeWindow.ChatData) {
+            // オブジェクトが利用可能になったら更新を開始
+            updateAnalysisPanel(iframe, character, userType);
+            // 定期的に更新（2秒ごと）
+            analysisInterval = setInterval(() => {
+              updateAnalysisPanel(iframe, character, userType);
+            }, 2000);
+            return true;
+          }
+        } catch (e) {
+          console.log('分析パネル: まだ読み込み中...', e.message);
+        }
+        return false;
+      }
+      
       // iframeの読み込み完了を待つ
       iframe.addEventListener('load', () => {
-        // 少し待ってから初回更新（iframe内のスクリプトが読み込まれるまで）
-        setTimeout(() => {
-          updateAnalysisPanel(iframe, character, userType);
-          // 定期的に更新（2秒ごと）
-          analysisInterval = setInterval(() => {
-            updateAnalysisPanel(iframe, character, userType);
-          }, 2000);
-        }, 1000);
+        console.log('分析パネル: iframeのloadイベントが発生');
+        // 少し待ってから初回更新を試行（iframe内のスクリプトが読み込まれるまで）
+        let attempts = 0;
+        const maxAttempts = 20; // 最大20回試行（10秒）
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (tryUpdate() || attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            if (attempts >= maxAttempts) {
+              const errorMsg = '<p style="color: #ff7a8a;">チャットデータの読み込みに時間がかかっています。ページを更新してください。</p>';
+              document.getElementById('analysisCurrentState').innerHTML = errorMsg;
+              document.getElementById('analysisPhaseInfo').innerHTML = errorMsg;
+              document.getElementById('analysisHistory').innerHTML = errorMsg;
+            }
+          }
+        }, 500); // 0.5秒ごとにチェック
       });
       
       // 既に読み込まれている場合も対応
       if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
-        setTimeout(() => {
-          updateAnalysisPanel(iframe, character, userType);
-          analysisInterval = setInterval(() => {
-            updateAnalysisPanel(iframe, character, userType);
-          }, 2000);
-        }, 1000);
+        console.log('分析パネル: iframeは既に読み込み完了');
+        let attempts = 0;
+        const maxAttempts = 20;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (tryUpdate() || attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+          }
+        }, 500);
       }
     }
     
@@ -1390,9 +1426,12 @@
         // iframeが存在しない、または読み込まれていない場合
         if (!iframe || !iframe.contentWindow) {
           const errorMsg = '<p style="color: #ff7a8a;">チャットが読み込まれていません</p>';
-          document.getElementById('analysisCurrentState').innerHTML = errorMsg;
-          document.getElementById('analysisPhaseInfo').innerHTML = errorMsg;
-          document.getElementById('analysisHistory').innerHTML = errorMsg;
+          const currentStateDiv = document.getElementById('analysisCurrentState');
+          const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
+          const historyDiv = document.getElementById('analysisHistory');
+          if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
+          if (phaseInfoDiv) phaseInfoDiv.innerHTML = errorMsg;
+          if (historyDiv) historyDiv.innerHTML = errorMsg;
           return;
         }
         
@@ -1400,34 +1439,50 @@
         
         // 必要なオブジェクトが読み込まれているか確認
         if (!iframeWindow.AuthState || !iframeWindow.ChatData) {
-          const loadingMsg = '<p>チャットデータを読み込み中...</p>';
-          document.getElementById('analysisCurrentState').innerHTML = loadingMsg;
-          document.getElementById('analysisPhaseInfo').innerHTML = loadingMsg;
-          document.getElementById('analysisHistory').innerHTML = loadingMsg;
+          // オブジェクトが読み込まれていない場合は何もしない（再試行される）
+          console.log('分析パネル: AuthStateまたはChatDataがまだ読み込まれていません');
           return;
         }
         
         // 現在の状態を取得
         const isRegistered = iframeWindow.AuthState.isRegistered();
         const chatData = iframeWindow.ChatData;
-        const characterInfo = chatData.characterInfo && chatData.characterInfo[character];
-        const characterName = characterInfo ? characterInfo.name : character;
+        
+        // characterInfoが読み込まれるまで待つ（オプション）
+        let characterInfo = null;
+        let characterName = character || '読み込み中...';
+        if (chatData.characterInfo && typeof chatData.characterInfo === 'object') {
+          characterInfo = chatData.characterInfo[character];
+          if (characterInfo && characterInfo.name) {
+            characterName = characterInfo.name;
+          }
+        }
         
         // メッセージカウントを取得（登録ユーザーとゲストで異なる）
         let messageCount = 0;
         let conversationHistory = [];
         
-        if (isRegistered) {
-          // 登録ユーザーの場合
-          const historyData = chatData.conversationHistory;
-          if (historyData && historyData.recentMessages) {
-            conversationHistory = historyData.recentMessages;
-            messageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+        try {
+          if (isRegistered) {
+            // 登録ユーザーの場合
+            const historyData = chatData.conversationHistory;
+            if (historyData && historyData.recentMessages) {
+              conversationHistory = Array.isArray(historyData.recentMessages) ? historyData.recentMessages : [];
+              messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+            }
+          } else {
+            // ゲストユーザーの場合
+            if (typeof chatData.getGuestMessageCount === 'function') {
+              messageCount = chatData.getGuestMessageCount(character) || 0;
+            }
+            if (typeof chatData.getGuestHistory === 'function') {
+              conversationHistory = chatData.getGuestHistory(character) || [];
+            }
           }
-        } else {
-          // ゲストユーザーの場合
-          messageCount = chatData.getGuestMessageCount(character);
-          conversationHistory = chatData.getGuestHistory(character);
+        } catch (e) {
+          console.error('分析パネル: データ取得エラー', e);
+          messageCount = 0;
+          conversationHistory = [];
         }
         
         // フェーズ情報を計算
@@ -1435,62 +1490,75 @@
         
         // 現在の状態を表示
         const currentStateDiv = document.getElementById('analysisCurrentState');
-        currentStateDiv.innerHTML = `
-          <div class="analysis-item">
-            <span class="analysis-label">ユーザータイプ:</span>
-            <span class="analysis-value">${userType === 'guest' ? 'ゲスト' : '登録'}</span>
-          </div>
-          <div class="analysis-item">
-            <span class="analysis-label">キャラクター:</span>
-            <span class="analysis-value">${characterName}</span>
-          </div>
-          <div class="analysis-item">
-            <span class="analysis-label">登録状態:</span>
-            <span class="analysis-value">${isRegistered ? '登録済み' : '未登録'}</span>
-          </div>
-          <div class="analysis-item">
-            <span class="analysis-label">ユーザーメッセージ数:</span>
-            <span class="analysis-value">${messageCount}通</span>
-          </div>
-        `;
+        if (currentStateDiv) {
+          currentStateDiv.innerHTML = `
+            <div class="analysis-item">
+              <span class="analysis-label">ユーザータイプ:</span>
+              <span class="analysis-value">${userType === 'guest' ? 'ゲスト' : '登録'}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">キャラクター:</span>
+              <span class="analysis-value">${characterName}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">登録状態:</span>
+              <span class="analysis-value">${isRegistered ? '登録済み' : '未登録'}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">ユーザーメッセージ数:</span>
+              <span class="analysis-value">${messageCount}通</span>
+            </div>
+          `;
+        }
         
         // フェーズ情報を表示
         const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
-        phaseInfoDiv.innerHTML = `
-          <div class="analysis-item">
-            <span class="analysis-label">現在のフェーズ:</span>
-            <span class="analysis-value">${phase.name}</span>
-          </div>
-          <div class="analysis-item">
-            <span class="analysis-label">説明:</span>
-            <span class="analysis-value">${phase.description}</span>
-          </div>
-        `;
+        if (phaseInfoDiv) {
+          phaseInfoDiv.innerHTML = `
+            <div class="analysis-item">
+              <span class="analysis-label">現在のフェーズ:</span>
+              <span class="analysis-value">${phase.name}</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">説明:</span>
+              <span class="analysis-value">${phase.description}</span>
+            </div>
+          `;
+        }
         
         // 会話履歴構造を表示
         const historyDiv = document.getElementById('analysisHistory');
-        const userMessages = conversationHistory.filter(m => m.role === 'user').length;
-        const assistantMessages = conversationHistory.filter(m => m.role === 'assistant').length;
-        historyDiv.innerHTML = `
-          <div class="analysis-item">
-            <span class="analysis-label">総メッセージ数:</span>
-            <span class="analysis-value">${conversationHistory.length}件</span>
-          </div>
-          <div class="analysis-item">
-            <span class="analysis-label">ユーザーメッセージ:</span>
-            <span class="analysis-value">${userMessages}件</span>
-          </div>
-          <div class="analysis-item">
-            <span class="analysis-label">アシスタントメッセージ:</span>
-            <span class="analysis-value">${assistantMessages}件</span>
-          </div>
-        `;
+        if (historyDiv) {
+          const userMessages = Array.isArray(conversationHistory) 
+            ? conversationHistory.filter(m => m && m.role === 'user').length 
+            : 0;
+          const assistantMessages = Array.isArray(conversationHistory)
+            ? conversationHistory.filter(m => m && m.role === 'assistant').length
+            : 0;
+          historyDiv.innerHTML = `
+            <div class="analysis-item">
+              <span class="analysis-label">総メッセージ数:</span>
+              <span class="analysis-value">${conversationHistory.length}件</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">ユーザーメッセージ:</span>
+              <span class="analysis-value">${userMessages}件</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">アシスタントメッセージ:</span>
+              <span class="analysis-value">${assistantMessages}件</span>
+            </div>
+          `;
+        }
       } catch (error) {
         console.error('分析パネルの更新エラー:', error);
         const errorMsg = `<p style="color: #ff7a8a;">エラー: ${error.message}</p>`;
-        document.getElementById('analysisCurrentState').innerHTML = errorMsg;
-        document.getElementById('analysisPhaseInfo').innerHTML = errorMsg;
-        document.getElementById('analysisHistory').innerHTML = errorMsg;
+        const currentStateDiv = document.getElementById('analysisCurrentState');
+        const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
+        const historyDiv = document.getElementById('analysisHistory');
+        if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
+        if (phaseInfoDiv) phaseInfoDiv.innerHTML = errorMsg;
+        if (historyDiv) historyDiv.innerHTML = errorMsg;
       }
     }
     

@@ -640,6 +640,9 @@ const ChatInit = {
     }
 };
 
+// グローバルスコープに公開（iframeからアクセスできるようにする）
+window.ChatInit = ChatInit;
+
 // グローバル関数として公開
 window.sendMessage = () => ChatInit.sendMessage();
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);

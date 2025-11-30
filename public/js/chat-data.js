@@ -269,3 +269,6 @@ const ChatData = {
     }
 };
 
+// グローバルスコープに公開（iframeからアクセスできるようにする）
+window.ChatData = ChatData;
+

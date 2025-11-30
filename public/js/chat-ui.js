@@ -236,3 +236,6 @@ const ChatUI = {
     }
 };
 
+// グローバルスコープに公開（iframeからアクセスできるようにする）
+window.ChatUI = ChatUI;
+
