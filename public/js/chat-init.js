@@ -354,6 +354,15 @@ const ChatInit = {
             // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
             ChatData.addToGuestHistory(character, 'user', message);
             
+            // 会話履歴が正しく保存されたことを確認
+            const savedHistory = ChatData.getGuestHistory(character);
+            console.log('[メッセージ送信] 会話履歴に追加後の確認:', {
+                character,
+                historyLength: savedHistory.length,
+                userMessages: savedHistory.filter(msg => msg && msg.role === 'user').length,
+                lastMessage: savedHistory.length > 0 ? savedHistory[savedHistory.length - 1] : null
+            });
+            
             // 会話履歴に追加した後、最新のカウントを取得（これが送信時のカウント）
             const messageCount = ChatData.getGuestMessageCount(character);
             
@@ -362,22 +371,27 @@ const ChatInit = {
                 console.log('[メッセージ送信] 🎯 最初のメッセージを送信しました（カウント=1からスタート）:', {
                     character,
                     message: message.substring(0, 50) + '...',
-                    messageCount: messageCount
+                    messageCount: messageCount,
+                    historyLength: savedHistory.length
                 });
             } else {
                 console.log('[メッセージ送信] メッセージを送信しました:', {
                     character,
                     message: message.substring(0, 50) + '...',
                     beforeCount: currentCount,
-                    afterCount: messageCount
+                    afterCount: messageCount,
+                    historyLength: savedHistory.length
                 });
             }
             
             // reading-animation.htmlでAPIリクエスト時にメッセージカウントを送信できるように、sessionStorageに保存
+            // この時点で、会話履歴にメッセージが追加されていることを確認済み
             sessionStorage.setItem('lastGuestMessageCount', String(messageCount));
             console.log('[メッセージ送信] sessionStorageにメッセージカウントを保存:', {
                 key: 'lastGuestMessageCount',
-                value: messageCount
+                value: messageCount,
+                historyKey: `guestConversationHistory_${character}`,
+                historyExists: !!sessionStorage.getItem(`guestConversationHistory_${character}`)
             });
             
             // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）

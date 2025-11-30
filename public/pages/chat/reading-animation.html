@@ -215,65 +215,144 @@
                         }
                     } else {
                         // ゲストユーザーの場合: clientHistory と guestMetadata を送信
-                        // まず、chat-example.htmlで保存されたカウントを確認
-                        const lastGuestMessageCount = sessionStorage.getItem('lastGuestMessageCount');
-                        let guestCount = 0;
+                        // 【重要】会話履歴を唯一の真実の源として、そこからメッセージ数を計算する
                         
-                        if (lastGuestMessageCount !== null) {
-                            // chat-example.htmlで保存されたカウントを使用
-                            guestCount = Number.parseInt(lastGuestMessageCount, 10);
-                            // 使用後は削除
-                            sessionStorage.removeItem('lastGuestMessageCount');
-                        } else {
-                            // フォールバック：sessionStorageから取得
-                            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
-                            const key = GUEST_COUNT_KEY_PREFIX + character;
-                            const characterSpecificCount = sessionStorage.getItem(key);
-                            const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
-                            guestCount = guestCountForCharacter > 0 
-                                ? guestCountForCharacter 
-                                : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
-                                    ? window.AuthState.getGuestMessageCount() 
-                                    : 0);
-                        }
-                        payload.guestMetadata = { messageCount: guestCount };
-                        
-                        // ゲストユーザーの会話履歴を取得して送信
+                        // まず、会話履歴を取得
                         const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
                         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
                         const storedHistory = sessionStorage.getItem(historyKey);
+                        let parsedHistory = [];
                         
                         if (storedHistory) {
                             try {
-                                const parsedHistory = JSON.parse(storedHistory);
-                                if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-                                    payload.clientHistory = parsedHistory.map((entry) => ({
-                                        role: entry.role || 'user',
-                                        content: entry.content || entry.message || '',
-                                    }));
+                                parsedHistory = JSON.parse(storedHistory);
+                                if (!Array.isArray(parsedHistory)) {
+                                    parsedHistory = [];
                                 }
                             } catch (error) {
                                 console.error('Error parsing stored guest history:', error);
+                                parsedHistory = [];
                             }
                         }
                         
                         // フォールバック: pendingGuestHistoryMigration からも取得を試みる
-                        if (!payload.clientHistory || payload.clientHistory.length === 0) {
+                        if (parsedHistory.length === 0) {
                             const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                             if (pendingMigration) {
                                 try {
                                     const migrationData = JSON.parse(pendingMigration);
-                                    if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
-                                        payload.clientHistory = migrationData.history.map((entry) => ({
-                                            role: entry.role || 'user',
-                                            content: entry.content || entry.message || '',
-                                        }));
+                                    if (migrationData.character === character && migrationData.history && Array.isArray(migrationData.history)) {
+                                        parsedHistory = migrationData.history;
                                     }
                                 } catch (error) {
                                     console.error('Error parsing pending guest history migration:', error);
                                 }
                             }
                         }
+                        
+                        // 会話履歴をAPIリクエストに含める
+                        if (parsedHistory.length > 0) {
+                            payload.clientHistory = parsedHistory.map((entry) => ({
+                                role: entry.role || 'user',
+                                content: entry.content || entry.message || '',
+                            }));
+                        }
+                        
+                        // 【重要】会話履歴から実際のユーザーメッセージ数を計算
+                        const userMessagesInHistory = parsedHistory.filter(msg => msg && msg.role === 'user').length;
+                        
+                        // メッセージカウントの決定（優先順位順）
+                        let guestCount = 0;
+                        
+                        // 1. 会話履歴から計算した値を使用（これが最も信頼できる）
+                        if (parsedHistory.length > 0 && userMessagesInHistory > 0) {
+                            guestCount = userMessagesInHistory;
+                            console.log('[reading-animation] 会話履歴からメッセージ数を計算:', {
+                                character,
+                                historyLength: parsedHistory.length,
+                                userMessagesInHistory: userMessagesInHistory,
+                                calculatedCount: guestCount
+                            });
+                        } else {
+                            // 2. フォールバック1: lastGuestMessageCount（chat-init.jsで保存されたもの）
+                            const lastGuestMessageCount = sessionStorage.getItem('lastGuestMessageCount');
+                            if (lastGuestMessageCount !== null) {
+                                guestCount = Number.parseInt(lastGuestMessageCount, 10);
+                                console.log('[reading-animation] lastGuestMessageCountから取得:', {
+                                    character,
+                                    count: guestCount
+                                });
+                                // 使用後は削除
+                                sessionStorage.removeItem('lastGuestMessageCount');
+                            } else {
+                                // 3. フォールバック2: sessionStorageから取得
+                                const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+                                const key = GUEST_COUNT_KEY_PREFIX + character;
+                                const characterSpecificCount = sessionStorage.getItem(key);
+                                if (characterSpecificCount) {
+                                    guestCount = Number.parseInt(characterSpecificCount, 10);
+                                    console.log('[reading-animation] sessionStorageから取得:', {
+                                        character,
+                                        count: guestCount
+                                    });
+                                } else {
+                                    // 4. フォールバック3: AuthStateから取得
+                                    if (window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') {
+                                        guestCount = window.AuthState.getGuestMessageCount();
+                                        console.log('[reading-animation] AuthStateから取得:', {
+                                            character,
+                                            count: guestCount
+                                        });
+                                    } else {
+                                        // 最後の手段: 0として扱う（初回メッセージ）
+                                        guestCount = 0;
+                                        console.log('[reading-animation] デフォルト値を使用（0）:', {
+                                            character,
+                                            message: '初回メッセージの可能性'
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 会話履歴から計算した値と、フォールバック値が大きく異なる場合は警告
+                        if (parsedHistory.length > 0 && userMessagesInHistory > 0) {
+                            const fallbackCount = (() => {
+                                const lastGuestMessageCount = sessionStorage.getItem('lastGuestMessageCount');
+                                if (lastGuestMessageCount !== null) {
+                                    return Number.parseInt(lastGuestMessageCount, 10);
+                                }
+                                const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+                                const key = GUEST_COUNT_KEY_PREFIX + character;
+                                const characterSpecificCount = sessionStorage.getItem(key);
+                                return characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
+                            })();
+                            
+                            if (fallbackCount > 0 && Math.abs(userMessagesInHistory - fallbackCount) > 1) {
+                                console.warn('[reading-animation] ⚠️ メッセージ数の不一致を検出:', {
+                                    character,
+                                    historyCount: userMessagesInHistory,
+                                    fallbackCount: fallbackCount,
+                                    using: userMessagesInHistory,
+                                    message: '会話履歴の値を優先します'
+                                });
+                            }
+                        }
+                        
+                        // 最終的なメッセージカウントを設定（会話履歴から計算した値を優先）
+                        const finalGuestCount = parsedHistory.length > 0 && userMessagesInHistory > 0 
+                            ? userMessagesInHistory 
+                            : guestCount;
+                        
+                        payload.guestMetadata = { messageCount: finalGuestCount };
+                        
+                        console.log('[reading-animation] APIリクエスト送信準備完了:', {
+                            character,
+                            guestMessageCount: finalGuestCount,
+                            historyLength: parsedHistory.length,
+                            clientHistoryLength: payload.clientHistory?.length || 0,
+                            userMessagesInHistory: userMessagesInHistory
+                        });
                     }
 
                     const timeoutPromise = new Promise((_, reject) => {
