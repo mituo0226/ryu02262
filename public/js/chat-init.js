@@ -803,13 +803,27 @@ const ChatInit = {
             const ritualMessage = '守護神の儀式を始めてください';
             conversationHistory.push({ role: 'user', content: ritualMessage });
             
-            console.log('[守護神の儀式] APIに送信:', ritualMessage);
+            // ユーザーメッセージ数を計算（守護神の儀式開始メッセージを含めない）
+            const userMessagesBeforeRitual = conversationHistory.slice(0, -1).filter(msg => msg.role === 'user').length;
+            const ritualUserMessageCount = userMessagesBeforeRitual + 1; // 守護神の儀式開始メッセージを含める
+            
+            console.log('[守護神の儀式] APIに送信:', ritualMessage, {
+                conversationHistoryLength: conversationHistory.length,
+                userMessagesBeforeRitual: userMessagesBeforeRitual,
+                ritualUserMessageCount: ritualUserMessageCount
+            });
             
             // 共通のAPI関数を使用（現在のメッセージを除く）
+            // ゲスト履歴がある場合は、migrateHistoryオプションを追加
+            const options = {
+                migrateHistory: guestHistory && guestHistory.length > 0
+            };
+            
             const response = await ChatAPI.sendMessage(
                 ritualMessage,
                 character,
-                conversationHistory.slice(0, -1) // 現在のメッセージを除く
+                conversationHistory.slice(0, -1), // 現在のメッセージを除く
+                options
             );
             
             console.log('[守護神の儀式] APIレスポンス:', response);

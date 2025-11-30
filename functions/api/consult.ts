@@ -802,6 +802,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 今回送信されたメッセージを +1
     const calculatedUserMessageCount = userMessagesInHistory + 1;
     
+    // ゲスト履歴から直接計算（migrateHistoryの場合）
+    const userMessagesInGuestHistory = (sanitizedHistory || []).filter(msg => msg.role === 'user').length;
+    const calculatedFromGuestHistory = userMessagesInGuestHistory + 1;
+    
     // ゲストユーザーの場合、guestMetadata.messageCount を優先的に使用
     // （履歴が正しく送られていない可能性があるため）
     let userMessageCount: number;
@@ -849,8 +853,23 @@ export const onRequestPost: PagesFunction = async (context) => {
         });
       }
     } else {
-      // ログインユーザーの場合、conversationHistory から計算した値を使用
-      userMessageCount = calculatedUserMessageCount;
+      // ログインユーザーの場合
+      // migrateHistoryがtrueの場合は、ゲスト履歴から計算した値を使用（登録直後の場合）
+      if (body.migrateHistory && sanitizedHistory.length > 0) {
+        userMessageCount = calculatedFromGuestHistory;
+        if (DEBUG_MODE) {
+          console.log('🔍 DEBUG: Registered user with migrateHistory - using guest history count', {
+            userMessagesInGuestHistory,
+            calculatedFromGuestHistory,
+            conversationHistoryLength: conversationHistory.length,
+            userMessagesInHistory,
+            calculatedUserMessageCount
+          });
+        }
+      } else {
+        // 通常のログインユーザーの場合、conversationHistory から計算した値を使用
+        userMessageCount = calculatedUserMessageCount;
+      }
     }
     
     // 最終的な userMessageCount を保証（最小値1、NaN や undefined を防ぐ）

@@ -120,6 +120,10 @@ const ChatAPI = {
         if (options.guestMetadata) {
             payload.guestMetadata = options.guestMetadata;
         }
+        
+        if (options.migrateHistory) {
+            payload.migrateHistory = true;
+        }
 
         try {
             const response = await fetch('/api/consult', {
