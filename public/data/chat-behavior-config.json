@@ -1,0 +1,276 @@
+{
+  "chatTypes": {
+    "guest": {
+      "name": "ゲストチャット",
+      "file": "guest-chat.html",
+      "description": "ゲストユーザー向けのチャット画面",
+      "messageLimit": {
+        "enabled": true,
+        "limit": 10,
+        "description": "すべての鑑定士に対して最大10通まで",
+        "onLimitReached": {
+          "action": "redirect",
+          "target": "../auth/register.html",
+          "redirectAfter": "./chat.html"
+        }
+      },
+      "features": {
+        "loginModal": false,
+        "guardianDisplay": false,
+        "guardianRitual": false,
+        "phaseManagement": {
+          "enabled": true,
+          "characters": ["kaede"],
+          "description": "Kaedeのみフェーズ1-5を使用"
+        }
+      },
+      "redirectRules": {
+        "ifRegisteredUser": {
+          "action": "redirect",
+          "target": "chat.html",
+          "description": "登録ユーザーがアクセスした場合はchat.htmlにリダイレクト"
+        }
+      }
+    },
+    "registered": {
+      "name": "登録ユーザーチャット",
+      "file": "chat.html",
+      "description": "登録ユーザー向けのチャット画面",
+      "messageLimit": {
+        "enabled": false,
+        "description": "メッセージ数に制限なし（無制限）"
+      },
+      "features": {
+        "loginModal": true,
+        "guardianDisplay": true,
+        "guardianRitual": {
+          "enabled": true,
+          "characters": ["kaede"],
+          "autoStart": true,
+          "required": true,
+          "description": "Kaedeの場合、守護神が未登録の場合は自動的に儀式を開始。守護神が決定するまで会話は継続されない"
+        },
+        "phaseManagement": {
+          "enabled": false,
+          "description": "フェーズ管理は使用しない（ゲストチャットHTMLでのみ使用）"
+        }
+      },
+      "redirectRules": {
+        "ifGuestUser": {
+          "action": "redirect",
+          "target": "guest-chat.html",
+          "description": "ゲストユーザーがアクセスした場合はguest-chat.htmlにリダイレクト"
+        }
+      }
+    }
+  },
+  "characterEvents": {
+    "kaede": {
+      "name": "楓",
+      "events": {
+        "guestChat": {
+          "phaseManagement": {
+            "enabled": true,
+            "phases": {
+              "1": {
+                "messageCount": 1,
+                "name": "導入＆未来イメージの選択肢提示",
+                "description": "どのような生活を望むか、何を幸せだと願うかについて、三択の選択肢を提示する質問",
+                "required": true
+              },
+              "2": {
+                "messageCount": 2,
+                "name": "長所を聞く質問（最後の質問）",
+                "description": "相談者の長所を聞く質問。このフェーズで行う最後の質問",
+                "required": true
+              },
+              "3": {
+                "messageCount": 3,
+                "name": "性格診断＋続行確認",
+                "description": "1〜2通目の情報をもとに性格診断を行い、鑑定を続けていいかを確認",
+                "required": true
+              },
+              "4": {
+                "messageCount": 4,
+                "name": "未来鑑定＋守護神と儀式の説明",
+                "description": "相談者の未来の流れ、運勢を上向きにする方法、守護神と儀式について説明",
+                "required": true,
+                "ritualConsent": {
+                  "enabled": true,
+                  "description": "守護神の儀式への同意を求める。NOを選択した場合、ゲストチャットで10通まで続ける"
+                }
+              },
+              "5": {
+                "messageCount": 5,
+                "name": "守護神の儀式",
+                "description": "守護神の儀式を開始（ユーザー登録後）",
+                "required": false,
+                "condition": "ユーザー登録完了後"
+              }
+            }
+          },
+          "guardianRitualConsent": {
+            "enabled": true,
+            "triggerPhase": 4,
+            "onConsent": {
+              "yes": {
+                "action": "redirect",
+                "target": "../auth/register.html",
+                "redirectAfter": "./chat.html"
+              },
+              "no": {
+                "action": "continue",
+                "description": "ゲストチャットで10通まで続ける",
+                "maxMessages": 10
+              }
+            }
+          }
+        },
+        "registeredChat": {
+          "guardianRitual": {
+            "enabled": true,
+            "autoStart": true,
+            "required": true,
+            "description": "守護神が未登録の場合は自動的に儀式を開始",
+            "blockChatUntilComplete": true,
+            "description": "守護神が決定するまで、通常の会話は継続されない"
+          },
+          "phaseManagement": {
+            "enabled": false,
+            "description": "フェーズ管理は使用しない"
+          }
+        }
+      }
+    },
+    "yukino": {
+      "name": "笹岡雪乃",
+      "events": {
+        "guestChat": {
+          "phaseManagement": {
+            "enabled": false
+          },
+          "specialEvents": []
+        },
+        "registeredChat": {
+          "phaseManagement": {
+            "enabled": false
+          },
+          "specialEvents": [
+            {
+              "name": "タロットカード",
+              "description": "タロットカード関連のキーワードを検出した場合、タロットカードを表示"
+            }
+          ]
+        }
+      }
+    },
+    "sora": {
+      "name": "水野ソラ",
+      "events": {
+        "guestChat": {
+          "phaseManagement": {
+            "enabled": false
+          },
+          "specialEvents": []
+        },
+        "registeredChat": {
+          "phaseManagement": {
+            "enabled": false
+          },
+          "specialEvents": []
+        }
+      }
+    },
+    "kaon": {
+      "name": "三崎花音",
+      "events": {
+        "guestChat": {
+          "phaseManagement": {
+            "enabled": false
+          },
+          "specialEvents": []
+        },
+        "registeredChat": {
+          "phaseManagement": {
+            "enabled": false
+          },
+          "specialEvents": []
+        }
+      }
+    }
+  },
+  "guestHistoryManagement": {
+    "storage": {
+      "location": "sessionStorage",
+      "keys": {
+        "history": "guestConversationHistory_{character}",
+        "messageCount": "guestMessageCount_{character}",
+        "pendingMigration": "pendingGuestHistoryMigration",
+        "pendingRitual": "pendingRitualGuestHistory"
+      }
+    },
+    "migration": {
+      "onRegistration": {
+        "enabled": true,
+        "action": "migrate",
+        "target": "registeredUserHistory",
+        "deleteAfterMigration": true,
+        "description": "登録完了時にゲスト履歴を登録ユーザーの履歴に移行し、ゲスト履歴を削除"
+      }
+    },
+    "database": {
+      "guestUserId": 0,
+      "maxMessagesPerCharacter": 10,
+      "description": "各鑑定士につき最大10通まで（ユーザーメッセージのみ）"
+    }
+  },
+  "apiBehavior": {
+    "guestUsers": {
+      "phaseManagement": {
+        "enabled": true,
+        "characters": ["kaede"],
+        "description": "ゲストユーザーの場合、Kaedeのみフェーズ1-5を使用"
+      },
+      "messageLimit": {
+        "enabled": true,
+        "limit": 10,
+        "enforced": true
+      }
+    },
+    "registeredUsers": {
+      "phaseManagement": {
+        "enabled": false,
+        "description": "登録ユーザーの場合、フェーズ管理は使用しない"
+      },
+      "messageLimit": {
+        "enabled": false,
+        "description": "登録ユーザーの場合、メッセージ数に制限なし"
+      },
+      "guardianRitual": {
+        "requiredForKaede": true,
+        "description": "Kaedeの場合、守護神の儀式が完了していないと会話は継続されない"
+      },
+      "conversationHistory": {
+        "maxStoredMessages": 10,
+        "description": "最新10通のみ保存。10通を超える古いメッセージは削除",
+        "compression": {
+          "enabled": true,
+          "description": "メモリー消費を削減するため、会話履歴を圧縮して保存",
+          "userMessageMaxLength": 200,
+          "assistantMessageMaxLength": 300,
+          "profileMaxLength": 1500,
+          "method": "truncate",
+          "note": "完全なメッセージではなく、要約やキーポイントを保存"
+        },
+        "profileExtraction": {
+          "enabled": true,
+          "maxMessagesForProfile": 100,
+          "description": "100通までの会話内容からプロフィール情報を抽出して記憶（圧縮された記憶）",
+          "storageLocation": "users.conversation_profile",
+          "usage": "最新10通の会話履歴と合わせて、会話の継続性を保つために使用"
+        }
+      }
+    }
+  }
+}
+
