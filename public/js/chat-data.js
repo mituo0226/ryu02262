@@ -11,8 +11,6 @@ const ChatData = {
     characterInfo: {},
     GUEST_MESSAGE_LIMIT: 10,
     ritualConsentShown: false, // 守護神の儀式への同意ボタンが表示されたかどうか
-    ritualRefused: false, // 守護神の儀式を拒否したかどうか
-    behaviorConfig: null, // チャット挙動設定
 
     /**
      * 鑑定士情報を外部ファイルから読み込む
@@ -289,97 +287,6 @@ const ChatData = {
             null,
             characterId
         );
-    },
-
-    /**
-     * チャット挙動設定を外部ファイルから読み込む
-     * @returns {Promise<Object>} 挙動設定
-     */
-    async loadBehaviorConfig() {
-        try {
-            const response = await fetch('../../data/chat-behavior-config.json');
-            if (!response.ok) {
-                throw new Error('Failed to load behavior config');
-            }
-            this.behaviorConfig = await response.json();
-            return this.behaviorConfig;
-        } catch (error) {
-            console.error('Failed to load behavior config:', error);
-            return null;
-        }
-    },
-
-    /**
-     * 現在のチャットタイプを取得
-     * @returns {string} 'guest' または 'registered'
-     */
-    getChatType() {
-        const path = window.location.pathname;
-        if (path.includes('guest-chat.html')) {
-            return 'guest';
-        }
-        return 'registered';
-    },
-
-    /**
-     * チャットタイプの設定を取得
-     * @returns {Object|null} チャットタイプの設定
-     */
-    getChatTypeConfig() {
-        if (!this.behaviorConfig) {
-            return null;
-        }
-        const chatType = this.getChatType();
-        return this.behaviorConfig.chatTypes?.[chatType] || null;
-    },
-
-    /**
-     * キャラクターのイベント設定を取得
-     * @param {string} characterId - キャラクターID
-     * @returns {Object|null} イベント設定
-     */
-    getCharacterEvents(characterId) {
-        if (!this.behaviorConfig) {
-            return null;
-        }
-        return this.behaviorConfig.characterEvents?.[characterId] || null;
-    },
-
-    /**
-     * フェーズ管理が有効かどうかを確認
-     * @param {string} characterId - キャラクターID
-     * @returns {boolean} フェーズ管理が有効かどうか
-     */
-    isPhaseManagementEnabled(characterId) {
-        const chatType = this.getChatType();
-        const events = this.getCharacterEvents(characterId);
-        if (!events) {
-            return false;
-        }
-        
-        if (chatType === 'guest') {
-            return events.events?.guestChat?.phaseManagement?.enabled === true;
-        } else {
-            return events.events?.registeredChat?.phaseManagement?.enabled === true;
-        }
-    },
-
-    /**
-     * 守護神の儀式が必要かどうかを確認
-     * @param {string} characterId - キャラクターID
-     * @returns {boolean} 守護神の儀式が必要かどうか
-     */
-    isGuardianRitualRequired(characterId) {
-        const chatType = this.getChatType();
-        const events = this.getCharacterEvents(characterId);
-        if (!events) {
-            return false;
-        }
-        
-        if (chatType === 'registered') {
-            return events.events?.registeredChat?.guardianRitual?.required === true;
-        }
-        return false;
     }
 };
 

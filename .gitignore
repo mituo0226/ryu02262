@@ -10,7 +10,6 @@ desktop.ini
 # エディタファイル
 .vscode/
 .idea/
-.cursor/
 *.swp
 *.swo
 *~

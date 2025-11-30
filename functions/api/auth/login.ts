@@ -11,8 +11,7 @@ interface LoginRequestBody {
 interface LoginResponseBody {
   userToken: string;
   nickname: string;
-  assignedDeity: string; // 合言葉（ログイン認証用）
-  guardianDeity?: string; // 守護神名（チャット画面表示用）
+  assignedDeity: string;
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -49,9 +48,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     id: number;
     nickname: string;
     assigned_deity: string;
-    guardian_deity?: string;
   }>(
-    `SELECT id, nickname, assigned_deity, guardian_deity
+    `SELECT id, nickname, assigned_deity
      FROM users
      WHERE nickname = ?
        AND birth_year = ?
@@ -74,8 +72,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   const responseBody: LoginResponseBody = {
     userToken,
     nickname: user.nickname,
-    assignedDeity: user.assigned_deity, // 合言葉
-    guardianDeity: user.guardian_deity || undefined, // 守護神名
+    assignedDeity: user.assigned_deity,
   };
 
   return new Response(JSON.stringify(responseBody), { status: 200, headers });

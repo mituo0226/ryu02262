@@ -84,7 +84,7 @@ const ChatUI = {
         
         if (isRegistered) {
             const nickname = userData?.nickname || localStorage.getItem('userNickname') || '鑑定者';
-            const deity = userData?.guardianDeity || localStorage.getItem('guardianDeity') || '未割当';
+            const deity = userData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
             const birthYear = userData?.birthYear || null;
             const birthMonth = userData?.birthMonth || null;
             const birthDay = userData?.birthDay || null;

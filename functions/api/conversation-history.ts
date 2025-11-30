@@ -14,8 +14,6 @@ interface UserRecord {
   birth_month: number;
   birth_day: number;
   assigned_deity: string;
-  guardian_deity?: string; // 守護神名（guardian_deityカラム）
-  conversation_profile?: string; // 過去100通までの会話内容から抽出したプロフィール情報
 }
 
 interface ResponseBody {
@@ -24,11 +22,9 @@ interface ResponseBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  assignedDeity?: string; // 合言葉（ログイン認証用）
-  guardianDeity?: string; // 守護神名（チャット画面表示用）
+  assignedDeity?: string;
   lastConversationDate?: string; // 最後の会話日時（ISO形式）
   conversationSummary?: string;
-  conversationProfile?: string; // 過去100通までの会話内容から抽出したプロフィール情報（圧縮された記憶）
   recentMessages?: Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -84,9 +80,8 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // ユーザー情報を取得（プロフィール情報と守護神名も含む）
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, birth_year, birth_month, birth_day, assigned_deity, guardian_deity, conversation_profile FROM users WHERE id = ?'
+      'SELECT id, nickname, birth_year, birth_month, birth_day, assigned_deity FROM users WHERE id = ?'
     )
       .bind(tokenPayload.userId)
       .first();
@@ -101,16 +96,15 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // 【重要】登録ユーザーの会話履歴は最新10通のみ保存
-    // 会話履歴を取得（最新10通のみ）
+    // 会話履歴を取得（最新20件）
     // timestampカラムが存在しない場合はcreated_atを使用
     // テーブルにはmessageカラムが存在するため、messageを使用
     const historyResults = await env.DB.prepare<ConversationRow>(
       `SELECT role, message, COALESCE(timestamp, created_at) as created_at
        FROM conversations
-       WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
+       WHERE user_id = ? AND character_id = ?
        ORDER BY COALESCE(timestamp, created_at) DESC
-       LIMIT 10`
+       LIMIT 20`
     )
       .bind(user.id, characterId)
       .all();
@@ -126,7 +120,6 @@ export const onRequestGet: PagesFunction = async (context) => {
           birthMonth: user.birth_month,
           birthDay: user.birth_day,
           assignedDeity: user.assigned_deity,
-          guardianDeity: user.guardian_deity || undefined,
         } as ResponseBody),
         { status: 200, headers: corsHeaders }
       );
@@ -140,20 +133,17 @@ export const onRequestGet: PagesFunction = async (context) => {
       ? sortedConversations[sortedConversations.length - 1].created_at 
       : null;
 
-    // 最近のメッセージを返す（最新10通のみ - 既に10通に制限されている）
-    const recentMessages = sortedConversations.map((row) => ({
+    // 最近のメッセージを返す（最新10件）
+    const recentMessages = sortedConversations.slice(-10).map((row) => ({
       role: row.role,
       content: row.message,
     }));
 
-    // 会話の要約を生成（最新10通のメッセージから）
-    // プロフィール情報がある場合は、それも含める（過去100通までの記憶）
-    const conversationText = sortedConversations
+    // 会話の要約を生成（最後の数件のメッセージから）
+    const lastMessages = sortedConversations.slice(-6);
+    const conversationText = lastMessages
       .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.message}`)
       .join('\n');
-    
-    // プロフィール情報を取得（過去100通までの会話内容から抽出した情報）
-    const profileInfo = user.conversation_profile || null;
 
     return new Response(
       JSON.stringify({
@@ -164,9 +154,8 @@ export const onRequestGet: PagesFunction = async (context) => {
         birthDay: user.birth_day,
         assignedDeity: user.assigned_deity,
         lastConversationDate,
-        recentMessages, // 最新10通のみ
-        conversationSummary: conversationText, // 最新10通の要約
-        conversationProfile: profileInfo, // 過去100通までのプロフィール情報（圧縮された記憶）
+        recentMessages,
+        conversationSummary: conversationText,
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

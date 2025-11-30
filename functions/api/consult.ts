@@ -42,14 +42,12 @@ interface ResponseBody {
   remainingGuestMessages?: number;
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai'; // 使用したLLMプロバイダー（デバッグ用）
-  guardianDeity?: string; // 守護神の儀式完了時に抽出した守護神名（guardian_deityカラムから取得）
 }
 
 interface UserRecord {
   id: number;
   nickname: string;
   assigned_deity: string;
-  guardian_deity?: string;
 }
 
 interface ConversationRow {
@@ -80,46 +78,6 @@ function sanitizeClientHistory(entries?: ClientHistoryEntry[]): ClientHistoryEnt
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * メッセージを圧縮する関数（メモリー消費を削減）
- * @param {string} message - 元のメッセージ
- * @param {number} maxLength - 最大文字数
- * @returns {string} 圧縮されたメッセージ
- */
-function compressMessage(message: string, maxLength: number): string {
-  if (!message || message.length <= maxLength) {
-    return message;
-  }
-  
-  // 長いメッセージの場合は、最初と最後の部分を残して中間を省略
-  const firstPart = message.substring(0, Math.floor(maxLength * 0.6));
-  const lastPart = message.substring(message.length - Math.floor(maxLength * 0.3));
-  const compressed = `${firstPart}...（省略）...${lastPart}`;
-  
-  // さらに長い場合は、最初の部分のみを残す
-  if (compressed.length > maxLength) {
-    return message.substring(0, maxLength - 3) + '...';
-  }
-  
-  return compressed;
-}
-
-// 登録ユーザーの会話履歴管理設定
-const REGISTERED_USER_HISTORY_CONFIG = {
-  maxStoredMessages: 10, // 最新10通のみ保存
-  compression: {
-    enabled: true, // メモリー消費を削減するため、会話履歴を圧縮して保存
-    userMessageMaxLength: 200, // ユーザーメッセージの最大文字数
-    assistantMessageMaxLength: 300, // アシスタントメッセージの最大文字数
-    profileMaxLength: 1500 // プロフィール情報の最大文字数
-  },
-  profileExtraction: {
-    enabled: true,
-    maxMessagesForProfile: 100, // 100通までの会話内容からプロフィール情報を抽出
-    description: '過去100通までの会話内容からプロフィール情報を抽出して記憶（圧縮された記憶）'
-  }
-};
 
 const isServiceBusyError = (status: number, errorText: string) => {
   const normalized = (errorText || '').toLowerCase();
@@ -655,7 +613,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         );
       }
 
-      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, assigned_deity, guardian_deity FROM users WHERE id = ?')
+      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, assigned_deity FROM users WHERE id = ?')
         .bind(tokenPayload.userId)
         .first();
 
@@ -739,14 +697,13 @@ export const onRequestPost: PagesFunction = async (context) => {
     let conversationHistory: ClientHistoryEntry[] = [];
 
     if (user) {
-      // ログインユーザーの場合: データベースから履歴を取得（最新10通のみ）
-      // 【重要】登録ユーザーのチャット履歴は最新10通のみ保存
+      // ログインユーザーの場合: データベースから履歴を取得
       const historyResults = await env.DB.prepare<ConversationRow>(
         `SELECT role, message
          FROM conversations
-         WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
+         WHERE user_id = ? AND character_id = ?
          ORDER BY COALESCE(timestamp, created_at) DESC
-         LIMIT 10`
+         LIMIT 20`
       )
         .bind(user.id, characterId)
         .all();
@@ -938,22 +895,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       });
     }
 
-    // プロフィール情報を取得（過去100通までの会話内容から抽出した記憶）
-    let conversationProfile: string | undefined = undefined;
-    if (user) {
-      try {
-        const userProfileResult = await env.DB.prepare<{ conversation_profile: string }>(
-          'SELECT conversation_profile FROM users WHERE id = ?'
-        )
-          .bind(user.id)
-          .first();
-        conversationProfile = userProfileResult?.conversation_profile || undefined;
-      } catch (error) {
-        // conversation_profileカラムが存在しない場合は無視
-        console.log('⚠️ conversation_profileカラムが存在しないため、プロフィール情報の取得をスキップしました');
-      }
-    }
-
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
       userNickname: user?.nickname,
@@ -961,7 +902,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       conversationHistoryLength: conversationHistory.length,
       userMessageCount: finalUserMessageCount, // 必ず正しい数値が渡される
       isRitualStart: isRitualStart, // 守護神の儀式開始メッセージかどうか
-      conversationProfile: conversationProfile, // 過去100通までのプロフィール情報（圧縮された記憶）
     });
 
     if (DEBUG_MODE) {
@@ -1030,299 +970,55 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     const responseMessage = llmResult.message;
     
-    // 【重要】守護神の儀式完了時に、LLMの応答から守護神名を抽出してデータベースに保存
-    let extractedDeity: string | null = null;
-    if (user && characterId === 'kaede' && isRitualStart) {
-      // 守護神名の抽出パターン（クライアント側と同じパターン）
-      const deityPatterns = [
-        /あなたの守護神は[\s「『]?([^」』\s。、]+)/,
-        /守護神は[\s「『]?([^」』\s。、]+)/,
-        /([^。、\s]+)があなたの守護神です/,
-        /([^。、\s]+)が守護神です/,
-        /([^。、\s]+)が見守っています/,
-        /守護神[はが]「([^」]+)」/,
-        /守護神[はが]『([^』]+)』/,
-        /守護神[はが]([^。、\s]+)です/
-      ];
-      
-      for (const pattern of deityPatterns) {
-        const match = responseMessage.match(pattern);
-        if (match && match[1]) {
-          extractedDeity = match[1].trim();
-          // 「未割当」や空文字列は除外
-          if (extractedDeity && extractedDeity !== '未割当' && extractedDeity.length > 0) {
-            break;
-          }
-        }
-      }
-      
-      // 守護神名が抽出できた場合、データベースに保存（guardian_deityカラムに保存）
-      if (extractedDeity && extractedDeity !== '未割当' && extractedDeity.length > 0) {
-        try {
-          await env.DB.prepare(
-            `UPDATE users 
-             SET guardian_deity = ? 
-             WHERE id = ?`
-          )
-            .bind(extractedDeity, user.id)
-            .run();
-          
-          if (DEBUG_MODE) {
-            console.log(`✅ 守護神をデータベースに保存しました: user_id=${user.id}, guardian_deity=${extractedDeity}`);
-          }
-        } catch (error) {
-          console.error('⚠️ 守護神の保存エラー:', error);
-          // エラーが発生しても処理を続行
-        }
-      } else {
-        if (DEBUG_MODE) {
-          console.log('⚠️ 守護神名の抽出に失敗しました。応答メッセージ:', responseMessage.substring(0, 200));
-        }
-      }
-    }
-    
     // タロットカード関連のキーワードを検出（笹岡雪乃の場合のみ）
     const tarotKeywords = ['タロット', 'タロットカード', 'カードを', 'カードをめく', 'カードを占', 'カードを引'];
     const showTarotCard = characterId === 'yukino' && tarotKeywords.some(keyword => responseMessage.includes(keyword));
 
     if (user) {
-      // 【重要】登録ユーザーのチャット履歴管理:
-      // - 最新10通のみ保存（10通を超える古いメッセージは削除）
-      // - 100通までの会話内容からプロフィール情報を抽出して記憶
-      // - チャットそのものは10通以降は消して構わない
-      
+      // 100件制限チェックと古いメッセージ削除
       const messageCountResult = await env.DB.prepare<{ count: number }>(
         `SELECT COUNT(*) as count 
          FROM conversations 
-         WHERE user_id = ? AND character_id = ? AND is_guest_message = 0`
+         WHERE user_id = ? AND character_id = ?`
       )
         .bind(user.id, characterId)
         .first();
 
       const messageCount = messageCountResult?.count || 0;
-      const REGISTERED_USER_MESSAGE_LIMIT = REGISTERED_USER_HISTORY_CONFIG.maxStoredMessages; // 登録ユーザーは最新10通のみ保存
 
-      // 【重要】メモリー消費を削減するため、既存の会話履歴も圧縮
-      if (REGISTERED_USER_HISTORY_CONFIG.compression.enabled) {
-        // 最新10通の会話履歴を取得して、圧縮処理を実行
-        const existingHistory = await env.DB.prepare<ConversationRow>(
-          `SELECT id, role, message
-           FROM conversations
-           WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
-           ORDER BY COALESCE(timestamp, created_at) DESC
-           LIMIT ?`
-        )
-          .bind(user.id, characterId, REGISTERED_USER_MESSAGE_LIMIT)
-          .all();
-
-        // 既存の会話履歴を圧縮
-        if (existingHistory.results && existingHistory.results.length > 0) {
-          for (const row of existingHistory.results) {
-            const maxLength = row.role === 'user' 
-              ? REGISTERED_USER_HISTORY_CONFIG.compression.userMessageMaxLength
-              : REGISTERED_USER_HISTORY_CONFIG.compression.assistantMessageMaxLength;
-            const compressedMessage = compressMessage(row.message, maxLength);
-            
-            // 圧縮されたメッセージが元のメッセージと異なる場合のみ更新
-            if (compressedMessage !== row.message) {
-              try {
-                await env.DB.prepare(
-                  `UPDATE conversations 
-                   SET message = ? 
-                   WHERE id = ?`
-                )
-                  .bind(compressedMessage, row.id)
-                  .run();
-              } catch (error) {
-                console.error('会話履歴の圧縮エラー:', error);
-              }
-            }
-          }
-        }
-      }
-
-      // 10通を超える場合は、古いメッセージを削除
-      if (messageCount >= REGISTERED_USER_MESSAGE_LIMIT) {
-        // 削除前に、100通までの会話内容からプロフィール情報を抽出
-        // まず、100通までの会話履歴を取得（プロフィール抽出用）
-        const maxMessagesForProfile = REGISTERED_USER_HISTORY_CONFIG.profileExtraction.maxMessagesForProfile;
-        const historyForProfile = await env.DB.prepare<ConversationRow>(
-          `SELECT role, message, COALESCE(timestamp, created_at) as timestamp
-           FROM conversations
-           WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
-           ORDER BY COALESCE(timestamp, created_at) DESC
-           LIMIT ?`
-        )
-          .bind(user.id, characterId, maxMessagesForProfile)
-          .all();
-
-        // プロフィール情報を抽出（会話の要約や特徴）
-        if (historyForProfile.results && historyForProfile.results.length > 0) {
-          const profileMessages = historyForProfile.results
-            .slice()
-            .reverse()
-            .map(row => `${row.role === 'user' ? 'ユーザー' : 'アシスタント'}: ${row.message}`)
-            .join('\n');
-          
-          // プロフィール情報を要約（簡易版：実際にはLLMで要約するのが理想）
-          // メモリー消費を削減するため、プロフィール情報も圧縮
-          const profileSummary = REGISTERED_USER_HISTORY_CONFIG.compression.enabled
-            ? `過去の会話内容（${historyForProfile.results.length}通）:\n${compressMessage(profileMessages, REGISTERED_USER_HISTORY_CONFIG.compression.profileMaxLength)}`
-            : `過去の会話内容（${historyForProfile.results.length}通）:\n${profileMessages.substring(0, 2000)}...`;
-          
-          // usersテーブルにプロフィール情報を保存（conversation_profileカラム）
-          // 注意: conversation_profileカラムが存在しない場合は、エラーを無視
-          try {
-            await env.DB.prepare(
-              `UPDATE users 
-               SET conversation_profile = ? 
-               WHERE id = ?`
-            )
-              .bind(profileSummary, user.id)
-              .run();
-          } catch (error) {
-            // conversation_profileカラムが存在しない場合は無視
-            console.log('⚠️ conversation_profileカラムが存在しないため、プロフィール情報の保存をスキップしました');
-          }
-        }
-
-        // 10通を超える古いメッセージを削除
-        const deleteCount = messageCount - REGISTERED_USER_MESSAGE_LIMIT + 2; // ユーザーとアシスタントの2件を追加するため
+      if (messageCount >= 100) {
+        // 古いメッセージを削除（100件を超える分）
+        const deleteCount = messageCount - 100 + 2; // ユーザーとアシスタントの2件を追加するため
         await env.DB.prepare(
           `DELETE FROM conversations
-           WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
+           WHERE user_id = ? AND character_id = ?
            AND id IN (
              SELECT id FROM conversations
-             WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
+             WHERE user_id = ? AND character_id = ?
              ORDER BY COALESCE(timestamp, created_at) ASC
              LIMIT ?
            )`
         )
           .bind(user.id, characterId, user.id, characterId, deleteCount)
           .run();
-        
-        if (DEBUG_MODE) {
-          console.log(`✅ 登録ユーザーの会話履歴を整理: ${messageCount}通 → ${REGISTERED_USER_MESSAGE_LIMIT}通（${deleteCount}通を削除）`);
-        }
       }
 
-      // 【重要】メモリー消費を削減するため、会話履歴を圧縮して保存
-      // 完全なメッセージではなく、要約やキーポイントを保存
-      
-      // ユーザーメッセージを圧縮（長いメッセージは要約）
-      const compressedUserMessage = REGISTERED_USER_HISTORY_CONFIG.compression.enabled
-        ? compressMessage(trimmedMessage, REGISTERED_USER_HISTORY_CONFIG.compression.userMessageMaxLength)
-        : trimmedMessage;
-      
-      // アシスタントメッセージを圧縮（長いメッセージは要約）
-      const compressedAssistantMessage = REGISTERED_USER_HISTORY_CONFIG.compression.enabled
-        ? compressMessage(responseMessage, REGISTERED_USER_HISTORY_CONFIG.compression.assistantMessageMaxLength)
-        : responseMessage;
-      
-      // ユーザーメッセージを追加（圧縮版）
-      try {
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, compressedUserMessage)
-          .run();
-      } catch (error) {
-        // timestampカラムが存在しない場合はcreated_atのみを使用
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, compressedUserMessage)
-          .run();
-      }
-
-      // アシスタントメッセージを追加（圧縮版）
-      try {
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, compressedAssistantMessage)
-          .run();
-      } catch (error) {
-        // timestampカラムが存在しない場合はcreated_atのみを使用
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, compressedAssistantMessage)
-          .run();
-      }
-    } else {
-      // 【重要】ゲストユーザーの場合: user_id = 0 でメッセージを保存
-      // 各鑑定士につき最大10通まで（ユーザーメッセージのみ）
-      // 10通を超える場合は、古いメッセージを削除
-      
-      const GUEST_USER_ID = 0; // ゲストユーザーのuser_id
-      
-      // 現在のユーザーメッセージ数を確認（この鑑定士に対して）
-      const guestMessageCountResult = await env.DB.prepare<{ count: number }>(
-        `SELECT COUNT(*) as count 
-         FROM conversations 
-         WHERE user_id = ? AND character_id = ? AND is_guest_message = 1 AND role = 'user'`
-      )
-        .bind(GUEST_USER_ID, characterId)
-        .first();
-
-      const guestMessageCount = guestMessageCountResult?.count || 0;
-      
-      // 10通を超える場合は、古いメッセージを削除（ユーザーメッセージのみ）
-      if (guestMessageCount >= GUEST_MESSAGE_LIMIT) {
-        // 古いメッセージを削除（ユーザーメッセージとアシスタントメッセージをペアで削除）
-        // 最も古いペアから順に削除
-        const deleteCount = guestMessageCount - GUEST_MESSAGE_LIMIT + 1; // 今回のメッセージを含めて10通になるように
-        
-        if (deleteCount > 0) {
-          // 削除するメッセージのIDを取得（最も古いものから）
-          const messagesToDelete = await env.DB.prepare<{ id: number }>(
-            `SELECT id 
-             FROM conversations 
-             WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
-             ORDER BY COALESCE(timestamp, created_at) ASC
-             LIMIT ?`
-          )
-            .bind(GUEST_USER_ID, characterId, deleteCount * 2) // ユーザーとアシスタントのペアなので2倍
-            .all();
-
-          if (messagesToDelete.results && messagesToDelete.results.length > 0) {
-            const idsToDelete = messagesToDelete.results.map(row => row.id);
-            
-            // 古いメッセージを削除
-            await env.DB.prepare(
-              `DELETE FROM conversations 
-               WHERE id IN (${idsToDelete.map(() => '?').join(',')})`
-            )
-              .bind(...idsToDelete)
-              .run();
-            
-            if (DEBUG_MODE) {
-              console.log(`✅ ゲストユーザーの会話履歴を整理: ${guestMessageCount}通 → ${GUEST_MESSAGE_LIMIT}通（${idsToDelete.length}通を削除）`);
-            }
-          }
-        }
-      }
-      
       // ユーザーメッセージを追加
+      // テーブルにはmessageカラムが存在するため、messageを使用
       try {
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-           VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
         )
-          .bind(GUEST_USER_ID, characterId, trimmedMessage)
+          .bind(user.id, characterId, trimmedMessage)
           .run();
       } catch (error) {
         // timestampカラムが存在しない場合はcreated_atのみを使用
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-           VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
         )
-          .bind(GUEST_USER_ID, characterId, trimmedMessage)
+          .bind(user.id, characterId, trimmedMessage)
           .run();
       }
 
@@ -1330,17 +1026,17 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-           VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
         )
-          .bind(GUEST_USER_ID, characterId, responseMessage)
+          .bind(user.id, characterId, responseMessage)
           .run();
       } catch (error) {
         // timestampカラムが存在しない場合はcreated_atのみを使用
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-           VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
         )
-          .bind(GUEST_USER_ID, characterId, responseMessage)
+          .bind(user.id, characterId, responseMessage)
           .run();
       }
     }
@@ -1359,7 +1055,6 @@ export const onRequestPost: PagesFunction = async (context) => {
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
         showTarotCard: showTarotCard,
         provider: llmResult.provider, // 使用したLLMプロバイダーを返す（デバッグ用）
-        guardianDeity: extractedDeity || user?.guardian_deity || undefined, // 守護神の儀式完了時に抽出した守護神名を返す（guardian_deityカラムから取得）
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

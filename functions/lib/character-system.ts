@@ -320,7 +320,6 @@ interface PromptOptions {
   conversationHistoryLength?: number;
   userMessageCount?: number;
   isRitualStart?: boolean; // 守護神の儀式開始メッセージかどうか
-  conversationProfile?: string; // 過去100通までの会話内容から抽出したプロフィール情報（圧縮された記憶）
 }
 
 const registrationGuides: Record<string, string> = {
@@ -404,11 +403,6 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
   
   const conversationContext = options.hasPreviousConversation
     ? 'この相談者とは以前にも会話をしたことがあります。前回の会話の内容を覚えているかのように、自然に会話を続けてください。'
-    : '';
-  
-  // プロフィール情報（過去100通までの会話内容から抽出した記憶）
-  const profileContext = options.conversationProfile
-    ? `\n【過去の会話からの記憶（プロフィール情報）】\n${options.conversationProfile}\n\nこの情報は過去の会話内容から抽出した記憶です。最新10通の会話履歴と合わせて、相談者の特徴や過去の会話内容を踏まえて自然に会話を継続してください。`
     : '';
   
   // ゲストユーザー向けの特別な指示
@@ -820,16 +814,15 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
     ? `${phaseInstruction}\n\n=== 以下、楓の基本設定 ===\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`
     : `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}`;
   
-  // プロフィール情報をプロンプトに含める
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;
     return `${promptOrder}
 
 【登録誘導方針】
 ${guide}
-- ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}${profileContext}`;
+- ただし相談者を責めず、共感を持って案内すること。${nicknameReminder}`;
   }
-  return `${promptOrder}${nicknameReminder}${profileContext}`;
+  return `${promptOrder}${nicknameReminder}`;
 }
 
 /**

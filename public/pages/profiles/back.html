@@ -234,47 +234,10 @@
         const chatLink = document.getElementById('chatLink');
         const skipLink = document.getElementById('skipLink');
 
-        // チャットURLを設定（ゲストユーザーの場合はguest-chat.html、登録ユーザーの場合はchat.html）
-        // AuthStateが読み込まれるまで待機してから判定
-        function getChatUrl() {
-            // 登録ユーザーの場合はchat.html、ゲストユーザーの場合はguest-chat.html
-            if (window.AuthState && window.AuthState.isRegistered && window.AuthState.isRegistered()) {
-                return `../chat/chat.html?character=${encodeURIComponent(character)}`;
-            } else {
-                return `../chat/guest-chat.html?character=${encodeURIComponent(character)}`;
-            }
-        }
-        
-        // 初期値はゲスト用に設定
-        let chatUrl = `../chat/guest-chat.html?character=${encodeURIComponent(character)}`;
-        
-        // URLを更新する関数
-        function updateChatUrl() {
-            chatUrl = getChatUrl();
-            chatLink.href = chatUrl;
-            if (skipLink) {
-                skipLink.href = chatUrl;
-            }
-        }
-        
-        // 初期URLを設定
-        updateChatUrl();
+        // チャットURLを設定
+        const chatUrl = `../chat/chat?character=${encodeURIComponent(character)}`;
+        chatLink.href = chatUrl;
         chatLink.textContent = currentCharacterData.buttonText;
-        
-        // AuthStateが読み込まれるまで待機してからURLを再更新（登録ユーザーの場合）
-        let checkCount = 0;
-        const maxChecks = 20;
-        const checkInterval = setInterval(() => {
-            checkCount++;
-            if (window.AuthState && window.AuthState.isRegistered) {
-                // AuthStateが読み込まれたら、登録状態に応じてURLを更新
-                updateChatUrl();
-                clearInterval(checkInterval);
-            } else if (checkCount >= maxChecks) {
-                // 最大試行回数に達したら終了（ゲストユーザーの場合は初期値のまま）
-                clearInterval(checkInterval);
-            }
-        }, 100);
 
         // アニメーション中断用のフラグ
         let animationCancelled = false;

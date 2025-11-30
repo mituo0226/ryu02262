@@ -44,7 +44,7 @@ const ChatAPI = {
                     } else {
                         localStorage.removeItem('userToken');
                         localStorage.removeItem('userNickname');
-                        localStorage.removeItem('guardianDeity');
+                        localStorage.removeItem('assignedDeity');
                     }
                     return null;
                 }

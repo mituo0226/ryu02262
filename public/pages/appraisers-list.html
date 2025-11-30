@@ -106,7 +106,6 @@
         </div>
     </div>
 
-    <script src="../../js/auth-state.js"></script>
     <script>
         const appraisers = [
             {
@@ -138,11 +137,6 @@
         function initPage() {
             const grid = document.getElementById('appraisersGrid');
             
-            // AuthStateを初期化
-            if (window.AuthState && typeof window.AuthState.init === 'function') {
-                window.AuthState.init();
-            }
-            
             appraisers.forEach(appraiser => {
                 const card = document.createElement('div');
                 card.className = 'appraiser-card';
@@ -153,36 +147,14 @@
                 `;
                 
                 card.addEventListener('click', () => {
-                    // ゲストユーザーと登録ユーザーで分岐
-                    const isRegistered = window.AuthState && typeof window.AuthState.isRegistered === 'function' 
-                        ? window.AuthState.isRegistered() 
-                        : false;
-                    
-                    const chatUrl = isRegistered 
-                        ? `chat/chat.html?character=${appraiser.id}`
-                        : `chat/guest-chat.html?character=${appraiser.id}`;
-                    
-                    window.location.href = chatUrl;
+                    window.location.href = `chat/chat.html?character=${appraiser.id}`;
                 });
                 
                 grid.appendChild(card);
             });
         }
 
-        // AuthStateが読み込まれるまで待機
-        function waitForAuthState() {
-            if (window.AuthState && typeof window.AuthState.init === 'function') {
-                initPage();
-            } else {
-                setTimeout(waitForAuthState, 100);
-            }
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', waitForAuthState);
-        } else {
-            waitForAuthState();
-        }
+        window.addEventListener('DOMContentLoaded', initPage);
     </script>
 </body>
 </html>
