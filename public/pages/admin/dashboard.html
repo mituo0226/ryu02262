@@ -1455,10 +1455,16 @@
       // 初回更新を準備完了通知後に実行（自動更新で処理される）
       // 定期更新は控えめに（5秒ごと、または手動更新のみ）
       
-      // 初回更新を少し待ってから試行
+      // 初回更新を少し待ってから試行（準備完了通知後に自動更新されるため、ここではスキップ）
+      // 準備完了通知が届かない場合のフォールバックとして、5秒後に1回だけ試行
+      let initialUpdateAttempted = false;
       setTimeout(() => {
-        updateAnalysisPanelPostMessage(iframe, character, userType, false);
-      }, 2000); // 2秒後に初回更新
+        if (!iframeReadyReceived && !initialUpdateAttempted) {
+          initialUpdateAttempted = true;
+          console.log('[管理画面] 準備完了通知が届いていないため、フォールバック更新を実行');
+          updateAnalysisPanelPostMessage(iframe, character, userType, false);
+        }
+      }, 5000); // 5秒後にフォールバック更新
       
       // 定期更新（30秒ごと - フォールバック用、イベント駆動型を優先）
       analysisInterval = setInterval(() => {
@@ -1542,13 +1548,24 @@
         debugInfo.push(`✅ iframe.src: ${iframe.src}`);
         
         // postMessageでデータをリクエスト
+        // 重複リクエストを防ぐために、リクエストIDを生成
+        const requestId = `request_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        let isResolved = false; // 既に解決済みかどうか
+        
         const chatData = await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            window.removeEventListener('message', messageHandler);
-            reject(new Error('タイムアウト: 10秒以内にチャットデータを取得できませんでした'));
+            if (!isResolved) {
+              isResolved = true;
+              window.removeEventListener('message', messageHandler);
+              reject(new Error('タイムアウト: 10秒以内にチャットデータを取得できませんでした'));
+            }
           }, 10000); // 10秒タイムアウト
           
           const messageHandler = (event) => {
+            // 既に解決済みの場合は無視
+            if (isResolved) {
+              return;
+            }
             // デバッグ: すべてのメッセージをログに記録
             if (showDebug) {
               console.log('[管理画面] メッセージ受信:', {
@@ -1570,16 +1587,22 @@
             }
             
             if (event.data.type === 'CHAT_DATA_RESPONSE') {
-              clearTimeout(timeout);
-              window.removeEventListener('message', messageHandler);
-              debugInfo.push('✅ チャットデータを受信しました');
-              console.log('[管理画面] ✅ チャットデータを受信しました', event.data.data);
-              resolve(event.data.data);
+              if (!isResolved) {
+                isResolved = true;
+                clearTimeout(timeout);
+                window.removeEventListener('message', messageHandler);
+                debugInfo.push('✅ チャットデータを受信しました');
+                console.log('[管理画面] ✅ チャットデータを受信しました', event.data.data);
+                resolve(event.data.data);
+              }
             } else if (event.data.type === 'CHAT_DATA_ERROR') {
-              clearTimeout(timeout);
-              window.removeEventListener('message', messageHandler);
-              console.error('[管理画面] ❌ チャットデータ取得エラー:', event.data.error);
-              reject(new Error(event.data.error));
+              if (!isResolved) {
+                isResolved = true;
+                clearTimeout(timeout);
+                window.removeEventListener('message', messageHandler);
+                console.error('[管理画面] ❌ チャットデータ取得エラー:', event.data.error);
+                reject(new Error(event.data.error));
+              }
             }
           };
           
