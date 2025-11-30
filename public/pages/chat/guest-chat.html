@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>鑑定士チャット</title>
+    <title>ゲストチャット</title>
     <style>
         /* ============================================
            カラーパレット
@@ -760,6 +760,39 @@
            <script src="../../js/chat-data.js"></script>
            <script src="../../js/chat-ui.js"></script>
            <script src="../../js/chat-init.js"></script>
+           <!-- ゲストチャットHTML: 登録ユーザーがアクセスした場合はchat.htmlにリダイレクト -->
+           <script>
+           (function() {
+               'use strict';
+               
+               // AuthStateが読み込まれるまで待機
+               function checkAndRedirect() {
+                   if (window.AuthState && typeof window.AuthState.init === 'function') {
+                       window.AuthState.init();
+                       
+                       // 登録ユーザーがguest-chat.htmlにアクセスした場合、chat.htmlにリダイレクト
+                       if (window.AuthState.isRegistered()) {
+                           const urlParams = new URLSearchParams(window.location.search);
+                           const character = urlParams.get('character') || 'kaede';
+                           const redirectUrl = `chat.html?character=${character}`;
+                           console.log('[guest-chat.html] 登録ユーザーがアクセスしました。chat.htmlにリダイレクト:', redirectUrl);
+                           window.location.href = redirectUrl;
+                           return;
+                       }
+                   } else {
+                       // AuthStateがまだ読み込まれていない場合、少し待ってから再試行
+                       setTimeout(checkAndRedirect, 100);
+                   }
+               }
+               
+               // DOMContentLoadedまたは既に読み込み完了の場合
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', checkAndRedirect);
+               } else {
+                   checkAndRedirect();
+               }
+           })();
+           </script>
            <!-- iframe内で確実にpostMessage通信を初期化 -->
            <script>
            (function() {

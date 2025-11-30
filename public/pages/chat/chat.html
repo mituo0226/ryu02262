@@ -760,6 +760,39 @@
            <script src="../../js/chat-data.js"></script>
            <script src="../../js/chat-ui.js"></script>
            <script src="../../js/chat-init.js"></script>
+           <!-- チャットHTML: ゲストユーザーがアクセスした場合はguest-chat.htmlにリダイレクト -->
+           <script>
+           (function() {
+               'use strict';
+               
+               // AuthStateが読み込まれるまで待機
+               function checkAndRedirect() {
+                   if (window.AuthState && typeof window.AuthState.init === 'function') {
+                       window.AuthState.init();
+                       
+                       // ゲストユーザーがchat.htmlにアクセスした場合、guest-chat.htmlにリダイレクト
+                       if (!window.AuthState.isRegistered()) {
+                           const urlParams = new URLSearchParams(window.location.search);
+                           const character = urlParams.get('character') || 'kaede';
+                           const redirectUrl = `guest-chat.html?character=${character}`;
+                           console.log('[chat.html] ゲストユーザーがアクセスしました。guest-chat.htmlにリダイレクト:', redirectUrl);
+                           window.location.href = redirectUrl;
+                           return;
+                       }
+                   } else {
+                       // AuthStateがまだ読み込まれていない場合、少し待ってから再試行
+                       setTimeout(checkAndRedirect, 100);
+                   }
+               }
+               
+               // DOMContentLoadedまたは既に読み込み完了の場合
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', checkAndRedirect);
+               } else {
+                   checkAndRedirect();
+               }
+           })();
+           </script>
            <!-- iframe内で確実にpostMessage通信を初期化 -->
            <script>
            (function() {
