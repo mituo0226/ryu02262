@@ -68,10 +68,30 @@ const ChatData = {
         const storedCount = sessionStorage.getItem(key);
         
         if (storedCount !== null) {
-            return Number.parseInt(storedCount, 10);
-        } else if (window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') {
-            return window.AuthState.getGuestMessageCount() || 0;
+            const count = Number.parseInt(storedCount, 10);
+            console.log(`[ChatData] getGuestMessageCount(${character}): ${count} (sessionStorage)`);
+            return count;
         }
+        
+        // sessionStorageにない場合、会話履歴から計算
+        const history = this.getGuestHistory(character);
+        if (history && Array.isArray(history)) {
+            const userMessageCount = history.filter(msg => msg && msg.role === 'user').length;
+            if (userMessageCount > 0) {
+                console.log(`[ChatData] getGuestMessageCount(${character}): ${userMessageCount} (履歴から計算)`);
+                // 計算した値をsessionStorageに保存（次回から高速化）
+                this.setGuestMessageCount(character, userMessageCount);
+                return userMessageCount;
+            }
+        }
+        
+        if (window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') {
+            const authCount = window.AuthState.getGuestMessageCount() || 0;
+            console.log(`[ChatData] getGuestMessageCount(${character}): ${authCount} (AuthState)`);
+            return authCount;
+        }
+        
+        console.log(`[ChatData] getGuestMessageCount(${character}): 0 (デフォルト)`);
         return 0;
     },
 
@@ -85,6 +105,7 @@ const ChatData = {
         const key = GUEST_COUNT_KEY_PREFIX + character;
         sessionStorage.setItem(key, String(count));
         sessionStorage.setItem('lastGuestMessageCount', String(count - 1));
+        console.log(`[ChatData] setGuestMessageCount(${character}, ${count})`);
     },
 
     /**

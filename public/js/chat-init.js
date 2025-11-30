@@ -303,6 +303,11 @@ const ChatInit = {
             }
             
             ChatData.setGuestMessageCount(character, guestCount + 1);
+            console.log('[メッセージ送信] ゲストカウントを更新:', {
+                character,
+                oldCount: guestCount,
+                newCount: guestCount + 1
+            });
             ChatUI.updateUserStatus(false);
         }
 
@@ -341,11 +346,16 @@ const ChatInit = {
             
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'user', messageToSend);
+                console.log('[メッセージ送信] ゲスト履歴に追加:', {
+                    character,
+                    message: messageToSend.substring(0, 50) + '...'
+                });
                 
                 // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
                 if (window.parent && window.parent !== window) {
                     try {
                         const messageCount = ChatData.getGuestMessageCount(character);
+                        console.log('[メッセージ送信] 現在のメッセージカウント:', messageCount);
                         window.parent.postMessage({
                             type: 'CHAT_MESSAGE_SENT',
                             character: character,
@@ -353,7 +363,10 @@ const ChatInit = {
                             messageCount: messageCount,
                             timestamp: Date.now()
                         }, '*');
-                        console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）');
+                        console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
+                            character,
+                            messageCount
+                        });
                     } catch (error) {
                         console.error('[iframe] メッセージ送信通知エラー:', error);
                     }
@@ -474,6 +487,12 @@ const ChatInit = {
                             const isRegistered = window.AuthState?.isRegistered() || false;
                             const messageCount = ChatData?.getGuestMessageCount(character) || 0;
                             
+                            console.log('[応答受信] 親ウィンドウに通知:', {
+                                character,
+                                userType: isRegistered ? 'registered' : 'guest',
+                                messageCount
+                            });
+                            
                             window.parent.postMessage({
                                 type: 'CHAT_MESSAGE_SENT',
                                 character: character,
@@ -481,7 +500,10 @@ const ChatInit = {
                                 messageCount: messageCount,
                                 timestamp: Date.now()
                             }, '*');
-                            console.log('[iframe] メッセージ送信完了を親ウィンドウに通知しました（応答受信後）');
+                            console.log('[iframe] メッセージ送信完了を親ウィンドウに通知しました（応答受信後）', {
+                                character,
+                                messageCount
+                            });
                         } catch (error) {
                             console.error('[iframe] メッセージ送信通知エラー:', error);
                         }
@@ -1124,9 +1146,36 @@ window.addEventListener('DOMContentLoaded', async () => {
                         // ゲストユーザーの場合
                         if (typeof ChatData?.getGuestMessageCount === 'function') {
                             messageCount = ChatData.getGuestMessageCount(character) || 0;
+                            console.log('[iframe] ゲストメッセージ数を取得:', {
+                                character,
+                                messageCount,
+                                method: 'getGuestMessageCount'
+                            });
+                        } else {
+                            console.warn('[iframe] ChatData.getGuestMessageCountが関数ではありません');
                         }
+                        
                         if (typeof ChatData?.getGuestHistory === 'function') {
                             conversationHistory = ChatData.getGuestHistory(character) || [];
+                            console.log('[iframe] ゲスト会話履歴を取得:', {
+                                character,
+                                historyLength: conversationHistory.length,
+                                userMessages: conversationHistory.filter(msg => msg && msg.role === 'user').length
+                            });
+                        } else {
+                            console.warn('[iframe] ChatData.getGuestHistoryが関数ではありません');
+                        }
+                        
+                        // 会話履歴からもメッセージ数を計算（フォールバック）
+                        if (conversationHistory && conversationHistory.length > 0) {
+                            const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                            if (historyUserMessages > messageCount) {
+                                console.log('[iframe] 会話履歴からメッセージ数を修正:', {
+                                    oldCount: messageCount,
+                                    newCount: historyUserMessages
+                                });
+                                messageCount = historyUserMessages;
+                            }
                         }
                     }
                     
