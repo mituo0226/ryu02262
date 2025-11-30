@@ -750,24 +750,62 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 通知を送信する関数（重複を防ぐ）
     function tryNotifyParent() {
         if (hasNotified) {
-            return; // 既に通知済みの場合はスキップ
+            console.log('[iframe] 通知は既に送信済みです');
+            return true; // 既に通知済みの場合は成功として扱う
         }
         
-        if (ChatData && window.AuthState) {
-            console.log('[iframe] 通知を送信しようとしています...', {
-                hasChatData: !!ChatData,
-                hasAuthState: !!window.AuthState,
-                currentCharacter: ChatData?.currentCharacter
-            });
-            notifyParentReady();
-            hasNotified = true; // 成功したらマーク
-            if (notifyInterval) {
-                clearInterval(notifyInterval);
-                notifyInterval = null;
+        // ChatDataとAuthStateが利用可能かチェック
+        const hasChatData = typeof ChatData !== 'undefined' && ChatData !== null;
+        const hasAuthState = typeof window.AuthState !== 'undefined' && window.AuthState !== null;
+        
+        console.log('[iframe] 通知を送信しようとしています...', {
+            hasChatData: hasChatData,
+            hasAuthState: hasAuthState,
+            currentCharacter: ChatData?.currentCharacter || 'unknown',
+            documentReadyState: document.readyState
+        });
+        
+        // ChatDataとAuthStateがなくても、最小限の準備完了通知を送信
+        // （親ウィンドウは準備完了を検知できれば、後でデータをリクエストできる）
+        if (window.parent && window.parent !== window) {
+            try {
+                const character = ChatData?.currentCharacter || new URLSearchParams(window.location.search).get('character') || 'unknown';
+                const isRegistered = (hasAuthState && window.AuthState?.isRegistered()) || false;
+                const messageCount = (hasChatData && typeof ChatData?.getGuestMessageCount === 'function') 
+                    ? (ChatData.getGuestMessageCount(character) || 0) 
+                    : 0;
+                
+                window.parent.postMessage({
+                    type: 'CHAT_IFRAME_READY',
+                    character: character,
+                    userType: isRegistered ? 'registered' : 'guest',
+                    messageCount: messageCount,
+                    timestamp: Date.now(),
+                    ready: true
+                }, '*');
+                
+                console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました（最小限の情報）', {
+                    character,
+                    userType: isRegistered ? 'registered' : 'guest',
+                    messageCount,
+                    hasChatData,
+                    hasAuthState
+                });
+                
+                hasNotified = true; // 成功したらマーク
+                if (notifyInterval) {
+                    clearInterval(notifyInterval);
+                    notifyInterval = null;
+                }
+                return true;
+            } catch (error) {
+                console.error('[iframe] ❌ 準備完了通知の送信エラー:', error);
+                return false;
             }
-            return true;
+        } else {
+            console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました');
+            return false;
         }
-        return false;
     }
     
     // 1. DOMContentLoaded時に即座に1回通知
@@ -825,7 +863,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     // デバッグ用: notifyParentReadyをグローバルに公開
     window.notifyParentReady = notifyParentReady;
     
-    console.log('[iframe] postMessage通信が初期化されました');
+    console.log('[iframe] postMessage通信が初期化されました', {
+        hasChatData: typeof ChatData !== 'undefined',
+        hasAuthState: typeof window.AuthState !== 'undefined',
+        hasParent: window.parent && window.parent !== window,
+        documentReadyState: document.readyState
+    });
+    
+    // 即座に1回通知を試行（ChatData/AuthStateの初期化を待たない）
+    console.log('[iframe] 即座に準備完了通知を試行（0.5秒後）...');
+    setTimeout(() => {
+        tryNotifyParent();
+    }, 500);
     
     // 管理者用コマンドハンドラー（postMessage）
     window.addEventListener('message', async (event) => {
