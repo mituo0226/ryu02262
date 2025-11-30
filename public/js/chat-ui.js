@@ -173,6 +173,9 @@ const ChatUI = {
         requestAnimationFrame(() => {
             this.scrollToLatest();
         });
+        
+        // メッセージ要素を返す（ボタンなどを追加できるように）
+        return messageDiv;
     },
 
     /**
@@ -232,6 +235,142 @@ const ChatUI = {
             setTimeout(() => {
                 ritualConsentContainer.style.display = 'none';
             }, 500);
+        }
+    },
+
+    /**
+     * 守護神の儀式開始ボタンをメッセージの下に追加
+     * @param {HTMLElement} messageElement - メッセージ要素
+     * @param {Function} onClickHandler - ボタンクリック時のハンドラ
+     */
+    addRitualStartButton(messageElement, onClickHandler) {
+        if (!messageElement) return null;
+        
+        // 既にボタンが追加されている場合は削除
+        const existingButton = messageElement.querySelector('.ritual-start-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // ボタンコンテナを作成
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'ritual-start-button-container';
+        buttonContainer.style.marginTop = '15px';
+        buttonContainer.style.paddingTop = '15px';
+        buttonContainer.style.borderTop = '1px solid rgba(255, 255, 255, 0.2)';
+        
+        // ボタンを作成
+        const button = document.createElement('button');
+        button.className = 'ritual-start-button';
+        button.textContent = '守護神の儀式を始める';
+        button.style.cssText = `
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.3);
+        `;
+        
+        // ホバー効果
+        button.addEventListener('mouseenter', () => {
+            button.style.background = 'linear-gradient(135deg, #9B4DFF 0%, #7A1DBD 100%)';
+            button.style.boxShadow = '0 6px 16px rgba(139, 61, 255, 0.4)';
+            button.style.transform = 'translateY(-2px)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.background = 'linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%)';
+            button.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.3)';
+            button.style.transform = 'translateY(0)';
+        });
+        
+        // クリックハンドラ
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            button.textContent = '儀式を開始しています...';
+            button.style.opacity = '0.7';
+            button.style.cursor = 'wait';
+            
+            try {
+                await onClickHandler();
+            } catch (error) {
+                console.error('[守護神の儀式] 開始エラー:', error);
+                button.disabled = false;
+                button.textContent = '守護神の儀式を始める';
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                ChatUI.addMessage('error', '守護神の儀式の開始中にエラーが発生しました。もう一度お試しください。', 'システム');
+            }
+        });
+        
+        buttonContainer.appendChild(button);
+        messageElement.appendChild(buttonContainer);
+        
+        // スクロールを最新に
+        requestAnimationFrame(() => {
+            this.scrollToLatest();
+        });
+        
+        return button;
+    },
+
+    /**
+     * 守護神の儀式開始ボタンが表示されているかチェック
+     * @returns {boolean} ボタンが表示されているか
+     */
+    isRitualStartButtonVisible() {
+        // 非表示になっているボタンは除外
+        const button = document.querySelector('.ritual-start-button');
+        if (!button) return false;
+        
+        // display: none が設定されていない、かつdisabledでないボタンを探す
+        const visibleButton = Array.from(document.querySelectorAll('.ritual-start-button')).find(btn => {
+            const style = window.getComputedStyle(btn);
+            return style.display !== 'none' && !btn.disabled;
+        });
+        
+        return visibleButton !== undefined;
+    },
+
+    /**
+     * 守護神の儀式開始ボタンを再表示（メッセージ送信時に呼ばれる）
+     */
+    showRitualStartPrompt() {
+        // 「まずは守護神の儀式を始めてください」メッセージを表示
+        ChatUI.addMessage('error', 'まずは守護神の儀式を始めてください。上の「守護神の儀式を始める」ボタンを押してください。', 'システム');
+        
+        // 「それでは守護神の儀式を始めます」というメッセージを探して、ボタンを再表示
+        const messages = document.querySelectorAll('#messages .message.character');
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const message = messages[i];
+            if (message.textContent.includes('それでは守護神の儀式を始めます')) {
+                // 既にボタンがあるかチェック
+                const existingButton = message.querySelector('.ritual-start-button');
+                if (existingButton) {
+                    // ボタンが非表示になっている場合は再表示
+                    const buttonStyle = window.getComputedStyle(existingButton);
+                    if (buttonStyle.display === 'none') {
+                        existingButton.style.display = '';
+                        const container = existingButton.closest('.ritual-start-button-container');
+                        if (container) {
+                            container.style.display = '';
+                        }
+                        console.log('[守護神の儀式] 既存のボタンを再表示しました');
+                    }
+                } else {
+                    // ボタンが存在しない場合は、グローバルに公開された関数を使用して追加
+                    console.log('[守護神の儀式] ボタンを新規追加します');
+                    if (window.ChatInit && typeof window.ChatInit.addRitualStartButtonToMessage === 'function') {
+                        window.ChatInit.addRitualStartButtonToMessage(message);
+                    }
+                }
+                break;
+            }
         }
     }
 };

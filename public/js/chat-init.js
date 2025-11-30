@@ -158,23 +158,88 @@ const ChatInit = {
                     // 前置きなしで「それでは守護神の儀式を始めます」と表示
                     const ritualStartMessage = 'それでは守護神の儀式を始めます';
                     console.log('[登録完了処理] メッセージを表示:', ritualStartMessage);
-                    ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
+                    const messageElement = ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
                     
-                    // 自動的に守護神の儀式を開始（ゲスト会話履歴を渡す）
-                    console.log('[登録完了処理] 1秒待機後に守護神の儀式を開始');
-                    await this.delay(1000);
-                    console.log('[登録完了処理] 守護神の儀式を開始します（ゲスト会話履歴を使用）');
-                    await this.startGuardianRitual(character, guestHistoryForRitual);
-                    
-                    // 守護神の儀式開始後、ゲスト履歴をクリア
-                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                        AuthState.clearGuestHistory(character);
-                    }
+                    // ゲスト会話履歴を一時的に保存（ボタンクリック時に使用するため）
+                    // sessionStorageに保存して、ボタンクリック時に取得できるようにする
                     const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
                     const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-                    sessionStorage.removeItem(historyKey);
-                    sessionStorage.removeItem('pendingGuestHistoryMigration');
-                    ChatData.setGuestMessageCount(character, 0);
+                    if (guestHistoryForRitual.length > 0) {
+                        sessionStorage.setItem('pendingRitualGuestHistory', JSON.stringify({
+                            character: character,
+                            history: guestHistoryForRitual
+                        }));
+                        console.log('[登録完了処理] ゲスト履歴をpendingRitualGuestHistoryに保存:', {
+                            historyLength: guestHistoryForRitual.length,
+                            userMessages: guestHistoryForRitual.filter(msg => msg && msg.role === 'user').length
+                        });
+                    }
+                    
+                    // メッセージの下に守護神の儀式開始ボタンを追加
+                    if (messageElement) {
+                        ChatUI.addRitualStartButton(messageElement, async () => {
+                            console.log('[守護神の儀式] ボタンがクリックされました');
+                            
+                            // 保存されたゲスト履歴を取得
+                            const pendingRitualHistory = sessionStorage.getItem('pendingRitualGuestHistory');
+                            let ritualGuestHistory = [];
+                            
+                            if (pendingRitualHistory) {
+                                try {
+                                    const ritualData = JSON.parse(pendingRitualHistory);
+                                    if (ritualData.character === character && ritualData.history) {
+                                        ritualGuestHistory = ritualData.history;
+                                        console.log('[守護神の儀式] 保存されたゲスト履歴を取得:', {
+                                            historyLength: ritualGuestHistory.length,
+                                            userMessages: ritualGuestHistory.filter(msg => msg && msg.role === 'user').length
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.error('[守護神の儀式] ゲスト履歴の取得エラー:', error);
+                                }
+                            }
+                            
+                            // ゲスト履歴が取得できない場合は、再度取得を試みる
+                            if (ritualGuestHistory.length === 0) {
+                                console.log('[守護神の儀式] ゲスト履歴を再取得');
+                                const ChatInitInstance = window.ChatInit || this;
+                                if (ChatInitInstance && typeof ChatInitInstance.getGuestHistoryForMigration === 'function') {
+                                    ritualGuestHistory = ChatInitInstance.getGuestHistoryForMigration(character);
+                                }
+                                if (ritualGuestHistory.length === 0) {
+                                    ritualGuestHistory = ChatData.getGuestHistory(character) || [];
+                                }
+                            }
+                            
+                            console.log('[守護神の儀式] 使用するゲスト履歴:', {
+                                historyLength: ritualGuestHistory.length,
+                                userMessages: ritualGuestHistory.filter(msg => msg && msg.role === 'user').length
+                            });
+                            
+                            // ボタンを非表示
+                            const button = messageElement.querySelector('.ritual-start-button');
+                            if (button) {
+                                button.style.display = 'none';
+                            }
+                            
+                            // 守護神の儀式を開始
+                            const ChatInitInstance = window.ChatInit || this;
+                            if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
+                                await ChatInitInstance.startGuardianRitual(character, ritualGuestHistory);
+                            } else {
+                                console.error('[守護神の儀式] startGuardianRitual関数が見つかりません');
+                            }
+                            
+                            // 守護神の儀式開始後、ゲスト履歴をクリア
+                            if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                                AuthState.clearGuestHistory(character);
+                            }
+                            sessionStorage.removeItem(historyKey);
+                            sessionStorage.removeItem('pendingGuestHistoryMigration');
+                            sessionStorage.removeItem('pendingRitualGuestHistory');
+                            ChatData.setGuestMessageCount(character, 0);
+                        });
+                    }
                     
                     // URLパラメータからjustRegisteredを削除
                     urlParams.delete('justRegistered');
@@ -192,7 +257,7 @@ const ChatInit = {
                     sessionStorage.removeItem(historyKey);
                     sessionStorage.removeItem('pendingGuestHistoryMigration');
                     ChatData.setGuestMessageCount(character, 0);
-                }
+                    
                     // 他のキャラクターの場合、通常の初回メッセージを表示
                     const info = ChatData.characterInfo[character];
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
@@ -419,6 +484,12 @@ const ChatInit = {
         const character = ChatData.currentCharacter;
 
         if (!message) {
+            return;
+        }
+        
+        // 守護神の儀式開始ボタンが表示されている場合は、メッセージ送信をブロック
+        if (ChatUI.isRitualStartButtonVisible()) {
+            ChatUI.showRitualStartPrompt();
             return;
         }
 
@@ -974,6 +1045,74 @@ const ChatInit = {
      */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    /**
+     * メッセージ要素に守護神の儀式開始ボタンを追加（再表示用）
+     * @param {HTMLElement} messageElement - メッセージ要素
+     */
+    addRitualStartButtonToMessage(messageElement) {
+        if (!messageElement) return;
+        
+        const character = ChatData.currentCharacter;
+        
+        // ボタンを追加
+        ChatUI.addRitualStartButton(messageElement, async () => {
+            console.log('[守護神の儀式] ボタンがクリックされました（再表示）');
+            
+            // 保存されたゲスト履歴を取得
+            const pendingRitualHistory = sessionStorage.getItem('pendingRitualGuestHistory');
+            let ritualGuestHistory = [];
+            
+            if (pendingRitualHistory) {
+                try {
+                    const ritualData = JSON.parse(pendingRitualHistory);
+                    if (ritualData.character === character && ritualData.history) {
+                        ritualGuestHistory = ritualData.history;
+                        console.log('[守護神の儀式] 保存されたゲスト履歴を取得（再表示）:', {
+                            historyLength: ritualGuestHistory.length,
+                            userMessages: ritualGuestHistory.filter(msg => msg && msg.role === 'user').length
+                        });
+                    }
+                } catch (error) {
+                    console.error('[守護神の儀式] ゲスト履歴の取得エラー（再表示）:', error);
+                }
+            }
+            
+            // ゲスト履歴が取得できない場合は、再度取得を試みる
+            if (ritualGuestHistory.length === 0) {
+                console.log('[守護神の儀式] ゲスト履歴を再取得（再表示）');
+                ritualGuestHistory = this.getGuestHistoryForMigration(character);
+                if (ritualGuestHistory.length === 0) {
+                    ritualGuestHistory = ChatData.getGuestHistory(character) || [];
+                }
+            }
+            
+            console.log('[守護神の儀式] 使用するゲスト履歴（再表示）:', {
+                historyLength: ritualGuestHistory.length,
+                userMessages: ritualGuestHistory.filter(msg => msg && msg.role === 'user').length
+            });
+            
+            // ボタンを非表示
+            const button = messageElement.querySelector('.ritual-start-button');
+            if (button) {
+                button.style.display = 'none';
+            }
+            
+            // 守護神の儀式を開始
+            await this.startGuardianRitual(character, ritualGuestHistory);
+            
+            // 守護神の儀式開始後、ゲスト履歴をクリア
+            if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                AuthState.clearGuestHistory(character);
+            }
+            const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+            const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+            sessionStorage.removeItem(historyKey);
+            sessionStorage.removeItem('pendingGuestHistoryMigration');
+            sessionStorage.removeItem('pendingRitualGuestHistory');
+            ChatData.setGuestMessageCount(character, 0);
+        });
     }
 };
 
