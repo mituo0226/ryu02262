@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="/css/styles.css">
   <style>
     :root { color-scheme: dark; }
+    * {
+      box-sizing: border-box;
+    }
+    
     body {
       background: #05040a;
       min-height: 100vh;
@@ -15,48 +19,148 @@
       color: #f7f5ff;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      overflow: hidden;
     }
     
-    /* PC版: 全体を左側に配置 */
-    @media (min-width: 769px) {
-      body {
-        align-items: flex-start;
-      }
-    }
+    /* ヘッダー（固定） */
     header {
-      padding: 20px;
+      flex-shrink: 0;
+      padding: 20px 24px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
     }
     
-    /* ナビゲーション（PC: 左側、モバイル: 上部） */
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    header .muted {
+      color: #9da2c6;
+      font-size: 13px;
+      margin: 0 0 12px;
+    }
+    
+    .token-input {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .token-input input {
+      flex: 1;
+      min-width: 300px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.4);
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    .token-input input:focus {
+      outline: none;
+      border-color: rgba(138, 43, 226, 0.6);
+      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
+    }
+    
+    .token-input button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9));
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .token-input button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(138, 43, 226, 0.2);
+      color: #d6c9ff;
+      border: 1px solid rgba(138, 43, 226, 0.3);
+    }
+    
+    .badge.connected {
+      background: rgba(0, 200, 120, 0.25);
+      color: #90ffc7;
+      border-color: rgba(0, 200, 120, 0.4);
+    }
+    
+    /* メインコンテナ（横並び） */
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+    
+    /* サイドバー（左側、固定幅） */
     .admin-navigation {
+      flex-shrink: 0;
+      width: 280px;
       background: rgba(0, 0, 0, 0.4);
       border-right: 1px solid rgba(255,255,255,0.08);
-      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      min-width: 240px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 20px 16px;
+    }
+    
+    .admin-navigation::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .admin-navigation::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .admin-navigation::-webkit-scrollbar-thumb {
+      background: rgba(138, 43, 226, 0.4);
+      border-radius: 3px;
+    }
+    
+    .admin-navigation::-webkit-scrollbar-thumb:hover {
+      background: rgba(138, 43, 226, 0.6);
     }
     
     .admin-navigation h2 {
-      margin: 0 0 16px;
-      font-size: 18px;
+      margin: 0 0 20px;
+      font-size: 16px;
+      font-weight: 600;
       color: #c7cdff;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       padding-bottom: 12px;
+      border-bottom: 2px solid rgba(138, 43, 226, 0.3);
     }
     
     .admin-nav-item {
       display: block;
       width: 100%;
       text-align: left;
-      padding: 12px 16px;
-      border-radius: 8px;
-      background: rgba(138, 43, 226, 0.2);
-      border: 1px solid rgba(138, 43, 226, 0.3);
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      background: rgba(138, 43, 226, 0.15);
+      border: 1px solid rgba(138, 43, 226, 0.25);
       color: #f7f5ff;
       text-decoration: none;
       font-size: 14px;
@@ -64,30 +168,65 @@
       transition: all 0.2s ease;
       cursor: pointer;
       font-family: inherit;
+      position: relative;
     }
     
     .admin-nav-item:hover {
-      background: rgba(138, 43, 226, 0.35);
-      border-color: rgba(138, 43, 226, 0.5);
+      background: rgba(138, 43, 226, 0.25);
+      border-color: rgba(138, 43, 226, 0.4);
       transform: translateX(4px);
     }
     
     .admin-nav-item.active {
-      background: rgba(138, 43, 226, 0.5);
-      border-color: rgba(138, 43, 226, 0.7);
+      background: rgba(138, 43, 226, 0.4);
+      border-color: rgba(138, 43, 226, 0.6);
+      box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
+    }
+    
+    .admin-nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 60%;
+      background: rgba(138, 43, 226, 0.9);
+      border-radius: 0 2px 2px 0;
     }
     
     .admin-nav-url {
+      display: block;
       font-size: 11px;
       color: #9da2c6;
       margin-top: 4px;
-      word-break: break-all;
+      opacity: 0.7;
     }
     
-    .main-container {
-      display: flex;
+    /* コンテンツエリア（右側、スクロール可能） */
+    .content-area {
       flex: 1;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: rgba(0, 0, 0, 0.2);
+      min-width: 0;
+    }
+    
+    .content-area::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .content-area::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .content-area::-webkit-scrollbar-thumb {
+      background: rgba(138, 43, 226, 0.4);
+      border-radius: 4px;
+    }
+    
+    .content-area::-webkit-scrollbar-thumb:hover {
+      background: rgba(138, 43, 226, 0.6);
     }
     
     /* モバイル版: ナビゲーションを上部に横並び */
@@ -97,56 +236,50 @@
       }
       
       .admin-navigation {
+        width: 100%;
         flex-direction: row;
         gap: 8px;
         border-right: none;
         border-bottom: 1px solid rgba(255,255,255,0.08);
-        min-width: auto;
         padding: 12px;
         overflow-x: auto;
+        overflow-y: hidden;
       }
       
       .admin-navigation h2 {
-        display: none; /* モバイルではタイトルを非表示 */
+        display: none;
       }
       
       .admin-nav-item {
-        flex: 1;
-        min-width: 120px;
+        flex: 0 0 auto;
+        min-width: 140px;
         white-space: nowrap;
-        padding: 10px 12px;
+        padding: 10px 14px;
         font-size: 13px;
+        margin-bottom: 0;
       }
       
       .admin-nav-item:hover {
-        transform: translateY(2px); /* モバイルでは下方向に動く */
+        transform: translateY(-2px);
+      }
+      
+      .admin-nav-item.active::before {
+        display: none;
       }
       
       .admin-nav-url {
-        display: none; /* モバイルではURLを非表示 */
-      }
-    }
-    
-    .content-area {
-      flex: 1;
-      overflow-y: auto;
-      max-width: 100%;
-    }
-    
-    /* PC版: コンテンツエリアを左側に配置 */
-    @media (min-width: 769px) {
-      .content-area {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
+        display: none;
       }
     }
     
     .dashboard-layout {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      padding: 0 20px 40px;
+      gap: 20px;
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
     }
     main {
       flex: 1;
@@ -206,21 +339,6 @@
       vertical-align: top;
     }
     th { font-weight: 600; color: #c7cdff; }
-    .dashboard-layout {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 0 20px 40px;
-      width: 100%;
-      max-width: 100%;
-    }
-    
-    /* PC版: 左側に配置 */
-    @media (min-width: 769px) {
-      .dashboard-layout {
-        align-items: flex-start;
-      }
-    }
     
     .dashboard-columns {
       display: flex;
@@ -393,6 +511,8 @@
     
     .tab-content {
       display: none;
+      height: 100%;
+      overflow-y: auto;
     }
     
     .tab-content.active {
@@ -687,14 +807,11 @@
                 <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
               </label>
             </div>
-            <label>合言葉
-              <input type="text" id="searchPassphrase" placeholder="例: 桜舞い散る春の道">
-            </label>
             <div class="actions">
               <button type="submit">検索する</button>
               <button type="button" id="resetSearchButton">条件をクリア</button>
             </div>
-            <p class="muted">※ニックネーム / 生年月日 / 合言葉のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
+            <p class="muted">※ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
           </form>
         </section>
 
@@ -867,7 +984,6 @@
     const searchYear = document.getElementById('searchYear');
     const searchMonth = document.getElementById('searchMonth');
     const searchDay = document.getElementById('searchDay');
-    const searchPassphrase = document.getElementById('searchPassphrase');
     const resetSearchButton = document.getElementById('resetSearchButton');
     const resultSummary = document.getElementById('resultSummary');
     const detailCard = document.getElementById('detailCard');
@@ -959,15 +1075,13 @@
       const yearValue = searchYear.value.trim();
       const monthValue = searchMonth.value.trim();
       const dayValue = searchDay.value.trim();
-      const passphrase = searchPassphrase.value.trim();
 
       const hasNickname = nickname.length > 0;
       const hasYear = yearValue.length > 0;
       const hasMonth = monthValue.length > 0;
       const hasDay = dayValue.length > 0;
-      const hasPassphrase = passphrase.length > 0;
 
-      if (!hasNickname && !hasYear && !hasMonth && !hasDay && !hasPassphrase) {
+      if (!hasNickname && !hasYear && !hasMonth && !hasDay) {
         filteredUsers = [...users];
         return;
       }
@@ -981,8 +1095,7 @@
         const yearMatch = hasYear ? user.birth_year === year : true;
         const monthMatch = hasMonth ? user.birth_month === month : true;
         const dayMatch = hasDay ? user.birth_day === day : true;
-        const passphraseMatch = hasPassphrase ? user.assigned_deity.includes(passphrase) : true;
-        return nicknameMatch && yearMatch && monthMatch && dayMatch && passphraseMatch;
+        return nicknameMatch && yearMatch && monthMatch && dayMatch;
       });
     }
 
