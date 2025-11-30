@@ -707,5 +707,106 @@
            <script src="../../js/chat-data.js"></script>
            <script src="../../js/chat-ui.js"></script>
            <script src="../../js/chat-init.js"></script>
+           <!-- iframe内で確実にpostMessage通信を初期化 -->
+           <script>
+           (function() {
+               'use strict';
+               
+               console.log('[iframe] chat.html: スクリプト読み込み完了');
+               console.log('[iframe] document.readyState:', document.readyState);
+               console.log('[iframe] hasParent:', window.parent && window.parent !== window);
+               
+               // 親ウィンドウに準備完了を通知する関数
+               function sendReadyNotification() {
+                   if (!window.parent || window.parent === window) {
+                       console.log('[iframe] 親ウィンドウが存在しません');
+                       return;
+                   }
+                   
+                   try {
+                       const urlParams = new URLSearchParams(window.location.search);
+                       const character = urlParams.get('character') || 'unknown';
+                       
+                       const message = {
+                           type: 'CHAT_IFRAME_READY',
+                           character: character,
+                           userType: 'guest',
+                           messageCount: 0,
+                           timestamp: Date.now(),
+                           ready: true
+                       };
+                       
+                       window.parent.postMessage(message, '*');
+                       console.log('[iframe] ✅ 準備完了通知を送信しました:', message);
+                   } catch (error) {
+                       console.error('[iframe] ❌ 通知送信エラー:', error);
+                   }
+               }
+               
+               // REQUEST_CHAT_DATAハンドラーを設定
+               window.addEventListener('message', function(event) {
+                   if (event.origin !== window.location.origin) {
+                       return;
+                   }
+                   
+                   if (event.data && event.data.type === 'REQUEST_CHAT_DATA') {
+                       console.log('[iframe] 📨 REQUEST_CHAT_DATAを受信');
+                       
+                       try {
+                           const urlParams = new URLSearchParams(window.location.search);
+                           const character = urlParams.get('character') || 'unknown';
+                           
+                           const response = {
+                               type: 'CHAT_DATA_RESPONSE',
+                               data: {
+                                   character: character,
+                                   userType: 'guest',
+                                   messageCount: 0,
+                                   conversationHistory: [],
+                                   currentState: {
+                                       character: character,
+                                       userType: 'guest',
+                                       messageCount: 0,
+                                       conversationHistoryLength: 0,
+                                       isRegistered: false
+                                   },
+                                   timestamp: Date.now()
+                               }
+                           };
+                           
+                           if (event.source && event.source.postMessage) {
+                               event.source.postMessage(response, event.origin);
+                               console.log('[iframe] ✅ チャットデータを送信しました');
+                           } else if (window.parent && window.parent !== window) {
+                               window.parent.postMessage(response, '*');
+                               console.log('[iframe] ✅ window.parentにチャットデータを送信しました');
+                           }
+                       } catch (error) {
+                           console.error('[iframe] ❌ データ送信エラー:', error);
+                       }
+                   }
+               });
+               
+               // 即座に通知を送信
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', function() {
+                       setTimeout(sendReadyNotification, 100);
+                   });
+               } else {
+                   setTimeout(sendReadyNotification, 100);
+               }
+               
+               // window.load時にも通知
+               if (document.readyState !== 'complete') {
+                   window.addEventListener('load', function() {
+                       setTimeout(sendReadyNotification, 100);
+                   });
+               } else {
+                   setTimeout(sendReadyNotification, 100);
+               }
+               
+               console.log('[iframe] postMessage通信の初期化コードが実行されました');
+           })();
+           </script>
 </body>
 </html>

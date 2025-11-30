@@ -1375,6 +1375,18 @@
         // loadイベント後に少し待ってから準備完了通知を待つ
         setTimeout(() => {
           console.log('[管理画面] iframe load後、準備完了通知を待機中...');
+          
+          // iframe内のコンソールログを確認（デバッグ用）
+          try {
+            if (iframe.contentWindow) {
+              console.log('[管理画面] iframe.contentWindow:', {
+                location: iframe.contentWindow.location?.href,
+                hasConsole: typeof iframe.contentWindow.console !== 'undefined'
+              });
+            }
+          } catch (e) {
+            console.warn('[管理画面] iframe.contentWindowへのアクセスエラー（同一オリジン制限の可能性）:', e);
+          }
         }, 1000);
       });
       
@@ -1382,6 +1394,18 @@
       iframe.addEventListener('error', (e) => {
         console.error('[管理画面] iframe読み込みエラー:', e);
       });
+      
+      // iframe内でエラーが発生した場合のハンドリング
+      window.addEventListener('error', (event) => {
+        if (event.filename && event.filename.includes('chat.html')) {
+          console.error('[管理画面] iframe内でエラーが発生:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno
+          });
+        }
+      }, true);
       
       iframe.addEventListener('error', (e) => {
         console.error('分析パネル: iframeの読み込みエラー', e);

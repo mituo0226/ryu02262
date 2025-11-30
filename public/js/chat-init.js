@@ -684,6 +684,127 @@ window.ChatInit = ChatInit;
 window.sendMessage = () => ChatInit.sendMessage();
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
+// postMessage関連の初期化（DOMContentLoadedの外で即座に実行）
+(function initPostMessageCommunication() {
+    'use strict';
+    
+    console.log('[iframe] postMessage通信を初期化しています...', {
+        documentReadyState: document.readyState,
+        hasParent: window.parent && window.parent !== window,
+        origin: window.location.origin
+    });
+    
+    // 親ウィンドウに準備完了を通知する関数
+    function notifyParentReady() {
+        if (window.parent && window.parent !== window) {
+            try {
+                // URLパラメータからcharacterを取得
+                const urlParams = new URLSearchParams(window.location.search);
+                const character = urlParams.get('character') || 'unknown';
+                
+                window.parent.postMessage({
+                    type: 'CHAT_IFRAME_READY',
+                    character: character,
+                    userType: 'guest', // 初期状態ではゲストとして扱う
+                    messageCount: 0,
+                    timestamp: Date.now(),
+                    ready: true
+                }, '*');
+                
+                console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました（初期通知）', {
+                    character,
+                    origin: window.location.origin
+                });
+                return true;
+            } catch (error) {
+                console.error('[iframe] ❌ 親ウィンドウへの通知エラー:', error);
+                return false;
+            }
+        } else {
+            console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました');
+            return false;
+        }
+    }
+    
+    // 即座に1回通知を試行
+    let hasNotified = false;
+    if (document.readyState === 'loading') {
+        // まだ読み込み中の場合は、DOMContentLoaded時に通知
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!hasNotified) {
+                hasNotified = notifyParentReady();
+            }
+        });
+    } else {
+        // 既に読み込み済みの場合は即座に通知
+        hasNotified = notifyParentReady();
+    }
+    
+    // window.load時にも通知
+    if (document.readyState !== 'complete') {
+        window.addEventListener('load', () => {
+            if (!hasNotified) {
+                hasNotified = notifyParentReady();
+            }
+        });
+    } else {
+        if (!hasNotified) {
+            hasNotified = notifyParentReady();
+        }
+    }
+    
+    // REQUEST_CHAT_DATAハンドラーを即座に設定（DOMContentLoadedを待たない）
+    window.addEventListener('message', (event) => {
+        // セキュリティチェック
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+        
+        if (event.data && event.data.type === 'REQUEST_CHAT_DATA') {
+            console.log('[iframe] 📨 REQUEST_CHAT_DATAを受信しました（初期ハンドラー）');
+            
+            // 簡単な応答を即座に返す
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const character = urlParams.get('character') || 'unknown';
+                
+                const responseData = {
+                    type: 'CHAT_DATA_RESPONSE',
+                    data: {
+                        character: character,
+                        userType: 'guest',
+                        messageCount: 0,
+                        conversationHistory: [],
+                        currentState: {
+                            character: character,
+                            userType: 'guest',
+                            messageCount: 0,
+                            conversationHistoryLength: 0,
+                            isRegistered: false
+                        },
+                        timestamp: Date.now()
+                    }
+                };
+                
+                if (event.source && event.source.postMessage) {
+                    event.source.postMessage(responseData, event.origin);
+                    console.log('[iframe] ✅ 初期ハンドラーでチャットデータを送信しました');
+                } else if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(responseData, '*');
+                    console.log('[iframe] ✅ 初期ハンドラーでwindow.parentに送信しました');
+                }
+            } catch (error) {
+                console.error('[iframe] ❌ 初期ハンドラーでエラー:', error);
+            }
+        }
+    });
+    
+    console.log('[iframe] postMessage通信の初期化完了', {
+        hasNotified,
+        documentReadyState: document.readyState
+    });
+})();
+
 // DOMContentLoaded時に初期化
 window.addEventListener('DOMContentLoaded', async () => {
     // URLから.htmlを除去
