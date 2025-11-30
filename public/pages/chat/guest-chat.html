@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>鑑定士チャット（ゲスト）</title>
+    <title>鑑定士チャット</title>
     <style>
         /* ============================================
            カラーパレット
@@ -60,6 +60,20 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+        
+        /* 管理者モード: チャットと分析パネルを横並び */
+        body.admin-mode main {
+            max-width: 100%;
+            flex-direction: row;
+            gap: 20px;
+            padding: 0 20px;
+        }
+        
+        body.admin-mode .chat-container {
+            flex: 1;
+            min-width: 0;
+            max-width: 820px;
         }
 
         /* ============================================
@@ -154,9 +168,17 @@
             border-radius: 14px;
             font-size: 13px;
             text-align: left;
-            border: 1px solid rgba(255, 193, 7, 0.3);
+            border: 1px solid rgba(139, 61, 255, 0.2);
             line-height: 1.6;
             word-break: break-word;
+        }
+        
+        .user-status.guest {
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+        
+        .user-status.registered {
+            border-color: rgba(139, 61, 255, 0.4);
         }
         
         .user-status-line {
@@ -533,6 +555,26 @@
             }
         }
 
+        /* タロットカード画像のスタイル */
+        .tarot-card-image {
+            width: 80px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .tarot-card-image:hover {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .tarot-card-image {
+                width: 60px;
+            }
+        }
+
         /* 守護神の儀式への同意ボタン */
         .ritual-consent-container {
             position: fixed;
@@ -642,7 +684,7 @@
             <div class="navigation-links">
                 <a href="../appraisers-list.html">鑑定師一覧に戻る</a>
             </div>
-            <div class="user-status" id="userStatus">ゲストモードで利用中...</div>
+            <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
             
             <div class="messages" id="messages"></div>
 
@@ -672,107 +714,485 @@
         </div>
     </main>
     
-    <script src="../../js/auth-state.js"></script>
-    <script src="../../js/features/yukino-tarot.js"></script>
-    <script src="../../js/character-features.js"></script>
-    <script src="../../js/chat-api.js"></script>
-    <script src="../../js/chat-data.js"></script>
-    <script src="../../js/chat-ui.js"></script>
-    <script src="../../js/chat-init.js"></script>
-    
-    <script>
-    // ゲストユーザー専用の初期化処理
-    (function() {
-        'use strict';
+    <!-- 管理者モード: 分析パネル -->
+    <div class="admin-analysis-panel hidden" id="adminAnalysisPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 18px; color: #f7f5ff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;">会話分析パネル</h3>
+            <button id="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer;">
+                🔄 更新
+            </button>
+        </div>
+        <div class="analysis-section">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">現在の状態</h4>
+            <div id="adminCurrentState" class="analysis-content">
+                <p>読み込み中...</p>
+            </div>
+        </div>
+        <div class="analysis-section">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">フェーズ情報</h4>
+            <div id="adminPhaseInfo" class="analysis-content">
+                <p>読み込み中...</p>
+            </div>
+        </div>
+        <div class="analysis-section">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">会話履歴構造</h4>
+            <div id="adminHistory" class="analysis-content">
+                <p>読み込み中...</p>
+            </div>
+        </div>
         
-        // 登録済みユーザーがアクセスした場合は、登録ユーザー用チャット画面にリダイレクト
-        if (window.AuthState && window.AuthState.isRegistered && window.AuthState.isRegistered()) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const character = urlParams.get('character') || 'kaede';
-            window.location.href = `chat.html?character=${character}`;
-            return;
-        }
-        
-        // フェーズ4完了時の自動リダイレクト処理
-        function checkPhase4AndRedirect() {
-            if (!window.ChatData || !window.AuthState) {
-                return;
-            }
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const character = urlParams.get('character') || 'kaede';
-            const messageCount = ChatData.getGuestMessageCount(character);
-            
-            // フェーズ4は4通目以降（メッセージ数が4以上）
-            if (messageCount >= 4) {
-                // ユーザー登録が完了しているかチェック
-                if (window.AuthState.isRegistered && window.AuthState.isRegistered()) {
-                    // 登録ユーザー用チャット画面にリダイレクト
-                    const currentUrl = window.location.href;
-                    window.location.href = `chat.html?character=${character}&justRegistered=true&redirect=${encodeURIComponent(currentUrl)}`;
-                    return;
-                }
-                
-                // まだ登録していない場合は、登録画面にリダイレクト
-                // ただし、既にリダイレクト処理が実行されている場合はスキップ
-                if (!sessionStorage.getItem('phase4RedirectTriggered')) {
-                    sessionStorage.setItem('phase4RedirectTriggered', 'true');
-                    
-                    // ゲスト会話履歴を保存
-                    const guestHistory = ChatData.getGuestHistory(character) || [];
-                    if (guestHistory.length > 0) {
-                        sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
-                            character: character,
-                            history: guestHistory
-                        }));
-                    }
-                    
-                    // 登録画面にリダイレクト（登録完了後、chat.htmlに戻る）
-                    const currentUrl = window.location.href;
-                    setTimeout(() => {
-                        window.location.href = `../auth/register.html?redirect=${encodeURIComponent('chat.html?character=' + character)}`;
-                    }, 2000);
-                }
-            }
-        }
-        
-        // 定期的にチェック（メッセージ送信後など）
-        let phaseCheckInterval = null;
-        function startPhaseCheck() {
-            if (phaseCheckInterval) {
-                clearInterval(phaseCheckInterval);
-            }
-            phaseCheckInterval = setInterval(() => {
-                checkPhase4AndRedirect();
-            }, 1000);
-        }
-        
-        // DOMContentLoaded時に初期化
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(() => {
-                    startPhaseCheck();
-                }, 2000);
-            });
-        } else {
-            setTimeout(() => {
-                startPhaseCheck();
-            }, 2000);
-        }
-        
-        // メッセージ送信時にチェック
-        const originalSendMessage = window.sendMessage;
-        if (originalSendMessage) {
-            window.sendMessage = function() {
-                const result = originalSendMessage.apply(this, arguments);
-                setTimeout(() => {
-                    checkPhase4AndRedirect();
-                }, 500);
-                return result;
-            };
-        }
-    })();
-    </script>
+        <!-- 管理者用: 守護神の儀式を再発動 -->
+        <div class="analysis-section" id="adminRitualSection" style="display: none;">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">テスト用機能</h4>
+            <div class="analysis-content">
+                <button id="adminRitualButton" style="width: 100%; padding: 10px; font-size: 14px; background: rgba(139, 61, 255, 0.6); border: 1px solid rgba(139, 61, 255, 0.8); border-radius: 8px; color: white; cursor: pointer; transition: background 0.3s ease;">
+                    🔮 守護神の儀式を再発動
+                </button>
+                <p style="margin-top: 8px; font-size: 11px; color: #9da2c6;">現在の会話履歴を使って、守護神の儀式を再度開始します</p>
+            </div>
+        </div>
+    </div>
+
+           <script src="../../js/auth-state.js"></script>
+           <script src="../../js/features/yukino-tarot.js"></script>
+           <script src="../../js/character-features.js"></script>
+           <script src="../../js/chat-api.js"></script>
+           <script src="../../js/chat-data.js"></script>
+           <script src="../../js/chat-ui.js"></script>
+           <script src="../../js/chat-init.js"></script>
+           <!-- iframe内で確実にpostMessage通信を初期化 -->
+           <script>
+           (function() {
+               'use strict';
+               
+               console.log('[iframe] chat.html: スクリプト読み込み完了');
+               console.log('[iframe] document.readyState:', document.readyState);
+               console.log('[iframe] hasParent:', window.parent && window.parent !== window);
+               
+               // 親ウィンドウに準備完了を通知する関数
+               function sendReadyNotification() {
+                   if (!window.parent || window.parent === window) {
+                       console.log('[iframe] 親ウィンドウが存在しません');
+                       return;
+                   }
+                   
+                   try {
+                       const urlParams = new URLSearchParams(window.location.search);
+                       const character = urlParams.get('character') || 'unknown';
+                       
+                       const message = {
+                           type: 'CHAT_IFRAME_READY',
+                           character: character,
+                           userType: 'guest',
+                           messageCount: 0,
+                           timestamp: Date.now(),
+                           ready: true
+                       };
+                       
+                       window.parent.postMessage(message, '*');
+                       console.log('[iframe] ✅ 準備完了通知を送信しました:', message);
+                   } catch (error) {
+                       console.error('[iframe] ❌ 通知送信エラー:', error);
+                   }
+               }
+               
+               // REQUEST_CHAT_DATAハンドラーは設定しない
+               // chat-init.js内のハンドラーが確実に実行されるようにするため、
+               // 初期ハンドラーは完全に削除（chat-init.jsに任せる）
+               console.log('[iframe] 初期ハンドラー: REQUEST_CHAT_DATAはchat-init.jsに任せます');
+               
+               // 即座に通知を送信
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', function() {
+                       setTimeout(sendReadyNotification, 100);
+                   });
+               } else {
+                   setTimeout(sendReadyNotification, 100);
+               }
+               
+               // window.load時にも通知
+               if (document.readyState !== 'complete') {
+                   window.addEventListener('load', function() {
+                       setTimeout(sendReadyNotification, 100);
+                   });
+               } else {
+                   setTimeout(sendReadyNotification, 100);
+               }
+               
+               console.log('[iframe] postMessage通信の初期化コードが実行されました');
+           })();
+           </script>
+           
+           <!-- 管理者モードの初期化 -->
+           <script>
+           (function() {
+               'use strict';
+               
+               // URLパラメータからadminをチェック
+               const urlParams = new URLSearchParams(window.location.search);
+               const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
+               
+               if (isAdminMode) {
+                   // 管理者モードとしてbodyにクラスを追加
+                   document.body.classList.add('admin-mode');
+                   
+                   // 分析パネルを表示
+                   const analysisPanel = document.getElementById('adminAnalysisPanel');
+                   if (analysisPanel) {
+                       analysisPanel.classList.remove('hidden');
+                   }
+                   
+                   console.log('[管理者モード] 有効化されました');
+               }
+               
+               // フェーズを計算する関数
+               function calculatePhase(messageCount, character) {
+                   if (character === 'kaede') {
+                       // メッセージ数が0または1の場合はフェーズ1
+                       if (messageCount === 0 || messageCount === 1) {
+                           return {
+                               name: 'フェーズ1',
+                               description: '導入＆未来イメージの選択肢提示'
+                           };
+                       } else if (messageCount === 2) {
+                           return {
+                               name: 'フェーズ2',
+                               description: '長所を聞く質問（最後の質問）'
+                           };
+                       } else if (messageCount === 3) {
+                           return {
+                               name: 'フェーズ3',
+                               description: '性格診断＋続行確認'
+                           };
+                       } else {
+                           return {
+                               name: 'フェーズ4',
+                               description: '未来鑑定＋守護神と儀式の説明'
+                           };
+                       }
+                   }
+                   // カエデ以外の鑑定士はフェーズ設定がまだないため「制作待ち」として表示
+                   const characterNames = {
+                       yukino: '笹岡雪乃',
+                       kaon: '三崎花音',
+                       sora: '水野ソラ'
+                   };
+                   const characterName = characterNames[character] || character;
+                   return {
+                       name: '制作待ち',
+                       description: `${characterName}のフェーズ設定は現在制作中です（メッセージ数: ${messageCount}件）`
+                   };
+               }
+               
+               // 分析パネルを更新する関数
+               function updateAdminAnalysisPanel() {
+                   if (!isAdminMode) return;
+                   
+                   try {
+                       // ChatDataとAuthStateが利用可能か確認
+                       if (typeof ChatData === 'undefined' || typeof window.AuthState === 'undefined') {
+                           console.log('[管理者モード] ChatDataまたはAuthStateがまだ読み込まれていません');
+                           return;
+                       }
+                       
+                       const character = ChatData?.currentCharacter || 'unknown';
+                       const isRegistered = window.AuthState?.isRegistered() || false;
+                       
+                       // メッセージカウントと会話履歴を取得
+                       let messageCount = 0;
+                       let conversationHistory = [];
+                       
+                       if (isRegistered) {
+                           // 登録ユーザーの場合
+                           const historyData = ChatData?.conversationHistory;
+                           if (historyData && historyData.recentMessages) {
+                               conversationHistory = Array.isArray(historyData.recentMessages) ? historyData.recentMessages : [];
+                               messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                           }
+                       } else {
+                           // ゲストユーザーの場合
+                           if (typeof ChatData?.getGuestMessageCount === 'function') {
+                               messageCount = ChatData.getGuestMessageCount(character) || 0;
+                           }
+                           if (typeof ChatData?.getGuestHistory === 'function') {
+                               conversationHistory = ChatData.getGuestHistory(character) || [];
+                           }
+                           
+                           // 会話履歴からメッセージ数を再計算
+                           if (conversationHistory && conversationHistory.length > 0) {
+                               const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                               if (messageCount === 0 || historyUserMessages > messageCount) {
+                                   messageCount = historyUserMessages;
+                               }
+                           }
+                       }
+                       
+                       // 現在の状態を表示
+                       const currentStateDiv = document.getElementById('adminCurrentState');
+                       if (currentStateDiv) {
+                           const characterInfo = ChatData?.characterInfo?.[character] || {};
+                           const characterName = characterInfo.name || character;
+                           
+                           currentStateDiv.innerHTML = `
+                               <div class="analysis-item">
+                                   <span class="analysis-label">ユーザータイプ:</span>
+                                   <span class="analysis-value">${isRegistered ? '登録済み' : 'ゲスト'}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">キャラクター:</span>
+                                   <span class="analysis-value">${characterName}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">登録状態:</span>
+                                   <span class="analysis-value">${isRegistered ? '登録済み' : '未登録'}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">ユーザーメッセージ数:</span>
+                                   <span class="analysis-value">${messageCount}通</span>
+                               </div>
+                           `;
+                       }
+                       
+                       // フェーズ情報を表示
+                       const phase = calculatePhase(messageCount, character);
+                       const phaseInfoDiv = document.getElementById('adminPhaseInfo');
+                       if (phaseInfoDiv) {
+                           phaseInfoDiv.innerHTML = `
+                               <div class="analysis-item">
+                                   <span class="analysis-label">現在のフェーズ:</span>
+                                   <span class="analysis-value">${phase.name}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">説明:</span>
+                                   <span class="analysis-value">${phase.description}</span>
+                               </div>
+                           `;
+                       }
+                       
+                       // 会話履歴構造を表示
+                       const historyDiv = document.getElementById('adminHistory');
+                       if (historyDiv) {
+                           const userMessages = conversationHistory.filter(m => m && m.role === 'user').length;
+                           const assistantMessages = conversationHistory.filter(m => m && m.role === 'assistant').length;
+                           historyDiv.innerHTML = `
+                               <div class="analysis-item">
+                                   <span class="analysis-label">総メッセージ数:</span>
+                                   <span class="analysis-value">${conversationHistory.length}件</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">ユーザーメッセージ:</span>
+                                   <span class="analysis-value">${userMessages}件</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">アシスタントメッセージ:</span>
+                                   <span class="analysis-value">${assistantMessages}件</span>
+                               </div>
+                           `;
+                       }
+                       
+                       // 守護神の儀式を再発動ボタンを表示（カエデで登録済みユーザーの場合のみ）
+                       const ritualSection = document.getElementById('adminRitualSection');
+                       if (ritualSection) {
+                           if (character === 'kaede' && isRegistered) {
+                               ritualSection.style.display = 'block';
+                           } else {
+                               ritualSection.style.display = 'none';
+                           }
+                       }
+                       
+                       console.log('[管理者モード] 分析パネルを更新しました', {
+                           character,
+                           messageCount,
+                           historyLength: conversationHistory.length,
+                           showRitualButton: character === 'kaede' && isRegistered
+                       });
+                   } catch (error) {
+                       console.error('[管理者モード] 分析パネル更新エラー:', error);
+                   }
+               }
+               
+                   // 更新ボタンのイベントリスナー
+                   const refreshBtn = document.getElementById('adminRefreshBtn');
+                   if (refreshBtn) {
+                       refreshBtn.addEventListener('click', () => {
+                           updateAdminAnalysisPanel();
+                       });
+                   }
+                   
+                   // 守護神の儀式を再発動するボタンのイベントリスナー
+                   const ritualBtn = document.getElementById('adminRitualButton');
+                   if (ritualBtn) {
+                       ritualBtn.addEventListener('click', async () => {
+                           const character = ChatData?.currentCharacter || 'unknown';
+                           const isRegistered = window.AuthState?.isRegistered() || false;
+                           
+                           if (!isRegistered) {
+                               alert('守護神の儀式は登録済みユーザーのみ利用できます。');
+                               return;
+                           }
+                           
+                           if (character !== 'kaede') {
+                               alert('守護神の儀式は楓（カエデ）のみ利用できます。');
+                               return;
+                           }
+                           
+                           if (!confirm('守護神の儀式を再発動しますか？\n\n現在の会話履歴を使って、儀式を再度開始します。')) {
+                               return;
+                           }
+                           
+                           ritualBtn.disabled = true;
+                           ritualBtn.textContent = '発動中...';
+                           
+                           try {
+                               // 「それでは守護神の儀式を始めます」というメッセージを表示
+                               const ritualStartMessage = 'それでは守護神の儀式を始めます';
+                               ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
+                               
+                               // 1秒待機後、守護神の儀式を開始
+                               await new Promise(resolve => setTimeout(resolve, 1000));
+                               
+                               // 登録済みユーザーの場合、会話履歴はAPIから取得されるため、nullを渡す
+                               if (ChatInit && typeof ChatInit.startGuardianRitual === 'function') {
+                                   await ChatInit.startGuardianRitual(character, null);
+                               } else {
+                                   alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
+                               }
+                               
+                               // 分析パネルを更新
+                               setTimeout(() => {
+                                   updateAdminAnalysisPanel();
+                               }, 2000);
+                           } catch (error) {
+                               console.error('[管理者モード] 守護神の儀式再発動エラー:', error);
+                               alert('守護神の儀式の開始に失敗しました: ' + error.message);
+                           } finally {
+                               ritualBtn.disabled = false;
+                               ritualBtn.textContent = '🔮 守護神の儀式を再発動';
+                           }
+                       });
+                   }
+               
+               // メッセージ送信時に分析パネルを更新（カスタムイベントを監視）
+               document.addEventListener('adminPanelUpdate', () => {
+                   if (isAdminMode) {
+                       setTimeout(() => {
+                           updateAdminAnalysisPanel();
+                       }, 300);
+                   }
+               });
+               
+               // グローバルにupdateAdminAnalysisPanel関数を公開（chat-init.jsから呼び出せるように）
+               window.updateAdminAnalysisPanel = updateAdminAnalysisPanel;
+               
+               // 初期化後に分析パネルを更新（DOMContentLoadedを待つ）
+               function initAdminPanel() {
+                   // ChatDataとAuthStateが読み込まれるまで待機
+                   let attempts = 0;
+                   const maxAttempts = 20;
+                   const checkInterval = setInterval(() => {
+                       attempts++;
+                       if (typeof ChatData !== 'undefined' && typeof window.AuthState !== 'undefined') {
+                           clearInterval(checkInterval);
+                           setTimeout(() => {
+                               updateAdminAnalysisPanel();
+                           }, 500);
+                       } else if (attempts >= maxAttempts) {
+                           clearInterval(checkInterval);
+                           console.warn('[管理者モード] ChatDataまたはAuthStateの読み込みがタイムアウトしました');
+                       }
+                   }, 200);
+               }
+               
+               if (isAdminMode) {
+                   if (document.readyState === 'loading') {
+                       document.addEventListener('DOMContentLoaded', initAdminPanel);
+                   } else {
+                       initAdminPanel();
+                   }
+                   
+                   // 定期的に更新（30秒ごと）
+                   setInterval(() => {
+                       if (isAdminMode && typeof ChatData !== 'undefined') {
+                           updateAdminAnalysisPanel();
+                       }
+                   }, 30000);
+               }
+           })();
+           </script>
+           
+           <style>
+           /* 管理者モード: 分析パネルのスタイル */
+           .admin-analysis-panel {
+               width: 350px;
+               background: rgba(255, 255, 255, 0.04);
+               border: 1px solid rgba(255, 255, 255, 0.08);
+               border-radius: 16px;
+               padding: 20px;
+               overflow-y: auto;
+               max-height: 100vh;
+               height: fit-content;
+           }
+           
+           .admin-analysis-panel.hidden {
+               display: none;
+           }
+           
+           .admin-analysis-panel .analysis-section {
+               margin-bottom: 20px;
+           }
+           
+           .admin-analysis-panel .analysis-content {
+               background: rgba(0, 0, 0, 0.3);
+               border: 1px solid rgba(255, 255, 255, 0.05);
+               border-radius: 8px;
+               padding: 12px;
+               font-size: 12px;
+               line-height: 1.6;
+               color: #e8d5ff;
+           }
+           
+           .admin-analysis-panel .analysis-content p {
+               margin: 0;
+           }
+           
+           .analysis-item {
+               margin-bottom: 8px;
+           }
+           
+           .analysis-item:last-child {
+               margin-bottom: 0;
+           }
+           
+           .analysis-label {
+               font-weight: 600;
+               color: #b794ff;
+               margin-right: 8px;
+           }
+           
+           .analysis-value {
+               color: #e8d5ff;
+           }
+           
+           /* PC版: 管理者モードは横並び */
+           @media (min-width: 769px) {
+               body.admin-mode main {
+                   flex-direction: row;
+                   align-items: flex-start;
+                   justify-content: center;
+               }
+           }
+           
+           /* モバイル版: 管理者モードは縦並び */
+           @media (max-width: 768px) {
+               body.admin-mode main {
+                   flex-direction: column;
+               }
+               
+               .admin-analysis-panel {
+                   width: 100%;
+                   max-height: 400px;
+               }
+           }
+           </style>
 </body>
 </html>
-
