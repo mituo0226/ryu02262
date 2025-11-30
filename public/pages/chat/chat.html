@@ -740,6 +740,17 @@
                 <p>読み込み中...</p>
             </div>
         </div>
+        
+        <!-- 管理者用: 守護神の儀式を再発動 -->
+        <div class="analysis-section" id="adminRitualSection" style="display: none;">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">テスト用機能</h4>
+            <div class="analysis-content">
+                <button id="adminRitualButton" style="width: 100%; padding: 10px; font-size: 14px; background: rgba(139, 61, 255, 0.6); border: 1px solid rgba(139, 61, 255, 0.8); border-radius: 8px; color: white; cursor: pointer; transition: background 0.3s ease;">
+                    🔮 守護神の儀式を再発動
+                </button>
+                <p style="margin-top: 8px; font-size: 11px; color: #9da2c6;">現在の会話履歴を使って、守護神の儀式を再度開始します</p>
+            </div>
+        </div>
     </div>
 
            <script src="../../js/auth-state.js"></script>
@@ -979,23 +990,87 @@
                            `;
                        }
                        
+                       // 守護神の儀式を再発動ボタンを表示（カエデで登録済みユーザーの場合のみ）
+                       const ritualSection = document.getElementById('adminRitualSection');
+                       if (ritualSection) {
+                           if (character === 'kaede' && isRegistered) {
+                               ritualSection.style.display = 'block';
+                           } else {
+                               ritualSection.style.display = 'none';
+                           }
+                       }
+                       
                        console.log('[管理者モード] 分析パネルを更新しました', {
                            character,
                            messageCount,
-                           historyLength: conversationHistory.length
+                           historyLength: conversationHistory.length,
+                           showRitualButton: character === 'kaede' && isRegistered
                        });
                    } catch (error) {
                        console.error('[管理者モード] 分析パネル更新エラー:', error);
                    }
                }
                
-               // 更新ボタンのイベントリスナー
-               const refreshBtn = document.getElementById('adminRefreshBtn');
-               if (refreshBtn) {
-                   refreshBtn.addEventListener('click', () => {
-                       updateAdminAnalysisPanel();
-                   });
-               }
+                   // 更新ボタンのイベントリスナー
+                   const refreshBtn = document.getElementById('adminRefreshBtn');
+                   if (refreshBtn) {
+                       refreshBtn.addEventListener('click', () => {
+                           updateAdminAnalysisPanel();
+                       });
+                   }
+                   
+                   // 守護神の儀式を再発動するボタンのイベントリスナー
+                   const ritualBtn = document.getElementById('adminRitualButton');
+                   if (ritualBtn) {
+                       ritualBtn.addEventListener('click', async () => {
+                           const character = ChatData?.currentCharacter || 'unknown';
+                           const isRegistered = window.AuthState?.isRegistered() || false;
+                           
+                           if (!isRegistered) {
+                               alert('守護神の儀式は登録済みユーザーのみ利用できます。');
+                               return;
+                           }
+                           
+                           if (character !== 'kaede') {
+                               alert('守護神の儀式は楓（カエデ）のみ利用できます。');
+                               return;
+                           }
+                           
+                           if (!confirm('守護神の儀式を再発動しますか？\n\n現在の会話履歴を使って、儀式を再度開始します。')) {
+                               return;
+                           }
+                           
+                           ritualBtn.disabled = true;
+                           ritualBtn.textContent = '発動中...';
+                           
+                           try {
+                               // 「それでは守護神の儀式を始めます」というメッセージを表示
+                               const ritualStartMessage = 'それでは守護神の儀式を始めます';
+                               ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
+                               
+                               // 1秒待機後、守護神の儀式を開始
+                               await new Promise(resolve => setTimeout(resolve, 1000));
+                               
+                               // 登録済みユーザーの場合、会話履歴はAPIから取得されるため、nullを渡す
+                               if (ChatInit && typeof ChatInit.startGuardianRitual === 'function') {
+                                   await ChatInit.startGuardianRitual(character, null);
+                               } else {
+                                   alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
+                               }
+                               
+                               // 分析パネルを更新
+                               setTimeout(() => {
+                                   updateAdminAnalysisPanel();
+                               }, 2000);
+                           } catch (error) {
+                               console.error('[管理者モード] 守護神の儀式再発動エラー:', error);
+                               alert('守護神の儀式の開始に失敗しました: ' + error.message);
+                           } finally {
+                               ritualBtn.disabled = false;
+                               ritualBtn.textContent = '🔮 守護神の儀式を再発動';
+                           }
+                       });
+                   }
                
                // メッセージ送信時に分析パネルを更新（カスタムイベントを監視）
                document.addEventListener('adminPanelUpdate', () => {
