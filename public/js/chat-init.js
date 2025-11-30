@@ -486,20 +486,8 @@ const ChatInit = {
                 }
                 
                 // 守護神の儀式を開始
+                // startGuardianRitual内で送信ボタンとメッセージ入力欄の再有効化が処理される
                 await this.startGuardianRitual(character);
-                
-                // 儀式完了後、送信ボタンを再有効化
-                // startGuardianRitual内で処理されるが、念のためここでも確認
-                const checkDeity = localStorage.getItem('assignedDeity') || '未割当';
-                if (checkDeity !== '未割当' && checkDeity.trim() !== '') {
-                    if (ChatUI.sendButton) {
-                        ChatUI.sendButton.disabled = false;
-                    }
-                    if (messageInput) {
-                        messageInput.disabled = false;
-                        messageInput.placeholder = 'メッセージを入力してください...';
-                    }
-                }
             }
         } catch (error) {
             console.error('[checkGuardianAndDisplay] エラー:', error);
