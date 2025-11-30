@@ -743,15 +743,26 @@
                    }
                }
                
-               // REQUEST_CHAT_DATAハンドラーを設定
+               // REQUEST_CHAT_DATAハンドラーを設定（フォールバック用）
+               // chat-init.js内のハンドラーが優先されるように、少し遅延して登録
+               let initialHandlerRegistered = false;
                window.addEventListener('message', function(event) {
                    if (event.origin !== window.location.origin) {
                        return;
                    }
                    
                    if (event.data && event.data.type === 'REQUEST_CHAT_DATA') {
-                       console.log('[iframe] 📨 REQUEST_CHAT_DATAを受信');
+                       console.log('[iframe] 📨 REQUEST_CHAT_DATAを受信（初期ハンドラー）');
                        
+                       // ChatDataが利用可能な場合は、chat-init.js内のハンドラーに任せる
+                       // （chat-init.js内のハンドラーが先に処理するはず）
+                       if (typeof ChatData !== 'undefined' && ChatData !== null) {
+                           console.log('[iframe] ChatDataが利用可能なため、初期ハンドラーはスキップします');
+                           return; // chat-init.js内のハンドラーに処理を任せる
+                       }
+                       
+                       // ChatDataが利用できない場合のみ、フォールバックとして応答
+                       console.log('[iframe] ChatDataが利用できないため、フォールバック応答を送信');
                        try {
                            const urlParams = new URLSearchParams(window.location.search);
                            const character = urlParams.get('character') || 'unknown';
@@ -776,13 +787,13 @@
                            
                            if (event.source && event.source.postMessage) {
                                event.source.postMessage(response, event.origin);
-                               console.log('[iframe] ✅ チャットデータを送信しました');
+                               console.log('[iframe] ✅ フォールバック: チャットデータを送信しました');
                            } else if (window.parent && window.parent !== window) {
                                window.parent.postMessage(response, '*');
-                               console.log('[iframe] ✅ window.parentにチャットデータを送信しました');
+                               console.log('[iframe] ✅ フォールバック: window.parentにチャットデータを送信しました');
                            }
                        } catch (error) {
-                           console.error('[iframe] ❌ データ送信エラー:', error);
+                           console.error('[iframe] ❌ フォールバック: データ送信エラー:', error);
                        }
                    }
                });
