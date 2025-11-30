@@ -2056,9 +2056,16 @@
           };
         }
       }
+      // カエデ以外の鑑定士はフェーズ設定がまだないため「制作待ち」として表示
+      const characterNames = {
+        yukino: '笹岡雪乃',
+        kaon: '三崎花音',
+        sora: '水野ソラ'
+      };
+      const characterName = characterNames[character] || character;
       return {
-        name: '未設定',
-        description: 'フェーズ情報がありません'
+        name: '制作待ち',
+        description: `${characterName}のフェーズ設定は現在制作中です（メッセージ数: ${messageCount}件）`
       };
     }
     

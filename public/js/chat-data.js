@@ -63,35 +63,35 @@ const ChatData = {
      * @returns {number} メッセージカウント
      */
     getGuestMessageCount(character) {
-        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
-        const key = GUEST_COUNT_KEY_PREFIX + character;
-        const storedCount = sessionStorage.getItem(key);
-        
-        if (storedCount !== null) {
-            const count = Number.parseInt(storedCount, 10);
-            console.log(`[ChatData] getGuestMessageCount(${character}): ${count} (sessionStorage)`);
-            return count;
-        }
-        
-        // sessionStorageにない場合、会話履歴から計算
+        // 会話履歴が唯一の真実の源（single source of truth）
+        // 会話履歴からユーザーメッセージ数を直接数える
         const history = this.getGuestHistory(character);
+        
         if (history && Array.isArray(history)) {
             const userMessageCount = history.filter(msg => msg && msg.role === 'user').length;
-            if (userMessageCount > 0) {
-                console.log(`[ChatData] getGuestMessageCount(${character}): ${userMessageCount} (履歴から計算)`);
-                // 計算した値をsessionStorageに保存（次回から高速化）
+            console.log(`[ChatData] getGuestMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
+            
+            // sessionStorageの値と一致するか確認（デバッグ用）
+            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+            const key = GUEST_COUNT_KEY_PREFIX + character;
+            const storedCount = sessionStorage.getItem(key);
+            if (storedCount !== null) {
+                const storedCountNum = Number.parseInt(storedCount, 10);
+                if (storedCountNum !== userMessageCount) {
+                    console.warn(`[ChatData] ⚠️ カウントの不一致を検出: sessionStorage=${storedCountNum}, 履歴=${userMessageCount}。履歴を優先します。`);
+                    // 履歴の値をsessionStorageに同期
+                    this.setGuestMessageCount(character, userMessageCount);
+                }
+            } else {
+                // sessionStorageにない場合は、計算した値を保存（補助的な用途）
                 this.setGuestMessageCount(character, userMessageCount);
-                return userMessageCount;
             }
+            
+            return userMessageCount;
         }
         
-        if (window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') {
-            const authCount = window.AuthState.getGuestMessageCount() || 0;
-            console.log(`[ChatData] getGuestMessageCount(${character}): ${authCount} (AuthState)`);
-            return authCount;
-        }
-        
-        console.log(`[ChatData] getGuestMessageCount(${character}): 0 (デフォルト)`);
+        // 会話履歴が存在しない場合のみ0を返す
+        console.log(`[ChatData] getGuestMessageCount(${character}): 0 (会話履歴が空)`);
         return 0;
     },
 

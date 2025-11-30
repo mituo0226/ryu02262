@@ -172,6 +172,29 @@ const ChatInit = {
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     ChatUI.addMessage(type, entry.content, sender);
                 });
+                
+                // ゲストユーザーの場合、会話履歴からメッセージカウントを再計算して設定
+                if (isGuestMode) {
+                    const historyUserMessages = guestHistory.filter(msg => msg && msg.role === 'user').length;
+                    const currentCount = ChatData.getGuestMessageCount(character);
+                    
+                    console.log('[初期化] ゲスト履歴からメッセージカウントを再計算:', {
+                        character,
+                        historyLength: guestHistory.length,
+                        historyUserMessages: historyUserMessages,
+                        currentCount: currentCount
+                    });
+                    
+                    // 会話履歴から計算した値の方が大きい、または現在のカウントが0の場合は更新
+                    if (historyUserMessages > currentCount || currentCount === 0) {
+                        console.log('[初期化] ⚠️ メッセージカウントを修正:', {
+                            oldCount: currentCount,
+                            newCount: historyUserMessages,
+                            reason: currentCount === 0 ? 'カウントが0のため' : '履歴の方が大きいため'
+                        });
+                        ChatData.setGuestMessageCount(character, historyUserMessages);
+                    }
+                }
             }
             
             // 初回メッセージを表示
@@ -224,6 +247,28 @@ const ChatInit = {
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     ChatUI.addMessage(type, entry.content, sender);
                 });
+                
+                // ゲストユーザーの場合、会話履歴からメッセージカウントを再計算して設定
+                if (isGuestMode) {
+                    const historyUserMessages = guestHistory.filter(msg => msg && msg.role === 'user').length;
+                    const currentCount = ChatData.getGuestMessageCount(character);
+                    
+                    console.log('[初期化] エラー時: ゲスト履歴からメッセージカウントを再計算:', {
+                        character,
+                        historyLength: guestHistory.length,
+                        historyUserMessages: historyUserMessages,
+                        currentCount: currentCount
+                    });
+                    
+                    // 会話履歴から計算した値の方が大きい、または現在のカウントが0の場合は更新
+                    if (historyUserMessages > currentCount || currentCount === 0) {
+                        console.log('[初期化] エラー時: ⚠️ メッセージカウントを修正:', {
+                            oldCount: currentCount,
+                            newCount: historyUserMessages
+                        });
+                        ChatData.setGuestMessageCount(character, historyUserMessages);
+                    }
+                }
             } else {
                 const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
                 ChatUI.addMessage('welcome', firstTimeMessage, info.name);
@@ -291,10 +336,13 @@ const ChatInit = {
         }
 
         const isGuest = !AuthState.isRegistered();
+        
+        // メッセージ送信ボタンを押した時点で、即座にカウントを開始
         if (isGuest) {
-            const guestCount = ChatData.getGuestMessageCount(character);
+            // メッセージ送信前：現在のカウントを取得して制限をチェック
+            const currentCount = ChatData.getGuestMessageCount(character);
             
-            if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+            if (currentCount >= ChatData.GUEST_MESSAGE_LIMIT) {
                 ChatUI.addMessage('error', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
                 setTimeout(() => {
                     window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
@@ -302,12 +350,55 @@ const ChatInit = {
                 return;
             }
             
-            ChatData.setGuestMessageCount(character, guestCount + 1);
-            console.log('[メッセージ送信] ゲストカウントを更新:', {
-                character,
-                oldCount: guestCount,
-                newCount: guestCount + 1
+            // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
+            // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
+            ChatData.addToGuestHistory(character, 'user', message);
+            
+            // 会話履歴に追加した後、最新のカウントを取得（これが送信時のカウント）
+            const messageCount = ChatData.getGuestMessageCount(character);
+            
+            const isFirstMessage = currentCount === 0;
+            if (isFirstMessage) {
+                console.log('[メッセージ送信] 🎯 最初のメッセージを送信しました（カウント=1からスタート）:', {
+                    character,
+                    message: message.substring(0, 50) + '...',
+                    messageCount: messageCount
+                });
+            } else {
+                console.log('[メッセージ送信] メッセージを送信しました:', {
+                    character,
+                    message: message.substring(0, 50) + '...',
+                    beforeCount: currentCount,
+                    afterCount: messageCount
+                });
+            }
+            
+            // reading-animation.htmlでAPIリクエスト時にメッセージカウントを送信できるように、sessionStorageに保存
+            sessionStorage.setItem('lastGuestMessageCount', String(messageCount));
+            console.log('[メッセージ送信] sessionStorageにメッセージカウントを保存:', {
+                key: 'lastGuestMessageCount',
+                value: messageCount
             });
+            
+            // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.postMessage({
+                        type: 'CHAT_MESSAGE_SENT',
+                        character: character,
+                        userType: 'guest',
+                        messageCount: messageCount,
+                        timestamp: Date.now()
+                    }, '*');
+                    console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
+                        character,
+                        messageCount
+                    });
+                } catch (error) {
+                    console.error('[iframe] メッセージ送信通知エラー:', error);
+                }
+            }
+            
             ChatUI.updateUserStatus(false);
         }
 
@@ -337,41 +428,23 @@ const ChatInit = {
         }
         
         if (!skipUserMessage) {
+            // メッセージカウントを取得（既にゲストユーザーの場合は上で取得済み）
+            let messageCount = 0;
+            if (isGuest) {
+                messageCount = ChatData.getGuestMessageCount(character);
+            } else {
+                // 登録ユーザーの場合：会話履歴からユーザーメッセージ数を計算
+                const conversationHistory = ChatData.conversationHistory?.recentMessages || [];
+                messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length + 1; // 現在送信中のメッセージを含める
+            }
+            
             const userMessageData = {
                 message: messageToSend,
                 character: character,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                messageCount: messageCount // メッセージカウントも含める
             };
             sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
-            
-            if (isGuest) {
-                ChatData.addToGuestHistory(character, 'user', messageToSend);
-                console.log('[メッセージ送信] ゲスト履歴に追加:', {
-                    character,
-                    message: messageToSend.substring(0, 50) + '...'
-                });
-                
-                // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
-                if (window.parent && window.parent !== window) {
-                    try {
-                        const messageCount = ChatData.getGuestMessageCount(character);
-                        console.log('[メッセージ送信] 現在のメッセージカウント:', messageCount);
-                        window.parent.postMessage({
-                            type: 'CHAT_MESSAGE_SENT',
-                            character: character,
-                            userType: 'guest',
-                            messageCount: messageCount,
-                            timestamp: Date.now()
-                        }, '*');
-                        console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
-                            character,
-                            messageCount
-                        });
-                    } catch (error) {
-                        console.error('[iframe] メッセージ送信通知エラー:', error);
-                    }
-                }
-            }
         }
         
         const currentUrl = window.location.href;
@@ -513,7 +586,31 @@ const ChatInit = {
                     if (isGuest) {
                         ChatData.addToGuestHistory(ChatData.currentCharacter, 'assistant', data.message);
                         
+                        // アニメーション画面から戻ってきた時、会話履歴からメッセージ数を再計算して保存
+                        const history = ChatData.getGuestHistory(ChatData.currentCharacter);
+                        if (history && Array.isArray(history)) {
+                            const historyUserMessages = history.filter(msg => msg && msg.role === 'user').length;
+                            const currentCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
+                            
+                            console.log('[応答受信] メッセージカウントを再確認:', {
+                                character: ChatData.currentCharacter,
+                                currentCount: currentCount,
+                                historyUserMessages: historyUserMessages,
+                                historyLength: history.length
+                            });
+                            
+                            // 会話履歴から計算した値の方が大きい、または現在のカウントが0の場合は更新
+                            if (historyUserMessages > currentCount || currentCount === 0) {
+                                console.log('[応答受信] ⚠️ メッセージカウントを修正:', {
+                                    oldCount: currentCount,
+                                    newCount: historyUserMessages
+                                });
+                                ChatData.setGuestMessageCount(ChatData.currentCharacter, historyUserMessages);
+                            }
+                        }
+                        
                         const guestCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
+                        console.log('[応答受信] 最終的なゲストカウント:', guestCount);
                         ChatUI.updateUserStatus(false);
                         
                         if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
@@ -1167,15 +1264,32 @@ window.addEventListener('DOMContentLoaded', async () => {
                         }
                         
                         // 会話履歴からもメッセージ数を計算（フォールバック）
+                        // messageCountが0でも、会話履歴があれば正しい値を計算
                         if (conversationHistory && conversationHistory.length > 0) {
                             const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
-                            if (historyUserMessages > messageCount) {
-                                console.log('[iframe] 会話履歴からメッセージ数を修正:', {
+                            console.log('[iframe] 会話履歴からメッセージ数を計算:', {
+                                historyLength: conversationHistory.length,
+                                userMessages: historyUserMessages,
+                                currentMessageCount: messageCount
+                            });
+                            
+                            // messageCountが0または、履歴から計算した値の方が大きい場合は更新
+                            if (messageCount === 0 || historyUserMessages > messageCount) {
+                                console.log('[iframe] ⚠️ メッセージ数を修正:', {
                                     oldCount: messageCount,
-                                    newCount: historyUserMessages
+                                    newCount: historyUserMessages,
+                                    reason: messageCount === 0 ? 'messageCountが0のため' : '履歴の方が大きいため'
                                 });
                                 messageCount = historyUserMessages;
+                                
+                                // 修正した値をsessionStorageに保存（次回から正しい値が取得できるように）
+                                if (typeof ChatData?.setGuestMessageCount === 'function') {
+                                    ChatData.setGuestMessageCount(character, historyUserMessages);
+                                    console.log('[iframe] ✅ 修正したメッセージ数をsessionStorageに保存しました');
+                                }
                             }
+                        } else if (messageCount === 0) {
+                            console.warn('[iframe] ⚠️ メッセージ数が0で、会話履歴も空です');
                         }
                     }
                     
