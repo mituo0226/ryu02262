@@ -671,5 +671,81 @@ window.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
         ChatInit.handleReturnFromAnimation();
     }, 100);
+    
+    // 管理者用コマンドハンドラー（postMessage）
+    window.addEventListener('message', async (event) => {
+        // セキュリティのため、同じオリジンのみ受け入れる
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+        
+        const { type, character, token, nickname, assignedDeity } = event.data || {};
+        
+        switch (type) {
+            case 'ADMIN_RESET_CONVERSATION':
+                // 会話をリセット
+                if (character && ChatData) {
+                    ChatData.setGuestHistory(character, []);
+                    ChatData.setGuestMessageCount(character, 0);
+                }
+                if (window.AuthState) {
+                    window.AuthState.resetGuestProgress({ keepHistory: false });
+                }
+                // sessionStorageもクリア
+                const keys = Object.keys(sessionStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('guest') || key.includes('guest') || key.startsWith('auth.guest')) {
+                        sessionStorage.removeItem(key);
+                    }
+                });
+                location.reload();
+                break;
+                
+            case 'ADMIN_RESET_PHASE':
+                // フェーズをリセット（メッセージカウントを0に）
+                if (character && ChatData) {
+                    ChatData.setGuestMessageCount(character, 0);
+                }
+                if (window.AuthState) {
+                    window.AuthState.setGuestMessageCount(0);
+                }
+                sessionStorage.setItem(`guestMessageCount_${character}`, '0');
+                sessionStorage.setItem('auth.guestMessageCount', '0');
+                break;
+                
+            case 'ADMIN_TRIGGER_RITUAL':
+                // 守護神の儀式を発動
+                if (character && ChatInit && window.AuthState && window.AuthState.isRegistered()) {
+                    await ChatInit.startGuardianRitual(character);
+                }
+                break;
+                
+            case 'ADMIN_SIMULATE_REGISTRATION':
+                // テスト用ユーザー登録をシミュレート
+                if (token && window.AuthState) {
+                    window.AuthState.setAuth(token, nickname, assignedDeity);
+                    localStorage.setItem('userToken', token);
+                    if (nickname) localStorage.setItem('userNickname', nickname);
+                    if (assignedDeity) localStorage.setItem('assignedDeity', assignedDeity);
+                    localStorage.setItem('hasAccount', 'true');
+                    location.reload();
+                }
+                break;
+                
+            case 'ADMIN_LOGOUT':
+                // ログアウト
+                if (window.AuthState) {
+                    window.AuthState.clearAuth();
+                    window.AuthState.resetGuestProgress({ keepHistory: false });
+                }
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userNickname');
+                localStorage.removeItem('assignedDeity');
+                localStorage.removeItem('hasAccount');
+                sessionStorage.clear();
+                location.reload();
+                break;
+        }
+    });
 });
 
