@@ -259,19 +259,27 @@
                         }
                         
                         // 【重要】会話履歴から実際のユーザーメッセージ数を計算
+                        // 注意: この時点で会話履歴には既に今回送信するメッセージが含まれている
+                        // API側では「これまでのメッセージ数」+1が今回のメッセージ数になるため、
+                        // ここでは「これまでのメッセージ数」（今回を含めない数）を送信する必要がある
                         const userMessagesInHistory = parsedHistory.filter(msg => msg && msg.role === 'user').length;
                         
                         // メッセージカウントの決定（優先順位順）
                         let guestCount = 0;
                         
                         // 1. 会話履歴から計算した値を使用（これが最も信頼できる）
+                        // ただし、会話履歴には既に今回送信するメッセージが含まれているため、
+                        // API側で+1されることを考慮して、-1した値を送信する
                         if (parsedHistory.length > 0 && userMessagesInHistory > 0) {
-                            guestCount = userMessagesInHistory;
-                            console.log('[reading-animation] 会話履歴からメッセージ数を計算:', {
+                            // 会話履歴には既に今回送信するメッセージが含まれているため、
+                            // 「これまでのメッセージ数」は userMessagesInHistory - 1 になる
+                            guestCount = Math.max(0, userMessagesInHistory - 1);
+                            console.log('[reading-animation] 会話履歴からメッセージ数を計算（今回送信分を除外）:', {
                                 character,
                                 historyLength: parsedHistory.length,
                                 userMessagesInHistory: userMessagesInHistory,
-                                calculatedCount: guestCount
+                                calculatedCount: guestCount,
+                                note: 'API側で+1されるため、今回送信分を除外した値'
                             });
                         } else {
                             // 2. フォールバック1: lastGuestMessageCount（chat-init.jsで保存されたもの）
@@ -340,8 +348,10 @@
                         }
                         
                         // 最終的なメッセージカウントを設定（会話履歴から計算した値を優先）
+                        // 会話履歴には既に今回送信するメッセージが含まれているため、
+                        // API側で+1されることを考慮して、-1した値を送信する
                         const finalGuestCount = parsedHistory.length > 0 && userMessagesInHistory > 0 
-                            ? userMessagesInHistory 
+                            ? Math.max(0, userMessagesInHistory - 1)
                             : guestCount;
                         
                         payload.guestMetadata = { messageCount: finalGuestCount };
