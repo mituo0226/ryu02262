@@ -624,49 +624,6 @@
       color: #e8d5ff;
     }
     
-    /* テスト用コントロール */
-    .test-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .test-button {
-      padding: 8px 12px;
-      background: rgba(138, 43, 226, 0.3);
-      border: 1px solid rgba(138, 43, 226, 0.5);
-      border-radius: 6px;
-      color: #f7f5ff;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: left;
-      width: 100%;
-    }
-    
-    .test-button:hover {
-      background: rgba(138, 43, 226, 0.5);
-      border-color: rgba(138, 43, 226, 0.8);
-      transform: translateX(2px);
-    }
-    
-    .test-button.danger {
-      background: rgba(255, 78, 132, 0.3);
-      border-color: rgba(255, 78, 132, 0.5);
-    }
-    
-    .test-button.danger:hover {
-      background: rgba(255, 78, 132, 0.5);
-      border-color: rgba(255, 78, 132, 0.8);
-    }
-    
-    .test-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
     @media (max-width: 1200px) {
       .chat-admin-wrapper {
         flex-direction: column;
@@ -840,7 +797,7 @@
               <div class="analysis-panel" id="analysisPanel">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                   <h3 style="margin: 0;">会話分析パネル</h3>
-                  <button class="test-button" id="refreshAnalysisBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto;">
+                  <button id="refreshAnalysisBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer; transition: all 0.2s ease;">
                     🔄 更新
                   </button>
                 </div>
@@ -866,28 +823,6 @@
                   <h4>デバッグ情報</h4>
                   <div id="debugInfo" class="analysis-content" style="font-size: 11px; color: #9da2c6;">
                     <!-- デバッグ情報を表示 -->
-                  </div>
-                </div>
-                <div class="analysis-section">
-                  <h4>テスト用コントロール</h4>
-                  <div class="analysis-content">
-                    <div class="test-controls">
-                      <button class="test-button" id="resetConversationBtn" title="会話をリセット（ゲスト状態に戻す）">
-                        会話をリセット
-                      </button>
-                      <button class="test-button" id="resetPhaseBtn" title="フェーズをリセット（メッセージカウントを0に）">
-                        フェーズをリセット
-                      </button>
-                      <button class="test-button" id="triggerEventBtn" title="守護神の儀式を直接発動（登録済みの場合のみ）">
-                        イベント発動
-                      </button>
-                      <button class="test-button" id="simulateRegistrationBtn" title="テスト用ユーザー登録をシミュレート">
-                        登録シミュレート
-                      </button>
-                      <button class="test-button danger" id="logoutBtn" title="ログアウトしてゲスト状態に戻す">
-                        ログアウト
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -2095,181 +2030,6 @@
       });
     }
     
-    // ============================================
-    // テスト用コントロール機能
-    // ============================================
-    const resetConversationBtn = document.getElementById('resetConversationBtn');
-    const resetPhaseBtn = document.getElementById('resetPhaseBtn');
-    const triggerEventBtn = document.getElementById('triggerEventBtn');
-    const simulateRegistrationBtn = document.getElementById('simulateRegistrationBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    // 会話をリセット（ゲスト状態に戻す）
-    if (resetConversationBtn) {
-      resetConversationBtn.addEventListener('click', () => {
-        if (!confirm('会話履歴とメッセージカウントをリセットしてゲスト状態に戻しますか？')) {
-          return;
-        }
-        
-        try {
-          const iframe = document.getElementById('chatAdminIframe');
-          if (iframe) {
-            // ポストメッセージでiframeにリセット命令を送信
-            iframe.contentWindow.postMessage({
-              type: 'ADMIN_RESET_CONVERSATION',
-              character: currentCharacter
-            }, '*');
-            
-            // ページをリロード
-            setTimeout(() => {
-              iframe.src = iframe.src;
-              alert('会話がリセットされました。');
-            }, 100);
-          }
-        } catch (error) {
-          console.error('会話リセットエラー:', error);
-          alert('会話のリセットに失敗しました: ' + error.message);
-        }
-      });
-    }
-    
-    // フェーズをリセット（メッセージカウントを0に）
-    if (resetPhaseBtn) {
-      resetPhaseBtn.addEventListener('click', () => {
-        if (!confirm('メッセージカウントを0にリセットしますか？（会話履歴は保持されます）')) {
-          return;
-        }
-        
-        try {
-          const iframe = document.getElementById('chatAdminIframe');
-          if (iframe) {
-            // ポストメッセージでiframeにフェーズリセット命令を送信
-            iframe.contentWindow.postMessage({
-              type: 'ADMIN_RESET_PHASE',
-              character: currentCharacter
-            }, '*');
-            
-            alert('フェーズがリセットされました。');
-            // 分析パネルを更新
-            setTimeout(() => {
-              if (iframe.contentWindow) {
-                updateAnalysisPanelPostMessage(iframe, currentCharacter, currentUserType);
-              }
-            }, 500);
-          }
-        } catch (error) {
-          console.error('フェーズリセットエラー:', error);
-          alert('フェーズのリセットに失敗しました: ' + error.message);
-        }
-      });
-    }
-    
-    // イベント発動（守護神の儀式を直接トリガー）
-    if (triggerEventBtn) {
-      triggerEventBtn.addEventListener('click', async () => {
-        if (!confirm('守護神の儀式を直接発動しますか？（登録済みユーザーのみ有効）')) {
-          return;
-        }
-        
-        try {
-          const iframe = document.getElementById('chatAdminIframe');
-          if (iframe) {
-            // ポストメッセージでiframeにイベント発動命令を送信
-            iframe.contentWindow.postMessage({
-              type: 'ADMIN_TRIGGER_RITUAL',
-              character: currentCharacter
-            }, '*');
-            
-            alert('守護神の儀式を発動しました。');
-          }
-        } catch (error) {
-          console.error('イベント発動エラー:', error);
-          alert('イベントの発動に失敗しました: ' + error.message);
-        }
-      });
-    }
-    
-    // 登録シミュレート（テスト用ユーザー登録）
-    if (simulateRegistrationBtn) {
-      simulateRegistrationBtn.addEventListener('click', async () => {
-        const nickname = prompt('テスト用ニックネームを入力してください:', 'テストユーザー');
-        if (!nickname) return;
-        
-        const year = prompt('生年を入力してください:', '1990');
-        const month = prompt('生月を入力してください:', '1');
-        const day = prompt('生日を入力してください:', '1');
-        
-        if (!year || !month || !day) return;
-        
-        try {
-          // テスト用のユーザー登録
-          const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              nickname: nickname,
-              birthYear: parseInt(year),
-              birthMonth: parseInt(month),
-              birthDay: parseInt(day)
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (response.ok && data.token) {
-            // iframeにポストメッセージで登録情報を送信
-            const iframe = document.getElementById('chatAdminIframe');
-            if (iframe) {
-              iframe.contentWindow.postMessage({
-                type: 'ADMIN_SIMULATE_REGISTRATION',
-                token: data.token,
-                nickname: data.nickname,
-                assignedDeity: data.assignedDeity
-              }, '*');
-              
-              alert(`テストユーザー「${nickname}」として登録しました。ページをリロードします。`);
-              setTimeout(() => {
-                iframe.src = iframe.src;
-              }, 500);
-            }
-          } else {
-            alert('登録に失敗しました: ' + (data.error || '不明なエラー'));
-          }
-        } catch (error) {
-          console.error('登録シミュレートエラー:', error);
-          alert('登録シミュレートに失敗しました: ' + error.message);
-        }
-      });
-    }
-    
-    // ログアウト
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        if (!confirm('ログアウトしてゲスト状態に戻しますか？')) {
-          return;
-        }
-        
-        try {
-          const iframe = document.getElementById('chatAdminIframe');
-          if (iframe) {
-            // ポストメッセージでiframeにログアウト命令を送信
-            iframe.contentWindow.postMessage({
-              type: 'ADMIN_LOGOUT'
-            }, '*');
-            
-            alert('ログアウトしました。ページをリロードします。');
-            setTimeout(() => {
-              iframe.src = iframe.src;
-            }, 500);
-          }
-        } catch (error) {
-          console.error('ログアウトエラー:', error);
-          alert('ログアウトに失敗しました: ' + error.message);
-        }
-      });
-    }
   </script>
 </body>
 </html>
