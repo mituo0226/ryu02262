@@ -838,7 +838,12 @@
                 <!-- チャット画面はJavaScriptで動的に生成 -->
               </div>
               <div class="analysis-panel" id="analysisPanel">
-                <h3>会話分析パネル</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                  <h3 style="margin: 0;">会話分析パネル</h3>
+                  <button class="test-button" id="refreshAnalysisBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto;">
+                    🔄 更新
+                  </button>
+                </div>
                 <div class="analysis-section">
                   <h4>現在の状態</h4>
                   <div id="analysisCurrentState" class="analysis-content">
@@ -855,6 +860,12 @@
                   <h4>会話履歴構造</h4>
                   <div id="analysisHistory" class="analysis-content">
                     <p>読み込み中...</p>
+                  </div>
+                </div>
+                <div class="analysis-section" id="debugSection" style="display: none;">
+                  <h4>デバッグ情報</h4>
+                  <div id="debugInfo" class="analysis-content" style="font-size: 11px; color: #9da2c6;">
+                    <!-- デバッグ情報を表示 -->
                   </div>
                 </div>
                 <div class="analysis-section">
@@ -1366,15 +1377,21 @@
           const iframeWindow = iframe.contentWindow;
           if (iframeWindow && iframeWindow.AuthState && iframeWindow.ChatData) {
             // オブジェクトが利用可能になったら更新を開始
-            updateAnalysisPanel(iframe, character, userType);
+            updateAnalysisPanel(iframe, character, userType, false);
             // 定期的に更新（2秒ごと）
             analysisInterval = setInterval(() => {
-              updateAnalysisPanel(iframe, character, userType);
+              updateAnalysisPanel(iframe, character, userType, false);
             }, 2000);
             return true;
+          } else {
+            console.log('分析パネル: まだ読み込み中...', {
+              hasWindow: !!iframeWindow,
+              hasAuthState: !!(iframeWindow && iframeWindow.AuthState),
+              hasChatData: !!(iframeWindow && iframeWindow.ChatData)
+            });
           }
         } catch (e) {
-          console.log('分析パネル: まだ読み込み中...', e.message);
+          console.log('分析パネル: エラー', e.message);
         }
         return false;
       }
@@ -1387,13 +1404,33 @@
         const maxAttempts = 20; // 最大20回試行（10秒）
         const checkInterval = setInterval(() => {
           attempts++;
-          if (tryUpdate() || attempts >= maxAttempts) {
+          const success = tryUpdate();
+          if (success || attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            if (attempts >= maxAttempts) {
-              const errorMsg = '<p style="color: #ff7a8a;">チャットデータの読み込みに時間がかかっています。ページを更新してください。</p>';
-              document.getElementById('analysisCurrentState').innerHTML = errorMsg;
-              document.getElementById('analysisPhaseInfo').innerHTML = errorMsg;
-              document.getElementById('analysisHistory').innerHTML = errorMsg;
+            if (attempts >= maxAttempts && !success) {
+              const errorMsg = `
+                <p style="color: #ff7a8a;">チャットデータの読み込みに時間がかかっています。</p>
+                <p style="font-size: 11px; color: #9da2c6; margin-top: 8px;">
+                  「更新」ボタンをクリックして再度読み込みを試してください。
+                </p>
+              `;
+              const currentStateDiv = document.getElementById('analysisCurrentState');
+              const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
+              const historyDiv = document.getElementById('analysisHistory');
+              if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
+              if (phaseInfoDiv) phaseInfoDiv.innerHTML = '<p>タイムアウト: データが読み込まれませんでした</p>';
+              if (historyDiv) historyDiv.innerHTML = '<p>タイムアウト: データが読み込まれませんでした</p>';
+              
+              // デバッグ情報を表示
+              const debugInfoDiv = document.getElementById('debugInfo');
+              const debugSection = document.getElementById('debugSection');
+              if (debugInfoDiv && debugSection) {
+                debugInfoDiv.innerHTML = `
+                  タイムアウトエラー（${attempts}回試行）<br>
+                  iframeの読み込み状態を確認してください。
+                `;
+                debugSection.style.display = 'block';
+              }
             }
           }
         }, 500); // 0.5秒ごとにチェック
@@ -1421,28 +1458,80 @@
     }
     
     // 分析パネルの内容を更新
-    function updateAnalysisPanel(iframe, character, userType) {
+    function updateAnalysisPanel(iframe, character, userType, showDebug = false) {
+      const debugInfo = [];
+      const debugSection = document.getElementById('debugSection');
+      const debugInfoDiv = document.getElementById('debugInfo');
+      
       try {
+        // デバッグ情報を収集
+        debugInfo.push(`更新時刻: ${new Date().toLocaleTimeString()}`);
+        debugInfo.push(`character: ${character || '未設定'}`);
+        debugInfo.push(`userType: ${userType || '未設定'}`);
+        
         // iframeが存在しない、または読み込まれていない場合
         if (!iframe || !iframe.contentWindow) {
           const errorMsg = '<p style="color: #ff7a8a;">チャットが読み込まれていません</p>';
+          debugInfo.push('❌ iframeまたはcontentWindowが存在しません');
           const currentStateDiv = document.getElementById('analysisCurrentState');
           const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
           const historyDiv = document.getElementById('analysisHistory');
           if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
           if (phaseInfoDiv) phaseInfoDiv.innerHTML = errorMsg;
           if (historyDiv) historyDiv.innerHTML = errorMsg;
+          
+          if (showDebug && debugInfoDiv) {
+            debugInfoDiv.innerHTML = debugInfo.join('<br>');
+            if (debugSection) debugSection.style.display = 'block';
+          }
           return;
         }
         
         const iframeWindow = iframe.contentWindow;
+        debugInfo.push('✅ iframe.contentWindow: 存在');
         
         // 必要なオブジェクトが読み込まれているか確認
-        if (!iframeWindow.AuthState || !iframeWindow.ChatData) {
-          // オブジェクトが読み込まれていない場合は何もしない（再試行される）
-          console.log('分析パネル: AuthStateまたはChatDataがまだ読み込まれていません');
+        const hasAuthState = !!iframeWindow.AuthState;
+        const hasChatData = !!iframeWindow.ChatData;
+        const hasChatUI = !!iframeWindow.ChatUI;
+        const hasChatInit = !!iframeWindow.ChatInit;
+        
+        debugInfo.push(`AuthState: ${hasAuthState ? '✅' : '❌'}`);
+        debugInfo.push(`ChatData: ${hasChatData ? '✅' : '❌'}`);
+        debugInfo.push(`ChatUI: ${hasChatUI ? '✅' : '❌'}`);
+        debugInfo.push(`ChatInit: ${hasChatInit ? '✅' : '❌'}`);
+        
+        if (!hasAuthState || !hasChatData) {
+          // オブジェクトが読み込まれていない場合は詳細を表示
+          const loadingMsg = `
+            <p style="color: #ffb84d;">チャットデータを読み込み中...</p>
+            <p style="font-size: 11px; color: #9da2c6; margin-top: 8px;">
+              AuthState: ${hasAuthState ? '読み込み済み' : '読み込み中...'}<br>
+              ChatData: ${hasChatData ? '読み込み済み' : '読み込み中...'}
+            </p>
+          `;
+          const currentStateDiv = document.getElementById('analysisCurrentState');
+          const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
+          const historyDiv = document.getElementById('analysisHistory');
+          if (currentStateDiv) currentStateDiv.innerHTML = loadingMsg;
+          if (phaseInfoDiv) phaseInfoDiv.innerHTML = '<p>データ読み込み待機中...</p>';
+          if (historyDiv) historyDiv.innerHTML = '<p>データ読み込み待機中...</p>';
+          
+          console.log('分析パネル: AuthStateまたはChatDataがまだ読み込まれていません', {
+            AuthState: hasAuthState,
+            ChatData: hasChatData,
+            ChatUI: hasChatUI,
+            ChatInit: hasChatInit
+          });
+          
+          if (showDebug && debugInfoDiv) {
+            debugInfoDiv.innerHTML = debugInfo.join('<br>');
+            if (debugSection) debugSection.style.display = 'block';
+          }
           return;
         }
+        
+        debugInfo.push('✅ すべてのオブジェクトが読み込み済み');
         
         // 現在の状態を取得
         const isRegistered = iframeWindow.AuthState.isRegistered();
@@ -1547,19 +1636,46 @@
             <div class="analysis-item">
               <span class="analysis-label">アシスタントメッセージ:</span>
               <span class="analysis-value">${assistantMessages}件</span>
-            </div>
-          `;
+          </div>
+        `;
+        }
+        
+        // デバッグ情報を表示（showDebugがtrueの場合）
+        if (showDebug && debugInfoDiv) {
+          debugInfo.push('✅ データ取得成功');
+          debugInfoDiv.innerHTML = debugInfo.join('<br>');
+          if (debugSection) debugSection.style.display = 'block';
         }
       } catch (error) {
         console.error('分析パネルの更新エラー:', error);
-        const errorMsg = `<p style="color: #ff7a8a;">エラー: ${error.message}</p>`;
+        debugInfo.push(`❌ エラー: ${error.message}`);
+        const errorMsg = `<p style="color: #ff7a8a;">エラー: ${error.message}</p><p style="font-size: 11px; color: #9da2c6;">詳細はデバッグ情報を確認してください</p>`;
         const currentStateDiv = document.getElementById('analysisCurrentState');
         const phaseInfoDiv = document.getElementById('analysisPhaseInfo');
         const historyDiv = document.getElementById('analysisHistory');
         if (currentStateDiv) currentStateDiv.innerHTML = errorMsg;
         if (phaseInfoDiv) phaseInfoDiv.innerHTML = errorMsg;
         if (historyDiv) historyDiv.innerHTML = errorMsg;
+        
+        if (showDebug && debugInfoDiv) {
+          debugInfoDiv.innerHTML = debugInfo.join('<br>') + `<br>❌ スタックトレース: ${error.stack}`;
+          if (debugSection) debugSection.style.display = 'block';
+        }
       }
+    }
+    
+    // 分析パネルを手動で更新するボタン
+    const refreshAnalysisBtn = document.getElementById('refreshAnalysisBtn');
+    if (refreshAnalysisBtn) {
+      refreshAnalysisBtn.addEventListener('click', () => {
+        const iframe = document.getElementById('chatAdminIframe');
+        if (iframe && currentCharacter && currentUserType) {
+          console.log('分析パネル: 手動更新を実行', { currentCharacter, currentUserType });
+          updateAnalysisPanel(iframe, currentCharacter, currentUserType, true);
+        } else {
+          alert('チャットが読み込まれていません。先にチャットを開始してください。');
+        }
+      });
     }
     
     // フェーズを計算
