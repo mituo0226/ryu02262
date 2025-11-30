@@ -52,15 +52,24 @@ const ChatInit = {
         
         // 登録完了フラグをチェック
         const urlParams = new URLSearchParams(window.location.search);
-        const justRegistered = urlParams.get('justRegistered') === 'true';
+        const justRegisteredParam = urlParams.get('justRegistered') === 'true';
+        
+        // sessionStorageにも登録完了フラグをチェック（URLパラメータが失われた場合の代替手段）
+        const justRegisteredSession = sessionStorage.getItem('justRegistered') === 'true';
+        const justRegistered = justRegisteredParam || justRegisteredSession;
+        
+        // さらに、userTokenがあり、ゲスト履歴がpendingGuestHistoryMigrationに存在する場合も登録完了と判定
+        const hasUserToken = !!localStorage.getItem('userToken');
+        const hasPendingMigration = !!sessionStorage.getItem('pendingGuestHistoryMigration');
+        const shouldTriggerRegistrationFlow = justRegistered || (hasUserToken && hasPendingMigration && !AuthState.isRegistered());
         
         // justRegisteredがtrueの場合、localStorageから直接userTokenをチェック
         // （AuthStateの初期化が完了する前でも、登録完了処理を実行できるようにするため）
-        const hasUserToken = justRegistered ? !!localStorage.getItem('userToken') : AuthState.isRegistered();
-        console.log('[初期化] justRegistered:', justRegistered, 'hasUserToken:', hasUserToken, 'isRegistered:', AuthState.isRegistered(), 'character:', character);
+        const hasValidToken = justRegistered || shouldTriggerRegistrationFlow ? hasUserToken : AuthState.isRegistered();
+        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasUserToken:', hasUserToken, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'hasValidToken:', hasValidToken, 'isRegistered:', AuthState.isRegistered(), 'character:', character);
         
         // ユーザーステータスを更新（登録完了時はすぐに表示）
-        if (justRegistered && hasUserToken) {
+        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
             const nickname = localStorage.getItem('userNickname') || '鑑定者';
             const deity = localStorage.getItem('assignedDeity') || '未割当';
             const birthYear = localStorage.getItem('birthYear') || null;
@@ -79,7 +88,7 @@ const ChatInit = {
         }
 
         // 登録完了時の処理を先にチェック（会話履歴を読み込む前に実行）
-        if (justRegistered && hasUserToken) {
+        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
             console.log('[登録完了処理] 開始 - character:', character);
             
             try {
@@ -250,6 +259,9 @@ const ChatInit = {
                     const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
                     window.history.replaceState({}, '', newUrl);
                     
+                    // sessionStorageからも登録完了フラグを削除
+                    sessionStorage.removeItem('justRegistered');
+                    
                     return;
                 } else {
                     // カエデ以外の場合はゲスト履歴をクリア
@@ -271,6 +283,9 @@ const ChatInit = {
                     urlParams.delete('justRegistered');
                     const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
                     window.history.replaceState({}, '', newUrl);
+                    
+                    // sessionStorageからも登録完了フラグを削除
+                    sessionStorage.removeItem('justRegistered');
                     
                     return;
                 }

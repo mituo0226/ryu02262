@@ -406,6 +406,9 @@
         }
       }
       
+      // sessionStorageにも登録完了フラグを保存（URLパラメータが失われた場合の代替手段）
+      sessionStorage.setItem('justRegistered', 'true');
+      
       console.log('[登録完了] 最終リダイレクト先:', target);
       window.location.href = target;
     });
