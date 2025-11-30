@@ -512,6 +512,11 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
+    // 守護神の儀式開始メッセージを検出
+    const isRitualStart = trimmedMessage.includes('守護神の儀式を始めてください') || 
+                          trimmedMessage.includes('守護神の儀式を始めて') ||
+                          trimmedMessage === '守護神の儀式を始めてください';
+
     if (trimmedMessage.length > 1000) {
       return new Response(
         JSON.stringify({ 
@@ -877,6 +882,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       hasPreviousConversation: conversationHistory.length > 0,
       conversationHistoryLength: conversationHistory.length,
       userMessageCount: finalUserMessageCount, // 必ず正しい数値が渡される
+      isRitualStart: isRitualStart, // 守護神の儀式開始メッセージかどうか
     });
 
     if (DEBUG_MODE) {

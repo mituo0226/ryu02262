@@ -319,6 +319,7 @@ interface PromptOptions {
   hasPreviousConversation?: boolean;
   conversationHistoryLength?: number;
   userMessageCount?: number;
+  isRitualStart?: boolean; // 守護神の儀式開始メッセージかどうか
 }
 
 const registrationGuides: Record<string, string> = {
@@ -421,21 +422,53 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
   let phaseInstruction = '';
 
   if (characterId === 'kaede') {
-    // userMessageCountを正しく取得（デフォルトは1）
-    let count = 1;
-    if (typeof options.userMessageCount === 'number' && Number.isFinite(options.userMessageCount)) {
-      count = Math.max(1, Math.floor(options.userMessageCount));
-    }
-    
-    if (DEBUG_MODE) {
-      console.log('🔍 DEBUG: Kaede phase determination', {
-        rawUserMessageCount: options.userMessageCount,
-        finalCount: count,
-        phase: count === 1 ? 'phase1' : count === 2 ? 'phase2' : count === 3 ? 'phase3' : 'phase4'
-      });
-    }
-    
-    if (count === 1) {
+    // 守護神の儀式開始メッセージが送信された場合の特別処理
+    if (options.isRitualStart) {
+      phaseInstruction = `
+【【最重要・絶対遵守】守護神の儀式を開始するフェーズ】
+
+【このフェーズで行うべきこと（絶対必須）】
+- 【最重要】相談者がユーザー登録を完了し、守護神の儀式を開始する準備が整いました。
+- 【最重要】このフェーズでは、フェーズ1〜4の会話内容は既に完了している前提です。これまでの会話（未来イメージ、長所、性格診断、守護神の説明）を踏まえて、儀式を開始してください。
+- 【最重要】生年月日とニックネームは既に登録済みです。これらの情報を再度聞いてはいけません。
+- 【最重要】儀式の具体的な流れを説明し、実際に儀式を開始してください。
+
+【儀式開始の流れ】
+1. まず、静かに目を閉じ、龍神と交信する描写を入れてください（例：「（静かに目を閉じながら）それでは、あなたと守護神の波長を合わせ、龍神の気流を開きます。これから少しの間、深く息を整えて、私の声だけを受け取ってください。」）
+2. 生年月日とニックネームを基に、どの守護神が見守っているかを導き出してください（例：「（穏やかな声で）${options.userNickname || 'あなた'}さんが${options.userNickname ? '' : '（生年月日から導き出した）'}誕生された瞬間、宇宙の配置が教えてくれる…」）
+3. 守護神の名前と特徴を説明してください
+4. 守護神からのメッセージを伝えてください
+5. 儀式が完了したことを伝え、今後の見守りについて説明してください
+
+【絶対禁止事項】
+- 【絶対禁止】フェーズ1〜4の質問を繰り返すこと（未来イメージ、長所、性格診断など）
+- 【絶対禁止】生年月日やニックネームを再度尋ねること
+- 【絶対禁止】登録を促すこと（既に登録済み）
+- 【絶対禁止】儀式を説明するだけで終わらず、実際に儀式を実行すること
+
+【儀式の実行】
+- 儀式は具体的に実行し、守護神を導き出してメッセージを伝えること
+- 抽象的な説明ではなく、実際の儀式の様子を描写すること
+- 守護神の名前と特徴を明確に伝えること`;
+      if (DEBUG_MODE) {
+        console.log('🔍 DEBUG: Guardian ritual start detected - using ritual-specific prompt');
+      }
+    } else {
+      // userMessageCountを正しく取得（デフォルトは1）
+      let count = 1;
+      if (typeof options.userMessageCount === 'number' && Number.isFinite(options.userMessageCount)) {
+        count = Math.max(1, Math.floor(options.userMessageCount));
+      }
+      
+      if (DEBUG_MODE) {
+        console.log('🔍 DEBUG: Kaede phase determination', {
+          rawUserMessageCount: options.userMessageCount,
+          finalCount: count,
+          phase: count === 1 ? 'phase1' : count === 2 ? 'phase2' : count === 3 ? 'phase3' : 'phase4'
+        });
+      }
+      
+      if (count === 1) {
       // フェーズ1：導入＆未来イメージの選択肢提示
       phaseInstruction = `
 【【最重要・絶対遵守】現在のフェーズ: フェーズ1（1通目） 導入＆未来イメージの選択肢提示】
@@ -543,21 +576,21 @@ export function generateSystemPrompt(characterId: string, options: PromptOptions
 - 【重要】相談者が守護神の儀式に同意した場合（「お願いします」「やってみたい」など）、システムが自動的に登録ボタンを表示します。上記の説明をした後、「画面に表示される登録ボタンから手続きを進めてください」と伝えてください。10通の制限に関係なく、同意が検出された時点で登録ボタンが表示されます。
 - 相談者が断った場合は尊重しつつ、「無料で話せる残り枠は限られている」「10通目以降は登録が必要」という事実を柔らかく共有し、納得してもらう。`;
       }
-    }
-
-    if (DEBUG_MODE) {
-      const phaseName = count === 1 ? 'future_image_selection' 
-        : count === 2 ? 'strength_question' 
-        : count === 3 ? 'diagnosis_continuation' 
-        : 'future_guardian_ritual';
-      console.log('🔍 DEBUG: phaseInstruction generation for kaede', {
-        characterId,
-        rawCount: options.userMessageCount,
-        count,
-        phase: phaseName,
-        phaseInstructionLength: phaseInstruction.length,
-        phaseInstructionPreview: phaseInstruction.substring(0, 200),
-      });
+      
+      if (DEBUG_MODE) {
+        const phaseName = count === 1 ? 'future_image_selection' 
+          : count === 2 ? 'strength_question' 
+          : count === 3 ? 'diagnosis_continuation' 
+          : 'future_guardian_ritual';
+        console.log('🔍 DEBUG: phaseInstruction generation for kaede', {
+          characterId,
+          rawCount: options.userMessageCount,
+          count,
+          phase: phaseName,
+          phaseInstructionLength: phaseInstruction.length,
+          phaseInstructionPreview: phaseInstruction.substring(0, 200),
+        });
+      }
     }
   }
 

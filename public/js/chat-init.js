@@ -81,21 +81,25 @@ const ChatInit = {
             // 登録完了時の処理
             if (justRegistered && AuthState.isRegistered()) {
                 console.log('[登録完了処理] 開始 - character:', character);
-                // ゲスト履歴を完全にクリア（全キャラクター共通）
-                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                    AuthState.clearGuestHistory(character);
-                }
-                // sessionStorageのゲスト履歴もクリア
-                const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-                const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-                sessionStorage.removeItem(historyKey);
-                sessionStorage.removeItem('pendingGuestHistoryMigration');
-                // ゲストメッセージカウントもリセット
-                ChatData.setGuestMessageCount(character, 0);
                 
                 // カエデの場合は守護神の儀式を自動開始
                 if (character === 'kaede') {
                     console.log('[登録完了処理] カエデの場合、守護神の儀式を開始');
+                    
+                    // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
+                    let guestHistory = this.getGuestHistoryForMigration(character);
+                    if (guestHistory.length === 0) {
+                        // フォールバック: ChatDataから直接取得
+                        guestHistory = ChatData.getGuestHistory(character) || [];
+                    }
+                    console.log('[登録完了処理] ゲスト会話履歴を取得:', {
+                        historyLength: guestHistory.length,
+                        userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                    });
+                    
+                    // ゲスト会話履歴を一時的に保存（守護神の儀式で使用するため）
+                    const guestHistoryForRitual = JSON.parse(JSON.stringify(guestHistory));
+                    
                     // ユーザーデータを更新（会話履歴から取得、なければlocalStorageから）
                     if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
                         ChatUI.updateUserStatus(true, {
@@ -130,11 +134,21 @@ const ChatInit = {
                     console.log('[登録完了処理] メッセージを表示:', ritualStartMessage);
                     ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
                     
-                    // 自動的に守護神の儀式を開始（APIにメッセージを送信）
+                    // 自動的に守護神の儀式を開始（ゲスト会話履歴を渡す）
                     console.log('[登録完了処理] 1秒待機後に守護神の儀式を開始');
                     await this.delay(1000);
-                    console.log('[登録完了処理] 守護神の儀式を開始します');
-                    await this.startGuardianRitual(character);
+                    console.log('[登録完了処理] 守護神の儀式を開始します（ゲスト会話履歴を使用）');
+                    await this.startGuardianRitual(character, guestHistoryForRitual);
+                    
+                    // 守護神の儀式開始後、ゲスト履歴をクリア
+                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                        AuthState.clearGuestHistory(character);
+                    }
+                    const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                    const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                    sessionStorage.removeItem(historyKey);
+                    sessionStorage.removeItem('pendingGuestHistoryMigration');
+                    ChatData.setGuestMessageCount(character, 0);
                     
                     // URLパラメータからjustRegisteredを削除
                     urlParams.delete('justRegistered');
@@ -143,6 +157,16 @@ const ChatInit = {
                     
                     return;
                 } else {
+                    // カエデ以外の場合はゲスト履歴をクリア
+                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                        AuthState.clearGuestHistory(character);
+                    }
+                    const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                    const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                    sessionStorage.removeItem(historyKey);
+                    sessionStorage.removeItem('pendingGuestHistoryMigration');
+                    ChatData.setGuestMessageCount(character, 0);
+                }
                     // 他のキャラクターの場合、通常の初回メッセージを表示
                     const info = ChatData.characterInfo[character];
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
@@ -732,9 +756,10 @@ const ChatInit = {
     /**
      * 守護神の儀式を開始
      * @param {string} character - キャラクターID
+     * @param {Array} guestHistory - ゲスト会話履歴（オプション、登録直後の場合に使用）
      */
-    async startGuardianRitual(character) {
-        console.log('[守護神の儀式] 開始:', character);
+    async startGuardianRitual(character, guestHistory = null) {
+        console.log('[守護神の儀式] 開始:', character, 'guestHistory:', guestHistory ? guestHistory.length : 0);
         
         // 送信ボタンを無効化
         if (ChatUI.sendButton) ChatUI.sendButton.disabled = true;
@@ -744,14 +769,32 @@ const ChatInit = {
             const historyData = await ChatAPI.loadConversationHistory(character);
             console.log('[守護神の儀式] 会話履歴データ:', historyData);
             
-            // 登録直後は会話履歴が空なので、空配列を使用
-            let conversationHistory = (historyData && historyData.hasHistory && historyData.recentMessages) 
-                ? [...historyData.recentMessages] // コピーを作成
-                : [];
+            // 会話履歴の決定（優先順位順）
+            let conversationHistory = [];
             
-            // ChatData.conversationHistoryを更新（存在する場合）
-            if (historyData) {
+            // 1. 登録ユーザーの会話履歴がある場合はそれを使用
+            if (historyData && historyData.hasHistory && historyData.recentMessages && historyData.recentMessages.length > 0) {
+                conversationHistory = [...historyData.recentMessages];
+                console.log('[守護神の儀式] 登録ユーザーの会話履歴を使用:', conversationHistory.length);
+                
+                // ChatData.conversationHistoryを更新
                 ChatData.conversationHistory = historyData;
+            } 
+            // 2. ゲスト会話履歴が渡されている場合はそれを使用（登録直後の場合）
+            else if (guestHistory && guestHistory.length > 0) {
+                conversationHistory = guestHistory.map(entry => ({
+                    role: entry.role || 'user',
+                    content: entry.content || entry.message || ''
+                }));
+                console.log('[守護神の儀式] ゲスト会話履歴を使用:', conversationHistory.length, {
+                    userMessages: conversationHistory.filter(msg => msg.role === 'user').length,
+                    assistantMessages: conversationHistory.filter(msg => msg.role === 'assistant').length
+                });
+            } 
+            // 3. どちらもない場合は空配列
+            else {
+                conversationHistory = [];
+                console.log('[守護神の儀式] 会話履歴が空です（新規会話）');
             }
             
             console.log('[守護神の儀式] 使用する会話履歴:', conversationHistory);
