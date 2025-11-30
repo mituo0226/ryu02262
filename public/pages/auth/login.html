@@ -171,7 +171,7 @@
         </div>
       </div>
       <label>
-        割り当てられた神様
+        合言葉
         <select id="assignedDeity" required></select>
       </label>
       <button type="submit">ログイン</button>
@@ -309,7 +309,11 @@
 
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
-        localStorage.setItem('assignedDeity', data.assignedDeity);
+        // assignedDeityは合言葉なので保存しない（ログイン認証用のみ）
+        // guardianDeityは守護神名なので保存する（チャット画面表示用）
+        if (data.guardianDeity) {
+          localStorage.setItem('guardianDeity', data.guardianDeity);
+        }
         localStorage.setItem('hasAccount', 'true');
 
         window.location.href = getRedirectTarget();

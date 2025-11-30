@@ -42,13 +42,14 @@ interface ResponseBody {
   remainingGuestMessages?: number;
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai'; // 使用したLLMプロバイダー（デバッグ用）
-  assignedDeity?: string; // 守護神の儀式完了時に抽出した守護神名
+  guardianDeity?: string; // 守護神の儀式完了時に抽出した守護神名（guardian_deityカラムから取得）
 }
 
 interface UserRecord {
   id: number;
   nickname: string;
   assigned_deity: string;
+  guardian_deity?: string;
 }
 
 interface ConversationRow {
@@ -654,7 +655,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         );
       }
 
-      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, assigned_deity FROM users WHERE id = ?')
+      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, assigned_deity, guardian_deity FROM users WHERE id = ?')
         .bind(tokenPayload.userId)
         .first();
 
@@ -1055,19 +1056,19 @@ export const onRequestPost: PagesFunction = async (context) => {
         }
       }
       
-      // 守護神名が抽出できた場合、データベースに保存
+      // 守護神名が抽出できた場合、データベースに保存（guardian_deityカラムに保存）
       if (extractedDeity && extractedDeity !== '未割当' && extractedDeity.length > 0) {
         try {
           await env.DB.prepare(
             `UPDATE users 
-             SET assigned_deity = ? 
+             SET guardian_deity = ? 
              WHERE id = ?`
           )
             .bind(extractedDeity, user.id)
             .run();
           
           if (DEBUG_MODE) {
-            console.log(`✅ 守護神をデータベースに保存しました: user_id=${user.id}, assigned_deity=${extractedDeity}`);
+            console.log(`✅ 守護神をデータベースに保存しました: user_id=${user.id}, guardian_deity=${extractedDeity}`);
           }
         } catch (error) {
           console.error('⚠️ 守護神の保存エラー:', error);
@@ -1358,7 +1359,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
         showTarotCard: showTarotCard,
         provider: llmResult.provider, // 使用したLLMプロバイダーを返す（デバッグ用）
-        assignedDeity: extractedDeity || undefined, // 守護神の儀式完了時に抽出した守護神名を返す
+        guardianDeity: extractedDeity || user?.guardian_deity || undefined, // 守護神の儀式完了時に抽出した守護神名を返す（guardian_deityカラムから取得）
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

@@ -14,6 +14,7 @@ interface UserRecord {
   birth_month: number;
   birth_day: number;
   assigned_deity: string;
+  guardian_deity?: string; // 守護神名（guardian_deityカラム）
   conversation_profile?: string; // 過去100通までの会話内容から抽出したプロフィール情報
 }
 
@@ -23,7 +24,8 @@ interface ResponseBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  assignedDeity?: string;
+  assignedDeity?: string; // 合言葉（ログイン認証用）
+  guardianDeity?: string; // 守護神名（チャット画面表示用）
   lastConversationDate?: string; // 最後の会話日時（ISO形式）
   conversationSummary?: string;
   conversationProfile?: string; // 過去100通までの会話内容から抽出したプロフィール情報（圧縮された記憶）
@@ -82,9 +84,9 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // ユーザー情報を取得（プロフィール情報も含む）
+    // ユーザー情報を取得（プロフィール情報と守護神名も含む）
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, birth_year, birth_month, birth_day, assigned_deity, conversation_profile FROM users WHERE id = ?'
+      'SELECT id, nickname, birth_year, birth_month, birth_day, assigned_deity, guardian_deity, conversation_profile FROM users WHERE id = ?'
     )
       .bind(tokenPayload.userId)
       .first();
@@ -124,6 +126,7 @@ export const onRequestGet: PagesFunction = async (context) => {
           birthMonth: user.birth_month,
           birthDay: user.birth_day,
           assignedDeity: user.assigned_deity,
+          guardianDeity: user.guardian_deity || undefined,
         } as ResponseBody),
         { status: 200, headers: corsHeaders }
       );

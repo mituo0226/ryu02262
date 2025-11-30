@@ -71,7 +71,7 @@ const ChatInit = {
         // ユーザーステータスを更新（登録完了時はすぐに表示）
         if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
             const nickname = localStorage.getItem('userNickname') || '鑑定者';
-            const deity = localStorage.getItem('assignedDeity') || '未割当';
+            const guardianDeity = localStorage.getItem('guardianDeity') || '未割当';
             const birthYear = localStorage.getItem('birthYear') || null;
             const birthMonth = localStorage.getItem('birthMonth') || null;
             const birthDay = localStorage.getItem('birthDay') || null;
@@ -81,7 +81,7 @@ const ChatInit = {
                 birthYear: birthYear ? parseInt(birthYear) : null,
                 birthMonth: birthMonth ? parseInt(birthMonth) : null,
                 birthDay: birthDay ? parseInt(birthDay) : null,
-                assignedDeity: deity
+                guardianDeity: guardianDeity
             });
         } else {
             ChatUI.updateUserStatus(!isGuestMode);
@@ -146,12 +146,12 @@ const ChatInit = {
                             birthYear: historyData.birthYear,
                             birthMonth: historyData.birthMonth,
                             birthDay: historyData.birthDay,
-                            assignedDeity: historyData.assignedDeity
+                            guardianDeity: historyData.guardianDeity
                         });
                     } else {
                         // 会話履歴がない場合はlocalStorageから取得
                         const nickname = localStorage.getItem('userNickname') || '鑑定者';
-                        const deity = localStorage.getItem('assignedDeity') || '未割当';
+                        const guardianDeity = localStorage.getItem('guardianDeity') || '未割当';
                         const birthYear = localStorage.getItem('birthYear');
                         const birthMonth = localStorage.getItem('birthMonth');
                         const birthDay = localStorage.getItem('birthDay');
@@ -161,7 +161,7 @@ const ChatInit = {
                             birthYear: birthYear ? parseInt(birthYear) : null,
                             birthMonth: birthMonth ? parseInt(birthMonth) : null,
                             birthDay: birthDay ? parseInt(birthDay) : null,
-                            assignedDeity: deity
+                            guardianDeity: guardianDeity
                         });
                     }
                     
@@ -436,9 +436,9 @@ const ChatInit = {
         if (!isGuestMode && character === 'kaede') {
             // 会話履歴から守護神の状態を確認
             const historyData = ChatData.conversationHistory;
-            const assignedDeity = historyData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
+            const guardianDeity = historyData?.guardianDeity || localStorage.getItem('guardianDeity') || '未割当';
             
-            if (assignedDeity === '未割当' || !assignedDeity || assignedDeity.trim() === '') {
+            if (guardianDeity === '未割当' || !guardianDeity || guardianDeity.trim() === '') {
                 console.log('[chat.html] 守護神が未登録です。自動的に儀式を開始します。');
                 // 少し待ってから自動的に儀式を開始（UIが完全に読み込まれてから）
                 setTimeout(async () => {
@@ -465,12 +465,12 @@ const ChatInit = {
         try {
             // 会話履歴から守護神の状態を確認
             const historyData = await ChatAPI.loadConversationHistory(character);
-            const assignedDeity = historyData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
+            const guardianDeity = historyData?.guardianDeity || localStorage.getItem('guardianDeity') || '未割当';
             
-            console.log('[checkGuardianAndDisplay] 守護神の状態:', assignedDeity);
+            console.log('[checkGuardianAndDisplay] 守護神の状態:', guardianDeity);
             
             // 守護神が未登録の場合は、自動的に儀式を開始
-            if (assignedDeity === '未割当' || !assignedDeity || assignedDeity.trim() === '') {
+            if (guardianDeity === '未割当' || !guardianDeity || guardianDeity.trim() === '') {
                 console.log('[checkGuardianAndDisplay] 守護神が未登録です。自動的に儀式を開始します。');
                 
                 // 送信ボタンを無効化
@@ -586,8 +586,8 @@ const ChatInit = {
         
         // 【重要】登録ユーザーでKaedeの場合、守護神が未登録の場合はメッセージ送信をブロック
         if (!isGuest && character === 'kaede') {
-            const assignedDeity = localStorage.getItem('assignedDeity') || '未割当';
-            if (assignedDeity === '未割当' || !assignedDeity || assignedDeity.trim() === '') {
+            const guardianDeity = localStorage.getItem('guardianDeity') || '未割当';
+            if (guardianDeity === '未割当' || !guardianDeity || guardianDeity.trim() === '') {
                 ChatUI.addMessage('error', '守護神の儀式が完了するまで、メッセージを送信できません。守護神の儀式を開始してください。', 'システム');
                 
                 // 自動的に儀式を開始
@@ -840,7 +840,7 @@ const ChatInit = {
                         } else {
                             localStorage.removeItem('userToken');
                             localStorage.removeItem('userNickname');
-                            localStorage.removeItem('assignedDeity');
+                            localStorage.removeItem('guardianDeity');
                         }
                         window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                     }
@@ -1117,9 +1117,9 @@ const ChatInit = {
                 // 【重要】守護神の儀式完了時に、APIレスポンスまたはメッセージから守護神名を取得して保存
                 let finalDeity = null;
                 
-                // 1. APIレスポンスから直接取得（優先）
-                if (response.assignedDeity && response.assignedDeity !== '未割当' && response.assignedDeity.trim() !== '') {
-                    finalDeity = response.assignedDeity;
+                // 1. APIレスポンスから直接取得（優先）- guardianDeityを使用
+                if (response.guardianDeity && response.guardianDeity !== '未割当' && response.guardianDeity.trim() !== '') {
+                    finalDeity = response.guardianDeity;
                     console.log('[守護神の儀式] APIレスポンスから守護神を取得:', finalDeity);
                 } else {
                     // 2. メッセージから抽出（フォールバック）
@@ -1143,14 +1143,14 @@ const ChatInit = {
                     }
                 }
                 
-                // 守護神名が取得できた場合、localStorageに保存
+                // 守護神名が取得できた場合、localStorageに保存（guardianDeityとして保存）
                 if (finalDeity && finalDeity !== '未割当' && finalDeity.trim() !== '') {
-                    localStorage.setItem('assignedDeity', finalDeity);
+                    localStorage.setItem('guardianDeity', finalDeity);
                     console.log('[守護神の儀式] 守護神を保存:', finalDeity);
                     
                     // ユーザーステータスを更新
                     ChatUI.updateUserStatus(true, {
-                        assignedDeity: finalDeity
+                        guardianDeity: finalDeity
                     });
                     
                     // 送信ボタンとメッセージ入力欄を再有効化
@@ -1165,12 +1165,12 @@ const ChatInit = {
                     // 会話履歴から守護神の情報を再取得（最終フォールバック）
                     setTimeout(async () => {
                         const historyData = await ChatAPI.loadConversationHistory(character);
-                        if (historyData && historyData.assignedDeity && historyData.assignedDeity !== '未割当') {
-                            localStorage.setItem('assignedDeity', historyData.assignedDeity);
-                            console.log('[守護神の儀式] 会話履歴から守護神を取得・保存:', historyData.assignedDeity);
+                        if (historyData && historyData.guardianDeity && historyData.guardianDeity !== '未割当') {
+                            localStorage.setItem('guardianDeity', historyData.guardianDeity);
+                            console.log('[守護神の儀式] 会話履歴から守護神を取得・保存:', historyData.guardianDeity);
                             
                             ChatUI.updateUserStatus(true, {
-                                assignedDeity: historyData.assignedDeity
+                                guardianDeity: historyData.guardianDeity
                             });
                             
                             if (ChatUI.sendButton) {
@@ -1628,7 +1628,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        const { type, character, token, nickname, assignedDeity } = event.data || {};
+        const { type, character, token, nickname, guardianDeity } = event.data || {};
         
         switch (type) {
             case 'ADMIN_RESET_CONVERSATION':
@@ -1672,10 +1672,10 @@ window.addEventListener('DOMContentLoaded', async () => {
             case 'ADMIN_SIMULATE_REGISTRATION':
                 // テスト用ユーザー登録をシミュレート
                 if (token && window.AuthState) {
-                    window.AuthState.setAuth(token, nickname, assignedDeity);
+                    window.AuthState.setAuth(token, nickname, guardianDeity);
                     localStorage.setItem('userToken', token);
                     if (nickname) localStorage.setItem('userNickname', nickname);
-                    if (assignedDeity) localStorage.setItem('assignedDeity', assignedDeity);
+                    if (guardianDeity) localStorage.setItem('guardianDeity', guardianDeity);
                     localStorage.setItem('hasAccount', 'true');
                     location.reload();
                 }
@@ -1689,7 +1689,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 }
                 localStorage.removeItem('userToken');
                 localStorage.removeItem('userNickname');
-                localStorage.removeItem('assignedDeity');
+                localStorage.removeItem('guardianDeity');
                 localStorage.removeItem('hasAccount');
                 sessionStorage.clear();
                 location.reload();

@@ -34,14 +34,13 @@
     return localStorage.getItem('userToken');
   }
 
-  function setAuth(token, nickname, deity) {
+  function setAuth(token, nickname, passphrase) {
     localStorage.setItem('userToken', token);
     if (nickname) {
       localStorage.setItem('userNickname', nickname);
     }
-    if (deity) {
-      localStorage.setItem('assignedDeity', deity);
-    }
+    // passphraseは合言葉（assigned_deity）なので、localStorageには保存しない
+    // 守護神名（guardian_deity）は別途APIから取得して保存する
     // Mark that this browser/user has completed registration
     localStorage.setItem('hasAccount', 'true');
   }
@@ -49,7 +48,7 @@
   function clearAuth() {
     localStorage.removeItem('userToken');
     localStorage.removeItem('userNickname');
-    localStorage.removeItem('assignedDeity');
+    localStorage.removeItem('guardianDeity');
   }
 
   function getGuestMessageCount() {
