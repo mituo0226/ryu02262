@@ -61,6 +61,20 @@
             flex-direction: column;
             overflow: hidden;
         }
+        
+        /* 管理者モード: チャットと分析パネルを横並び */
+        body.admin-mode main {
+            max-width: 100%;
+            flex-direction: row;
+            gap: 20px;
+            padding: 0 20px;
+        }
+        
+        body.admin-mode .chat-container {
+            flex: 1;
+            min-width: 0;
+            max-width: 820px;
+        }
 
         /* ============================================
            ナビゲーション
@@ -699,6 +713,34 @@
             </div>
         </div>
     </main>
+    
+    <!-- 管理者モード: 分析パネル -->
+    <div class="admin-analysis-panel hidden" id="adminAnalysisPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 18px; color: #f7f5ff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;">会話分析パネル</h3>
+            <button id="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer;">
+                🔄 更新
+            </button>
+        </div>
+        <div class="analysis-section">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">現在の状態</h4>
+            <div id="adminCurrentState" class="analysis-content">
+                <p>読み込み中...</p>
+            </div>
+        </div>
+        <div class="analysis-section">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">フェーズ情報</h4>
+            <div id="adminPhaseInfo" class="analysis-content">
+                <p>読み込み中...</p>
+            </div>
+        </div>
+        <div class="analysis-section">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">会話履歴構造</h4>
+            <div id="adminHistory" class="analysis-content">
+                <p>読み込み中...</p>
+            </div>
+        </div>
+    </div>
 
            <script src="../../js/auth-state.js"></script>
            <script src="../../js/features/yukino-tarot.js"></script>
@@ -769,5 +811,312 @@
                console.log('[iframe] postMessage通信の初期化コードが実行されました');
            })();
            </script>
+           
+           <!-- 管理者モードの初期化 -->
+           <script>
+           (function() {
+               'use strict';
+               
+               // URLパラメータからadminをチェック
+               const urlParams = new URLSearchParams(window.location.search);
+               const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
+               
+               if (isAdminMode) {
+                   // 管理者モードとしてbodyにクラスを追加
+                   document.body.classList.add('admin-mode');
+                   
+                   // 分析パネルを表示
+                   const analysisPanel = document.getElementById('adminAnalysisPanel');
+                   if (analysisPanel) {
+                       analysisPanel.classList.remove('hidden');
+                   }
+                   
+                   console.log('[管理者モード] 有効化されました');
+               }
+               
+               // フェーズを計算する関数
+               function calculatePhase(messageCount, character) {
+                   if (character === 'kaede') {
+                       if (messageCount === 1) {
+                           return {
+                               name: 'フェーズ1',
+                               description: '導入＆未来イメージの選択肢提示'
+                           };
+                       } else if (messageCount === 2) {
+                           return {
+                               name: 'フェーズ2',
+                               description: '長所を聞く質問（最後の質問）'
+                           };
+                       } else if (messageCount === 3) {
+                           return {
+                               name: 'フェーズ3',
+                               description: '性格診断＋続行確認'
+                           };
+                       } else {
+                           return {
+                               name: 'フェーズ4',
+                               description: '未来鑑定＋守護神と儀式の説明'
+                           };
+                       }
+                   }
+                   // カエデ以外の鑑定士はフェーズ設定がまだないため「制作待ち」として表示
+                   const characterNames = {
+                       yukino: '笹岡雪乃',
+                       kaon: '三崎花音',
+                       sora: '水野ソラ'
+                   };
+                   const characterName = characterNames[character] || character;
+                   return {
+                       name: '制作待ち',
+                       description: `${characterName}のフェーズ設定は現在制作中です（メッセージ数: ${messageCount}件）`
+                   };
+               }
+               
+               // 分析パネルを更新する関数
+               function updateAdminAnalysisPanel() {
+                   if (!isAdminMode) return;
+                   
+                   try {
+                       // ChatDataとAuthStateが利用可能か確認
+                       if (typeof ChatData === 'undefined' || typeof window.AuthState === 'undefined') {
+                           console.log('[管理者モード] ChatDataまたはAuthStateがまだ読み込まれていません');
+                           return;
+                       }
+                       
+                       const character = ChatData?.currentCharacter || 'unknown';
+                       const isRegistered = window.AuthState?.isRegistered() || false;
+                       
+                       // メッセージカウントと会話履歴を取得
+                       let messageCount = 0;
+                       let conversationHistory = [];
+                       
+                       if (isRegistered) {
+                           // 登録ユーザーの場合
+                           const historyData = ChatData?.conversationHistory;
+                           if (historyData && historyData.recentMessages) {
+                               conversationHistory = Array.isArray(historyData.recentMessages) ? historyData.recentMessages : [];
+                               messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                           }
+                       } else {
+                           // ゲストユーザーの場合
+                           if (typeof ChatData?.getGuestMessageCount === 'function') {
+                               messageCount = ChatData.getGuestMessageCount(character) || 0;
+                           }
+                           if (typeof ChatData?.getGuestHistory === 'function') {
+                               conversationHistory = ChatData.getGuestHistory(character) || [];
+                           }
+                           
+                           // 会話履歴からメッセージ数を再計算
+                           if (conversationHistory && conversationHistory.length > 0) {
+                               const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                               if (messageCount === 0 || historyUserMessages > messageCount) {
+                                   messageCount = historyUserMessages;
+                               }
+                           }
+                       }
+                       
+                       // 現在の状態を表示
+                       const currentStateDiv = document.getElementById('adminCurrentState');
+                       if (currentStateDiv) {
+                           const characterInfo = ChatData?.characterInfo?.[character] || {};
+                           const characterName = characterInfo.name || character;
+                           
+                           currentStateDiv.innerHTML = `
+                               <div class="analysis-item">
+                                   <span class="analysis-label">ユーザータイプ:</span>
+                                   <span class="analysis-value">${isRegistered ? '登録済み' : 'ゲスト'}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">キャラクター:</span>
+                                   <span class="analysis-value">${characterName}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">登録状態:</span>
+                                   <span class="analysis-value">${isRegistered ? '登録済み' : '未登録'}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">ユーザーメッセージ数:</span>
+                                   <span class="analysis-value">${messageCount}通</span>
+                               </div>
+                           `;
+                       }
+                       
+                       // フェーズ情報を表示
+                       const phase = calculatePhase(messageCount, character);
+                       const phaseInfoDiv = document.getElementById('adminPhaseInfo');
+                       if (phaseInfoDiv) {
+                           phaseInfoDiv.innerHTML = `
+                               <div class="analysis-item">
+                                   <span class="analysis-label">現在のフェーズ:</span>
+                                   <span class="analysis-value">${phase.name}</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">説明:</span>
+                                   <span class="analysis-value">${phase.description}</span>
+                               </div>
+                           `;
+                       }
+                       
+                       // 会話履歴構造を表示
+                       const historyDiv = document.getElementById('adminHistory');
+                       if (historyDiv) {
+                           const userMessages = conversationHistory.filter(m => m && m.role === 'user').length;
+                           const assistantMessages = conversationHistory.filter(m => m && m.role === 'assistant').length;
+                           historyDiv.innerHTML = `
+                               <div class="analysis-item">
+                                   <span class="analysis-label">総メッセージ数:</span>
+                                   <span class="analysis-value">${conversationHistory.length}件</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">ユーザーメッセージ:</span>
+                                   <span class="analysis-value">${userMessages}件</span>
+                               </div>
+                               <div class="analysis-item">
+                                   <span class="analysis-label">アシスタントメッセージ:</span>
+                                   <span class="analysis-value">${assistantMessages}件</span>
+                               </div>
+                           `;
+                       }
+                       
+                       console.log('[管理者モード] 分析パネルを更新しました', {
+                           character,
+                           messageCount,
+                           historyLength: conversationHistory.length
+                       });
+                   } catch (error) {
+                       console.error('[管理者モード] 分析パネル更新エラー:', error);
+                   }
+               }
+               
+               // 更新ボタンのイベントリスナー
+               const refreshBtn = document.getElementById('adminRefreshBtn');
+               if (refreshBtn) {
+                   refreshBtn.addEventListener('click', () => {
+                       updateAdminAnalysisPanel();
+                   });
+               }
+               
+               // メッセージ送信時に分析パネルを更新（カスタムイベントを監視）
+               document.addEventListener('adminPanelUpdate', () => {
+                   if (isAdminMode) {
+                       setTimeout(() => {
+                           updateAdminAnalysisPanel();
+                       }, 300);
+                   }
+               });
+               
+               // グローバルにupdateAdminAnalysisPanel関数を公開（chat-init.jsから呼び出せるように）
+               window.updateAdminAnalysisPanel = updateAdminAnalysisPanel;
+               
+               // 初期化後に分析パネルを更新（DOMContentLoadedを待つ）
+               function initAdminPanel() {
+                   // ChatDataとAuthStateが読み込まれるまで待機
+                   let attempts = 0;
+                   const maxAttempts = 20;
+                   const checkInterval = setInterval(() => {
+                       attempts++;
+                       if (typeof ChatData !== 'undefined' && typeof window.AuthState !== 'undefined') {
+                           clearInterval(checkInterval);
+                           setTimeout(() => {
+                               updateAdminAnalysisPanel();
+                           }, 500);
+                       } else if (attempts >= maxAttempts) {
+                           clearInterval(checkInterval);
+                           console.warn('[管理者モード] ChatDataまたはAuthStateの読み込みがタイムアウトしました');
+                       }
+                   }, 200);
+               }
+               
+               if (isAdminMode) {
+                   if (document.readyState === 'loading') {
+                       document.addEventListener('DOMContentLoaded', initAdminPanel);
+                   } else {
+                       initAdminPanel();
+                   }
+                   
+                   // 定期的に更新（30秒ごと）
+                   setInterval(() => {
+                       if (isAdminMode && typeof ChatData !== 'undefined') {
+                           updateAdminAnalysisPanel();
+                       }
+                   }, 30000);
+               }
+           })();
+           </script>
+           
+           <style>
+           /* 管理者モード: 分析パネルのスタイル */
+           .admin-analysis-panel {
+               width: 350px;
+               background: rgba(255, 255, 255, 0.04);
+               border: 1px solid rgba(255, 255, 255, 0.08);
+               border-radius: 16px;
+               padding: 20px;
+               overflow-y: auto;
+               max-height: 100vh;
+               height: fit-content;
+           }
+           
+           .admin-analysis-panel.hidden {
+               display: none;
+           }
+           
+           .admin-analysis-panel .analysis-section {
+               margin-bottom: 20px;
+           }
+           
+           .admin-analysis-panel .analysis-content {
+               background: rgba(0, 0, 0, 0.3);
+               border: 1px solid rgba(255, 255, 255, 0.05);
+               border-radius: 8px;
+               padding: 12px;
+               font-size: 12px;
+               line-height: 1.6;
+               color: #e8d5ff;
+           }
+           
+           .admin-analysis-panel .analysis-content p {
+               margin: 0;
+           }
+           
+           .analysis-item {
+               margin-bottom: 8px;
+           }
+           
+           .analysis-item:last-child {
+               margin-bottom: 0;
+           }
+           
+           .analysis-label {
+               font-weight: 600;
+               color: #b794ff;
+               margin-right: 8px;
+           }
+           
+           .analysis-value {
+               color: #e8d5ff;
+           }
+           
+           /* PC版: 管理者モードは横並び */
+           @media (min-width: 769px) {
+               body.admin-mode main {
+                   flex-direction: row;
+                   align-items: flex-start;
+                   justify-content: center;
+               }
+           }
+           
+           /* モバイル版: 管理者モードは縦並び */
+           @media (max-width: 768px) {
+               body.admin-mode main {
+                   flex-direction: column;
+               }
+               
+               .admin-analysis-panel {
+                   width: 100%;
+                   max-height: 400px;
+               }
+           }
+           </style>
 </body>
 </html>

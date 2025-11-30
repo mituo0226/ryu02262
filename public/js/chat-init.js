@@ -394,24 +394,34 @@ const ChatInit = {
                 historyExists: !!sessionStorage.getItem(`guestConversationHistory_${character}`)
             });
             
-            // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
-            if (window.parent && window.parent !== window) {
-                try {
-                    window.parent.postMessage({
-                        type: 'CHAT_MESSAGE_SENT',
-                        character: character,
-                        userType: 'guest',
-                        messageCount: messageCount,
-                        timestamp: Date.now()
-                    }, '*');
-                    console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
-                        character,
-                        messageCount
-                    });
-                } catch (error) {
-                    console.error('[iframe] メッセージ送信通知エラー:', error);
-                }
-            }
+                    // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
+                    if (window.parent && window.parent !== window) {
+                        try {
+                            window.parent.postMessage({
+                                type: 'CHAT_MESSAGE_SENT',
+                                character: character,
+                                userType: 'guest',
+                                messageCount: messageCount,
+                                timestamp: Date.now()
+                            }, '*');
+                            console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
+                                character,
+                                messageCount
+                            });
+                        } catch (error) {
+                            console.error('[iframe] メッセージ送信通知エラー:', error);
+                        }
+                    }
+                    
+                    // 管理者モードの分析パネルを更新（自分自身のウィンドウ）
+                    if (typeof window.updateAdminAnalysisPanel === 'function') {
+                        setTimeout(() => {
+                            window.updateAdminAnalysisPanel();
+                        }, 300);
+                    } else {
+                        // カスタムイベントを発火
+                        document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
+                    }
             
             ChatUI.updateUserStatus(false);
         }
