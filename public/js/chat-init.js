@@ -172,6 +172,7 @@ const ChatInit = {
                     const ritualStartMessage = 'それでは守護神の儀式を始めます';
                     console.log('[登録完了処理] メッセージを表示:', ritualStartMessage);
                     const messageElement = ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
+                    console.log('[登録完了処理] messageElement:', messageElement);
                     
                     // ゲスト会話履歴を一時的に保存（ボタンクリック時に使用するため）
                     // sessionStorageに保存して、ボタンクリック時に取得できるようにする
@@ -190,6 +191,7 @@ const ChatInit = {
                     
                     // メッセージの下に守護神の儀式開始ボタンを追加
                     if (messageElement) {
+                        console.log('[登録完了処理] 守護神の儀式開始ボタンを追加します');
                         ChatUI.addRitualStartButton(messageElement, async () => {
                             console.log('[守護神の儀式] ボタンがクリックされました');
                             

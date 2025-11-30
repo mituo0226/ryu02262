@@ -244,11 +244,16 @@ const ChatUI = {
      * @param {Function} onClickHandler - ボタンクリック時のハンドラ
      */
     addRitualStartButton(messageElement, onClickHandler) {
-        if (!messageElement) return null;
+        console.log('[addRitualStartButton] 呼び出されました', { messageElement, hasOnClickHandler: !!onClickHandler });
+        if (!messageElement) {
+            console.error('[addRitualStartButton] messageElementがnullです');
+            return null;
+        }
         
         // 既にボタンが追加されている場合は削除
         const existingButton = messageElement.querySelector('.ritual-start-button');
         if (existingButton) {
+            console.log('[addRitualStartButton] 既存のボタンを削除します');
             existingButton.remove();
         }
         
@@ -310,6 +315,7 @@ const ChatUI = {
         
         buttonContainer.appendChild(button);
         messageElement.appendChild(buttonContainer);
+        console.log('[addRitualStartButton] ボタンを追加しました', { messageElement, buttonContainer, button });
         
         // スクロールを最新に
         requestAnimationFrame(() => {
