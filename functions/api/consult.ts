@@ -42,6 +42,7 @@ interface ResponseBody {
   remainingGuestMessages?: number;
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai'; // 使用したLLMプロバイダー（デバッグ用）
+  assignedDeity?: string; // 守護神の儀式完了時に抽出した守護神名
 }
 
 interface UserRecord {
@@ -1028,6 +1029,57 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     const responseMessage = llmResult.message;
     
+    // 【重要】守護神の儀式完了時に、LLMの応答から守護神名を抽出してデータベースに保存
+    let extractedDeity: string | null = null;
+    if (user && characterId === 'kaede' && isRitualStart) {
+      // 守護神名の抽出パターン（クライアント側と同じパターン）
+      const deityPatterns = [
+        /あなたの守護神は[\s「『]?([^」』\s。、]+)/,
+        /守護神は[\s「『]?([^」』\s。、]+)/,
+        /([^。、\s]+)があなたの守護神です/,
+        /([^。、\s]+)が守護神です/,
+        /([^。、\s]+)が見守っています/,
+        /守護神[はが]「([^」]+)」/,
+        /守護神[はが]『([^』]+)』/,
+        /守護神[はが]([^。、\s]+)です/
+      ];
+      
+      for (const pattern of deityPatterns) {
+        const match = responseMessage.match(pattern);
+        if (match && match[1]) {
+          extractedDeity = match[1].trim();
+          // 「未割当」や空文字列は除外
+          if (extractedDeity && extractedDeity !== '未割当' && extractedDeity.length > 0) {
+            break;
+          }
+        }
+      }
+      
+      // 守護神名が抽出できた場合、データベースに保存
+      if (extractedDeity && extractedDeity !== '未割当' && extractedDeity.length > 0) {
+        try {
+          await env.DB.prepare(
+            `UPDATE users 
+             SET assigned_deity = ? 
+             WHERE id = ?`
+          )
+            .bind(extractedDeity, user.id)
+            .run();
+          
+          if (DEBUG_MODE) {
+            console.log(`✅ 守護神をデータベースに保存しました: user_id=${user.id}, assigned_deity=${extractedDeity}`);
+          }
+        } catch (error) {
+          console.error('⚠️ 守護神の保存エラー:', error);
+          // エラーが発生しても処理を続行
+        }
+      } else {
+        if (DEBUG_MODE) {
+          console.log('⚠️ 守護神名の抽出に失敗しました。応答メッセージ:', responseMessage.substring(0, 200));
+        }
+      }
+    }
+    
     // タロットカード関連のキーワードを検出（笹岡雪乃の場合のみ）
     const tarotKeywords = ['タロット', 'タロットカード', 'カードを', 'カードをめく', 'カードを占', 'カードを引'];
     const showTarotCard = characterId === 'yukino' && tarotKeywords.some(keyword => responseMessage.includes(keyword));
@@ -1201,6 +1253,95 @@ export const onRequestPost: PagesFunction = async (context) => {
           .bind(user.id, characterId, compressedAssistantMessage)
           .run();
       }
+    } else {
+      // 【重要】ゲストユーザーの場合: user_id = 0 でメッセージを保存
+      // 各鑑定士につき最大10通まで（ユーザーメッセージのみ）
+      // 10通を超える場合は、古いメッセージを削除
+      
+      const GUEST_USER_ID = 0; // ゲストユーザーのuser_id
+      
+      // 現在のユーザーメッセージ数を確認（この鑑定士に対して）
+      const guestMessageCountResult = await env.DB.prepare<{ count: number }>(
+        `SELECT COUNT(*) as count 
+         FROM conversations 
+         WHERE user_id = ? AND character_id = ? AND is_guest_message = 1 AND role = 'user'`
+      )
+        .bind(GUEST_USER_ID, characterId)
+        .first();
+
+      const guestMessageCount = guestMessageCountResult?.count || 0;
+      
+      // 10通を超える場合は、古いメッセージを削除（ユーザーメッセージのみ）
+      if (guestMessageCount >= GUEST_MESSAGE_LIMIT) {
+        // 古いメッセージを削除（ユーザーメッセージとアシスタントメッセージをペアで削除）
+        // 最も古いペアから順に削除
+        const deleteCount = guestMessageCount - GUEST_MESSAGE_LIMIT + 1; // 今回のメッセージを含めて10通になるように
+        
+        if (deleteCount > 0) {
+          // 削除するメッセージのIDを取得（最も古いものから）
+          const messagesToDelete = await env.DB.prepare<{ id: number }>(
+            `SELECT id 
+             FROM conversations 
+             WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
+             ORDER BY COALESCE(timestamp, created_at) ASC
+             LIMIT ?`
+          )
+            .bind(GUEST_USER_ID, characterId, deleteCount * 2) // ユーザーとアシスタントのペアなので2倍
+            .all();
+
+          if (messagesToDelete.results && messagesToDelete.results.length > 0) {
+            const idsToDelete = messagesToDelete.results.map(row => row.id);
+            
+            // 古いメッセージを削除
+            await env.DB.prepare(
+              `DELETE FROM conversations 
+               WHERE id IN (${idsToDelete.map(() => '?').join(',')})`
+            )
+              .bind(...idsToDelete)
+              .run();
+            
+            if (DEBUG_MODE) {
+              console.log(`✅ ゲストユーザーの会話履歴を整理: ${guestMessageCount}通 → ${GUEST_MESSAGE_LIMIT}通（${idsToDelete.length}通を削除）`);
+            }
+          }
+        }
+      }
+      
+      // ユーザーメッセージを追加
+      try {
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+           VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+        )
+          .bind(GUEST_USER_ID, characterId, trimmedMessage)
+          .run();
+      } catch (error) {
+        // timestampカラムが存在しない場合はcreated_atのみを使用
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+           VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+        )
+          .bind(GUEST_USER_ID, characterId, trimmedMessage)
+          .run();
+      }
+
+      // アシスタントメッセージを追加
+      try {
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+           VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+        )
+          .bind(GUEST_USER_ID, characterId, responseMessage)
+          .run();
+      } catch (error) {
+        // timestampカラムが存在しない場合はcreated_atのみを使用
+        await env.DB.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+           VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+        )
+          .bind(GUEST_USER_ID, characterId, responseMessage)
+          .run();
+      }
     }
 
     return new Response(
@@ -1217,6 +1358,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
         showTarotCard: showTarotCard,
         provider: llmResult.provider, // 使用したLLMプロバイダーを返す（デバッグ用）
+        assignedDeity: extractedDeity || undefined, // 守護神の儀式完了時に抽出した守護神名を返す
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

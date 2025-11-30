@@ -431,6 +431,79 @@ const ChatInit = {
         });
         
         ChatUI.updateSendButtonVisibility();
+        
+        // 【重要】登録ユーザーでchat.htmlの場合、守護神が未登録の場合は自動的に儀式を開始
+        if (!isGuestMode && character === 'kaede') {
+            // 会話履歴から守護神の状態を確認
+            const historyData = ChatData.conversationHistory;
+            const assignedDeity = historyData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
+            
+            if (assignedDeity === '未割当' || !assignedDeity || assignedDeity.trim() === '') {
+                console.log('[chat.html] 守護神が未登録です。自動的に儀式を開始します。');
+                // 少し待ってから自動的に儀式を開始（UIが完全に読み込まれてから）
+                setTimeout(async () => {
+                    await this.checkGuardianAndDisplay(character);
+                }, 1000);
+            }
+        }
+    },
+    
+    /**
+     * 守護神の状態をチェックして、未登録の場合は自動的に儀式を開始
+     * @param {string} character - キャラクターID
+     */
+    async checkGuardianAndDisplay(character) {
+        if (character !== 'kaede') {
+            return;
+        }
+        
+        const isGuest = !AuthState.isRegistered();
+        if (isGuest) {
+            return; // ゲストユーザーの場合は処理しない
+        }
+        
+        try {
+            // 会話履歴から守護神の状態を確認
+            const historyData = await ChatAPI.loadConversationHistory(character);
+            const assignedDeity = historyData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
+            
+            console.log('[checkGuardianAndDisplay] 守護神の状態:', assignedDeity);
+            
+            // 守護神が未登録の場合は、自動的に儀式を開始
+            if (assignedDeity === '未割当' || !assignedDeity || assignedDeity.trim() === '') {
+                console.log('[checkGuardianAndDisplay] 守護神が未登録です。自動的に儀式を開始します。');
+                
+                // 送信ボタンを無効化
+                if (ChatUI.sendButton) {
+                    ChatUI.sendButton.disabled = true;
+                }
+                
+                // メッセージ送信をブロック
+                const messageInput = ChatUI.messageInput;
+                if (messageInput) {
+                    messageInput.disabled = true;
+                    messageInput.placeholder = '守護神の儀式が完了するまで、メッセージを送信できません...';
+                }
+                
+                // 守護神の儀式を開始
+                await this.startGuardianRitual(character);
+                
+                // 儀式完了後、送信ボタンを再有効化
+                // startGuardianRitual内で処理されるが、念のためここでも確認
+                const checkDeity = localStorage.getItem('assignedDeity') || '未割当';
+                if (checkDeity !== '未割当' && checkDeity.trim() !== '') {
+                    if (ChatUI.sendButton) {
+                        ChatUI.sendButton.disabled = false;
+                    }
+                    if (messageInput) {
+                        messageInput.disabled = false;
+                        messageInput.placeholder = 'メッセージを入力してください...';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('[checkGuardianAndDisplay] エラー:', error);
+        }
     },
 
     /**
@@ -522,6 +595,20 @@ const ChatInit = {
         }
 
         const isGuest = !AuthState.isRegistered();
+        
+        // 【重要】登録ユーザーでKaedeの場合、守護神が未登録の場合はメッセージ送信をブロック
+        if (!isGuest && character === 'kaede') {
+            const assignedDeity = localStorage.getItem('assignedDeity') || '未割当';
+            if (assignedDeity === '未割当' || !assignedDeity || assignedDeity.trim() === '') {
+                ChatUI.addMessage('error', '守護神の儀式が完了するまで、メッセージを送信できません。守護神の儀式を開始してください。', 'システム');
+                
+                // 自動的に儀式を開始
+                setTimeout(async () => {
+                    await this.checkGuardianAndDisplay(character);
+                }, 500);
+                return;
+            }
+        }
         
         // メッセージ送信ボタンを押した時点で、即座にカウントを開始
         if (isGuest) {
@@ -1038,6 +1125,76 @@ const ChatInit = {
             if (response.message) {
                 console.log('[守護神の儀式] 成功、メッセージを表示:', response.message);
                 ChatUI.addMessage('character', response.message, response.characterName || ChatData.characterInfo[character].name);
+                
+                // 【重要】守護神の儀式完了時に、APIレスポンスまたはメッセージから守護神名を取得して保存
+                let finalDeity = null;
+                
+                // 1. APIレスポンスから直接取得（優先）
+                if (response.assignedDeity && response.assignedDeity !== '未割当' && response.assignedDeity.trim() !== '') {
+                    finalDeity = response.assignedDeity;
+                    console.log('[守護神の儀式] APIレスポンスから守護神を取得:', finalDeity);
+                } else {
+                    // 2. メッセージから抽出（フォールバック）
+                    const deityPatterns = [
+                        /あなたの守護神は[\s「『]?([^」』\s。、]+)/,
+                        /守護神は[\s「『]?([^」』\s。、]+)/,
+                        /([^。、\s]+)があなたの守護神です/,
+                        /([^。、\s]+)が守護神です/,
+                        /([^。、\s]+)が見守っています/
+                    ];
+                    
+                    for (const pattern of deityPatterns) {
+                        const match = response.message.match(pattern);
+                        if (match && match[1]) {
+                            finalDeity = match[1].trim();
+                            if (finalDeity && finalDeity !== '未割当') {
+                                console.log('[守護神の儀式] メッセージから守護神を抽出:', finalDeity);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // 守護神名が取得できた場合、localStorageに保存
+                if (finalDeity && finalDeity !== '未割当' && finalDeity.trim() !== '') {
+                    localStorage.setItem('assignedDeity', finalDeity);
+                    console.log('[守護神の儀式] 守護神を保存:', finalDeity);
+                    
+                    // ユーザーステータスを更新
+                    ChatUI.updateUserStatus(true, {
+                        assignedDeity: finalDeity
+                    });
+                    
+                    // 送信ボタンとメッセージ入力欄を再有効化
+                    if (ChatUI.sendButton) {
+                        ChatUI.sendButton.disabled = false;
+                    }
+                    if (ChatUI.messageInput) {
+                        ChatUI.messageInput.disabled = false;
+                        ChatUI.messageInput.placeholder = 'メッセージを入力してください...';
+                    }
+                } else {
+                    // 会話履歴から守護神の情報を再取得（最終フォールバック）
+                    setTimeout(async () => {
+                        const historyData = await ChatAPI.loadConversationHistory(character);
+                        if (historyData && historyData.assignedDeity && historyData.assignedDeity !== '未割当') {
+                            localStorage.setItem('assignedDeity', historyData.assignedDeity);
+                            console.log('[守護神の儀式] 会話履歴から守護神を取得・保存:', historyData.assignedDeity);
+                            
+                            ChatUI.updateUserStatus(true, {
+                                assignedDeity: historyData.assignedDeity
+                            });
+                            
+                            if (ChatUI.sendButton) {
+                                ChatUI.sendButton.disabled = false;
+                            }
+                            if (ChatUI.messageInput) {
+                                ChatUI.messageInput.disabled = false;
+                                ChatUI.messageInput.placeholder = 'メッセージを入力してください...';
+                            }
+                        }
+                    }, 2000);
+                }
                 
                 // 会話履歴を更新（assistantの応答を追加）
                 conversationHistory.push({ role: 'assistant', content: response.message });
