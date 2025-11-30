@@ -1639,9 +1639,42 @@
         debugInfo.push(`✅ データ取得成功: メッセージ数=${chatData.messageCount || 0}, 履歴数=${chatData.conversationHistory?.length || 0}`);
         
         // データを表示
-        const messageCount = chatData.messageCount || 0;
+        let messageCount = chatData.messageCount || 0;
         const conversationHistory = Array.isArray(chatData.conversationHistory) ? chatData.conversationHistory : [];
         const characterName = chatData.character || character || '不明';
+        
+        // デバッグ: 受信したデータを確認
+        console.log('[管理画面] 受信したチャットデータ:', {
+          messageCount: messageCount,
+          conversationHistoryLength: conversationHistory.length,
+          userMessages: conversationHistory.filter(msg => msg && msg.role === 'user').length,
+          fullData: chatData
+        });
+        
+        // 会話履歴からメッセージ数を再計算（フォールバック）
+        // messageCountが0でも、会話履歴があれば正しい値を計算
+        if (conversationHistory && conversationHistory.length > 0) {
+          const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+          console.log('[管理画面] 会話履歴からメッセージ数を計算:', {
+            historyLength: conversationHistory.length,
+            userMessages: historyUserMessages,
+            currentMessageCount: messageCount
+          });
+          
+          // messageCountが0または、履歴から計算した値の方が大きい場合は更新
+          if (messageCount === 0 || historyUserMessages > messageCount) {
+            console.log('[管理画面] ⚠️ メッセージ数を修正:', {
+              oldCount: messageCount,
+              newCount: historyUserMessages,
+              reason: messageCount === 0 ? 'messageCountが0のため' : '履歴の方が大きいため'
+            });
+            messageCount = historyUserMessages;
+          }
+        } else if (messageCount === 0) {
+          console.warn('[管理画面] ⚠️ メッセージ数が0で、会話履歴も空です');
+        }
+        
+        console.log('[管理画面] 最終的なメッセージ数:', messageCount);
         
         // 現在の状態を表示
         if (currentStateDiv) {
