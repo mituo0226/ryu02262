@@ -30,7 +30,7 @@ export async function generateUserToken(userId, secret) {
   return `${userId}.${issuedAt}.${signature}`;
 }
 
-export async function verifyUserToken(token | undefined, secret): Promise<{ userId } | null> {
+export async function verifyUserToken(token | undefined, secret) {
   if (!token) {
     return null;
   }
