@@ -1,4 +1,4 @@
-import { generateUserToken } from '../../lib/token.js';
+import { generateUserToken } from '../../lib/token.mjs';
 
 interface LoginRequestBody {
   nickname?: string;
@@ -77,3 +77,5 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   return new Response(JSON.stringify(responseBody), { status: 200, headers });
 };
+
+

@@ -1,4 +1,4 @@
-import { isAdminAuthorized, unauthorizedResponse } from '../../lib/admin-auth.js';
+import { isAdminAuthorized, unauthorizedResponse } from '../../lib/admin-auth.mjs';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -77,3 +77,5 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
 
   return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: jsonHeaders });
 };
+
+

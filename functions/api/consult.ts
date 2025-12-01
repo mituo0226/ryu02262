@@ -1,7 +1,7 @@
 // Cloudflare Pages Functions の型定義
-import { isInappropriate, generateSystemPrompt, getCharacterName } from '../lib/character-system.js';
-import { isValidCharacter } from '../lib/character-loader.js';
-import { verifyUserToken } from '../lib/token.js';
+import { isInappropriate, generateSystemPrompt, getCharacterName } from '../lib/character-system.mjs';
+import { isValidCharacter } from '../lib/character-loader.mjs';
+import { verifyUserToken } from '../lib/token.mjs';
 
 const GUEST_MESSAGE_LIMIT = 10;
 const MAX_DEEPSEEK_RETRIES = 3;
@@ -1078,4 +1078,6 @@ export const onRequestPost: PagesFunction = async (context) => {
     );
   }
 };
+
+
 

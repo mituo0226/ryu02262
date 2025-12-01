@@ -1,5 +1,5 @@
 // Cloudflare Pages Functions の型定義
-import { verifyUserToken } from '../lib/token.js';
+import { verifyUserToken } from '../lib/token.mjs';
 
 interface ConversationRow {
   role: 'user' | 'assistant';
@@ -173,4 +173,5 @@ export const onRequestGet: PagesFunction = async (context) => {
     );
   }
 };
+
 

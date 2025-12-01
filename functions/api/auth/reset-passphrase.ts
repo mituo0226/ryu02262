@@ -1,5 +1,5 @@
-import { getRandomDeity } from '../../lib/deities.js';
-import { generateUserToken } from '../../lib/token.js';
+import { getRandomDeity } from '../../lib/deities.mjs';
+import { generateUserToken } from '../../lib/token.mjs';
 
 interface ResetRequestBody {
   nickname?: string;
@@ -94,4 +94,5 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     );
   }
 };
+
 

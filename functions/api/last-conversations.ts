@@ -1,5 +1,5 @@
 // Cloudflare Pages Functions の型定義
-import { verifyUserToken } from '../lib/token.js';
+import { verifyUserToken } from '../lib/token.mjs';
 
 interface LastConversationRow {
   character_id: string;
@@ -128,4 +128,5 @@ export const onRequestGet: PagesFunction = async (context) => {
     );
   }
 };
+
 
