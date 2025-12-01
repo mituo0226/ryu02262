@@ -10,7 +10,7 @@
 
 
 // 大アルカナカード定義（22枚）
-export const majorArcana = [
+export const majorArcana: TarotCard[] = [
   {
     id: 0,
     name: 'The Fool',

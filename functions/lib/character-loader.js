@@ -11,7 +11,7 @@ const validCharacterIds = ['kaede', 'yukino', 'sora', 'kaon'];
  * @param {string} characterId - キャラクターID
  * @returns {boolean} 有効かどうか
  */
-export function isValidCharacter(characterId: string): boolean {
+export function isValidCharacter(characterId) {
   return validCharacterIds.includes(characterId);
 }
 
@@ -19,7 +19,7 @@ export function isValidCharacter(characterId: string): boolean {
  * すべてのキャラクターIDを取得
  * @returns {Array<string>} キャラクターIDの配列
  */
-export function getAllCharacterIds(): string[] {
+export function getAllCharacterIds() {
   return [...validCharacterIds];
 }
 

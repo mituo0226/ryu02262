@@ -1,7 +1,7 @@
 const encoder = new TextEncoder();
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
-function base64UrlEncode(buffer: ArrayBuffer): string {
+function base64UrlEncode(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   bytes.forEach((byte) => {
@@ -11,7 +11,7 @@ function base64UrlEncode(buffer: ArrayBuffer): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function getKey(secret: string) {
+async function getKey(secret) {
   return crypto.subtle.importKey(
     'raw',
     encoder.encode(secret),
@@ -21,7 +21,7 @@ async function getKey(secret: string) {
   );
 }
 
-export async function generateUserToken(userId: number, secret: string): Promise<string> {
+export async function generateUserToken(userId, secret) {
   const issuedAt = Date.now();
   const payload = `${userId}.${issuedAt}`;
   const key = await getKey(secret);
@@ -30,7 +30,7 @@ export async function generateUserToken(userId: number, secret: string): Promise
   return `${userId}.${issuedAt}.${signature}`;
 }
 
-export async function verifyUserToken(token: string | undefined, secret: string): Promise<{ userId: number } | null> {
+export async function verifyUserToken(token | undefined, secret): Promise<{ userId } | null> {
   if (!token) {
     return null;
   }
