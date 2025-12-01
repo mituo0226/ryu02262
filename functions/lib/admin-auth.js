@@ -1,4 +1,4 @@
-export function isAdminAuthorized(request: Request, env: Env): boolean {
+export function isAdminAuthorized(request, env) {
   const header = request.headers.get('x-admin-token') || request.headers.get('X-Admin-Token');
   if (!env.ADMIN_TOKEN) {
     console.warn('ADMIN_TOKEN is not configured');

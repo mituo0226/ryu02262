@@ -7,17 +7,7 @@
  * タロット占いシステム（笹岡雪乃専用）
  */
 
-export interface TarotCard {
-  id: number;
-  name: string;
-  japaneseName: string;
-  arcana: 'major' | 'minor';
-  suit?: 'wands' | 'cups' | 'swords' | 'pentacles';
-  number?: number;
-  upright: string[];
-  reversed: string[];
-  symbolism: string;
-}
+
 
 // 大アルカナカード定義（22枚）
 export const majorArcana: TarotCard[] = [
@@ -224,14 +214,14 @@ export const majorArcana: TarotCard[] = [
 /**
  * 笹岡雪乃がタロット占いを行うか判定
  */
-export function canPerformTarot(characterId: string): boolean {
+export function canPerformTarot(characterId) {
   return characterId === 'yukino';
 }
 
 /**
  * 笹岡雪乃のタロット専門プロンプトを生成
  */
-export function getYukinoTarotExpertise(): string {
+export function getYukinoTarotExpertise() {
   return `
 【笹岡雪乃のタロット専門知識】
 - タロット占いの専門家として、大アルカナ22枚、小アルカナ56枚の全てのカードの意味を深く理解
@@ -270,7 +260,7 @@ export function getYukinoTarotExpertise(): string {
 /**
  * ユーザーのメッセージがタロット占いを要求しているか判定（笹岡雪乃専用）
  */
-export function isRequestingTarot(message: string, characterId: string): boolean {
+export function isRequestingTarot(message, characterId) {
   if (characterId !== 'yukino') return false;
   
   const tarotKeywords = [
@@ -296,7 +286,7 @@ const inappropriateKeywords = [
 /**
  * 不適切なキーワードを検出
  */
-function detectInappropriateKeywords(message: string): string[] {
+function detectInappropriateKeywords(message)[] {
   const lowerMessage = message.toLowerCase();
   return inappropriateKeywords.filter(keyword => 
     lowerMessage.includes(keyword.toLowerCase())
@@ -306,7 +296,7 @@ function detectInappropriateKeywords(message: string): string[] {
 /**
  * 不適切な発言かチェック
  */
-export function isInappropriate(message: string): boolean {
+export function isInappropriate(message) {
   return detectInappropriateKeywords(message).length > 0;
 }
 
@@ -314,12 +304,12 @@ export function isInappropriate(message: string): boolean {
  * キャラクター別のシステムプロンプトを生成
  */
 interface PromptOptions {
-  encourageRegistration?: boolean;
-  userNickname?: string;
-  hasPreviousConversation?: boolean;
-  conversationHistoryLength?: number;
-  userMessageCount?: number;
-  isRitualStart?: boolean; // 守護神の儀式開始メッセージかどうか
+  encourageRegistration?;
+  userNickname?;
+  hasPreviousConversation?;
+  conversationHistoryLength?;
+  userMessageCount?;
+  isRitualStart?; // 守護神の儀式開始メッセージかどうか
 }
 
 const registrationGuides: Record<string, string> = {
@@ -396,7 +386,7 @@ const registrationGuides: Record<string, string> = {
 【重要】応答の一部として自然に組み込み、会話全体を登録促しだけにしないようにしてください。明るい話し方で友達言葉を使用し、自分を「僕」と呼ぶことを絶対に守ってください。若者の男子特有の爽やかで明るい性格を演出しながら、母性的な温かさを感じさせる話し方を守ってください。`,
 };
 
-export function generateSystemPrompt(characterId: string, options: PromptOptions = {}): string {
+export function generateSystemPrompt(characterId, options: PromptOptions = {}) {
   const nicknameContext = options.userNickname 
     ? `【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
     : '【重要】相談者はゲストユーザーです。名前を知らないため、「あなた」と呼んでも構いませんが、親しみやすく自然な呼び方を心がけてください。';
@@ -828,7 +818,7 @@ ${guide}
 /**
  * キャラクター名を取得
  */
-export function getCharacterName(characterId: string): string {
+export function getCharacterName(characterId) {
   const names: Record<string, string> = {
     kaede: '楓',
     yukino: '笹岡雪乃',
