@@ -1,5 +1,5 @@
-import { getRandomDeity } from '../../.lib/deities.mjs';
-import { generateUserToken } from '../../.lib/token.mjs';
+import { getRandomDeity } from '../../../lib/deities.mjs';
+import { generateUserToken } from '../../../lib/token.mjs';
 
 interface RegisterRequestBody {
   nickname?: string;

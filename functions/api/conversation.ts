@@ -1,7 +1,7 @@
 // Cloudflare Pages Functions
 // 会話履歴管理API - メッセージ保存・取得・管理
 
-import { verifyUserToken } from '../.lib/token.mjs';
+import { verifyUserToken } from '../../lib/token.mjs';
 
 const MAX_MESSAGES_PER_CHARACTER = 100;
 
