@@ -1,7 +1,7 @@
 // Cloudflare Pages Functions
 // 会話履歴クリーンアップAPI - 古いメッセージの自動削除
 
-import { isAdminAuthorized } from '../_lib/admin-auth.mjs';
+import { isAdminAuthorized } from '../.lib/admin-auth.mjs';
 
 const MAX_MESSAGES_PER_CHARACTER = 100;
 const CLEANUP_BATCH_SIZE = 1000; // 一度に処理するレコード数
@@ -270,6 +270,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     );
   }
 };
+
 
 
 

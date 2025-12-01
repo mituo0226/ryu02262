@@ -1,5 +1,5 @@
-import { getRandomDeity } from '../../_lib/deities.mjs';
-import { generateUserToken } from '../../_lib/token.mjs';
+import { getRandomDeity } from '../../.lib/deities.mjs';
+import { generateUserToken } from '../../.lib/token.mjs';
 
 interface RegisterRequestBody {
   nickname?: string;
@@ -79,6 +79,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   return new Response(JSON.stringify(responseBody), { status: 200, headers });
 };
+
 
 
 
