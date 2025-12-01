@@ -582,3 +582,4 @@ export function getCharacterName(characterId) {
   };
   return names[characterId] || '楓';
 }
+

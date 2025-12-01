@@ -1,4 +1,4 @@
-import { generateUserToken } from '../../../lib/token.mjs';
+import { generateUserToken } from '../../_lib/token.js';
 
 interface LoginRequestBody {
   nickname?: string;

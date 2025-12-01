@@ -1,4 +1,4 @@
-import { isAdminAuthorized, unauthorizedResponse } from '../../../lib/admin-auth.mjs';
+import { isAdminAuthorized, unauthorizedResponse } from '../../_lib/admin-auth.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 

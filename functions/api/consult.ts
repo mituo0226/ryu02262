@@ -1,7 +1,7 @@
 // Cloudflare Pages Functions の型定義
-import { isInappropriate, generateSystemPrompt, getCharacterName } from '../../lib/character-system.mjs';
-import { isValidCharacter } from '../../lib/character-loader.mjs';
-import { verifyUserToken } from '../../lib/token.mjs';
+import { isInappropriate, generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
+import { isValidCharacter } from '../_lib/character-loader.js';
+import { verifyUserToken } from '../_lib/token.js';
 
 const GUEST_MESSAGE_LIMIT = 10;
 const MAX_DEEPSEEK_RETRIES = 3;
