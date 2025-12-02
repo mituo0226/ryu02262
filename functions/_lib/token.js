@@ -21,7 +21,7 @@ async function getKey(secret) {
   );
 }
 
-export async function generateUserToken(userId, secret) {
+async function generateUserToken(userId, secret) {
   const issuedAt = Date.now();
   const payload = `${userId}.${issuedAt}`;
   const key = await getKey(secret);
@@ -30,7 +30,7 @@ export async function generateUserToken(userId, secret) {
   return `${userId}.${issuedAt}.${signature}`;
 }
 
-export async function verifyUserToken(token, secret) {
+async function verifyUserToken(token, secret) {
   if (!token) {
     return null;
   }
@@ -56,4 +56,9 @@ export async function verifyUserToken(token, secret) {
   }
   return { userId };
 }
+
+module.exports = {
+  generateUserToken,
+  verifyUserToken,
+};
 

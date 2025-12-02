@@ -1,4 +1,4 @@
-export function isAdminAuthorized(request, env) {
+function isAdminAuthorized(request, env) {
   const header = request.headers.get('x-admin-token') || request.headers.get('X-Admin-Token');                                                                  
   if (!env.ADMIN_TOKEN) {
     console.warn('ADMIN_TOKEN is not configured');
@@ -7,10 +7,15 @@ export function isAdminAuthorized(request, env) {
   return header === env.ADMIN_TOKEN;
 }
 
-export function unauthorizedResponse() {
+function unauthorizedResponse() {
   return new Response(JSON.stringify({ error: 'Unauthorized' }), {
     status: 401,
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+module.exports = {
+  isAdminAuthorized,
+  unauthorizedResponse,
+};
 

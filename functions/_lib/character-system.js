@@ -24,7 +24,7 @@ function detectInappropriateKeywords(message) {
 /**
  * 不適切な発言かチェック
  */
-export function isInappropriate(message) {
+function isInappropriate(message) {
   return detectInappropriateKeywords(message).length > 0;
 }
 
@@ -141,7 +141,7 @@ const registrationGuides = {
 【重要】応答の一部として自然に組み込み、会話全体を登録促しだけにしないようにしてください。明るい話し方で友達言葉を使用し、自分を「僕」と呼ぶことを絶対に守ってください。若者の男子特有の爽やかで明るい性格を演出しながら、母性的な温かさを感じさせる話し方を守ってください。`,
 };
 
-export function generateSystemPrompt(characterId, options = {}) {
+function generateSystemPrompt(characterId, options = {}) {
   const nicknameContext = options.userNickname 
     ? `【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
     : '【重要】相談者はゲストユーザーです。名前を知らないため、「あなた」と呼んでも構いませんが、親しみやすく自然な呼び方を心がけてください。';
@@ -573,7 +573,7 @@ ${guide}
 /**
  * キャラクター名を取得
  */
-export function getCharacterName(characterId) {
+function getCharacterName(characterId) {
   const names = {
     kaede: '楓',
     yukino: '笹岡雪乃',
@@ -582,4 +582,10 @@ export function getCharacterName(characterId) {
   };
   return names[characterId] || '楓';
 }
+
+module.exports = {
+  isInappropriate,
+  generateSystemPrompt,
+  getCharacterName,
+};
 

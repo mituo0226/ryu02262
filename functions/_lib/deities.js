@@ -1,4 +1,4 @@
-export const deities = [
+const deities = [
   '桜舞い散る春の道',
   '月明かりに浮かぶ夢',
   '星降る夜の物語',
@@ -25,8 +25,13 @@ export const deities = [
   '金色の稲穂'
 ];
 
-export function getRandomDeity() {
+function getRandomDeity() {
   const index = Math.floor(Math.random() * deities.length);
   return deities[index];
 }
+
+module.exports = {
+  deities,
+  getRandomDeity,
+};
 
