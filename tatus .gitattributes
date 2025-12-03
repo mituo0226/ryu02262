@@ -1,0 +1,30 @@
+warning: in the working copy of '.gitattributes', CRLF will be replaced by LF the next time Git touches it
+[1mdiff --git a/.gitattributes b/.gitattributes[m
+[1mindex 220d663..fcadb2c 100644[m
+[1m--- a/.gitattributes[m
+[1m+++ b/.gitattributes[m
+[36m@@ -1,23 +1 @@[m
+[31m-# すべてのテキストファイルを行末LFに統一[m
+[31m-* text=auto eol=lf[m
+[31m-[m
+[31m-# 特定のファイルタイプを明示的に指定[m
+[31m-*.js text eol=lf[m
+[31m-*.ts text eol=lf[m
+[31m-*.jsx text eol=lf[m
+[31m-*.tsx text eol=lf[m
+[31m-*.json text eol=lf[m
+[31m-*.md text eol=lf[m
+[31m-*.html text eol=lf[m
+[31m-*.css text eol=lf[m
+[31m-*.sql text eol=lf[m
+[31m-*.txt text eol=lf[m
+[31m-[m
+[31m-# バイナリファイルはそのまま[m
+[31m-*.png binary[m
+[31m-*.jpg binary[m
+[31m-*.jpeg binary[m
+[31m-*.gif binary[m
+[31m-*.mp4 binary[m
+[31m-*.pdf binary[m
+[31m-[m
+[32m+[m[32m* text eol=lf[m
