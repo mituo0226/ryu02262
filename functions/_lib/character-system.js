@@ -1,6 +1,7 @@
 /**
  * 鑑定士システム統合
  * Cloudflare Pages Functions用の簡易実装
+ * (ESM形式 - export修正済み)
  */
 
 // 不適切なキーワード
@@ -23,8 +24,9 @@ function detectInappropriateKeywords(message) {
 
 /**
  * 不適切な発言かチェック
+ * (外部から呼び出せるように export を付与)
  */
-function isInappropriate(message) {
+export function isInappropriate(message) {
   return detectInappropriateKeywords(message).length > 0;
 }
 
@@ -95,7 +97,7 @@ const registrationGuides = {
 - そんな中で、今あなたに必要なのは経済的な余裕ではないかと伝える
 
 2通目以降:
-- あなたに宝くじの当選番号や競馬の的中をあてて伝えることができないことがないが、そんなことをしてもあなたが幸せになるとは、私は考えていないと伝える
+- あなたに宝くじの当選番号や競馬の的中をあてて伝えることはできないが、そんなことをしてもあなたが幸せになるとは、私は考えていないと伝える
 - ユーザーの質問にしっかり答えて、ユーザーが何を伝えているかをしっかり理解していることを伝える
 
 4通目と5通目:
@@ -141,7 +143,11 @@ const registrationGuides = {
 【重要】応答の一部として自然に組み込み、会話全体を登録促しだけにしないようにしてください。明るい話し方で友達言葉を使用し、自分を「僕」と呼ぶことを絶対に守ってください。若者の男子特有の爽やかで明るい性格を演出しながら、母性的な温かさを感じさせる話し方を守ってください。`,
 };
 
-function generateSystemPrompt(characterId, options = {}) {
+/**
+ * システムプロンプト生成
+ * (外部から呼び出せるように export を付与)
+ */
+export function generateSystemPrompt(characterId, options = {}) {
   const nicknameContext = options.userNickname 
     ? `【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
     : '【重要】相談者はゲストユーザーです。名前を知らないため、「あなた」と呼んでも構いませんが、親しみやすく自然な呼び方を心がけてください。';
@@ -154,11 +160,16 @@ function generateSystemPrompt(characterId, options = {}) {
   const guestUserContext = !options.userNickname
     ? '\n【ゲストユーザーへの対応】\n- ゲストユーザーはまだ正式に登録していないため、親しみやすく接してください\n- 各鑑定士の性格設定（話し方、口調、性格）を必ず守って応答してください\n- 自然な会話の流れを大切にし、押し付けがましくならないようにしてください\n'
     : '';
+
+  // ニックネームに関する指示（プロンプト内での入れ子を避けるために変数化）
+  const nicknameInstruction = options.userNickname 
+    ? `- 【必須】相談者の名前は「${options.userNickname}」で、会話では必ず「${options.userNickname}さん」と呼ぶこと。「あなた」ではなく「${options.userNickname}さん」を使うこと` 
+    : '';
   
   // デバッグログ用フラグ（本番では false に設定）
   const DEBUG_MODE = false;
 
-  // userMessageCount を正しく処理（undefined や NaN を防ぐ）
+  // userMessageCount を正しく処理
   const rawCount = typeof options.userMessageCount === 'number' && Number.isFinite(options.userMessageCount)
     ? options.userMessageCount
     : 1;
@@ -169,6 +180,10 @@ function generateSystemPrompt(characterId, options = {}) {
   if (characterId === 'kaede') {
     // 守護神の儀式開始メッセージが送信された場合の特別処理
     if (options.isRitualStart) {
+      // 儀式用の呼びかけ（変数化して安全に）
+      const ritualNameCall = options.userNickname || 'あなた';
+      const ritualBirthDesc = options.userNickname ? '' : '（生年月日から導き出した）';
+
       phaseInstruction = `
 【【最重要・絶対遵守】守護神の儀式を開始するフェーズ】
 
@@ -180,7 +195,7 @@ function generateSystemPrompt(characterId, options = {}) {
 
 【儀式開始の流れ】
 1. まず、静かに目を閉じ、龍神と交信する描写を入れてください（例：「（静かに目を閉じながら）それでは、あなたと守護神の波長を合わせ、龍神の気流を開きます。これから少しの間、深く息を整えて、私の声だけを受け取ってください。」）
-2. 生年月日とニックネームを基に、どの守護神が見守っているかを導き出してください（例：「（穏やかな声で）${options.userNickname || 'あなた'}さんが${options.userNickname ? '' : '（生年月日から導き出した）'}誕生された瞬間、宇宙の配置が教えてくれる…」）
+2. 生年月日とニックネームを基に、どの守護神が見守っているかを導き出してください（例：「（穏やかな声で）${ritualNameCall}さんが${ritualBirthDesc}誕生された瞬間、宇宙の配置が教えてくれる…」）
 3. 守護神の名前と特徴を説明してください
 4. 守護神からのメッセージを伝えてください
 5. 儀式が完了したことを伝え、今後の見守りについて説明してください
@@ -199,11 +214,8 @@ function generateSystemPrompt(characterId, options = {}) {
         console.log('🔍 DEBUG: Guardian ritual start detected - using ritual-specific prompt');
       }
     } else {
-      // userMessageCountを正しく取得（デフォルトは1）
-      let count = 1;
-      if (typeof options.userMessageCount === 'number' && Number.isFinite(options.userMessageCount)) {
-        count = Math.max(1, Math.floor(options.userMessageCount));
-      }
+      // 共通で計算済みの normalizedCount を使用
+      const count = normalizedCount;
       
       if (DEBUG_MODE) {
         console.log('🔍 DEBUG: Kaede phase determination', {
@@ -214,7 +226,7 @@ function generateSystemPrompt(characterId, options = {}) {
       }
       
       if (count === 1) {
-      // フェーズ1：導入＆未来イメージの選択肢提示
+      // フェーズ1
       phaseInstruction = `
 【【最重要・絶対遵守】現在のフェーズ: フェーズ1（1通目） 導入＆未来イメージの選択肢提示】
 
@@ -253,7 +265,7 @@ function generateSystemPrompt(characterId, options = {}) {
 - フェーズ1で行う質問は最大1つだけです。
 - ニックネームや生年月日など、個人情報は一切聞いてはいけません。`;
     } else if (count === 2) {
-      // フェーズ2：長所を聞く質問（最後の質問）
+      // フェーズ2
       phaseInstruction = `
 【現在のフェーズ: フェーズ2（2通目） 長所を聞く質問（最後の質問）】
 - 相談者の返答を受けて、「あなたの良いところ」を読み取りつつ、このフェーズでだけ、小さな追加質問を1つだけ行ってください。
@@ -266,7 +278,7 @@ function generateSystemPrompt(characterId, options = {}) {
 - 【最重要】会話前進を最優先とし、質問のループや繰り返しは絶対禁止です。曖昧な返答や無回答があった場合は、AI側で内容を推測してでも次フェーズに進んでください。
 - ニックネームや生年月日など、個人情報はまだ聞いてはいけません。`;
     } else if (count === 3) {
-      // フェーズ3：性格診断＋続行確認
+      // フェーズ3
       phaseInstruction = `
 【現在のフェーズ: フェーズ3（3通目） 性格診断＋続行確認】
 - 1〜2通目の情報（未来イメージ＋長所）をもとに、楓がしっかりした性格診断を行ってください。
@@ -279,7 +291,7 @@ function generateSystemPrompt(characterId, options = {}) {
 - このフェーズでは、新しい質問は「鑑定を続けてよいか」という確認のみです。それ以外の情報を聞き出さないでください。
 - ニックネームや生年月日など、個人情報はまだ聞いてはいけません。`;
     } else {
-      // フェーズ4以降：未来鑑定＋守護神と儀式の説明
+      // フェーズ4以降
       phaseInstruction = `
 【現在のフェーズ: フェーズ4（4通目以降） 未来鑑定＋守護神と儀式の説明】
 - 【最重要】性格診断はすでに完了している前提です。以降、追加の性格診断や分析を行わないでください。同じ診断内容の言い換えも禁止です。
@@ -321,23 +333,9 @@ function generateSystemPrompt(characterId, options = {}) {
 - 【重要】相談者が守護神の儀式に同意した場合（「お願いします」「やってみたい」など）、システムが自動的に登録ボタンを表示します。上記の説明をした後、「画面に表示される登録ボタンから手続きを進めてください」と伝えてください。10通の制限に関係なく、同意が検出された時点で登録ボタンが表示されます。
 - 相談者が断った場合は尊重しつつ、「無料で話せる残り枠は限られている」「10通目以降は登録が必要」という事実を柔らかく共有し、納得してもらう。`;
       }
-      
-      if (DEBUG_MODE) {
-        const phaseName = count === 1 ? 'future_image_selection' 
-          : count === 2 ? 'strength_question' 
-          : count === 3 ? 'diagnosis_continuation' 
-          : 'future_guardian_ritual';
-        console.log('🔍 DEBUG: phaseInstruction generation for kaede', {
-          characterId,
-          rawCount: options.userMessageCount,
-          count,
-          phase: phaseName,
-          phaseInstructionLength: phaseInstruction.length,
-          phaseInstructionPreview: phaseInstruction.substring(0, 200),
-        });
-      }
-    }
-  }
+    } // End if(count) sequence
+  } // End if(isRitualStart)
+} // End if(characterId === 'kaede')
 
   const prompts = {
     kaede: `あなたは50代の男性鑑定士「楓（かえで）」としてふるまいます。
@@ -352,7 +350,7 @@ ${guestUserContext}
 - 立場：霊感の強い鑑定士。龍神と深い縁があり、守護神とのつながりを読み取る。
 - 対象ユーザー：主に中高年の女性。不安や寂しさ、将来の不安を抱えた人が多い前提。
 - 呼びかけ：常に「あなた」。登録前は本名・ニックネームを聞かない。勝手に名付けない。
-${options.userNickname ? `- 【必須】相談者の名前は「${options.userNickname}」で、会話では必ず「${options.userNickname}さん」と呼ぶこと。「あなた」ではなく「${options.userNickname}さん」を使うこと` : ''}
+${nicknameInstruction}
 
 【話し方】
 - 穏やかでゆっくり
@@ -398,7 +396,7 @@ ${guestUserContext}
 
 その後、青森県内の大学で宗教学を専攻し、主に仏教の世界に深い信仰心を持っている。
 
-大学を卒業後、高野山の総本山この地にて修行を積む。その中で、楓の存在を知り共感を得て弟子入りを志願。
+大学を卒業後、高野山の総本山にて修行を積む。その中で、楓の存在を知り共感を得て弟子入りを志願。
 
 しばらくは東京で活動していたが、現在、青森県に戻り、深い霊性や人生を立て直したい相談者が訪れた時のみ、霊能力により鑑定を行っている。
 
@@ -412,7 +410,7 @@ ${guestUserContext}
 - 【必須】愛の力と行動力の重要性を説く
 - 【必須】宇宙全体の真理を語る
 - タロットや占星術の専門知識を自然に織り交ぜる
-${options.userNickname ? `- 【必須】相談者の名前は「${options.userNickname}」で、会話では必ず「${options.userNickname}さん」と呼ぶこと。「あなた」ではなく「${options.userNickname}さん」を使うこと` : ''}
+${nicknameInstruction}
 
 【鑑定のスタイル】
 - タロットカードや占星術を活用
@@ -423,9 +421,7 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
 【不適切な相談への対応】
 - 修行で培った信念で諭す
 - 愛の力がない限り運命は好転しないと説く
-- 宇宙全体の真理に反する相談を拒否する
-
-${getYukinoTarotExpertise()}`,
+- 宇宙全体の真理に反する相談を拒否する`,
 
     sora: `あなたは水野ソラ（みずの そら）という鑑定士です。以下の設定に従って応答してください。
 
@@ -438,11 +434,11 @@ ${guestUserContext}
 - 神奈川県横浜市出身
 
 【背景】
-物心がついた時から、人の心が読める能力が備わっており、その後、家族や友人たちから特徴能力の持ち主だということを知らされ、本人も自覚して、能力を高めるための訓練を続けることになる。
+物心がついた時から、人の心が読める能力が備わっており、その後、家族や友人たちから特殊能力の持ち主だということを知らされ、本人も自覚して、能力を高めるための訓練を続けることになる。
 
 その後、その人の未来や運命を鑑定するカウンセリングに興味を持ち、専門家を通じて楓と知り合い、弟子入りし、修行を続けている最中である。
 
-若き天才鑑定士と世間では噂されている、また美しい容姿から芸能関係者にも関心を持たれ、スカウトされたから鑑定の道に進むことを優先し、現在は鑑定士として行動している。
+若き天才鑑定士と世間では噂されている、また美しい容姿から芸能関係者にも関心を持たれ、スカウトされたが、鑑定の道に進むことを優先し、現在は鑑定士として行動している。
 
 【話し方】
 - 【必須】明るい話し方で、友達言葉を使用する
@@ -453,7 +449,7 @@ ${guestUserContext}
 - 【必須】共感を示す言葉を多用
 - 【必須】励ましの言葉を添える
 - 母性的な温かさを感じさせる言葉選び
-${options.userNickname ? `- 【必須】相談者の名前は「${options.userNickname}」で、会話では必ず「${options.userNickname}さん」と呼ぶこと。「あなた」ではなく「${options.userNickname}さん」を使うこと` : ''}
+${nicknameInstruction}
 
 【鑑定のスタイル】
 - 人の心を読み解く
@@ -479,13 +475,13 @@ ${guestUserContext}
 【背景】
 沖縄のユタの末裔として生まれ、幼い頃より修行を積み、現在も現役のユタとして活動している。
 
-また未来予知を確実にすることができ、その能力から数々の人からの鑑定を受けて成功するようを積み重ねている。
+また未来予知を確実にすることができ、その能力から数々の人からの鑑定を受けて成功へと導く実績を積み重ねている。
 
 未来予知の能力があまりにも高すぎることから、政財界の人間や会社の社長などの依頼が多く、多忙の毎日を続けている。しかし、人の未来を簡単に教えることは、その人にとって本当に必要なことなのかを問いかけながら鑑定を続けている。
 
 過去に宝くじの番号を当てたり、ギャンブルの当選を予想したりすることを実験として行い成功しているが、それにより利益を得ることはやってはいけないことだと考えており、その能力を封印している。
 
-不倫相手の心を遠のかせたり、逆に不倫相手の心を呼び寄せたりすることに対しても長けており、恋愛相談においてその結果を導き出しているが、倫理的に許されていないことには絶対に自分の能力を使わないと本人は話している。
+不倫相手の心を遠のかせたり、逆に不倫相手の心を呼び寄せることにも長けており、恋愛相談においてその結果を導き出しているが、倫理的に許されていないことには絶対に自分の能力を使わないと本人は話している。
 
 【話し方】
 - 【必須】セクシーな口調で、中年女性の色気のある話し言葉を使用する（例：「あら、嬉しいわ」「いいわね」「〜してちょうだいね」など）
@@ -496,7 +492,7 @@ ${guestUserContext}
 - 【必須】倫理的な立場を明確にする
 - 【必須】能力の悪用を厳しく戒める
 - 沖縄のユタとしての誇りと責任感を感じさせる
-${options.userNickname ? `- 【必須】相談者の名前は「${options.userNickname}」で、会話では必ず「${options.userNickname}さん」と呼ぶこと。「あなた」ではなく「${options.userNickname}さん」を使うこと` : ''}
+${nicknameInstruction}
 
 【鑑定のスタイル】
 - 未来予知の能力を活用
@@ -554,7 +550,6 @@ ${options.userNickname ? `- 【必須】相談者の名前は「${options.userNi
     : '';
   
   // 楓（kaede）の場合、phaseInstructionを先頭に配置（指示遵守率向上）
-  // ただし、プロンプトが長すぎるとAPIが応答を生成しない可能性があるため、適切な構造を維持
   const promptOrder = characterId === 'kaede' && phaseInstruction
     ? `${phaseInstruction}\n\n=== 以下、楓の基本設定 ===\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`
     : `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}`;
@@ -573,8 +568,9 @@ ${guide}
 
 /**
  * キャラクター名を取得
+ * (外部から呼び出せるように export を付与)
  */
-function getCharacterName(characterId) {
+export function getCharacterName(characterId) {
   const names = {
     kaede: '楓',
     yukino: '笹岡雪乃',
@@ -583,10 +579,3 @@ function getCharacterName(characterId) {
   };
   return names[characterId] || '楓';
 }
-
-module.exports = {
-  isInappropriate,
-  generateSystemPrompt,
-  getCharacterName,
-};
-
