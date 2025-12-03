@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>守護神の儀式 - 運命の扉</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+      color: #f5f5f5;
+    }
+
+    /* フルスクリーンオーバーレイ */
+    .ritual-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 儀式メディア（画像・動画） */
+    .ritual-media {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 1.5s ease-in-out;
+      z-index: 1;
+    }
+
+    .ritual-media.active {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .ritual-media.fade-out {
+      opacity: 0;
+      z-index: 1;
+    }
+
+    /* 守護神の登場 */
+    .guardian-reveal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      z-index: 3;
+      transition: opacity 2s ease-in-out;
+      background: radial-gradient(circle at center, rgba(138, 43, 226, 0.2), rgba(0, 0, 0, 0.8));
+    }
+
+    .guardian-reveal.visible {
+      opacity: 1;
+    }
+
+    .guardian-reveal-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.8));
+      animation: guardian-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes guardian-glow {
+      0%, 100% {
+        filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.8)) brightness(1);
+      }
+      50% {
+        filter: drop-shadow(0 0 80px rgba(255, 215, 0, 1)) brightness(1.2);
+      }
+    }
+
+    /* 結果表示エリア */
+    .result-section {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      background: radial-gradient(circle at center, rgba(138, 43, 226, 0.3), #050108 80%);
+      animation: fadeInUp 1s ease-out;
+    }
+
+    .result-section.visible {
+      display: flex;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .guardian-result {
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(138, 43, 226, 0.5);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      max-width: 90%;
+      backdrop-filter: blur(10px);
+    }
+
+    .guardian-image {
+      width: 250px;
+      height: 250px;
+      margin: 0 auto 30px;
+      border-radius: 50%;
+      border: 4px solid rgba(138, 43, 226, 0.6);
+      box-shadow: 0 0 60px rgba(138, 43, 226, 0.8);
+      overflow: hidden;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% {
+        box-shadow: 0 0 60px rgba(138, 43, 226, 0.8);
+      }
+      50% {
+        box-shadow: 0 0 100px rgba(138, 43, 226, 1);
+      }
+    }
+
+    .guardian-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .guardian-name {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #ffd700;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+    }
+
+    .guardian-message {
+      font-size: 18px;
+      line-height: 1.8;
+      color: #e0d4ff;
+      margin-bottom: 40px;
+    }
+
+    .continue-button {
+      display: inline-block;
+      padding: 16px 50px;
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .continue-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
+    }
+
+    .loading-text {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      color: #cfaeff;
+      z-index: 10;
+      text-shadow: 0 0 20px rgba(138, 43, 226, 0.8);
+      animation: pulse-text 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-text {
+      0%, 100% {
+        opacity: 0.6;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* エラーメッセージ */
+    .error-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(200, 0, 0, 0.8);
+      border: 1px solid rgba(255, 100, 100, 0.5);
+      border-radius: 10px;
+      padding: 30px;
+      color: #ffb5b5;
+      z-index: 300;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    /* スマートフォン対応 - フルスクリーンで目一杯 */
+    @media (max-width: 768px) {
+      .ritual-media {
+        object-fit: cover;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .guardian-reveal-image {
+        width: 100vw;
+        height: 100vh;
+        object-fit: contain;
+        padding: 20px;
+      }
+
+      .guardian-result {
+        padding: 30px 20px;
+        max-width: 95%;
+      }
+
+      .guardian-image {
+        width: 200px;
+        height: 200px;
+      }
+
+      .guardian-name {
+        font-size: 28px;
+      }
+
+      .guardian-message {
+        font-size: 16px;
+      }
+
+      .continue-button {
+        padding: 14px 40px;
+        font-size: 16px;
+      }
+
+      .loading-text {
+        font-size: 18px;
+        bottom: 15%;
+      }
+    }
+
+    /* 縦長スマホ対応 */
+    @media (max-width: 480px) and (orientation: portrait) {
+      .guardian-image {
+        width: 180px;
+        height: 180px;
+      }
+
+      .guardian-name {
+        font-size: 24px;
+      }
+
+      .guardian-message {
+        font-size: 14px;
+      }
+
+      .loading-text {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 儀式アニメーションオーバーレイ -->
+  <div class="ritual-overlay" id="ritualOverlay">
+    <img class="ritual-media" id="ritualKaedeInori" src="../../photo/kami/kaede-inori.png" alt="祈り">
+    <img class="ritual-media" id="ritualDragon" src="../../photo/kami/dragon.png" alt="龍">
+    <video class="ritual-media" id="ritualCosmo" src="../../photo/kami/cosmo.mp4" loop muted playsinline></video>
+    <div class="guardian-reveal" id="guardianReveal">
+      <img class="guardian-reveal-image" id="guardianRevealImage" src="" alt="守護神">
+    </div>
+    <div class="loading-text" id="loadingText">儀式を執り行っています...</div>
+  </div>
+
+  <!-- 結果表示エリア -->
+  <div class="result-section" id="resultSection">
+    <div class="guardian-result">
+      <div class="guardian-image" id="guardianImageContainer">
+        <img id="guardianImage" src="" alt="守護神">
+      </div>
+      <h2 class="guardian-name" id="guardianName"></h2>
+      <p class="guardian-message" id="guardianMessage"></p>
+      <a href="../main.html" class="continue-button" id="continueButton">鑑定士一覧へ</a>
+    </div>
+  </div>
+
+  <!-- エラーメッセージ -->
+  <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+  <script type="module">
+    import { getGuardianFromParts } from '../../js/utils/guardian.js';
+
+    /**
+     * ユーザー情報の取得
+     */
+    async function getUserBirthday() {
+      const birthYear = localStorage.getItem('birthYear');
+      const birthMonth = localStorage.getItem('birthMonth');
+      const birthDay = localStorage.getItem('birthDay');
+
+      if (birthYear && birthMonth && birthDay) {
+        return {
+          birthYear: parseInt(birthYear, 10),
+          birthMonth: parseInt(birthMonth, 10),
+          birthDay: parseInt(birthDay, 10)
+        };
+      }
+
+      throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
+    }
+
+    /**
+     * 儀式アニメーションの実行
+     * kaede-inori.png → dragon.png → cosmo.mp4 → 選ばれた守護神
+     */
+    async function playRitualAnimation(guardian) {
+      const kaedeInori = document.getElementById('ritualKaedeInori');
+      const dragon = document.getElementById('ritualDragon');
+      const cosmo = document.getElementById('ritualCosmo');
+      const guardianReveal = document.getElementById('guardianReveal');
+      const guardianRevealImage = document.getElementById('guardianRevealImage');
+      const loadingText = document.getElementById('loadingText');
+
+      // フェーズ1: kaede-inori.png（祈りのシーン）- 3秒
+      kaedeInori.classList.add('active');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      kaedeInori.classList.remove('active');
+      kaedeInori.classList.add('fade-out');
+
+      // フェーズ2: dragon.png（竜人の登場）- 3秒（重なりながら）
+      await new Promise(resolve => setTimeout(resolve, 500));
+      dragon.classList.add('active');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      dragon.classList.remove('active');
+      dragon.classList.add('fade-out');
+
+      // フェーズ3: cosmo.mp4（宇宙の映像）- 4秒（重なりながら）
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 動画の読み込みを待つ
+      return new Promise((resolve) => {
+        cosmo.addEventListener('loadeddata', async () => {
+          cosmo.play();
+          cosmo.classList.add('active');
+          
+          await new Promise(resolve => setTimeout(resolve, 4000));
+
+          // フェーズ4: 選ばれた守護神の登場（cosmo.mp4と重なりながら）
+          guardianRevealImage.src = `../../photo/kami/${guardian.image}`;
+          guardianRevealImage.alt = guardian.name;
+          
+          // 画像の読み込みを待つ
+          guardianRevealImage.addEventListener('load', async () => {
+            guardianReveal.classList.add('visible');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // ローディングテキストを非表示
+            if (loadingText) {
+              loadingText.style.display = 'none';
+            }
+            
+            resolve();
+          }, { once: true });
+        }, { once: true });
+        
+        cosmo.load();
+      });
+    }
+
+    /**
+     * 結果表示
+     */
+    function showResult(guardian) {
+      const resultSection = document.getElementById('resultSection');
+      const guardianImage = document.getElementById('guardianImage');
+      const guardianName = document.getElementById('guardianName');
+      const guardianMessage = document.getElementById('guardianMessage');
+      const ritualOverlay = document.getElementById('ritualOverlay');
+
+      if (guardianImage) {
+        guardianImage.src = `../../photo/kami/${guardian.image}`;
+        guardianImage.alt = guardian.name;
+      }
+      if (guardianName) {
+        guardianName.textContent = guardian.name;
+      }
+      if (guardianMessage) {
+        guardianMessage.textContent = guardian.message;
+      }
+
+      // オーバーレイを非表示、結果を表示
+      if (ritualOverlay) {
+        ritualOverlay.style.display = 'none';
+      }
+      if (resultSection) {
+        resultSection.classList.add('visible');
+      }
+    }
+
+    /**
+     * メイン処理
+     */
+    async function init() {
+      try {
+        // ユーザー生年月日を取得
+        const birthday = await getUserBirthday();
+        
+        // 守護神を決定
+        const guardian = getGuardianFromParts(
+          birthday.birthYear,
+          birthday.birthMonth,
+          birthday.birthDay
+        );
+
+        // アニメーションを再生
+        await playRitualAnimation(guardian);
+
+        // 少し待ってから結果を表示
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 結果を表示
+        showResult(guardian);
+      } catch (error) {
+        console.error('エラー:', error);
+        const errorMessage = document.getElementById('errorMessage');
+        const ritualOverlay = document.getElementById('ritualOverlay');
+        
+        if (errorMessage) {
+          errorMessage.textContent = error.message || 'エラーが発生しました。';
+          errorMessage.style.display = 'block';
+        }
+        if (ritualOverlay) {
+          ritualOverlay.style.display = 'none';
+        }
+      }
+    }
+
+    // ページロード時に実行
+    init();
+  </script>
+</body>
+</html>
+
