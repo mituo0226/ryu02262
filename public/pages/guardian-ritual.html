@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>守護神の儀式 - 運命の扉</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+  <style>
+    body {
+      background: radial-gradient(circle at center, rgba(138, 43, 226, 0.3), #050108 80%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f5f5f5;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 背景パーティクル */
+    .ritual-particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .particle-item {
+      position: absolute;
+      background: rgba(138, 43, 226, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.8);
+      animation: float-up linear infinite;
+    }
+
+    @keyframes float-up {
+      0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100vh) scale(1);
+        opacity: 0;
+      }
+    }
+
+    /* メインコンテナ */
+    .ritual-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    /* 儀式アニメーションエリア */
+    .ritual-animation {
+      margin-bottom: 40px;
+    }
+
+    .ritual-title {
+      font-size: 28px;
+      margin-bottom: 30px;
+      color: #e0d4ff;
+      text-shadow: 0 0 20px rgba(138, 43, 226, 0.6);
+      animation: fadeIn 1s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 守護神グリッド */
+    .guardians-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      margin: 30px 0;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .guardian-slot {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(138, 43, 226, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .guardian-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.3;
+      filter: grayscale(100%);
+      transition: all 0.3s ease;
+    }
+
+    .guardian-slot.glow {
+      border-color: rgba(138, 43, 226, 0.8);
+      box-shadow: 0 0 30px rgba(138, 43, 226, 0.6);
+      transform: scale(1.1);
+    }
+
+    .guardian-slot.glow img {
+      opacity: 1;
+      filter: grayscale(0%);
+    }
+
+    .guardian-slot.selected {
+      border-color: #ffd700;
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+      transform: scale(1.2);
+      z-index: 10;
+    }
+
+    .guardian-slot.selected img {
+      opacity: 1;
+      filter: grayscale(0%) brightness(1.2);
+    }
+
+    /* 儀式の光のエフェクト */
+    .ritual-light {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(138, 43, 226, 0.4) 0%, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
+      animation: pulse-light 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-light {
+      0%, 100% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    /* 結果表示エリア */
+    .result-section {
+      display: none;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    .result-section.visible {
+      display: block;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .guardian-result {
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(138, 43, 226, 0.5);
+      border-radius: 20px;
+      padding: 30px;
+      margin-top: 30px;
+      backdrop-filter: blur(10px);
+    }
+
+    .guardian-image {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      border: 3px solid rgba(138, 43, 226, 0.6);
+      box-shadow: 0 0 40px rgba(138, 43, 226, 0.6);
+      overflow: hidden;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% {
+        box-shadow: 0 0 40px rgba(138, 43, 226, 0.6);
+      }
+      50% {
+        box-shadow: 0 0 60px rgba(138, 43, 226, 0.9);
+      }
+    }
+
+    .guardian-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .guardian-name {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #ffd700;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+
+    .guardian-message {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #e0d4ff;
+      margin-bottom: 30px;
+    }
+
+    .continue-button {
+      display: inline-block;
+      padding: 14px 40px;
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .continue-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
+    }
+
+    .loading-text {
+      font-size: 18px;
+      color: #cfaeff;
+      margin-top: 20px;
+      opacity: 0.8;
+    }
+
+    /* エラーメッセージ */
+    .error-message {
+      background: rgba(200, 0, 0, 0.3);
+      border: 1px solid rgba(255, 100, 100, 0.5);
+      border-radius: 10px;
+      padding: 20px;
+      color: #ffb5b5;
+      margin-top: 20px;
+    }
+
+    /* スマートフォン対応 */
+    @media (max-width: 768px) {
+      .ritual-container {
+        padding: 15px;
+      }
+
+      .ritual-title {
+        font-size: 22px;
+        margin-bottom: 20px;
+      }
+
+      .guardians-grid {
+        gap: 10px;
+        max-width: 100%;
+      }
+
+      .guardian-slot {
+        border-radius: 8px;
+      }
+
+      .guardian-result {
+        padding: 20px;
+      }
+
+      .guardian-image {
+        width: 150px;
+        height: 150px;
+      }
+
+      .guardian-name {
+        font-size: 24px;
+      }
+
+      .guardian-message {
+        font-size: 14px;
+      }
+
+      .continue-button {
+        padding: 12px 30px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ritual-particles" id="ritualParticles"></div>
+
+  <div class="ritual-container">
+    <!-- 儀式アニメーションエリア -->
+    <div class="ritual-animation" id="ritualAnimation">
+      <h1 class="ritual-title">守護神の儀式</h1>
+      <div class="guardians-grid" id="guardiansGrid">
+        <!-- 守護神スロットはJavaScriptで動的に生成 -->
+      </div>
+      <div class="loading-text" id="loadingText">儀式を執り行っています...</div>
+    </div>
+
+    <!-- 結果表示エリア -->
+    <div class="result-section" id="resultSection">
+      <div class="guardian-result">
+        <div class="guardian-image" id="guardianImageContainer">
+          <img id="guardianImage" src="" alt="守護神">
+        </div>
+        <h2 class="guardian-name" id="guardianName"></h2>
+        <p class="guardian-message" id="guardianMessage"></p>
+        <a href="../main.html" class="continue-button" id="continueButton">鑑定士一覧へ</a>
+      </div>
+    </div>
+
+    <!-- エラーメッセージ -->
+    <div class="error-message" id="errorMessage" style="display: none;"></div>
+  </div>
+
+  <script type="module">
+    import { getGuardianFromParts } from '../../js/utils/guardian.js';
+
+    /**
+     * ユーザー情報の取得
+     * 
+     * 優先順位:
+     * 1. localStorageに保存されている生年月日情報（register.htmlで保存）
+     * 2. APIから取得（/api/conversation-history など）
+     * 
+     * 注意: 実際の実装では、APIエンドポイントから取得することを推奨
+     * 現在はlocalStorageから取得していますが、本番環境では
+     * サーバー側で検証した生年月日を使用してください。
+     */
+    async function getUserBirthday() {
+      // 方法1: localStorageから取得（register.htmlで保存された値）
+      const birthYear = localStorage.getItem('birthYear');
+      const birthMonth = localStorage.getItem('birthMonth');
+      const birthDay = localStorage.getItem('birthDay');
+
+      if (birthYear && birthMonth && birthDay) {
+        return {
+          birthYear: parseInt(birthYear, 10),
+          birthMonth: parseInt(birthMonth, 10),
+          birthDay: parseInt(birthDay, 10)
+        };
+      }
+
+      // 方法2: APIから取得（実装例）
+      // const userToken = localStorage.getItem('userToken');
+      // if (userToken) {
+      //   try {
+      //     const response = await fetch('/api/user', {
+      //       headers: { 'Authorization': `Bearer ${userToken}` }
+      //     });
+      //     const data = await response.json();
+      //     return {
+      //       birthYear: data.birthYear,
+      //       birthMonth: data.birthMonth,
+      //       birthDay: data.birthDay
+      //     };
+      //   } catch (error) {
+      //     console.error('API取得エラー:', error);
+      //   }
+      // }
+
+      throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
+    }
+
+    /**
+     * パーティクルエフェクトの生成
+     */
+    function createParticles() {
+      const container = document.getElementById('ritualParticles');
+      if (!container) return;
+
+      function createParticle() {
+        const particle = document.createElement('div');
+        particle.className = 'particle-item';
+        
+        const size = Math.random() * 4 + 2;
+        const x = Math.random() * 100;
+        const duration = Math.random() * 15 + 10;
+        const delay = Math.random() * 2;
+        
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.left = x + '%';
+        particle.style.animationDuration = duration + 's';
+        particle.style.animationDelay = delay + 's';
+        
+        container.appendChild(particle);
+        
+        setTimeout(() => {
+          particle.remove();
+        }, (duration + delay) * 1000);
+      }
+
+      setInterval(createParticle, 800);
+    }
+
+    /**
+     * 守護神グリッドの初期化
+     */
+    function initGuardiansGrid(selectedGuardianId) {
+      const grid = document.getElementById('guardiansGrid');
+      if (!grid) return;
+
+      const guardians = [
+        { id: 'amaterasu', image: 'amaterasu.png' },
+        { id: 'okuni-nushi', image: 'okuni-nushi.png' },
+        { id: 'dainithi-nyorai', image: 'dainithi-nyorai.png' },
+        { id: 'senju', image: 'senju.png' },
+        { id: 'fudo', image: 'fudo.png' }
+      ];
+
+      grid.innerHTML = '';
+      guardians.forEach(guardian => {
+        const slot = document.createElement('div');
+        slot.className = 'guardian-slot';
+        slot.dataset.guardianId = guardian.id;
+        
+        const img = document.createElement('img');
+        img.src = `../../photo/kami/${guardian.image}`;
+        img.alt = guardian.id;
+        
+        slot.appendChild(img);
+        grid.appendChild(slot);
+      });
+    }
+
+    /**
+     * 儀式アニメーションの実行
+     */
+    async function playRitualAnimation(selectedGuardianId) {
+      const slots = document.querySelectorAll('.guardian-slot');
+      const loadingText = document.getElementById('loadingText');
+      
+      // フェーズ1: ランダムに光る（2秒）
+      for (let i = 0; i < 8; i++) {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        const randomSlot = slots[Math.floor(Math.random() * slots.length)];
+        randomSlot.classList.add('glow');
+        setTimeout(() => {
+          randomSlot.classList.remove('glow');
+        }, 200);
+      }
+
+      // フェーズ2: すべてが光る（1秒）
+      slots.forEach(slot => {
+        slot.classList.add('glow');
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // フェーズ3: 選ばれた守護神が強く光る（2秒）
+      slots.forEach(slot => {
+        slot.classList.remove('glow');
+        if (slot.dataset.guardianId === selectedGuardianId) {
+          slot.classList.add('selected');
+        }
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // ローディングテキストを非表示
+      if (loadingText) {
+        loadingText.style.display = 'none';
+      }
+    }
+
+    /**
+     * 結果表示
+     */
+    function showResult(guardian) {
+      const resultSection = document.getElementById('resultSection');
+      const guardianImage = document.getElementById('guardianImage');
+      const guardianName = document.getElementById('guardianName');
+      const guardianMessage = document.getElementById('guardianMessage');
+      const ritualAnimation = document.getElementById('ritualAnimation');
+
+      if (guardianImage) {
+        guardianImage.src = `../../photo/kami/${guardian.image}`;
+        guardianImage.alt = guardian.name;
+      }
+      if (guardianName) {
+        guardianName.textContent = guardian.name;
+      }
+      if (guardianMessage) {
+        guardianMessage.textContent = guardian.message;
+      }
+
+      // アニメーションエリアを非表示、結果を表示
+      if (ritualAnimation) {
+        ritualAnimation.style.display = 'none';
+      }
+      if (resultSection) {
+        resultSection.classList.add('visible');
+      }
+    }
+
+    /**
+     * メイン処理
+     */
+    async function init() {
+      try {
+        // パーティクルエフェクト開始
+        createParticles();
+
+        // ユーザー生年月日を取得
+        const birthday = await getUserBirthday();
+        
+        // 守護神を決定
+        const guardian = getGuardianFromParts(
+          birthday.birthYear,
+          birthday.birthMonth,
+          birthday.birthDay
+        );
+
+        // グリッドを初期化
+        initGuardiansGrid(guardian.id);
+
+        // アニメーションを再生
+        await playRitualAnimation(guardian.id);
+
+        // 結果を表示
+        showResult(guardian);
+      } catch (error) {
+        console.error('エラー:', error);
+        const errorMessage = document.getElementById('errorMessage');
+        const ritualAnimation = document.getElementById('ritualAnimation');
+        
+        if (errorMessage) {
+          errorMessage.textContent = error.message || 'エラーが発生しました。';
+          errorMessage.style.display = 'block';
+        }
+        if (ritualAnimation) {
+          ritualAnimation.style.display = 'none';
+        }
+      }
+    }
+
+    // ページロード時に実行
+    init();
+  </script>
+</body>
+</html>
+
