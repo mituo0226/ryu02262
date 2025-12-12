@@ -192,9 +192,21 @@
     </div>
 
     <script>
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:195',message:'改善画面読み込み開始',data:{url:window.location.href,search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        
         // URLパラメータから取得
         const urlParams = new URLSearchParams(window.location.search);
         const character = urlParams.get('character') || 'kaede';
+        
+        // characterパラメータの検証
+        const validCharacters = ['kaede', 'yukino', 'kaon', 'sora'];
+        const validatedCharacter = validCharacters.includes(character) ? character : 'kaede';
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:197',message:'characterパラメータ取得',data:{character:character,validated:validCharacters.includes(character),validatedCharacter:validatedCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         // 各鑑定士の情報
         const characterData = {
@@ -227,10 +239,6 @@
                 buttonText: '水野ソラとつながる'
             }
         };
-
-        // characterパラメータの検証
-        const validCharacters = ['kaede', 'yukino', 'kaon', 'sora'];
-        const validatedCharacter = validCharacters.includes(character) ? character : 'kaede';
         
         const currentCharacterData = characterData[validatedCharacter] || characterData.kaede;
         const container = document.getElementById('animationContainer');
@@ -239,9 +247,13 @@
         const skipLink = document.getElementById('skipLink');
 
         // チャットURLを設定（検証済みのcharacterを使用）
-        const chatUrl = `../chat/chat?character=${encodeURIComponent(validatedCharacter)}`;
+        const chatUrl = `../chat/chat.html?character=${encodeURIComponent(validatedCharacter)}`;
         chatLink.href = chatUrl;
         chatLink.textContent = currentCharacterData.buttonText;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:242',message:'チャットURL設定',data:{character:validatedCharacter,chatUrl:chatUrl,buttonText:currentCharacterData.buttonText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         
         // デバッグ用（本番環境では削除可能）
         console.log('Character:', validatedCharacter);
@@ -294,6 +306,10 @@
         skipLink.addEventListener('click', (e) => {
             e.preventDefault();
             
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:293',message:'スキップリンククリック',data:{chatUrl:chatUrl,character:validatedCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            
             // アニメーションを中断
             animationCancelled = true;
             
@@ -301,6 +317,10 @@
             if (video && !video.paused) {
                 video.pause();
             }
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:306',message:'スキップリンクからチャット画面への遷移実行',data:{chatUrl:chatUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
             
             // チャット画面に遷移
             window.location.href = chatUrl;
@@ -310,6 +330,10 @@
         chatLink.addEventListener('click', (e) => {
             e.preventDefault();
             
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:310',message:'つながるボタンクリック',data:{chatUrl:chatUrl,character:validatedCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            
             // アニメーションを中断
             animationCancelled = true;
             
@@ -317,6 +341,10 @@
             if (video && !video.paused) {
                 video.pause();
             }
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:322',message:'チャット画面への遷移実行',data:{chatUrl:chatUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
             
             // チャット画面に遷移
             window.location.href = chatUrl;

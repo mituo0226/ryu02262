@@ -753,6 +753,15 @@
         </div>
     </div>
 
+           <script>
+           // #region agent log
+           (function() {
+               const urlParams = new URLSearchParams(window.location.search);
+               const character = urlParams.get('character') || 'unknown';
+               fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:756',message:'チャット画面読み込み',data:{url:window.location.href,character:character,search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+           })();
+           // #endregion
+           </script>
            <script src="../../js/auth-state.js"></script>
            <script src="../../js/features/yukino-tarot.js"></script>
            <script src="../../js/character-features.js"></script>
