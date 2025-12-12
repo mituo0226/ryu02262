@@ -115,16 +115,17 @@ const ChatUI = {
      * @param {string} text - メッセージテキスト
      * @param {string} sender - 送信者名
      * @param {Object} options - オプション
+     * @returns {string} メッセージ要素のID
      */
     addMessage(type, text, sender, options = {}) {
-        if (!this.messagesDiv) return;
+        if (!this.messagesDiv) return null;
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
         
-        if (options.id) {
-            messageDiv.id = options.id;
-        }
+        // IDを生成（指定されていない場合）
+        const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        messageDiv.id = messageId;
         
         if (type === 'character') {
             messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
@@ -174,8 +175,8 @@ const ChatUI = {
             this.scrollToLatest();
         });
         
-        // メッセージ要素を返す（ボタンなどを追加できるように）
-        return messageDiv;
+        // メッセージIDを返す（待機メッセージの削除などに使用）
+        return messageId;
     },
 
     /**

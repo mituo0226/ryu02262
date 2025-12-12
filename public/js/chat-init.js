@@ -676,14 +676,90 @@ const ChatInit = {
             sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
         }
         
-        const currentUrl = window.location.href;
-        const animationUrl = `reading-animation.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
+        // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
+        // 待機メッセージを表示
+        const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', 'システム');
         
-        document.body.style.transition = 'opacity 0.5s ease';
-        document.body.style.opacity = '0';
-        
-        await this.delay(500);
-        window.location.href = animationUrl;
+        try {
+            // 会話履歴を取得
+            let conversationHistory = [];
+            if (isGuest) {
+                conversationHistory = ChatData.getGuestHistory(character) || [];
+            } else {
+                conversationHistory = ChatData.conversationHistory?.recentMessages || [];
+            }
+            
+            // メッセージカウントを取得
+            let messageCount = 0;
+            if (isGuest) {
+                messageCount = ChatData.getGuestMessageCount(character);
+            } else {
+                messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+            }
+            
+            // APIリクエストのオプション
+            const options = {
+                guestMetadata: isGuest ? { messageCount: messageCount } : undefined
+            };
+            
+            // APIリクエストを送信
+            const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
+            
+            // 待機メッセージを削除
+            if (waitingMessageId) {
+                const waitingElement = document.getElementById(waitingMessageId);
+                if (waitingElement) {
+                    waitingElement.remove();
+                }
+            }
+            
+            // 応答を処理
+            if (response.error) {
+                ChatUI.addMessage('error', `エラーが発生しました: ${response.error}`, 'システム');
+                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+                return;
+            }
+            
+            // 応答メッセージを表示
+            const characterName = ChatData.characterInfo[character]?.name || character;
+            const responseText = response.message || response.response || '応答を取得できませんでした';
+            ChatUI.addMessage('character', responseText, characterName);
+            ChatUI.scrollToLatest();
+            
+            // 会話履歴を更新
+            if (isGuest) {
+                ChatData.addToGuestHistory(character, 'assistant', responseText);
+            } else {
+                // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
+                // 必要に応じて、会話履歴を再読み込み
+            }
+            
+            // 送信ボタンを再有効化
+            if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+            
+            // 管理者モードの分析パネルを更新
+            if (typeof window.updateAdminAnalysisPanel === 'function') {
+                setTimeout(() => {
+                    window.updateAdminAnalysisPanel();
+                }, 300);
+            } else {
+                document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
+            }
+            
+        } catch (error) {
+            console.error('メッセージ送信エラー:', error);
+            
+            // 待機メッセージを削除
+            if (waitingMessageId) {
+                const waitingElement = document.getElementById(waitingMessageId);
+                if (waitingElement) {
+                    waitingElement.remove();
+                }
+            }
+            
+            ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
+            if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+        }
     },
 
     /**
