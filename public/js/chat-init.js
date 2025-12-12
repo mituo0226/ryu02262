@@ -684,7 +684,7 @@ const ChatInit = {
             }
             
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:717',message:'API応答受信',data:{character:character,messageCountForAPI:messageCountForAPI,expectedPhaseAfterAPI:messageCountForAPI + 1 === 1 ? 'フェーズ1' : messageCountForAPI + 1 === 2 ? 'フェーズ2' : messageCountForAPI + 1 === 3 ? 'フェーズ3' : 'フェーズ4',responseLength:response.message ? response.message.length : 0,responsePreview:response.message ? response.message.substring(0,100)+'...' : 'なし',hasThreeChoices:response.message ? /(家族|理想|経済|穏やか|笑い合う|相手|余裕)/.test(response.message) : false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:717',message:'API応答受信',data:{character:character,messageCountForAPI:messageCountForAPI,expectedPhaseAfterAPI:messageCountForAPI + 1 === 1 ? 'フェーズ1' : messageCountForAPI + 1 === 2 ? 'フェーズ2' : messageCountForAPI + 1 === 3 ? 'フェーズ3' : 'フェーズ4',responseLength:response.message ? response.message.length : 0,responsePreview:response.message ? response.message.substring(0,100)+'...' : 'なし',hasThreeChoices:response.message ? /(家族|理想|経済|穏やか|笑い合う|相手|余裕)/.test(response.message) : false,registrationSuggested:response.registrationSuggested},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
             // #endregion
             
             // 応答メッセージを表示
@@ -696,6 +696,16 @@ const ChatInit = {
             // 会話履歴を更新
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
+                
+                // ゲストユーザーの場合、registrationSuggestedをチェック
+                if (response.registrationSuggested && !ChatData.ritualConsentShown) {
+                    console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
+                    const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
+                    ChatUI.addMessage('error', `${characterNameForButton === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                    setTimeout(() => {
+                        ChatUI.showRitualConsentButtons();
+                    }, 2000);
+                }
             } else {
                 // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
                 // 必要に応じて、会話履歴を再読み込み
