@@ -779,11 +779,22 @@ export const onRequestPost: PagesFunction = async (context) => {
         characterId
       );
       
+      console.log('🔍 [守護神の儀式同意検出] チェック結果:', {
+        hasConsentedToRitual,
+        characterId,
+        currentMessage: body.message,
+        conversationHistoryLength: conversationHistory.length,
+        recentUserMessages: conversationHistory.filter(msg => msg.role === 'user').slice(-3).map(msg => msg.content)
+      });
+      
       if (hasConsentedToRitual) {
         shouldEncourageRegistration = true;
+        console.log('🔍 [守護神の儀式同意検出] 同意が検出されました。registrationSuggestedをtrueに設定します。');
         if (DEBUG_MODE) {
           console.log('🔍 DEBUG: Guardian ritual consent detected - showing registration button early');
         }
+      } else {
+        console.log('🔍 [守護神の儀式同意検出] 同意が検出されませんでした。');
       }
     }
 
