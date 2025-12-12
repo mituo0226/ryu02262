@@ -228,16 +228,24 @@
             }
         };
 
-        const currentCharacterData = characterData[character] || characterData.kaede;
+        // characterパラメータの検証
+        const validCharacters = ['kaede', 'yukino', 'kaon', 'sora'];
+        const validatedCharacter = validCharacters.includes(character) ? character : 'kaede';
+        
+        const currentCharacterData = characterData[validatedCharacter] || characterData.kaede;
         const container = document.getElementById('animationContainer');
         const buttonContainer = document.getElementById('buttonContainer');
         const chatLink = document.getElementById('chatLink');
         const skipLink = document.getElementById('skipLink');
 
-        // チャットURLを設定
-        const chatUrl = `../chat/chat?character=${encodeURIComponent(character)}`;
+        // チャットURLを設定（検証済みのcharacterを使用）
+        const chatUrl = `../chat/chat?character=${encodeURIComponent(validatedCharacter)}`;
         chatLink.href = chatUrl;
         chatLink.textContent = currentCharacterData.buttonText;
+        
+        // デバッグ用（本番環境では削除可能）
+        console.log('Character:', validatedCharacter);
+        console.log('Chat URL:', chatUrl);
 
         // アニメーション中断用のフラグ
         let animationCancelled = false;
