@@ -698,6 +698,13 @@ const ChatInit = {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 
                 // ゲストユーザーの場合、registrationSuggestedをチェック
+                console.log('[API応答] registrationSuggestedチェック:', {
+                    registrationSuggested: response.registrationSuggested,
+                    ritualConsentShown: ChatData.ritualConsentShown,
+                    character: character,
+                    responseKeys: Object.keys(response)
+                });
+                
                 if (response.registrationSuggested && !ChatData.ritualConsentShown) {
                     console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
                     const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
@@ -705,6 +712,11 @@ const ChatInit = {
                     setTimeout(() => {
                         ChatUI.showRitualConsentButtons();
                     }, 2000);
+                } else {
+                    console.log('[API応答] 登録ボタンを表示しません:', {
+                        registrationSuggested: response.registrationSuggested,
+                        ritualConsentShown: ChatData.ritualConsentShown
+                    });
                 }
             } else {
                 // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
