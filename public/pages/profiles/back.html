@@ -298,6 +298,22 @@
             window.location.href = chatUrl;
         });
 
+        // つながるボタン（chatLink）の処理
+        chatLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // アニメーションを中断
+            animationCancelled = true;
+            
+            // 動画の再生を停止
+            if (video && !video.paused) {
+                video.pause();
+            }
+            
+            // チャット画面に遷移
+            window.location.href = chatUrl;
+        });
+
         // 中断チェック付きのdelay関数
         function delay(ms) {
             return new Promise(resolve => {
