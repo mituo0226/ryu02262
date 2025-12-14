@@ -816,10 +816,14 @@ const ChatInit = {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 
                 // 守護神の儀式に関するメッセージの場合、ボタンを追加
-                // 「そのため、生年月日とニックネームをユーザー登録していただく必要があります」というメッセージの後にボタンを追加
+                // 「登録ボタン」という言葉が実際にメッセージに含まれている次のメッセージでボタンを表示
                 // または「それでは守護神の儀式を始めます」というメッセージの後にボタンを追加
-                if (responseText.includes('ユーザー登録していただく必要があります') || responseText.includes('それでは守護神の儀式を始めます')) {
-                    console.log('[API応答] 守護神の儀式に関するメッセージを検出。ボタンを追加します。');
+                if (responseText.includes('登録ボタン') || responseText.includes('それでは守護神の儀式を始めます')) {
+                    console.log('[API応答] 守護神の儀式に関するメッセージを検出。ボタンを追加します。', {
+                        hasRegistrationButton: responseText.includes('登録ボタン'),
+                        hasRitualStart: responseText.includes('それでは守護神の儀式を始めます'),
+                        messagePreview: responseText.substring(0, 100) + '...'
+                    });
                     // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
                     setTimeout(() => {
                         const messageElement = messageId ? document.getElementById(messageId) : null;
