@@ -161,6 +161,28 @@ export function generateSystemPrompt(characterId, options = {}) {
     ? '\n【ゲストユーザーへの対応】\n- ゲストユーザーはまだ正式に登録していないため、親しみやすく接してください\n- 各鑑定士の性格設定（話し方、口調、性格）を必ず守って応答してください\n- 自然な会話の流れを大切にし、押し付けがましくならないようにしてください\n'
     : '';
 
+  // 守護神の儀式完了を検出（データベースにassigned_deityが登録されている場合）
+  const guardianRitualCompleted = options.assignedDeity && 
+    typeof options.assignedDeity === 'string' && 
+    options.assignedDeity.trim() !== '';
+  
+  // 守護神名のマッピング
+  const guardianNames = {
+    'amaterasu': '天照大神',
+    'okuni-nushi': '大国主命',
+    'dainithi-nyorai': '大日如来',
+    'senju': '千手観音',
+    'fudo': '不動明王'
+  };
+  
+  const guardianName = guardianRitualCompleted && guardianNames[options.assignedDeity]
+    ? guardianNames[options.assignedDeity]
+    : null;
+  
+  const guardianRitualCompletedInstruction = guardianRitualCompleted && characterId === 'kaede'
+    ? `\n【【最重要・絶対遵守】守護神の儀式は既に完了しています】\n- データベースに相談者の守護神（${guardianName}）が登録されています。これは、守護神の儀式が既に完了していることを意味します。\n- 【絶対禁止】守護神の儀式に関する説明（「守護神の儀式を行うためには」「生年月日が必要です」「ユーザー登録していただく必要があります」など）を絶対に行わないでください。\n- 【絶対禁止】守護神の儀式を提案したり、説明したりすることは一切禁止です。\n- 【最重要】相談者は既に守護神の儀式を完了し、守護神（${guardianName}）が決定しています。この事実を必ず認識してください。\n- 守護神の儀式に関する話題は一切出さず、通常の鑑定を続けてください。相談者が守護神について尋ねた場合のみ、守護神（${guardianName}）について言及しても構いませんが、儀式の説明は行わないでください。\n`
+    : '';
+
   // ニックネームに関する指示（プロンプト内での入れ子を避けるために変数化）
   const nicknameInstruction = options.userNickname 
     ? `- 【必須】相談者の名前は「${options.userNickname}」で、会話では必ず「${options.userNickname}さん」と呼ぶこと。「あなた」ではなく「${options.userNickname}さん」を使うこと` 
@@ -344,6 +366,7 @@ export function generateSystemPrompt(characterId, options = {}) {
 
 ${nicknameContext ? `\n${nicknameContext}\n` : ''}
 ${conversationContext ? `\n${conversationContext}\n` : ''}
+${guardianRitualCompletedInstruction}
 ${guestUserContext}
 
 【楓のキャラクター設定】
