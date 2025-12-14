@@ -84,10 +84,20 @@ const ChatUI = {
         
         if (isRegistered) {
             const nickname = userData?.nickname || localStorage.getItem('userNickname') || '鑑定者';
-            const deity = userData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
+            const deityId = userData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
             const birthYear = userData?.birthYear || null;
             const birthMonth = userData?.birthMonth || null;
             const birthDay = userData?.birthDay || null;
+            
+            // 守護神IDから日本語名に変換
+            const guardianNames = {
+                'amaterasu': '天照大神',
+                'okuni-nushi': '大国主命',
+                'dainithi-nyorai': '大日如来',
+                'senju': '千手観音',
+                'fudo': '不動明王'
+            };
+            const deity = guardianNames[deityId] || deityId;
             
             let statusText = `鑑定名義: ${nickname}`;
             

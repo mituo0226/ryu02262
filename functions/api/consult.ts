@@ -802,10 +802,12 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // デバッグ: ユーザー情報とニックネームを確認
     if (user) {
-      console.log('User info:', {
+      console.log('🔍 [User Info] ユーザー情報を確認:', {
         userId: user.id,
         nickname: user.nickname,
         assignedDeity: user.assigned_deity,
+        hasAssignedDeity: !!user.assigned_deity,
+        isGuardianRitualCompleted: !!(user.assigned_deity && user.assigned_deity.trim() !== ''),
       });
     }
 
@@ -922,6 +924,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       console.log('🔍 DEBUG: systemPrompt generation', {
         characterId,
         userMessageCount: finalUserMessageCount,
+        hasUser: !!user,
+        assignedDeity: user?.assigned_deity || null,
+        includesGuardianRitualCompleted: systemPrompt.includes('守護神の儀式は既に完了しています'),
         includesPhaseInstruction: systemPrompt.includes('現在のフェーズ'),
         includesHearingPhase: systemPrompt.includes('ヒアリング'),
         includesDiagnosisPhase: systemPrompt.includes('診断・儀式'),
