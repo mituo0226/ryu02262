@@ -128,6 +128,27 @@ const ChatInit = {
                     
                     if (ritualCompleted === 'true') {
                         console.log('[登録完了処理] 守護神の儀式は既に完了しています。儀式開始処理をスキップします。');
+                        
+                        // 守護神を確認するメッセージを最初に表示
+                        const assignedDeity = localStorage.getItem('assignedDeity');
+                        if (assignedDeity) {
+                            // 守護神IDから守護神名を取得
+                            const guardianNames = {
+                                'amaterasu': '天照大神',
+                                'okuni-nushi': '大国主命',
+                                'dainithi-nyorai': '大日如来',
+                                'senju': '千手観音',
+                                'fudo': '不動明王'
+                            };
+                            const guardianName = guardianNames[assignedDeity] || assignedDeity;
+                            
+                            // 守護神を確認するメッセージを生成
+                            const guardianConfirmationMessage = `（静かに目を閉じ、深く頷きながら）あなたの守護神、${guardianName}が決定されましたね。これからは、${guardianName}と共に、あなたの運命を読み解いていきましょう。守護神の導きを受けながら、あなたの未来を一緒に探っていきます。`;
+                            
+                            // メッセージを表示（会話履歴の読み込み前に表示）
+                            ChatUI.addMessage('character', guardianConfirmationMessage, ChatData.characterInfo[character].name);
+                        }
+                        
                         // フラグをクリア
                         sessionStorage.removeItem('ritualCompleted');
                         // URLパラメータからjustRegisteredを削除
@@ -309,6 +330,9 @@ const ChatInit = {
             }
             
             // 初回メッセージを表示
+            // ただし、守護神の儀式完了直後（ritualCompleted）の場合は、既に守護神確認メッセージを表示済みなのでスキップ
+            const ritualCompletedCheck = sessionStorage.getItem('ritualCompleted') === 'true';
+            
             if (historyData && historyData.hasHistory) {
                 ChatData.conversationHistory = historyData;
                 ChatData.userNickname = historyData.nickname || ChatData.userNickname;
@@ -324,20 +348,20 @@ const ChatInit = {
                     });
                 }
                 
-                if (guestHistory.length === 0) {
+                if (guestHistory.length === 0 && !ritualCompletedCheck) {
                     const initialMessage = ChatData.generateInitialMessage(character, historyData);
                     ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                 }
             } else if (historyData && historyData.nickname) {
                 ChatData.userNickname = historyData.nickname;
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0) {
+                if (guestHistory.length === 0 && !ritualCompletedCheck) {
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname);
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
             } else {
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0) {
+                if (guestHistory.length === 0 && !ritualCompletedCheck) {
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }

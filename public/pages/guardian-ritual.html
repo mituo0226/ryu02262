@@ -343,7 +343,8 @@
         <h2 class="guardian-name" id="guardianName"></h2>
         <p class="guardian-message" id="guardianMessage"></p>
       </div>
-      <a href="../main.html" class="continue-button" id="continueButton" style="margin-top: 30px; display: inline-block;">鑑定士一覧へ</a>
+      <!-- 初回登録後の場合は「鑑定士一覧へ」ボタンを非表示（自動的にチャット画面にリダイレクトされるため） -->
+      <a href="../main.html" class="continue-button" id="continueButton" style="margin-top: 30px; display: none;">鑑定士一覧へ</a>
     </div>
   </div>
 
@@ -491,6 +492,12 @@
         if (postRitualChatUrl && justRegistered === 'true') {
           console.log('[守護神の儀式] 初回登録後の儀式完了、チャット画面にリダイレクト:', postRitualChatUrl);
           
+          // 「鑑定士一覧へ」ボタンを非表示（初回登録後の場合は自動リダイレクトのため）
+          const continueButton = document.getElementById('continueButton');
+          if (continueButton) {
+            continueButton.style.display = 'none';
+          }
+          
           // 結果表示後、少し待ってからリダイレクト（ユーザーが結果を見られるように）
           setTimeout(() => {
             // 儀式完了フラグを設定（チャット画面で儀式開始処理をスキップするため）
@@ -515,6 +522,12 @@
               sessionStorage.removeItem('ritualCompleted');
             }, 1000);
           }, 5000); // 5秒後にリダイレクト（結果を見る時間を確保）
+        } else {
+          // 初回登録後でない場合（直接アクセスなど）は「鑑定士一覧へ」ボタンを表示
+          const continueButton = document.getElementById('continueButton');
+          if (continueButton) {
+            continueButton.style.display = 'inline-block';
+          }
         }
       } catch (error) {
         console.error('エラー:', error);
