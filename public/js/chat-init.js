@@ -91,6 +91,46 @@ const ChatInit = {
         if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
             console.log('[登録完了処理] 開始 - character:', character);
             
+            // カエデの場合は、まず儀式完了フラグをチェック（会話履歴読み込み前にチェック）
+            if (character === 'kaede') {
+                const ritualCompleted = sessionStorage.getItem('ritualCompleted');
+                
+                if (ritualCompleted === 'true') {
+                    console.log('[登録完了処理] 守護神の儀式は既に完了しています。儀式開始処理をスキップします。');
+                    
+                    // 守護神を確認するメッセージを最初に表示（会話履歴読み込み前に表示）
+                    const assignedDeity = localStorage.getItem('assignedDeity');
+                    if (assignedDeity) {
+                        // 守護神IDから守護神名を取得
+                        const guardianNames = {
+                            'amaterasu': '天照大神',
+                            'okuni-nushi': '大国主命',
+                            'dainithi-nyorai': '大日如来',
+                            'senju': '千手観音',
+                            'fudo': '不動明王'
+                        };
+                        const guardianName = guardianNames[assignedDeity] || assignedDeity;
+                        
+                        // 守護神を確認するメッセージを生成
+                        const guardianConfirmationMessage = `（静かに目を閉じ、深く頷きながら）あなたの守護神、${guardianName}が決定されましたね。これからは、${guardianName}と共に、あなたの運命を読み解いていきましょう。守護神の導きを受けながら、あなたの未来を一緒に探っていきます。`;
+                        
+                        // メッセージを表示（会話履歴の読み込み前に表示）
+                        ChatUI.addMessage('character', guardianConfirmationMessage, ChatData.characterInfo[character].name);
+                        
+                        // フラグをsessionStorageに保存（会話履歴読み込み後の初期メッセージ表示をスキップするため）
+                        sessionStorage.setItem('guardianMessageShown', 'true');
+                    }
+                    
+                    // URLパラメータからjustRegisteredを削除
+                    urlParams.delete('justRegistered');
+                    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                    window.history.replaceState({}, '', newUrl);
+                    // sessionStorageからも登録完了フラグを削除
+                    sessionStorage.removeItem('justRegistered');
+                    // ritualCompletedフラグは会話履歴読み込み後にクリア（初期メッセージ表示のスキップ判定に使用）
+                }
+            }
+            
             try {
                 // 会話履歴を読み込む（登録完了処理で使用するため）
                 const historyData = await ChatAPI.loadConversationHistory(character);
@@ -99,6 +139,38 @@ const ChatInit = {
                 if (character === 'kaede') {
                     // 儀式が既に完了している場合はスキップ（guardian-ritual.htmlからリダイレクトされた場合）
                     const ritualCompleted = sessionStorage.getItem('ritualCompleted');
+                    
+                    // 既に守護神確認メッセージを表示済みの場合は、ここでの処理をスキップ
+                    if (ritualCompleted === 'true' && sessionStorage.getItem('guardianMessageShown') === 'true') {
+                        // ユーザーデータを更新（儀式完了済みの場合も必要）
+                        if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
+                            ChatUI.updateUserStatus(true, {
+                                nickname: historyData.nickname || ChatData.userNickname,
+                                birthYear: historyData.birthYear,
+                                birthMonth: historyData.birthMonth,
+                                birthDay: historyData.birthDay,
+                                assignedDeity: historyData.assignedDeity
+                            });
+                        } else {
+                            // 会話履歴がない場合はlocalStorageから取得
+                            const nickname = localStorage.getItem('userNickname') || '鑑定者';
+                            const deity = localStorage.getItem('assignedDeity') || '未割当';
+                            const birthYear = localStorage.getItem('birthYear');
+                            const birthMonth = localStorage.getItem('birthMonth');
+                            const birthDay = localStorage.getItem('birthDay');
+                            
+                            ChatUI.updateUserStatus(true, {
+                                nickname: nickname,
+                                birthYear: birthYear ? parseInt(birthYear) : null,
+                                birthMonth: birthMonth ? parseInt(birthMonth) : null,
+                                birthDay: birthDay ? parseInt(birthDay) : null,
+                                assignedDeity: deity
+                            });
+                        }
+                        
+                        // 儀式開始処理をスキップ
+                        return;
+                    }
                     
                     // ユーザーデータを更新（儀式完了済みの場合も必要）
                     if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
@@ -126,41 +198,11 @@ const ChatInit = {
                         });
                     }
                     
-                    if (ritualCompleted === 'true') {
-                        console.log('[登録完了処理] 守護神の儀式は既に完了しています。儀式開始処理をスキップします。');
-                        
-                        // 守護神を確認するメッセージを最初に表示（会話履歴読み込み前に表示）
-                        const assignedDeity = localStorage.getItem('assignedDeity');
-                        if (assignedDeity) {
-                            // 守護神IDから守護神名を取得
-                            const guardianNames = {
-                                'amaterasu': '天照大神',
-                                'okuni-nushi': '大国主命',
-                                'dainithi-nyorai': '大日如来',
-                                'senju': '千手観音',
-                                'fudo': '不動明王'
-                            };
-                            const guardianName = guardianNames[assignedDeity] || assignedDeity;
-                            
-                            // 守護神を確認するメッセージを生成
-                            const guardianConfirmationMessage = `（静かに目を閉じ、深く頷きながら）あなたの守護神、${guardianName}が決定されましたね。これからは、${guardianName}と共に、あなたの運命を読み解いていきましょう。守護神の導きを受けながら、あなたの未来を一緒に探っていきます。`;
-                            
-                            // メッセージを表示（会話履歴の読み込み前に表示）
-                            ChatUI.addMessage('character', guardianConfirmationMessage, ChatData.characterInfo[character].name);
-                            
-                            // フラグをsessionStorageに保存（会話履歴読み込み後の初期メッセージ表示をスキップするため）
-                            sessionStorage.setItem('guardianMessageShown', 'true');
-                        }
-                        
-                        // URLパラメータからjustRegisteredを削除
-                        urlParams.delete('justRegistered');
-                        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-                        window.history.replaceState({}, '', newUrl);
-                        // sessionStorageからも登録完了フラグを削除
-                        sessionStorage.removeItem('justRegistered');
-                        // ritualCompletedフラグは会話履歴読み込み後にクリア（初期メッセージ表示のスキップ判定に使用）
-                        // 儀式開始処理だけをスキップし、その後の通常の初期化処理は続行
-                        // （会話履歴の読み込みなどは通常通り実行される）
+                    // 儀式完了フラグのチェックは既に会話履歴読み込み前に行われている
+                    // ここでは、会話履歴読み込み後に再度チェック（二重チェック）
+                    const ritualCompletedCheck = sessionStorage.getItem('ritualCompleted');
+                    if (ritualCompletedCheck === 'true' && sessionStorage.getItem('guardianMessageShown') === 'true') {
+                        // 既に守護神確認メッセージを表示済みの場合は、ここでの処理をスキップ
                         return;
                     }
                     
