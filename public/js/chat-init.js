@@ -925,8 +925,11 @@ const ChatInit = {
                 
                 // 守護神の儀式に関するメッセージの場合、ボタンを追加
                 // 「ニックネームと生年月日を入力」という言葉が実際にメッセージに含まれている場合のみボタンを表示
+                // 太字マークダウン（**）が含まれている可能性があるため、両方をチェック
                 // または「それでは守護神の儀式を始めます」というメッセージの後にボタンを追加
-                if (responseText.includes('ニックネームと生年月日を入力') || responseText.includes('それでは守護神の儀式を始めます')) {
+                const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
+                                             responseText.includes('**ニックネームと生年月日を入力**');
+                if (hasRegistrationInput || responseText.includes('それでは守護神の儀式を始めます')) {
                     console.log('[API応答] 守護神の儀式に関するメッセージを検出。ボタンを追加します。', {
                         hasRegistrationInput: responseText.includes('ニックネームと生年月日を入力'),
                         hasRitualStart: responseText.includes('それでは守護神の儀式を始めます'),
