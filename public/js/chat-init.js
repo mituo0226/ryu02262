@@ -99,10 +99,45 @@ const ChatInit = {
                 if (character === 'kaede') {
                     // 儀式が既に完了している場合はスキップ（guardian-ritual.htmlからリダイレクトされた場合）
                     const ritualCompleted = sessionStorage.getItem('ritualCompleted');
+                    
+                    // ユーザーデータを更新（儀式完了済みの場合も必要）
+                    if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
+                        ChatUI.updateUserStatus(true, {
+                            nickname: historyData.nickname || ChatData.userNickname,
+                            birthYear: historyData.birthYear,
+                            birthMonth: historyData.birthMonth,
+                            birthDay: historyData.birthDay,
+                            assignedDeity: historyData.assignedDeity
+                        });
+                    } else {
+                        // 会話履歴がない場合はlocalStorageから取得
+                        const nickname = localStorage.getItem('userNickname') || '鑑定者';
+                        const deity = localStorage.getItem('assignedDeity') || '未割当';
+                        const birthYear = localStorage.getItem('birthYear');
+                        const birthMonth = localStorage.getItem('birthMonth');
+                        const birthDay = localStorage.getItem('birthDay');
+                        
+                        ChatUI.updateUserStatus(true, {
+                            nickname: nickname,
+                            birthYear: birthYear ? parseInt(birthYear) : null,
+                            birthMonth: birthMonth ? parseInt(birthMonth) : null,
+                            birthDay: birthDay ? parseInt(birthDay) : null,
+                            assignedDeity: deity
+                        });
+                    }
+                    
                     if (ritualCompleted === 'true') {
-                        console.log('[登録完了処理] 守護神の儀式は既に完了しています。スキップします。');
+                        console.log('[登録完了処理] 守護神の儀式は既に完了しています。儀式開始処理をスキップします。');
                         // フラグをクリア
                         sessionStorage.removeItem('ritualCompleted');
+                        // URLパラメータからjustRegisteredを削除
+                        urlParams.delete('justRegistered');
+                        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                        window.history.replaceState({}, '', newUrl);
+                        // sessionStorageからも登録完了フラグを削除
+                        sessionStorage.removeItem('justRegistered');
+                        // 儀式開始処理だけをスキップし、その後の通常の初期化処理は続行
+                        // （会話履歴の読み込みなどは通常通り実行される）
                         return;
                     }
                     
@@ -148,32 +183,6 @@ const ChatInit = {
                     // ゲスト会話履歴を一時的に保存（守護神の儀式で使用するため）
                     const guestHistoryForRitual = JSON.parse(JSON.stringify(guestHistory));
                     
-                    // ユーザーデータを更新（会話履歴から取得、なければlocalStorageから）
-                    if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
-                        ChatUI.updateUserStatus(true, {
-                            nickname: historyData.nickname || ChatData.userNickname,
-                            birthYear: historyData.birthYear,
-                            birthMonth: historyData.birthMonth,
-                            birthDay: historyData.birthDay,
-                            assignedDeity: historyData.assignedDeity
-                        });
-                    } else {
-                        // 会話履歴がない場合はlocalStorageから取得
-                        const nickname = localStorage.getItem('userNickname') || '鑑定者';
-                        const deity = localStorage.getItem('assignedDeity') || '未割当';
-                        const birthYear = localStorage.getItem('birthYear');
-                        const birthMonth = localStorage.getItem('birthMonth');
-                        const birthDay = localStorage.getItem('birthDay');
-                        
-                        ChatUI.updateUserStatus(true, {
-                            nickname: nickname,
-                            birthYear: birthYear ? parseInt(birthYear) : null,
-                            birthMonth: birthMonth ? parseInt(birthMonth) : null,
-                            birthDay: birthDay ? parseInt(birthDay) : null,
-                            assignedDeity: deity
-                        });
-                    }
-                    
                     // 会話履歴をクリア（新規登録なので空から始める）
                     ChatData.conversationHistory = null;
                     
@@ -191,25 +200,26 @@ const ChatInit = {
                         });
                     }
                     
-                    // 自動的に守護神の儀式を開始
-                    console.log('[登録完了処理] 守護神の儀式を自動的に開始します');
-                    const ChatInitInstance = window.ChatInit || this;
-                    if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
-                        // 少し待ってから開始（UIの更新を待つため）
-                        setTimeout(async () => {
-                            await ChatInitInstance.startGuardianRitual(character, guestHistoryForRitual);
-                            
-                            // 守護神の儀式開始後、ゲスト履歴をクリア
-                            if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                                AuthState.clearGuestHistory(character);
-                            }
-                            sessionStorage.removeItem(historyKey);
-                            sessionStorage.removeItem('pendingGuestHistoryMigration');
-                            sessionStorage.removeItem('pendingRitualGuestHistory');
-                            ChatData.setGuestMessageCount(character, 0);
-                        }, 500);
-                    } else {
-                        console.error('[登録完了処理] startGuardianRitual関数が見つかりません');
+                        // 自動的に守護神の儀式を開始
+                        console.log('[登録完了処理] 守護神の儀式を自動的に開始します');
+                        const ChatInitInstance = window.ChatInit || this;
+                        if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
+                            // 少し待ってから開始（UIの更新を待つため）
+                            setTimeout(async () => {
+                                await ChatInitInstance.startGuardianRitual(character, guestHistoryForRitual);
+                                
+                                // 守護神の儀式開始後、ゲスト履歴をクリア
+                                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                                    AuthState.clearGuestHistory(character);
+                                }
+                                sessionStorage.removeItem(historyKey);
+                                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                                sessionStorage.removeItem('pendingRitualGuestHistory');
+                                ChatData.setGuestMessageCount(character, 0);
+                            }, 500);
+                        } else {
+                            console.error('[登録完了処理] startGuardianRitual関数が見つかりません');
+                        }
                     }
                     
                     // URLパラメータからjustRegisteredを削除
