@@ -485,6 +485,10 @@
         // 結果を表示
         showResult(guardian);
         
+        // 守護神のIDをlocalStorageに保存（チャット画面で使用するため）
+        localStorage.setItem('assignedDeity', guardian.id);
+        console.log('[守護神の儀式] 守護神を決定しました:', guardian.id, guardian.name);
+        
         // 初回登録後の場合、儀式完了後にチャット画面にリダイレクト
         const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
         const justRegistered = sessionStorage.getItem('justRegistered');
