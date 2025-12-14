@@ -816,8 +816,9 @@ const ChatInit = {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 
                 // 守護神の儀式に関するメッセージの場合、ボタンを追加
-                // 「守護神の儀式を行うためには、あなたの生年月日が必要です」というメッセージの後にボタンを追加
-                if (responseText.includes('守護神の儀式を行うためには') || responseText.includes('それでは守護神の儀式を始めます')) {
+                // 「そのため、生年月日とニックネームをユーザー登録していただく必要があります」というメッセージの後にボタンを追加
+                // または「それでは守護神の儀式を始めます」というメッセージの後にボタンを追加
+                if (responseText.includes('ユーザー登録していただく必要があります') || responseText.includes('それでは守護神の儀式を始めます')) {
                     console.log('[API応答] 守護神の儀式に関するメッセージを検出。ボタンを追加します。');
                     // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
                     setTimeout(() => {
