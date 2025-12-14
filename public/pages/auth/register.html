@@ -379,7 +379,21 @@
       passphraseOverlay.setAttribute('aria-hidden', 'true');
       let target = redirectTargetCache || '../main.html';
       
-      // チャット画面へのリダイレクトの場合、登録完了フラグを追加
+      // Kaedeのチャット画面へのリダイレクトの場合、直接guardian-ritual.htmlにリダイレクト
+      // character=kaede を含むURLを検出
+      if (target.includes('character=kaede') || target.includes('character%3Dkaede')) {
+        console.log('[登録完了] Kaedeのチャット画面へのリダイレクトを検出、守護神の儀式ページに直接リダイレクト:', target);
+        
+        // 元のチャット画面URLをsessionStorageに保存（儀式完了後に使用）
+        sessionStorage.setItem('postRitualChatUrl', target);
+        sessionStorage.setItem('justRegistered', 'true');
+        
+        // guardian-ritual.htmlに直接リダイレクト
+        window.location.href = '../guardian-ritual.html';
+        return;
+      }
+      
+      // その他のチャット画面へのリダイレクトの場合、登録完了フラグを追加
       // chat.html または chat?character= を含むURLを検出
       if (target.includes('chat.html') || target.includes('chat?character=') || target.includes('/chat/chat') || target.includes('/chat?character=')) {
         console.log('[登録完了] チャット画面へのリダイレクトを検出:', target);

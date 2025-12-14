@@ -483,6 +483,39 @@
 
         // 結果を表示
         showResult(guardian);
+        
+        // 初回登録後の場合、儀式完了後にチャット画面にリダイレクト
+        const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
+        const justRegistered = sessionStorage.getItem('justRegistered');
+        
+        if (postRitualChatUrl && justRegistered === 'true') {
+          console.log('[守護神の儀式] 初回登録後の儀式完了、チャット画面にリダイレクト:', postRitualChatUrl);
+          
+          // 結果表示後、少し待ってからリダイレクト（ユーザーが結果を見られるように）
+          setTimeout(() => {
+            // 儀式完了フラグを設定（チャット画面で儀式開始処理をスキップするため）
+            sessionStorage.setItem('ritualCompleted', 'true');
+            
+            // チャット画面にリダイレクト（justRegisteredパラメータを追加）
+            try {
+              const url = new URL(postRitualChatUrl, window.location.href);
+              url.searchParams.set('justRegistered', 'true');
+              window.location.href = url.toString();
+            } catch (error) {
+              console.error('[守護神の儀式] URL構築エラー:', error);
+              // フォールバック: シンプルにクエリパラメータを追加
+              const separator = postRitualChatUrl.includes('?') ? '&' : '?';
+              window.location.href = postRitualChatUrl + separator + 'justRegistered=true';
+            }
+            
+            // sessionStorageをクリア（リダイレクト後）
+            setTimeout(() => {
+              sessionStorage.removeItem('postRitualChatUrl');
+              sessionStorage.removeItem('justRegistered');
+              sessionStorage.removeItem('ritualCompleted');
+            }, 1000);
+          }, 5000); // 5秒後にリダイレクト（結果を見る時間を確保）
+        }
       } catch (error) {
         console.error('エラー:', error);
         const errorMessage = document.getElementById('errorMessage');

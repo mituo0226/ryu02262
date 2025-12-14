@@ -97,6 +97,15 @@ const ChatInit = {
                 
                 // カエデの場合は守護神の儀式を開始
                 if (character === 'kaede') {
+                    // 儀式が既に完了している場合はスキップ（guardian-ritual.htmlからリダイレクトされた場合）
+                    const ritualCompleted = sessionStorage.getItem('ritualCompleted');
+                    if (ritualCompleted === 'true') {
+                        console.log('[登録完了処理] 守護神の儀式は既に完了しています。スキップします。');
+                        // フラグをクリア
+                        sessionStorage.removeItem('ritualCompleted');
+                        return;
+                    }
+                    
                     console.log('[登録完了処理] カエデの場合、守護神の儀式を開始');
                     
                     // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
