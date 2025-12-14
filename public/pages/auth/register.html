@@ -354,7 +354,11 @@
 
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
+        // assignedDeityは合言葉（passphrase）として保存されるが、
+        // Kaedeの場合はguardian-ritual.htmlで守護神IDに上書きされる
         localStorage.setItem('assignedDeity', data.assignedDeity);
+        // 合言葉を別のキーにも保存（守護神IDで上書きされた場合のバックアップ）
+        localStorage.setItem('userPassphrase', data.assignedDeity);
         localStorage.setItem('hasAccount', 'true');
         localStorage.setItem('birthYear', String(payload.birthYear));
         localStorage.setItem('birthMonth', String(payload.birthMonth));
