@@ -130,6 +130,20 @@ const ChatInit = {
                         });
                         ChatUI.addMessage('character', guardianConfirmationMessage, characterName);
                         
+                        // 守護神確認メッセージを会話履歴に追加（APIが儀式完了を認識できるように）
+                        // 登録ユーザーの場合、会話履歴はAPIから取得されるが、儀式完了後のメッセージは追加する
+                        if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                            ChatData.conversationHistory.recentMessages.push({
+                                role: 'assistant',
+                                content: guardianConfirmationMessage
+                            });
+                            console.log('[登録完了処理] 守護神確認メッセージを会話履歴に追加しました');
+                        } else {
+                            // 会話履歴がまだ読み込まれていない場合、後で追加するためにフラグを設定
+                            sessionStorage.setItem('pendingGuardianMessage', guardianConfirmationMessage);
+                            console.log('[登録完了処理] 守護神確認メッセージを後で追加するためにフラグを設定しました');
+                        }
+                        
                         // フラグをsessionStorageに保存（会話履歴読み込み後の初期メッセージ表示をスキップするため）
                         sessionStorage.setItem('guardianMessageShown', 'true');
                         guardianMessageShown = true;
@@ -405,6 +419,24 @@ const ChatInit = {
             if (historyData && historyData.hasHistory) {
                 ChatData.conversationHistory = historyData;
                 ChatData.userNickname = historyData.nickname || ChatData.userNickname;
+                
+                // 守護神確認メッセージがpendingGuardianMessageに保存されている場合、会話履歴に追加
+                const pendingGuardianMessage = sessionStorage.getItem('pendingGuardianMessage');
+                if (pendingGuardianMessage && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                    // 既に会話履歴に守護神確認メッセージが含まれているかチェック
+                    const hasGuardianMessage = ChatData.conversationHistory.recentMessages.some(msg => 
+                        msg.role === 'assistant' && msg.content && msg.content.includes('の守護神は')
+                    );
+                    
+                    if (!hasGuardianMessage) {
+                        ChatData.conversationHistory.recentMessages.push({
+                            role: 'assistant',
+                            content: pendingGuardianMessage
+                        });
+                        console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました');
+                    }
+                    sessionStorage.removeItem('pendingGuardianMessage');
+                }
                 
                 // ユーザーデータを更新
                 if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
