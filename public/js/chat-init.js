@@ -119,7 +119,16 @@ const ChatInit = {
                         const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
                         
                         // メッセージを表示（APIを呼ばずに直接表示）
-                        ChatUI.addMessage('character', guardianConfirmationMessage, ChatData.characterInfo[character].name);
+                        // characterInfoが読み込まれていることを確認
+                        const characterName = ChatData.characterInfo[character]?.name || '楓';
+                        console.log('[登録完了処理] 守護神確認メッセージを表示:', {
+                            character,
+                            characterName,
+                            guardianName,
+                            userNickname,
+                            message: guardianConfirmationMessage.substring(0, 50) + '...'
+                        });
+                        ChatUI.addMessage('character', guardianConfirmationMessage, characterName);
                         
                         // フラグをsessionStorageに保存（会話履歴読み込み後の初期メッセージ表示をスキップするため）
                         sessionStorage.setItem('guardianMessageShown', 'true');
@@ -799,12 +808,31 @@ const ChatInit = {
             // 応答メッセージを表示
             const characterName = ChatData.characterInfo[character]?.name || character;
             const responseText = response.message || response.response || '応答を取得できませんでした';
-            ChatUI.addMessage('character', responseText, characterName);
+            const messageId = ChatUI.addMessage('character', responseText, characterName);
             ChatUI.scrollToLatest();
             
             // 会話履歴を更新
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
+                
+                // 守護神の儀式に関するメッセージの場合、ボタンを追加
+                // 「守護神の儀式を行うためには、あなたの生年月日が必要です」というメッセージの後にボタンを追加
+                if (responseText.includes('守護神の儀式を行うためには') || responseText.includes('それでは守護神の儀式を始めます')) {
+                    console.log('[API応答] 守護神の儀式に関するメッセージを検出。ボタンを追加します。');
+                    // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
+                    setTimeout(() => {
+                        const messageElement = messageId ? document.getElementById(messageId) : null;
+                        if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
+                            ChatUI.addRitualStartButton(messageElement, async () => {
+                                console.log('[守護神の儀式] ボタンがクリックされました');
+                                const ChatInitInstance = window.ChatInit || this;
+                                if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
+                                    await ChatInitInstance.startGuardianRitual(character);
+                                }
+                            });
+                        }
+                    }, 1000); // メッセージが完全に表示されるまで1秒待つ
+                }
                 
                 // ゲストユーザーの場合、registrationSuggestedをチェック
                 console.log('[API応答] registrationSuggestedチェック:', {
