@@ -52,3 +52,4 @@ C:\Users\mituo\Desktop\kaede
 4. `git add` でステージング
 5. `git commit` でコミット
 6. `git push origin main` でGitHubにプッシュ
+

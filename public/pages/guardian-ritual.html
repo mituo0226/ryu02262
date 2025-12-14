@@ -489,10 +489,39 @@
         localStorage.setItem('assignedDeity', guardian.id);
         console.log('[守護神の儀式] 守護神を決定しました:', guardian.id, guardian.name);
         
-        // 初回登録後の場合、儀式完了後にチャット画面にリダイレクト
+        // 初回登録後の場合、守護神情報をデータベースに保存
         const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
         const justRegistered = sessionStorage.getItem('justRegistered');
+        const userToken = localStorage.getItem('userToken');
         
+        if (postRitualChatUrl && justRegistered === 'true' && userToken) {
+          console.log('[守護神の儀式] 守護神情報をデータベースに保存します:', guardian.id);
+          
+          try {
+            const response = await fetch('/api/auth/update-deity', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+              },
+              body: JSON.stringify({
+                assignedDeity: guardian.id
+              })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log('[守護神の儀式] 守護神情報をデータベースに保存しました:', data);
+            } else {
+              const error = await response.json();
+              console.error('[守護神の儀式] データベース保存エラー:', error);
+            }
+          } catch (error) {
+            console.error('[守護神の儀式] データベース保存エラー:', error);
+          }
+        }
+        
+        // 初回登録後の場合、儀式完了後にチャット画面にリダイレクト
         if (postRitualChatUrl && justRegistered === 'true') {
           console.log('[守護神の儀式] 初回登録後の儀式完了、チャット画面にリダイレクト:', postRitualChatUrl);
           
