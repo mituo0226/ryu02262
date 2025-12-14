@@ -95,13 +95,14 @@ const ChatInit = {
             let guardianMessageShown = false;
             if (character === 'kaede') {
                 const ritualCompleted = sessionStorage.getItem('ritualCompleted');
-                console.log('[登録完了処理] ritualCompletedフラグをチェック:', ritualCompleted, 'character:', character);
+                const assignedDeity = localStorage.getItem('assignedDeity');
+                console.log('[登録完了処理] ritualCompletedフラグをチェック:', ritualCompleted, 'assignedDeity:', assignedDeity, 'character:', character);
                 
-                if (ritualCompleted === 'true') {
+                // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
+                if (ritualCompleted === 'true' || assignedDeity) {
                     console.log('[登録完了処理] 守護神の儀式は既に完了しています。儀式開始処理をスキップします。');
                     
                     // 守護神を確認するメッセージを最初に表示（APIを呼ばずに直接表示）
-                    const assignedDeity = localStorage.getItem('assignedDeity');
                     const userNickname = localStorage.getItem('userNickname') || 'あなた';
                     
                     if (assignedDeity) {
@@ -440,33 +441,32 @@ const ChatInit = {
                 
                 // 守護神の儀式が完了している場合、会話履歴に守護神確認メッセージが含まれているか確認
                 // 含まれていない場合は追加（APIが儀式完了を認識できるように）
+                // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
                 const ritualCompleted = sessionStorage.getItem('ritualCompleted');
-                if (ritualCompleted === 'true' && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                const assignedDeity = localStorage.getItem('assignedDeity');
+                if ((ritualCompleted === 'true' || assignedDeity) && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
                     const hasGuardianMessage = ChatData.conversationHistory.recentMessages.some(msg => 
                         msg.role === 'assistant' && msg.content && msg.content.includes('の守護神は')
                     );
                     
-                    if (!hasGuardianMessage) {
-                        const assignedDeity = localStorage.getItem('assignedDeity');
+                    if (!hasGuardianMessage && assignedDeity) {
                         const userNickname = localStorage.getItem('userNickname') || 'あなた';
                         
-                        if (assignedDeity) {
-                            const guardianNames = {
-                                'amaterasu': '天照大神',
-                                'okuni-nushi': '大国主命',
-                                'dainithi-nyorai': '大日如来',
-                                'senju': '千手観音',
-                                'fudo': '不動明王'
-                            };
-                            const guardianName = guardianNames[assignedDeity] || assignedDeity;
-                            const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
-                            
-                            ChatData.conversationHistory.recentMessages.push({
-                                role: 'assistant',
-                                content: guardianConfirmationMessage
-                            });
-                            console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompletedチェック）');
-                        }
+                        const guardianNames = {
+                            'amaterasu': '天照大神',
+                            'okuni-nushi': '大国主命',
+                            'dainithi-nyorai': '大日如来',
+                            'senju': '千手観音',
+                            'fudo': '不動明王'
+                        };
+                        const guardianName = guardianNames[assignedDeity] || assignedDeity;
+                        const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                        
+                        ChatData.conversationHistory.recentMessages.push({
+                            role: 'assistant',
+                            content: guardianConfirmationMessage
+                        });
+                        console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompleted/assignedDeityチェック）');
                     }
                 }
                 

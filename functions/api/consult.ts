@@ -560,6 +560,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 1通目: count=0, 2通目: count=1, ..., 9通目: count=8（この時点で促す）、10通目: count=9（登録必須）
     // 登録画面を表示するのは10通目に達した時点のみ
     // 
+    // 【重要】登録ユーザー（body.userTokenが存在する）の場合は、登録を促さない
     // 【将来の拡張用】楓（kaede）だけ特別扱いする場合の例：
     // if (characterId === 'kaede') {
     //   // 楓は「3〜4通で性格診断 → 守護神の儀式 → その後のタイミングで登録ガイド」の流れを優先
@@ -567,6 +568,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     //   // 例: shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 12 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
     //   // または、別のフラグ（例: hasCompletedGuardianRitual）で制御する
     // }
+    // 【修正】登録ユーザーの場合は確実にfalseにする
     let shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
 
     if (guestLimitReached) {
@@ -913,6 +915,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       conversationHistoryLength: conversationHistory.length,
       userMessageCount: finalUserMessageCount, // 必ず正しい数値が渡される
       isRitualStart: isRitualStart, // 守護神の儀式開始メッセージかどうか
+      assignedDeity: user?.assigned_deity || null, // 守護神が決定済みの場合、登録を促す回答をしないようにする
     });
 
     if (DEBUG_MODE) {

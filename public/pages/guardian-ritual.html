@@ -549,10 +549,12 @@
             }
             
             // sessionStorageをクリア（リダイレクト後）
+            // 【重要】ritualCompletedフラグは削除しない（chat-init.jsで守護神確認メッセージを表示するために必要）
+            // chat-init.jsでメッセージ表示後に削除されるため、ここでは削除しない
             setTimeout(() => {
               sessionStorage.removeItem('postRitualChatUrl');
               sessionStorage.removeItem('justRegistered');
-              sessionStorage.removeItem('ritualCompleted');
+              // ritualCompletedフラグは削除しない（chat-init.jsで使用するため）
             }, 1000);
           }, 5000); // 5秒後にリダイレクト（結果を見る時間を確保）
         } else {
