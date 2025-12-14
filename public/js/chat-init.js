@@ -129,7 +129,7 @@ const ChatInit = {
                     if (ritualCompleted === 'true') {
                         console.log('[登録完了処理] 守護神の儀式は既に完了しています。儀式開始処理をスキップします。');
                         
-                        // 守護神を確認するメッセージを最初に表示
+                        // 守護神を確認するメッセージを最初に表示（会話履歴読み込み前に表示）
                         const assignedDeity = localStorage.getItem('assignedDeity');
                         if (assignedDeity) {
                             // 守護神IDから守護神名を取得
@@ -147,16 +147,18 @@ const ChatInit = {
                             
                             // メッセージを表示（会話履歴の読み込み前に表示）
                             ChatUI.addMessage('character', guardianConfirmationMessage, ChatData.characterInfo[character].name);
+                            
+                            // フラグをsessionStorageに保存（会話履歴読み込み後の初期メッセージ表示をスキップするため）
+                            sessionStorage.setItem('guardianMessageShown', 'true');
                         }
                         
-                        // フラグをクリア
-                        sessionStorage.removeItem('ritualCompleted');
                         // URLパラメータからjustRegisteredを削除
                         urlParams.delete('justRegistered');
                         const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
                         window.history.replaceState({}, '', newUrl);
                         // sessionStorageからも登録完了フラグを削除
                         sessionStorage.removeItem('justRegistered');
+                        // ritualCompletedフラグは会話履歴読み込み後にクリア（初期メッセージ表示のスキップ判定に使用）
                         // 儀式開始処理だけをスキップし、その後の通常の初期化処理は続行
                         // （会話履歴の読み込みなどは通常通り実行される）
                         return;
@@ -330,8 +332,8 @@ const ChatInit = {
             }
             
             // 初回メッセージを表示
-            // ただし、守護神の儀式完了直後（ritualCompleted）の場合は、既に守護神確認メッセージを表示済みなのでスキップ
-            const ritualCompletedCheck = sessionStorage.getItem('ritualCompleted') === 'true';
+            // ただし、守護神の儀式完了直後（guardianMessageShown）の場合は、既に守護神確認メッセージを表示済みなのでスキップ
+            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
             
             if (historyData && historyData.hasHistory) {
                 ChatData.conversationHistory = historyData;
@@ -348,23 +350,29 @@ const ChatInit = {
                     });
                 }
                 
-                if (guestHistory.length === 0 && !ritualCompletedCheck) {
+                if (guestHistory.length === 0 && !guardianMessageShown) {
                     const initialMessage = ChatData.generateInitialMessage(character, historyData);
                     ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                 }
             } else if (historyData && historyData.nickname) {
                 ChatData.userNickname = historyData.nickname;
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0 && !ritualCompletedCheck) {
+                if (guestHistory.length === 0 && !guardianMessageShown) {
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname);
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
             } else {
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0 && !ritualCompletedCheck) {
+                if (guestHistory.length === 0 && !guardianMessageShown) {
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
+            }
+            
+            // 守護神確認メッセージを表示した場合は、フラグをクリア
+            if (guardianMessageShown) {
+                sessionStorage.removeItem('guardianMessageShown');
+                sessionStorage.removeItem('ritualCompleted');
             }
         } catch (error) {
             console.error('Error loading conversation history:', error);
