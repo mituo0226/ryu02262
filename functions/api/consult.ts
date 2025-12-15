@@ -809,6 +809,8 @@ export const onRequestPost: PagesFunction = async (context) => {
         hasAssignedDeity: !!user.assigned_deity,
         isGuardianRitualCompleted: !!(user.assigned_deity && user.assigned_deity.trim() !== ''),
       });
+    } else {
+      console.log('🔍 [User Info] ゲストユーザーとして処理されています（userTokenが存在しないか無効）');
     }
 
     // ユーザーメッセージの数を正しく計算
@@ -935,6 +937,12 @@ export const onRequestPost: PagesFunction = async (context) => {
         phaseInstructionAtStart: characterId === 'kaede' ? systemPrompt.substring(0, 200).includes('フェーズ1') : false,
         phaseInstructionAtEnd: characterId === 'kaede' ? systemPrompt.substring(systemPrompt.length - 200).includes('フェーズ1') : false,
       });
+    }
+    
+    // 【デバッグ用】守護神の儀式完了ユーザーの場合、システムプロンプトの先頭200文字をログに出力
+    if (user?.assigned_deity && user.assigned_deity.trim() !== '') {
+      console.log('🔍 [守護神完了ユーザー] システムプロンプトの先頭部分:', systemPrompt.substring(0, 300));
+      console.log('🔍 [守護神完了ユーザー] 登録済みユーザーです。登録を促す指示は含まれていないはずです。');
     }
 
     // デバッグ: システムプロンプトにニックネームが含まれているか確認
