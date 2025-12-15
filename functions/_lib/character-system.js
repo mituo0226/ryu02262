@@ -258,7 +258,10 @@ export function generateSystemPrompt(characterId, options = {}) {
       if (DEBUG_MODE) {
         console.log('🔍 DEBUG: Guardian ritual start detected - using ritual-specific prompt');
       }
-    } else {
+    } else if (!guardianRitualCompleted) {
+      // 守護神の儀式が完了していない場合のみ、フェーズ指示を適用
+      // 【重要】守護神完了後はフェーズ指示を適用しない（守護神完了指示のみが有効）
+      
       // 共通で計算済みの normalizedCount を使用
       const count = normalizedCount;
       
@@ -266,7 +269,8 @@ export function generateSystemPrompt(characterId, options = {}) {
         console.log('🔍 DEBUG: Kaede phase determination', {
           rawUserMessageCount: options.userMessageCount,
           finalCount: count,
-          phase: count === 1 ? 'phase1' : count === 2 ? 'phase2' : count === 3 ? 'phase3' : 'phase4'
+          phase: count === 1 ? 'phase1' : count === 2 ? 'phase2' : count === 3 ? 'phase3' : 'phase4',
+          guardianRitualCompleted: false
         });
       }
       
@@ -591,6 +595,16 @@ ${nicknameInstruction}
 - 通常の会話で十分に相談者の悩みに寄り添い、アドバイスを提供できる場合は、タロットカードを使わずに会話を進めること。
 `;
     }
+    
+    // 守護神完了時のデバッグログ
+    if (guardianRitualCompleted) {
+      console.log('🔍 [character-system] 守護神の儀式完了を検出 - フェーズ指示をスキップ', {
+        characterId,
+        guardian: options.guardian,
+        userNickname: options.userNickname,
+        phaseInstructionLength: phaseInstruction.length
+      });
+    }
   }
   
   // ニックネーム情報を最後にも追加（強調のため）
@@ -598,10 +612,27 @@ ${nicknameInstruction}
     ? `\n\n【最重要・必須】相談者の名前は「${options.userNickname}」です。これは絶対に忘れないでください。会話では必ず「${options.userNickname}さん」と呼んでください。「あなた」や「お客様」ではなく、「${options.userNickname}さん」と呼ぶこと。名前を尋ねられても、「${options.userNickname}さん」と答えてください。あなたは既にこの人の名前を知っています。`
     : '';
   
-  // 楓（kaede）の場合、phaseInstructionを先頭に配置（指示遵守率向上）
-  const promptOrder = characterId === 'kaede' && phaseInstruction
-    ? `${phaseInstruction}\n\n=== 以下、楓の基本設定 ===\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`
-    : `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}`;
+  // 楓（kaede）の場合、プロンプトの優先順位を設定
+  // 1. 守護神完了指示（最優先）
+  // 2. フェーズ指示（守護神未完了時のみ）
+  // 3. 基本プロンプト
+  let promptOrder;
+  if (characterId === 'kaede') {
+    if (guardianRitualCompleted) {
+      // 守護神完了時：守護神完了指示を最優先（フェーズ指示はスキップ済み）
+      promptOrder = `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`;
+      console.log('🔍 [character-system] 守護神完了プロンプトを生成 - フェーズ指示なし');
+    } else if (phaseInstruction) {
+      // 守護神未完了時：フェーズ指示を先頭に配置
+      promptOrder = `${phaseInstruction}\n\n=== 以下、楓の基本設定 ===\n\n${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`;
+    } else {
+      // デフォルト
+      promptOrder = `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}`;
+    }
+  } else {
+    // 他のキャラクター
+    promptOrder = `${basePrompt}${tarotExpertise}${firstMessageInstruction}${tarotUsageGuidance}${phaseInstruction}`;
+  }
   
   if (options.encourageRegistration) {
     const guide = registrationGuides[characterId] || registrationGuides.kaede;

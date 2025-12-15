@@ -946,6 +946,15 @@ export const onRequestPost: PagesFunction = async (context) => {
       guardian: user?.guardian || null, // 守護神が決定済みの場合、登録を促す回答をしないようにする
     });
 
+    console.log('🔍 [consult] システムプロンプト生成パラメータ:', {
+      characterId,
+      userNickname: user?.nickname,
+      guardian: user?.guardian,
+      isRitualStart,
+      finalUserMessageCount,
+      shouldEncourageRegistration
+    });
+
     if (DEBUG_MODE) {
       console.log('🔍 DEBUG: systemPrompt generation', {
         characterId,
