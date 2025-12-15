@@ -534,6 +534,11 @@
             continueButton.style.display = 'none';
           }
           
+          // 【重要】データベースへの書き込みが確実に完了するまで少し待つ
+          // Cloudflare D1のデータベースコミットには時間がかかる場合があるため
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('[守護神の儀式] データベースコミット待機完了');
+          
           // 結果表示後、少し待ってからリダイレクト（ユーザーが結果を見られるように）
           setTimeout(() => {
             // 儀式完了フラグを設定（チャット画面で儀式開始処理をスキップするため）
