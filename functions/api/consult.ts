@@ -3,11 +3,12 @@ import { isInappropriate, generateSystemPrompt, getCharacterName } from '../_lib
 import { isValidCharacter } from '../_lib/character-loader.js';
 import { verifyUserToken } from '../_lib/token.js';
 
+// ===== 定数 =====
 const GUEST_MESSAGE_LIMIT = 10;
 const MAX_DEEPSEEK_RETRIES = 3;
-const DEBUG_MODE = true;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
 
+// ===== 型定義 =====
 type ConversationRole = 'user' | 'assistant';
 
 interface ClientHistoryEntry {
@@ -26,7 +27,6 @@ interface RequestBody {
   clientHistory?: ClientHistoryEntry[];
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;
-  forceProvider?: 'deepseek' | 'openai'; // テスト用: プロバイダーを強制指定
 }
 
 interface ResponseBody {
@@ -41,7 +41,7 @@ interface ResponseBody {
   guestMode?: boolean;
   remainingGuestMessages?: number;
   showTarotCard?: boolean;
-  provider?: 'deepseek' | 'openai'; // 使用したLLMプロバイダー（デバッグ用）
+  provider?: 'deepseek' | 'openai';
 }
 
 interface UserRecord {
@@ -54,132 +54,6 @@ interface ConversationRow {
   role: ConversationRole;
   message: string;
 }
-
-function sanitizeClientHistory(entries?: ClientHistoryEntry[]): ClientHistoryEntry[] {
-  if (!Array.isArray(entries)) {
-    return [];
-  }
-  return entries
-    .map((entry) => {
-      if (!entry || (entry.role !== 'user' && entry.role !== 'assistant')) {
-        return null;
-      }
-      if (typeof entry.content !== 'string') {
-        return null;
-      }
-      const trimmed = entry.content.trim();
-      if (!trimmed) {
-        return null;
-      }
-      return { role: entry.role, content: trimmed };
-    })
-    .filter((entry): entry is ClientHistoryEntry => Boolean(entry))
-    .slice(-12);
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const isServiceBusyError = (status: number, errorText: string) => {
-  const normalized = (errorText || '').toLowerCase();
-  return (
-    status === 429 ||
-    status === 503 ||
-    normalized.includes('service is too busy') ||
-    normalized.includes('please try again later') ||
-    normalized.includes('rate limit')
-  );
-};
-
-/**
- * 会話履歴から「守護神の儀式に同意」を検出する関数
- * フェーズ4でユーザーが儀式に同意した場合、10通の制限に関係なく登録ボタンを表示する
- */
-function detectGuardianRitualConsent(
-  conversationHistory: ClientHistoryEntry[],
-  currentMessage: string,
-  characterId: string
-): boolean {
-  // 楓（kaede）のみ対象
-  if (characterId !== 'kaede') {
-    return false;
-  }
-
-  // 守護神・儀式に関連するキーワード
-  const ritualKeywords = [
-    '守護神',
-    '儀式',
-    '守護',
-    '導き出す',
-    '呼び出す',
-    '整える',
-    '波長',
-    'エネルギー',
-  ];
-
-  // 同意を示す表現
-  const consentKeywords = [
-    'やってみたい',
-    'やってみます',
-    'お願いします',
-    'お願い',
-    '受けたい',
-    '受けます',
-    'やります',
-    'はい',
-    '同意',
-    '了解',
-    'わかりました',
-    'ok',
-    'okです',
-    'ok！',
-    'ok?',
-    'ok.',
-    'ok ',
-    'okay',
-    'okayです',
-    'おk',
-    'おkです',
-  ];
-
-  // 最新のユーザーメッセージ（現在のメッセージを含む）
-  const recentMessages = [...conversationHistory, { role: 'user' as const, content: currentMessage }]
-    .filter(msg => msg.role === 'user')
-    .slice(-3); // 直近3件のユーザーメッセージを確認
-
-  // 会話履歴全体から守護神・儀式の言及を確認
-  const allMessages = [...conversationHistory, { role: 'user' as const, content: currentMessage }];
-  const hasRitualMention = allMessages.some(msg => {
-    const text = msg.content.toLowerCase();
-    return ritualKeywords.some(keyword => text.includes(keyword));
-  });
-
-  if (!hasRitualMention) {
-    return false;
-  }
-
-  // 直近のユーザーメッセージに同意表現があるか確認
-  const hasConsent = recentMessages.some(msg => {
-    const text = msg.content.toLowerCase();
-    return consentKeywords.some(keyword => text.includes(keyword));
-  });
-
-  return hasConsent;
-}
-
-const extractErrorMessage = (text: string, fallback: string) => {
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed?.error?.message) {
-      return parsed.error.message as string;
-    }
-    if (typeof parsed?.message === 'string') {
-      return parsed.message;
-    }
-  } catch {
-    // ignore JSON parse errors
-  }
-  return text || fallback;
-};
 
 interface LLMResponseResult {
   success: boolean;
@@ -200,9 +74,69 @@ interface LLMRequestParams {
   deepseekApiKey: string;
   fallbackApiKey?: string;
   fallbackModel?: string;
-  forceProvider?: 'deepseek' | 'openai'; // テスト用: プロバイダーを強制指定
 }
 
+// ===== ユーティリティ関数 =====
+
+/**
+ * クライアント履歴をサニタイズ（不正な値を除去）
+ */
+function sanitizeClientHistory(entries?: ClientHistoryEntry[]): ClientHistoryEntry[] {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries
+    .map((entry) => {
+      if (!entry || (entry.role !== 'user' && entry.role !== 'assistant')) {
+        return null;
+      }
+      if (typeof entry.content !== 'string' || !entry.content.trim()) {
+        return null;
+      }
+      return { role: entry.role, content: entry.content.trim() };
+    })
+    .filter((entry): entry is ClientHistoryEntry => Boolean(entry))
+    .slice(-12); // 直近12件まで保持
+}
+
+/**
+ * エラーメッセージを抽出
+ */
+function extractErrorMessage(text: string, fallback: string): string {
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed?.error?.message) return parsed.error.message as string;
+    if (typeof parsed?.message === 'string') return parsed.message;
+  } catch {
+    // JSON parse エラーは無視
+  }
+  return text || fallback;
+}
+
+/**
+ * サービスビジーエラーかどうかを判定
+ */
+function isServiceBusyError(status: number, errorText: string): boolean {
+  const normalized = (errorText || '').toLowerCase();
+  return (
+    status === 429 ||
+    status === 503 ||
+    normalized.includes('service is too busy') ||
+    normalized.includes('please try again later') ||
+    normalized.includes('rate limit')
+  );
+}
+
+/**
+ * 待機
+ */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ===== LLM API 呼び出し =====
+
+/**
+ * DeepSeek API を呼び出し（リトライ付き）
+ */
 async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult> {
   const {
     systemPrompt,
@@ -242,14 +176,6 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
       if (response.ok) {
         const data = await response.json();
         const message = data?.choices?.[0]?.message?.content;
-        if (DEBUG_MODE) {
-          console.log('🔍 DEBUG: DeepSeek API response', {
-            attempt,
-            hasChoices: !!data.choices,
-            choicesLength: data.choices?.length || 0,
-            finishReason: data.choices?.[0]?.finish_reason || 'N/A',
-          });
-        }
         return {
           success: Boolean(message?.trim()),
           message: message?.trim(),
@@ -260,20 +186,14 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
 
       const errorText = await response.text();
       lastError = extractErrorMessage(errorText, 'Failed to get response from DeepSeek API');
-      console.error('DeepSeek API error:', {
-        attempt,
-        status: response.status,
-        errorText,
-      });
+      console.error('DeepSeek API error:', { attempt, status: response.status, errorText });
 
+      // サービスビジーエラー以外は即座にリトライを中止
       if (!isServiceBusyError(response.status, errorText)) {
-        return {
-          success: false,
-          error: lastError,
-          status: response.status,
-        };
+        return { success: false, error: lastError, status: response.status };
       }
 
+      // リトライ前に待機
       if (attempt < MAX_DEEPSEEK_RETRIES) {
         await sleep(300 * attempt * attempt);
       }
@@ -287,12 +207,12 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
     }
   }
 
-  return {
-    success: false,
-    error: lastError,
-  };
+  return { success: false, error: lastError };
 }
 
+/**
+ * OpenAI API を呼び出し（フォールバック）
+ */
 async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> {
   const {
     systemPrompt,
@@ -306,7 +226,7 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
   } = params;
 
   if (!fallbackApiKey) {
-    return { success: false, error: 'OpenAI fallback API key is not configured' };
+    return { success: false, error: 'OpenAI API key not configured' };
   }
 
   const messages = [
@@ -315,106 +235,73 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
     { role: 'user', content: userMessage },
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${fallbackApiKey}`,
-    },
-    body: JSON.stringify({
-      model: fallbackModel || DEFAULT_FALLBACK_MODEL,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      top_p: topP,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', errorText);
-    return {
-      success: false,
-      error: extractErrorMessage(errorText, 'Failed to get response from OpenAI API'),
-      status: response.status,
-    };
-  }
-
-  const data = await response.json();
-  const message = data?.choices?.[0]?.message?.content;
-
-  if (DEBUG_MODE) {
-    console.log('🔍 DEBUG: OpenAI API response', {
-      hasChoices: !!data.choices,
-      choicesLength: data.choices?.length || 0,
-      finishReason: data.choices?.[0]?.finish_reason || 'N/A',
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fallbackApiKey}`,
+      },
+      body: JSON.stringify({
+        model: fallbackModel || DEFAULT_FALLBACK_MODEL,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        top_p: topP,
+      }),
     });
-  }
 
-  return {
-    success: Boolean(message?.trim()),
-    message: message?.trim(),
-    provider: 'openai',
-    rawResponse: data,
-  };
-}
-
-async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResult> {
-  const { forceProvider, fallbackApiKey, fallbackModel } = params;
-
-  // テスト用: プロバイダーが強制指定されている場合
-  if (forceProvider === 'openai') {
-    if (!fallbackApiKey) {
+    if (response.ok) {
+      const data = await response.json();
+      const message = data?.choices?.[0]?.message?.content;
       return {
-        success: false,
-        error: 'OpenAI API key is not configured',
+        success: Boolean(message?.trim()),
+        message: message?.trim(),
         provider: 'openai',
+        rawResponse: data,
       };
     }
-    return await callOpenAI({
-      ...params,
-      fallbackApiKey,
-      fallbackModel: fallbackModel || DEFAULT_FALLBACK_MODEL,
-    });
-  }
 
-  if (forceProvider === 'deepseek') {
-    const result = await callDeepSeek(params);
-    // DeepSeekが失敗してもフォールバックしない（テスト用）
-    return result;
+    const errorText = await response.text();
+    const errorMessage = extractErrorMessage(errorText, 'Failed to get response from OpenAI API');
+    console.error('OpenAI API error:', { status: response.status, errorText });
+    return { success: false, error: errorMessage, status: response.status };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown OpenAI error';
+    console.error('OpenAI API fetch error:', { message });
+    return { success: false, error: message };
   }
+}
 
-  // 通常の動作: DeepSeekを試して、失敗したらOpenAIにフォールバック
+/**
+ * LLM レスポンスを取得（DeepSeek → OpenAI フォールバック）
+ */
+async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResult> {
+  console.log('[LLM] DeepSeek API を呼び出します...');
   const deepseekResult = await callDeepSeek(params);
 
   if (deepseekResult.success) {
+    console.log('[LLM] ✅ DeepSeek API から応答を取得しました');
     return deepseekResult;
   }
 
-  if (!fallbackApiKey) {
-    return deepseekResult;
+  console.log('[LLM] ⚠️ DeepSeek API 失敗、OpenAI にフォールバック:', deepseekResult.error);
+  const openaiResult = await callOpenAI(params);
+
+  if (openaiResult.success) {
+    console.log('[LLM] ✅ OpenAI API から応答を取得しました');
+    return openaiResult;
   }
 
-  console.warn('DeepSeek unavailable, attempting fallback provider...', {
-    error: deepseekResult.error,
-  });
-
-  const openAiResult = await callOpenAI({
-    ...params,
-    fallbackApiKey,
-    fallbackModel: fallbackModel || DEFAULT_FALLBACK_MODEL,
-  });
-  
-  if (openAiResult.success) {
-    return openAiResult;
-  }
-
+  console.error('[LLM] ❌ 両方の API が失敗しました');
   return {
     success: false,
-    error: openAiResult.error || deepseekResult.error || 'Failed to generate response',
-    status: openAiResult.status,
+    error: `DeepSeek: ${deepseekResult.error}, OpenAI: ${openaiResult.error}`,
+    status: openaiResult.status,
   };
 }
+
+// ===== メインハンドラー =====
 
 export const onRequestPost: PagesFunction = async (context) => {
   const { request, env } = context;
@@ -429,173 +316,90 @@ export const onRequestPost: PagesFunction = async (context) => {
 
   // OPTIONSリクエスト（プリフライト）の処理
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
-    // 環境変数からAPIキーを取得
+    // ===== 1. 環境変数とリクエストボディの検証 =====
     const apiKey = env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'API key is not configured',
           message: '',
           character: '',
           characterName: '',
           isInappropriate: false,
-          detectedKeywords: []
+          detectedKeywords: [],
         } as ResponseBody),
-        {
-          status: 500,
-          headers: corsHeaders,
-        }
+        { status: 500, headers: corsHeaders }
       );
     }
 
-    // リクエストボディの解析
     let body: RequestBody;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'Invalid JSON in request body',
           message: '',
           character: '',
           characterName: '',
           isInappropriate: false,
-          detectedKeywords: []
+          detectedKeywords: [],
         } as ResponseBody),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
+        { status: 400, headers: corsHeaders }
       );
     }
 
-    // messageフィールドの検証
-    if (!body.message || typeof body.message !== 'string') {
+    // メッセージ検証
+    if (!body.message || typeof body.message !== 'string' || !body.message.trim()) {
       return new Response(
-        JSON.stringify({ 
-          error: 'message field is required and must be a string',
+        JSON.stringify({
+          error: 'message field is required and must be a non-empty string',
           message: '',
           character: '',
           characterName: '',
           isInappropriate: false,
-          detectedKeywords: []
+          detectedKeywords: [],
         } as ResponseBody),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
+        { status: 400, headers: corsHeaders }
       );
     }
 
     const trimmedMessage = body.message.trim();
-    if (trimmedMessage.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'message cannot be empty',
-          message: '',
-          character: '',
-          characterName: '',
-          isInappropriate: false,
-          detectedKeywords: []
-        } as ResponseBody),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
-      );
-    }
-
-    // 守護神の儀式開始メッセージを検出
-    const isRitualStart = trimmedMessage.includes('守護神の儀式を始めてください') || 
-                          trimmedMessage.includes('守護神の儀式を始めて') ||
-                          trimmedMessage === '守護神の儀式を始めてください';
-
     if (trimmedMessage.length > 1000) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'message is too long (maximum 1000 characters)',
           message: '',
           character: '',
           characterName: '',
           isInappropriate: false,
-          detectedKeywords: []
+          detectedKeywords: [],
         } as ResponseBody),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
+        { status: 400, headers: corsHeaders }
       );
     }
 
+    // キャラクター検証
     const characterId = body.character || 'kaede';
     if (!isValidCharacter(characterId)) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: `Invalid character ID: ${characterId}. Valid characters are: kaede, yukino, sora, kaon`,
           message: '',
           character: characterId,
           characterName: '',
           isInappropriate: false,
-          detectedKeywords: []
-        } as ResponseBody),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
-      );
-    }
-
-    const guestMetadata = body.guestMetadata || {};
-    const guestMessageCount = Number(guestMetadata.messageCount ?? 0);
-    const sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
-    const guestLimitReached = !body.userToken && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT;
-    // 登録を促すのは、10通目に達する直前まで（9通目まで）
-    // 1通目: count=0, 2通目: count=1, ..., 9通目: count=8（この時点で促す）、10通目: count=9（登録必須）
-    // 登録画面を表示するのは10通目に達した時点のみ
-    // 
-    // 【重要】登録ユーザー（body.userTokenが存在する）の場合は、登録を促さない
-    // 【将来の拡張用】楓（kaede）だけ特別扱いする場合の例：
-    // if (characterId === 'kaede') {
-    //   // 楓は「3〜4通で性格診断 → 守護神の儀式 → その後のタイミングで登録ガイド」の流れを優先
-    //   // 登録誘導は、儀式完了後かつ messageCount が一定以上の場合のみ
-    //   // 例: shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 12 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
-    //   // または、別のフラグ（例: hasCompletedGuardianRitual）で制御する
-    // }
-    // 【修正】登録ユーザーの場合は確実にfalseにする
-    let shouldEncourageRegistration = !body.userToken && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
-
-    if (guestLimitReached) {
-      // 10通目以降は「ユーザー登録をしてください」というメッセージのみ返す
-      const characterName = getCharacterName(characterId);
-      const registrationMessage =
-        characterId === 'kaede'
-          ? '無料でお話できるのはここまでです。守護神を最後まで導き出すには、あなたの生年月日が必要です。生年月日は、その人が生まれた瞬間の宇宙の配置を表し、龍神を通じて正確に守護神を導き出すための重要な鍵となります。そのため、生年月日とニックネームをユーザー登録していただく必要があります。登録は無料で、個人情報は厳重に管理されます。費用や危険は一切ありませんので、ご安心ください。登録ボタンから手続きを進めてください。'
-          : 'これ以上鑑定を続けるには、ユーザー登録が必要です。生年月日とニックネームを教えていただくことで、より深い鑑定ができるようになります。登録ボタンから手続きをお願いします。';
-      
-      return new Response(
-        JSON.stringify({
-          needsRegistration: true,
-          error: 'Guest message limit reached',
-          message: registrationMessage,
-          character: characterId,
-          characterName: characterName,
-          isInappropriate: false,
           detectedKeywords: [],
-          guestMode: true,
-          remainingGuestMessages: 0,
-          registrationSuggested: true,
         } as ResponseBody),
-        { status: 200, headers: corsHeaders }
+        { status: 400, headers: corsHeaders }
       );
     }
 
+    // ===== 2. ユーザー情報の取得 =====
     let user: UserRecord | null = null;
 
     if (body.userToken) {
@@ -615,16 +419,14 @@ export const onRequestPost: PagesFunction = async (context) => {
         );
       }
 
-      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, guardian FROM users WHERE id = ?')
+      const record = await env.DB.prepare<UserRecord>(
+        'SELECT id, nickname, guardian FROM users WHERE id = ?'
+      )
         .bind(tokenPayload.userId)
         .first();
 
       if (!record) {
-        console.error('User not found in database:', {
-          userId: tokenPayload.userId,
-          tokenValid: true,
-          characterId: characterId
-        });
+        console.error('[consult] ユーザーがデータベースに存在しません:', tokenPayload.userId);
         return new Response(
           JSON.stringify({
             needsRegistration: true,
@@ -640,20 +442,63 @@ export const onRequestPost: PagesFunction = async (context) => {
       }
 
       user = record;
+      console.log('[consult] ユーザー情報:', {
+        id: user.id,
+        nickname: user.nickname,
+        guardian: user.guardian,
+      });
     }
 
-    const sanitizedHistory = sanitizeClientHistory(body.clientHistory);
+    // ===== 3. ゲストユーザーのメッセージ制限チェック =====
+    const guestMetadata = body.guestMetadata || {};
+    const guestMessageCount = Number(guestMetadata.messageCount ?? 0);
+    const sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
 
+    // ゲストユーザーで10通目に達した場合
+    if (!user && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT) {
+      const characterName = getCharacterName(characterId);
+      const registrationMessage =
+        characterId === 'kaede'
+          ? '無料でお話できるのはここまでです。守護神を最後まで導き出すには、あなたの生年月日が必要です。生年月日は、その人が生まれた瞬間の宇宙の配置を表し、龍神を通じて正確に守護神を導き出すための重要な鍵となります。そのため、生年月日とニックネームをユーザー登録していただく必要があります。登録は無料で、個人情報は厳重に管理されます。費用や危険は一切ありませんので、ご安心ください。登録ボタンから手続きを進めてください。'
+          : 'これ以上鑑定を続けるには、ユーザー登録が必要です。生年月日とニックネームを教えていただくことで、より深い鑑定ができるようになります。登録ボタンから手続きをお願いします。';
+
+      return new Response(
+        JSON.stringify({
+          needsRegistration: true,
+          error: 'Guest message limit reached',
+          message: registrationMessage,
+          character: characterId,
+          characterName: characterName,
+          isInappropriate: false,
+          detectedKeywords: [],
+          guestMode: true,
+          remainingGuestMessages: 0,
+          registrationSuggested: true,
+        } as ResponseBody),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
+    // ===== 4. 不適切な内容のチェック =====
     const characterName = getCharacterName(characterId);
-
     const inappropriate = isInappropriate(trimmedMessage);
     const detectedKeywords: string[] = [];
 
     if (inappropriate) {
       const keywords = [
-        '宝くじ', '当選', '当選番号', '当選確率',
-        'ギャンブル', 'パチンコ', 'スロット', '競馬', '競艇',
-        '不倫', '浮気', '裏切り', '悪意',
+        '宝くじ',
+        '当選',
+        '当選番号',
+        '当選確率',
+        'ギャンブル',
+        'パチンコ',
+        'スロット',
+        '競馬',
+        '競艇',
+        '不倫',
+        '浮気',
+        '裏切り',
+        '悪意',
       ];
       const lowerMessage = trimmedMessage.toLowerCase();
       keywords.forEach((keyword) => {
@@ -663,19 +508,22 @@ export const onRequestPost: PagesFunction = async (context) => {
       });
 
       let warningMessage = '';
-
       switch (characterId) {
         case 'kaede':
-          warningMessage = '私は現世で唯一の龍神の化身として、そのような悪しき願いを聞き入れることはできません。龍神としての私の力は、悪用される危険をはらむものには決して向けられません。そのような願いは、神界の秩序を乱すものです。';
+          warningMessage =
+            '私は現世で唯一の龍神の化身として、そのような悪しき願いを聞き入れることはできません。龍神としての私の力は、悪用される危険をはらむものには決して向けられません。そのような願いは、神界の秩序を乱すものです。';
           break;
         case 'yukino':
-          warningMessage = '高野山での修行を通じて、私は学びました。そのような願いは、愛の力がない限り、運命は好転しない。これは、宇宙全体の真理であります。修行で培った信念として、そのようなご相談は、宇宙全体の真理に反するものです。';
+          warningMessage =
+            '高野山での修行を通じて、私は学びました。そのような願いは、愛の力がない限り、運命は好転しない。これは、宇宙全体の真理であります。修行で培った信念として、そのようなご相談は、宇宙全体の真理に反するものです。';
           break;
         case 'sora':
-          warningMessage = '正直、がっかりしています。そのような願いを抱いているあなたを見て、心が痛みます。そのような願いは、あなた自身を不幸にします。どうか、もう一度考え直してください。';
+          warningMessage =
+            '正直、がっかりしています。そのような願いを抱いているあなたを見て、心が痛みます。そのような願いは、あなた自身を不幸にします。どうか、もう一度考え直してください。';
           break;
         case 'kaon':
-          warningMessage = '私の未来予知の能力は、あまりにも確実に人の未来を読めるがゆえに、その責任は非常に重いものです。そのような願いは、その責任を軽んじる行為です。第三者の力により未来を変えることは、それが人生において良き方向に向けるためのものであり、そして誰かを不幸にしては決していけないのです。';
+          warningMessage =
+            '私の未来予知の能力は、あまりにも確実に人の未来を読めるがゆえに、その責任は非常に重いものです。そのような願いは、その責任を軽んじる行為です。第三者の力により未来を変えることは、それが人生において良き方向に向けるためのものであり、そして誰かを不幸にしては決していけないのです。';
           break;
         default:
           warningMessage = 'そのようなご相談にはお答えできません。';
@@ -694,12 +542,12 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // デバッグログ用フラグ（本番では false に設定）
-    // 一時的に true にして問題を調査する場合は true に変更
+    // ===== 5. 会話履歴の取得 =====
+    const sanitizedHistory = sanitizeClientHistory(body.clientHistory);
     let conversationHistory: ClientHistoryEntry[] = [];
 
     if (user) {
-      // ログインユーザーの場合: データベースから履歴を取得
+      // 登録ユーザー：データベースから履歴を取得
       const historyResults = await env.DB.prepare<ConversationRow>(
         `SELECT role, message
          FROM conversations
@@ -716,8 +564,9 @@ export const onRequestPost: PagesFunction = async (context) => {
           content: row.message,
         })) ?? [];
 
-      // ゲスト履歴の移行処理
+      // ゲスト履歴の移行処理（登録直後の場合）
       if (body.migrateHistory && sanitizedHistory.length > 0) {
+        console.log('[consult] ゲスト履歴を移行します:', sanitizedHistory.length, '件');
         for (const entry of sanitizedHistory) {
           try {
             await env.DB.prepare(
@@ -736,260 +585,83 @@ export const onRequestPost: PagesFunction = async (context) => {
               .run();
           }
         }
-        // 移行した履歴とDB履歴をマージ（重複を避ける）
-        const sanitizedUserMessages = new Set(sanitizedHistory.filter(msg => msg.role === 'user').map(msg => msg.content));
-        const uniqueDbHistory = dbHistory.filter(msg => {
-          if (msg.role === 'user') {
-            return !sanitizedUserMessages.has(msg.content);
-          }
-          return true;
-        });
-        conversationHistory = [...sanitizedHistory, ...uniqueDbHistory];
+        // 移行した履歴とDB履歴をマージ
+        conversationHistory = [...sanitizedHistory, ...dbHistory];
       } else {
         conversationHistory = dbHistory;
       }
     } else {
-      // ゲストユーザーの場合: クライアントから送られてきた履歴を使用
-      // 複数のソースから履歴を取得を試みる
-      if (sanitizedHistory.length > 0) {
-        conversationHistory = sanitizedHistory;
-      } else if (body.clientHistory && Array.isArray(body.clientHistory) && body.clientHistory.length > 0) {
-        // sanitizedHistory が空の場合は、clientHistory を直接使用
-        conversationHistory = body.clientHistory.map((entry: any) => ({
-          role: entry.role || 'user',
-          content: entry.content || entry.message || '',
-        }));
-      } else {
-        conversationHistory = [];
-      }
-      
-      if (DEBUG_MODE) {
-        console.log('🔍 DEBUG: Guest user history', {
-          sanitizedHistoryLength: sanitizedHistory.length,
-          clientHistoryLength: body.clientHistory?.length || 0,
-          finalConversationHistoryLength: conversationHistory.length,
-          guestMetadataMessageCount: sanitizedGuestCount,
-        });
-      }
+      // ゲストユーザー：クライアントから送られてきた履歴を使用
+      conversationHistory = sanitizedHistory;
     }
 
-    // フェーズ4（未来・守護・儀式）で守護神の儀式に同意した場合、10通の制限に関係なく登録ボタンを表示
-    if (!body.userToken && characterId === 'kaede') {
-      const hasConsentedToRitual = detectGuardianRitualConsent(
-        conversationHistory,
-        body.message,
-        characterId
-      );
-      
-      console.log('🔍 [守護神の儀式同意検出] チェック結果:', {
-        hasConsentedToRitual,
-        characterId,
-        currentMessage: body.message,
-        conversationHistoryLength: conversationHistory.length,
-        recentUserMessages: conversationHistory.filter(msg => msg.role === 'user').slice(-3).map(msg => msg.content)
-      });
-      
-      if (hasConsentedToRitual) {
-        shouldEncourageRegistration = true;
-        console.log('🔍 [守護神の儀式同意検出] 同意が検出されました。registrationSuggestedをtrueに設定します。');
-        if (DEBUG_MODE) {
-          console.log('🔍 DEBUG: Guardian ritual consent detected - showing registration button early');
-        }
-      } else {
-        console.log('🔍 [守護神の儀式同意検出] 同意が検出されませんでした。');
-      }
-    }
+    console.log('[consult] 会話履歴:', conversationHistory.length, '件');
 
-    // デバッグ: ユーザー情報とニックネームを確認
-    if (user) {
-      console.log('🔍 [User Info] ユーザー情報を確認:', {
-        userId: user.id,
-        nickname: user.nickname,
-        guardian: user.guardian,
-        hasGuardian: !!user.guardian,
-        isGuardianRitualCompleted: !!(user.guardian && user.guardian.trim() !== ''),
-      });
-    } else {
-      console.log('🔍 [User Info] ゲストユーザーとして処理されています（userTokenが存在しないか無効）');
-    }
-
-    // 守護神が決定済みの場合、会話履歴の先頭に確認メッセージを自動注入
+    // ===== 6. 守護神が決定済みの場合、確認メッセージを会話履歴に注入 =====
     if (user?.guardian && user.guardian.trim() !== '' && characterId === 'kaede') {
-      // 守護神名（データベースに日本語で保存されているのでそのまま使用）
       const guardianName = user.guardian;
       const userNickname = user.nickname || 'あなた';
-      
-      // 守護神確認メッセージ（会話履歴の先頭に追加することで、LLMが認識できるようにする）
+
+      // 守護神確認メッセージ
       const guardianConfirmationMessage = `${userNickname}さんの守護神は${guardianName}です。これからは、私と守護神である${guardianName}が鑑定を進めていきます。`;
-      
-      // 会話履歴の先頭にこのメッセージが既に存在するかチェック
-      const hasGuardianMessage = conversationHistory.some(msg => 
-        msg.role === 'assistant' && msg.content.includes(`${userNickname}さんの守護神は${guardianName}です`)
+
+      // 会話履歴に既に存在するかチェック
+      const hasGuardianMessage = conversationHistory.some(
+        (msg) =>
+          msg.role === 'assistant' &&
+          msg.content.includes(`${userNickname}さんの守護神は${guardianName}です`)
       );
-      
+
       // まだ存在しない場合のみ追加
       if (!hasGuardianMessage) {
         conversationHistory.unshift({
           role: 'assistant',
-          content: guardianConfirmationMessage
+          content: guardianConfirmationMessage,
         });
-        console.log('🔍 [守護神確認] 会話履歴に守護神確認メッセージを自動注入:', guardianConfirmationMessage);
+        console.log('[consult] 守護神確認メッセージを会話履歴に注入しました');
       }
     }
 
-    // ユーザーメッセージの数を正しく計算
-    // conversationHistory から user ロールのメッセージ数を取得
-    const userMessagesInHistory = (conversationHistory || []).filter(msg => msg.role === 'user').length;
-    // 今回送信されたメッセージを +1
-    const calculatedUserMessageCount = userMessagesInHistory + 1;
-    
-    // ゲスト履歴から直接計算（migrateHistoryの場合）
-    const userMessagesInGuestHistory = (sanitizedHistory || []).filter(msg => msg.role === 'user').length;
-    const calculatedFromGuestHistory = userMessagesInGuestHistory + 1;
-    
-    // ゲストユーザーの場合、guestMetadata.messageCount を優先的に使用
-    // （履歴が正しく送られていない可能性があるため）
-    let userMessageCount: number;
-    if (!user) {
-      // ゲストユーザーの場合
-      // guestMetadata.messageCount は「これまでのメッセージ数」なので、+1 した値が今回のメッセージ数
-      const expectedCount = sanitizedGuestCount + 1;
-      
-      // 【重要】ゲストユーザーの場合、guestMetadata.messageCount を優先的に使用
-      // 1通目の場合: sanitizedGuestCount = 0, expectedCount = 1
-      // 2通目の場合: sanitizedGuestCount = 1, expectedCount = 2
-      // というように、guestMetadata が正しく送信されていれば、それが最も信頼できる
-      if (sanitizedGuestCount >= 0 && Number.isFinite(sanitizedGuestCount)) {
-        // guestMetadata が存在し、有効な値の場合、それを優先使用
-        userMessageCount = expectedCount;
-        
-        // ただし、conversationHistory から計算した値と大きく乖離している場合は警告
-        if (calculatedUserMessageCount > 0 && Math.abs(calculatedUserMessageCount - expectedCount) > 3) {
-          console.warn('⚠️ WARNING: Large discrepancy between guestMetadata and conversationHistory', {
-            guestMetadataCount: sanitizedGuestCount,
-            expectedCount,
-            calculatedFromHistory: calculatedUserMessageCount,
-            using: expectedCount
-          });
-        }
-      } else {
-        // guestMetadata がない、または無効な値の場合は conversationHistory を使用
-        userMessageCount = calculatedUserMessageCount;
-        
-        if (DEBUG_MODE) {
-          console.warn('⚠️ WARNING: No valid guestMetadata, using conversationHistory count', {
-            sanitizedGuestCount,
-            calculatedUserMessageCount
-          });
-        }
-      }
-      
-      if (DEBUG_MODE) {
-        console.log('🔍 DEBUG: Guest userMessageCount calculation', {
-          userMessagesInHistory,
-          calculatedUserMessageCount,
-          sanitizedGuestCount,
-          expectedCount: sanitizedGuestCount >= 0 ? sanitizedGuestCount + 1 : undefined,
-          finalUserMessageCount: userMessageCount,
-        });
-      }
-    } else {
-      // ログインユーザーの場合
-      // migrateHistoryがtrueの場合は、ゲスト履歴から計算した値を使用（登録直後の場合）
-      if (body.migrateHistory && sanitizedHistory.length > 0) {
-        userMessageCount = calculatedFromGuestHistory;
-        if (DEBUG_MODE) {
-          console.log('🔍 DEBUG: Registered user with migrateHistory - using guest history count', {
-            userMessagesInGuestHistory,
-            calculatedFromGuestHistory,
-            conversationHistoryLength: conversationHistory.length,
-            userMessagesInHistory,
-            calculatedUserMessageCount
-          });
-        }
-      } else {
-        // 通常のログインユーザーの場合、conversationHistory から計算した値を使用
-        userMessageCount = calculatedUserMessageCount;
-      }
-    }
-    
-    // 最終的な userMessageCount を保証（最小値1、NaN や undefined を防ぐ）
-    userMessageCount = Math.max(1, Number.isFinite(userMessageCount) ? userMessageCount : 1);
+    // ===== 7. ユーザーメッセージ数の計算 =====
+    // 今回送信されるメッセージを含めた数を計算
+    const userMessagesInHistory = conversationHistory.filter((msg) => msg.role === 'user').length;
+    const userMessageCount = userMessagesInHistory + 1; // 今回のメッセージを含める
 
-    // userMessageCount が正しく渡されることを保証
-    const finalUserMessageCount = Number.isFinite(userMessageCount) && userMessageCount > 0 
-      ? userMessageCount 
-      : 1;
-    
-    if (DEBUG_MODE) {
-      console.log('🔍 DEBUG: Final userMessageCount:', finalUserMessageCount);
-      console.log('🔍 DEBUG: userMessageCount calculation', {
-        conversationHistoryLength: conversationHistory.length,
-        userMessagesInHistory: userMessagesInHistory,
-        calculatedUserMessageCount: calculatedUserMessageCount,
-        sanitizedGuestCount: sanitizedGuestCount,
-        finalUserMessageCount: finalUserMessageCount,
-        conversationHistory: conversationHistory.map(msg => ({ 
-          role: msg.role, 
-          content: msg.content.substring(0, 50) 
-        })),
-      });
-    }
+    console.log('[consult] ユーザーメッセージ数:', userMessageCount);
 
+    // ===== 8. 登録促進フラグの設定 =====
+    // ゲストユーザーで、8-9通目の場合に登録を促す
+    const shouldEncourageRegistration = !user && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
+
+    // ===== 9. 守護神の儀式開始メッセージかどうかを判定 =====
+    const isRitualStart =
+      trimmedMessage.includes('守護神の儀式を始めてください') ||
+      trimmedMessage.includes('守護神の儀式を始めて') ||
+      trimmedMessage === '守護神の儀式を始めてください';
+
+    // ===== 10. システムプロンプトの生成 =====
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
       userNickname: user?.nickname,
       hasPreviousConversation: conversationHistory.length > 0,
       conversationHistoryLength: conversationHistory.length,
-      userMessageCount: finalUserMessageCount, // 必ず正しい数値が渡される
-      isRitualStart: isRitualStart, // 守護神の儀式開始メッセージかどうか
-      guardian: user?.guardian || null, // 守護神が決定済みの場合、登録を促す回答をしないようにする
+      userMessageCount: userMessageCount,
+      isRitualStart: isRitualStart,
+      guardian: user?.guardian || null,
     });
 
-    console.log('🔍 [consult] システムプロンプト生成パラメータ:', {
+    console.log('[consult] システムプロンプト生成:', {
       characterId,
       userNickname: user?.nickname,
       guardian: user?.guardian,
+      userMessageCount,
+      shouldEncourageRegistration,
       isRitualStart,
-      finalUserMessageCount,
-      shouldEncourageRegistration
     });
 
-    if (DEBUG_MODE) {
-      console.log('🔍 DEBUG: systemPrompt generation', {
-        characterId,
-        userMessageCount: finalUserMessageCount,
-        hasUser: !!user,
-        guardian: user?.guardian || null,
-        includesGuardianRitualCompleted: systemPrompt.includes('守護神の儀式は既に完了しています'),
-        includesPhaseInstruction: systemPrompt.includes('現在のフェーズ'),
-        includesHearingPhase: systemPrompt.includes('ヒアリング'),
-        includesDiagnosisPhase: systemPrompt.includes('診断・儀式'),
-        includesGuardianRitual: systemPrompt.includes('守護神'),
-        systemPromptLength: systemPrompt.length,
-        phaseInstructionAtStart: characterId === 'kaede' ? systemPrompt.substring(0, 200).includes('フェーズ1') : false,
-        phaseInstructionAtEnd: characterId === 'kaede' ? systemPrompt.substring(systemPrompt.length - 200).includes('フェーズ1') : false,
-      });
-    }
-    
-    // 【デバッグ用】守護神の儀式完了ユーザーの場合、システムプロンプトの先頭200文字をログに出力
-    if (user?.guardian && user.guardian.trim() !== '') {
-      console.log('🔍 [守護神完了ユーザー] システムプロンプトの先頭部分:', systemPrompt.substring(0, 300));
-      console.log('🔍 [守護神完了ユーザー] 登録済みユーザーです。登録を促す指示は含まれていないはずです。');
-    }
-
-    // デバッグ: システムプロンプトにニックネームが含まれているか確認
-    if (user?.nickname) {
-      console.log('System prompt includes nickname:', systemPrompt.includes(user.nickname));
-      console.log('Nickname in prompt:', user.nickname);
-    }
-
-    // GPT-API という名前で登録されている環境変数を優先的に使用
+    // ===== 11. LLM API の呼び出し =====
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
-
-    // テスト用: プロバイダーを強制指定
-    const forceProvider = body.forceProvider as 'deepseek' | 'openai' | undefined;
 
     const llmResult = await getLLMResponse({
       systemPrompt,
@@ -1001,17 +673,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       deepseekApiKey: apiKey,
       fallbackApiKey,
       fallbackModel,
-      forceProvider,
     });
-
-    if (DEBUG_MODE) {
-      console.log('🔍 DEBUG: LLM result summary', {
-        provider: llmResult.provider || 'unknown',
-        success: llmResult.success,
-        hasMessage: !!llmResult.message,
-        error: llmResult.error,
-      });
-    }
 
     if (!llmResult.success || !llmResult.message) {
       const errorMessage = llmResult.error || '申し訳ございませんが、応答を生成できませんでした。';
@@ -1029,13 +691,26 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     const responseMessage = llmResult.message;
-    
-    // タロットカード関連のキーワードを検出（笹岡雪乃の場合のみ）
-    const tarotKeywords = ['タロット', 'タロットカード', 'カードを', 'カードをめく', 'カードを占', 'カードを引'];
-    const showTarotCard = characterId === 'yukino' && tarotKeywords.some(keyword => responseMessage.includes(keyword));
+    console.log('[consult] LLM応答取得成功:', {
+      provider: llmResult.provider,
+      messageLength: responseMessage.length,
+    });
 
+    // ===== 12. タロットカード検出（笹岡雪乃の場合のみ）=====
+    const tarotKeywords = [
+      'タロット',
+      'タロットカード',
+      'カードを',
+      'カードをめく',
+      'カードを占',
+      'カードを引',
+    ];
+    const showTarotCard =
+      characterId === 'yukino' && tarotKeywords.some((keyword) => responseMessage.includes(keyword));
+
+    // ===== 13. 会話履歴の保存（登録ユーザーの場合）=====
     if (user) {
-      // 100件制限チェックと古いメッセージ削除
+      // 100件制限チェック
       const messageCountResult = await env.DB.prepare<{ count: number }>(
         `SELECT COUNT(*) as count 
          FROM conversations 
@@ -1063,8 +738,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           .run();
       }
 
-      // ユーザーメッセージを追加
-      // テーブルにはmessageカラムが存在するため、messageを使用
+      // ユーザーメッセージを保存
       try {
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
@@ -1072,7 +746,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         )
           .bind(user.id, characterId, trimmedMessage)
           .run();
-      } catch (error) {
+      } catch {
         // timestampカラムが存在しない場合はcreated_atのみを使用
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
@@ -1082,7 +756,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           .run();
       }
 
-      // アシスタントメッセージを追加
+      // アシスタントメッセージを保存
       try {
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
@@ -1090,7 +764,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         )
           .bind(user.id, characterId, responseMessage)
           .run();
-      } catch (error) {
+      } catch {
         // timestampカラムが存在しない場合はcreated_atのみを使用
         await env.DB.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
@@ -1099,8 +773,11 @@ export const onRequestPost: PagesFunction = async (context) => {
           .bind(user.id, characterId, responseMessage)
           .run();
       }
+
+      console.log('[consult] 会話履歴を保存しました');
     }
 
+    // ===== 14. レスポンスを返す =====
     return new Response(
       JSON.stringify({
         message: responseMessage,
@@ -1114,33 +791,31 @@ export const onRequestPost: PagesFunction = async (context) => {
           ? undefined
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
         showTarotCard: showTarotCard,
-        provider: llmResult.provider, // 使用したLLMプロバイダーを返す（デバッグ用）
+        provider: llmResult.provider,
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );
-
   } catch (error) {
     // エラーハンドリング
-    console.error('Error in consult endpoint:', error);
+    console.error('[consult] エラーが発生しました:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
         character: '',
         characterName: '',
         isInappropriate: false,
-        detectedKeywords: []
+        detectedKeywords: [],
       } as ResponseBody),
       {
         status: 500,
-        headers: corsHeaders,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Content-Type': 'application/json',
+        },
       }
     );
   }
 };
-
-
-
-
-
-
