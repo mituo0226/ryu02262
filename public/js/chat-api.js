@@ -69,6 +69,12 @@ const ChatAPI = {
                 return null;
             }
             
+            // 守護神情報をlocalStorageに同期（データベースから取得した値を保存）
+            if (data && data.assignedDeity) {
+                localStorage.setItem('assignedDeity', data.assignedDeity);
+                console.log('[会話履歴] 守護神情報をlocalStorageに保存:', data.assignedDeity);
+            }
+            
             return data;
         } catch (error) {
             console.error('Failed to load conversation history:', error);
