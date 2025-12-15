@@ -826,6 +826,7 @@
                   <th>ニックネーム</th>
                   <th>誕生日</th>
                   <th>合言葉</th>
+                  <th>守護神</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -858,7 +859,17 @@
               </label>
             </div>
             <label>合言葉
-              <select id="formDeity"></select>
+              <select id="formPassphrase"></select>
+            </label>
+            <label>守護神
+              <select id="formGuardian">
+                <option value="">未決定</option>
+                <option value="amaterasu">天照大神</option>
+                <option value="okuni-nushi">大国主命</option>
+                <option value="dainithi-nyorai">大日如来</option>
+                <option value="senju">千手観音</option>
+                <option value="fudo">不動明王</option>
+              </select>
             </label>
             <div class="actions">
               <button type="submit">更新する</button>
@@ -976,7 +987,8 @@
     const formYear = document.getElementById('formYear');
     const formMonth = document.getElementById('formMonth');
     const formDay = document.getElementById('formDay');
-    const formDeity = document.getElementById('formDeity');
+    const formPassphrase = document.getElementById('formPassphrase');
+    const formGuardian = document.getElementById('formGuardian');
     const formStatus = document.getElementById('formStatus');
     const deleteUserButton = document.getElementById('deleteUserButton');
     const searchForm = document.getElementById('searchForm');
@@ -1021,7 +1033,7 @@
       const option = document.createElement('option');
       option.value = name;
       option.textContent = name;
-      formDeity.appendChild(option);
+      formPassphrase.appendChild(option);
     });
 
     let currentToken = '';
@@ -1102,15 +1114,26 @@
     function renderUsers(list = filteredUsers) {
       resultSummary.textContent = `検索結果 ${list.length} 件`;
       if (!list.length) {
-        userTableBody.innerHTML = '<tr><td colspan="5" class="muted">ユーザーが見つかりません。</td></tr>';
+        userTableBody.innerHTML = '<tr><td colspan="6" class="muted">ユーザーが見つかりません。</td></tr>';
         return;
       }
+      
+      // 守護神名のマッピング
+      const guardianNames = {
+        'amaterasu': '天照大神',
+        'okuni-nushi': '大国主命',
+        'dainithi-nyorai': '大日如来',
+        'senju': '千手観音',
+        'fudo': '不動明王'
+      };
+      
       userTableBody.innerHTML = list.map((user) => `
         <tr>
           <td>${user.id}</td>
           <td>${user.nickname}</td>
           <td>${user.birth_year}/${user.birth_month}/${user.birth_day}</td>
-          <td>${user.assigned_deity}</td>
+          <td>${user.passphrase || '未設定'}</td>
+          <td>${user.guardian ? guardianNames[user.guardian] || user.guardian : '未決定'}</td>
           <td><button class="button-link" data-user-id="${user.id}">選択</button></td>
         </tr>
       `).join('');
@@ -1134,7 +1157,8 @@
       formYear.value = user.birth_year;
       formMonth.value = user.birth_month;
       formDay.value = user.birth_day;
-      formDeity.value = user.assigned_deity;
+      formPassphrase.value = user.passphrase || '';
+      formGuardian.value = user.guardian || '';
       formStatus.textContent = '';
       selectedUserId = user.id;
       showDetailSections(user);
@@ -1209,7 +1233,8 @@
         birthYear: Number(formYear.value),
         birthMonth: Number(formMonth.value),
         birthDay: Number(formDay.value),
-        assignedDeity: formDeity.value,
+        passphrase: formPassphrase.value,
+        guardian: formGuardian.value || null,
       };
       try {
         const res = await fetch('/api/admin/users', {

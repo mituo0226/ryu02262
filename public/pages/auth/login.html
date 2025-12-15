@@ -313,6 +313,10 @@
         if (data.guardian) {
           localStorage.setItem('assignedDeity', data.guardian);
         }
+        // APIからpassphraseを取得してuserPassphraseとして保存
+        if (data.passphrase) {
+          localStorage.setItem('userPassphrase', data.passphrase);
+        }
         localStorage.setItem('hasAccount', 'true');
 
         window.location.href = getRedirectTarget();
