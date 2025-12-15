@@ -494,6 +494,8 @@
         const justRegistered = sessionStorage.getItem('justRegistered');
         const userToken = localStorage.getItem('userToken');
         
+        // 初回登録後の場合、まずデータベースに守護神を保存
+        let dbSaveSuccess = false;
         if (postRitualChatUrl && justRegistered === 'true' && userToken) {
           console.log('[守護神の儀式] 守護神情報をデータベースに保存します:', guardian.id);
           
@@ -511,18 +513,19 @@
             
             if (response.ok) {
               const data = await response.json();
-              console.log('[守護神の儀式] 守護神情報をデータベースに保存しました:', data);
+              console.log('[守護神の儀式] ✅ 守護神情報をデータベースに保存しました:', data);
+              dbSaveSuccess = true;
             } else {
               const error = await response.json();
-              console.error('[守護神の儀式] データベース保存エラー:', error);
+              console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
             }
           } catch (error) {
-            console.error('[守護神の儀式] データベース保存エラー:', error);
+            console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
           }
         }
         
-        // 初回登録後の場合、儀式完了後にチャット画面にリダイレクト
-        if (postRitualChatUrl && justRegistered === 'true') {
+        // データベース保存完了後、チャット画面にリダイレクト
+        if (postRitualChatUrl && justRegistered === 'true' && dbSaveSuccess) {
           console.log('[守護神の儀式] 初回登録後の儀式完了、チャット画面にリダイレクト:', postRitualChatUrl);
           
           // 「鑑定士一覧へ」ボタンを非表示（初回登録後の場合は自動リダイレクトのため）

@@ -109,38 +109,58 @@ const ChatInit = {
                         // 守護神名（データベースに日本語で保存されているのでそのまま使用）
                         const guardianName = assignedDeity;
                         
-                        // 守護神を確認するメッセージを生成（ユーザー要求の形式）
-                        const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
-                        
-                        // メッセージを表示（APIを呼ばずに直接表示）
-                        // characterInfoが読み込まれていることを確認
-                        const characterName = ChatData.characterInfo[character]?.name || '楓';
-                        console.log('[登録完了処理] 守護神確認メッセージを表示:', {
-                            character,
-                            characterName,
-                            guardianName,
+                        console.log('[登録完了処理] 🚀 守護神の儀式完了を APIに報告します:', {
                             userNickname,
-                            message: guardianConfirmationMessage.substring(0, 50) + '...'
+                            guardianName
                         });
-                        ChatUI.addMessage('character', guardianConfirmationMessage, characterName);
                         
-                        // 守護神確認メッセージを会話履歴に追加（APIが儀式完了を認識できるように）
-                        // 登録ユーザーの場合、会話履歴はAPIから取得されるが、儀式完了後のメッセージは追加する
-                        if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                            ChatData.conversationHistory.recentMessages.push({
-                                role: 'assistant',
-                                content: guardianConfirmationMessage
-                            });
-                            console.log('[登録完了処理] 守護神確認メッセージを会話履歴に追加しました');
-                        } else {
-                            // 会話履歴がまだ読み込まれていない場合、後で追加するためにフラグを設定
-                            sessionStorage.setItem('pendingGuardianMessage', guardianConfirmationMessage);
-                            console.log('[登録完了処理] 守護神確認メッセージを後で追加するためにフラグを設定しました');
+                        // 守護神の儀式完了をAPIに報告（会話履歴に記録するため）
+                        try {
+                            const confirmationMessage = `守護神の儀式が完了しました。私の守護神は${guardianName}です。`;
+                            console.log('[登録完了処理] APIにメッセージを送信:', confirmationMessage);
+                            
+                            // ユーザーメッセージをUIに追加（会話履歴に記録するため）
+                            ChatUI.addMessage('user', confirmationMessage, userNickname);
+                            
+                            // APIにメッセージを送信（会話履歴と共に）
+                            const currentHistory = ChatData.conversationHistory?.recentMessages || [];
+                            const response = await ChatAPI.sendMessage(
+                                confirmationMessage,
+                                character,
+                                currentHistory,
+                                { userToken: localStorage.getItem('userToken') }
+                            );
+                            
+                            if (response && response.message) {
+                                // APIからの応答を表示
+                                const characterName = ChatData.characterInfo[character]?.name || '楓';
+                                console.log('[登録完了処理] ✅ APIから応答を受信:', response.message.substring(0, 50) + '...');
+                                ChatUI.addMessage('character', response.message, characterName);
+                                
+                                // 会話履歴を更新
+                                if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                                    ChatData.conversationHistory.recentMessages.push(
+                                        { role: 'user', content: confirmationMessage },
+                                        { role: 'assistant', content: response.message }
+                                    );
+                                }
+                                
+                                guardianMessageShown = true;
+                            } else {
+                                console.error('[登録完了処理] ❌ APIからの応答が不正:', response);
+                            }
+                        } catch (error) {
+                            console.error('[登録完了処理] ❌ API呼び出しエラー:', error);
+                            
+                            // エラー時はフォールバック：ローカルで守護神確認メッセージを表示
+                            const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                            const characterName = ChatData.characterInfo[character]?.name || '楓';
+                            ChatUI.addMessage('character', guardianConfirmationMessage, characterName);
+                            guardianMessageShown = true;
                         }
                         
-                        // フラグをsessionStorageに保存（会話履歴読み込み後の初期メッセージ表示をスキップするため）
+                        // フラグをsessionStorageに保存
                         sessionStorage.setItem('guardianMessageShown', 'true');
-                        guardianMessageShown = true;
                     }
                     
                     // URLパラメータからjustRegisteredを削除
