@@ -133,11 +133,7 @@ const ChatInit = {
                     console.log('[登録完了処理] 🚀 守護神の儀式完了を APIに報告します:', guardianConfirmationData);
                     
                     try {
-                        // ユーザーメッセージをUIに追加（会話履歴に記録するため）
-                        ChatUI.addMessage('user', guardianConfirmationData.confirmationMessage, guardianConfirmationData.userNickname);
-                        
-                        // APIにメッセージを送信（会話履歴と共に）
-                        // historyDataから会話履歴を取得（会話履歴読み込み直後なので最新）
+                        // ユーザー表示を伴わないサイレント送信
                         const currentHistory = historyData?.recentMessages || [];
                         const response = await ChatAPI.sendMessage(
                             guardianConfirmationData.confirmationMessage,
@@ -147,30 +143,14 @@ const ChatInit = {
                         );
                         
                         if (response && response.message) {
-                            // APIからの応答を表示
-                            const characterName = ChatData.characterInfo[character]?.name || '楓';
-                            console.log('[登録完了処理] ✅ APIから応答を受信:', response.message.substring(0, 50) + '...');
-                            ChatUI.addMessage('character', response.message, characterName);
-                            
-                            // 会話履歴を更新
-                            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                                ChatData.conversationHistory.recentMessages.push(
-                                    { role: 'user', content: guardianConfirmationData.confirmationMessage },
-                                    { role: 'assistant', content: response.message }
-                                );
-                            }
-                            
+                            console.log('[登録完了処理] ✅ APIへの守護神報告をサイレントで完了:', response.message.substring(0, 50) + '...');
                             guardianMessageShown = true;
                         } else {
                             console.error('[登録完了処理] ❌ APIからの応答が不正:', response);
                         }
                     } catch (error) {
                         console.error('[登録完了処理] ❌ API呼び出しエラー:', error);
-                        
-                        // エラー時はフォールバック：ローカルで守護神確認メッセージを表示
-                        const guardianConfirmationMessage = `${guardianConfirmationData.userNickname}の守護神は${guardianConfirmationData.guardianName}です\nこれからは、私と守護神である${guardianConfirmationData.guardianName}が鑑定を進めていきます。\n${guardianConfirmationData.userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
-                        const characterName = ChatData.characterInfo[character]?.name || '楓';
-                        ChatUI.addMessage('character', guardianConfirmationMessage, characterName);
+                        // フォールバックもユーザーへは表示しない
                         guardianMessageShown = true;
                     }
                     
