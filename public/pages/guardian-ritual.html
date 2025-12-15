@@ -432,7 +432,93 @@
     }
 
     /**
-     * 結果表示
+     * タイプライター表示でテキストを表示
+     */
+    async function typeWriter(text, element, speed = 50) {
+      element.textContent = '';
+      for (let i = 0; i < text.length; i++) {
+        element.textContent += text.charAt(i);
+        await new Promise(resolve => setTimeout(resolve, speed));
+      }
+    }
+
+    /**
+     * 結果表示（楓の画像とタイプライター表示）
+     */
+    async function showKaedeMessage(guardian, nickname) {
+      const ritualOverlay = document.getElementById('ritualOverlay');
+      const loadingText = document.getElementById('loadingText');
+      
+      // アニメーション要素をすべてフェードアウト
+      const kaedeInori = document.getElementById('ritualKaedeInori');
+      const dragon = document.getElementById('ritualDragon');
+      const cosmo = document.getElementById('ritualCosmo');
+      const guardianReveal = document.getElementById('guardianReveal');
+      
+      if (kaedeInori) kaedeInori.classList.add('fade-out');
+      if (dragon) dragon.classList.add('fade-out');
+      if (cosmo) {
+        cosmo.classList.add('fade-out');
+        cosmo.pause();
+      }
+      if (guardianReveal) guardianReveal.classList.remove('visible');
+      if (loadingText) loadingText.style.display = 'none';
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // kaede2.pngを表示
+      const kaedeImage = document.createElement('img');
+      kaedeImage.className = 'ritual-media active';
+      kaedeImage.src = '../../photo/kaede2.png';
+      kaedeImage.alt = '楓';
+      kaedeImage.style.objectFit = 'contain';
+      kaedeImage.style.zIndex = '10';
+      ritualOverlay.appendChild(kaedeImage);
+      
+      // タイプライター表示用の要素を作成
+      const messageContainer = document.createElement('div');
+      messageContainer.style.cssText = `
+        position: absolute;
+        bottom: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 800px;
+        padding: 30px;
+        background: rgba(0, 0, 0, 0.85);
+        border: 2px solid rgba(138, 43, 226, 0.6);
+        border-radius: 20px;
+        z-index: 11;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+      `;
+      
+      const messageText = document.createElement('p');
+      messageText.style.cssText = `
+        font-size: 24px;
+        line-height: 1.8;
+        color: #e0d4ff;
+        text-align: center;
+        margin: 0;
+      `;
+      
+      messageContainer.appendChild(messageText);
+      ritualOverlay.appendChild(messageContainer);
+      
+      // 少し待ってからメッセージをフェードイン
+      await new Promise(resolve => setTimeout(resolve, 500));
+      messageContainer.style.opacity = '1';
+      
+      // タイプライター表示
+      const message = `${nickname}さん、あなたの守護神は${guardian.name}です。\nこれより${guardian.name}と共に鑑定を開始します`;
+      await typeWriter(message, messageText, 80);
+      
+      // メッセージ表示完了後、3秒待機
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    /**
+     * 旧形式の結果表示（直接アクセス時のみ使用）
      */
     function showResult(guardian) {
       const resultSection = document.getElementById('resultSection');
@@ -466,8 +552,9 @@
      */
     async function init() {
       try {
-        // ユーザー生年月日を取得
+        // ユーザー生年月日とニックネームを取得
         const birthday = await getUserBirthday();
+        const nickname = localStorage.getItem('userNickname') || 'あなた';
         
         // 守護神を決定
         const guardian = getGuardianFromParts(
@@ -476,97 +563,101 @@
           birthday.birthDay
         );
 
-        // アニメーションを再生
-        await playRitualAnimation(guardian);
-
-        // 少し待ってから結果を表示
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 結果を表示
-        showResult(guardian);
-        
-        // 守護神のIDをlocalStorageに保存（チャット画面で使用するため）
+        // 守護神のIDをlocalStorageに保存（すぐに保存）
         localStorage.setItem('assignedDeity', guardian.id);
         console.log('[守護神の儀式] 守護神を決定しました:', guardian.id, guardian.name);
-        
-        // 初回登録後の場合、守護神情報をデータベースに保存
+
+        // 初回登録後かどうかをチェック
         const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
         const justRegistered = sessionStorage.getItem('justRegistered');
         const userToken = localStorage.getItem('userToken');
-        
-        // 初回登録後の場合、まずデータベースに守護神を保存
-        let dbSaveSuccess = false;
-        if (postRitualChatUrl && justRegistered === 'true' && userToken) {
-          console.log('[守護神の儀式] 守護神情報をデータベースに保存します:', guardian.id);
+        const isFirstTimeRitual = postRitualChatUrl && justRegistered === 'true' && userToken;
+
+        // 【重要】守護神が決定した時点ですぐにAPIに送信（バックグラウンド）
+        let dbSavePromise = null;
+        if (isFirstTimeRitual) {
+          console.log('[守護神の儀式] 守護神情報をバックグラウンドでデータベースに保存開始:', guardian.id);
           
-          try {
-            const response = await fetch('/api/auth/update-deity', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userToken}`
-              },
-              body: JSON.stringify({
-                guardian: guardian.id
-              })
-            });
-            
+          dbSavePromise = fetch('/api/auth/update-deity', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${userToken}`
+            },
+            body: JSON.stringify({
+              guardian: guardian.id
+            })
+          })
+          .then(async (response) => {
             if (response.ok) {
               const data = await response.json();
               console.log('[守護神の儀式] ✅ 守護神情報をデータベースに保存しました:', data);
-              dbSaveSuccess = true;
+              return true;
             } else {
               const error = await response.json();
               console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
+              return false;
             }
-          } catch (error) {
+          })
+          .catch((error) => {
             console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
-          }
+            return false;
+          });
         }
-        
-        // データベース保存完了後、チャット画面にリダイレクト
-        if (postRitualChatUrl && justRegistered === 'true' && dbSaveSuccess) {
-          console.log('[守護神の儀式] 初回登録後の儀式完了、チャット画面にリダイレクト:', postRitualChatUrl);
+
+        // アニメーションを再生
+        await playRitualAnimation(guardian);
+
+        // 少し待機
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (isFirstTimeRitual) {
+          // 初回登録後の場合：kaede2.pngとタイプライター表示
+          await showKaedeMessage(guardian, nickname);
           
-          // 「鑑定士一覧へ」ボタンを非表示（初回登録後の場合は自動リダイレクトのため）
+          // データベース保存が完了するまで待機
+          console.log('[守護神の儀式] データベース保存完了を待機中...');
+          const dbSaveSuccess = await dbSavePromise;
+          
+          if (!dbSaveSuccess) {
+            throw new Error('守護神情報の保存に失敗しました。');
+          }
+          
+          // 【重要】データベースへの書き込みが確実に完了するまで少し待つ
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('[守護神の儀式] データベースコミット待機完了');
+          
+          // 「鑑定士一覧へ」ボタンを非表示
           const continueButton = document.getElementById('continueButton');
           if (continueButton) {
             continueButton.style.display = 'none';
           }
           
-          // 【重要】データベースへの書き込みが確実に完了するまで少し待つ
-          // Cloudflare D1のデータベースコミットには時間がかかる場合があるため
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          console.log('[守護神の儀式] データベースコミット待機完了');
+          // 儀式完了フラグを設定
+          sessionStorage.setItem('ritualCompleted', 'true');
           
-          // 結果表示後、少し待ってからリダイレクト（ユーザーが結果を見られるように）
+          // チャット画面にリダイレクト
+          console.log('[守護神の儀式] チャット画面にリダイレクト:', postRitualChatUrl);
+          try {
+            const url = new URL(postRitualChatUrl, window.location.href);
+            url.searchParams.set('justRegistered', 'true');
+            window.location.href = url.toString();
+          } catch (error) {
+            console.error('[守護神の儀式] URL構築エラー:', error);
+            const separator = postRitualChatUrl.includes('?') ? '&' : '?';
+            window.location.href = postRitualChatUrl + separator + 'justRegistered=true';
+          }
+          
+          // sessionStorageをクリア
           setTimeout(() => {
-            // 儀式完了フラグを設定（チャット画面で儀式開始処理をスキップするため）
-            sessionStorage.setItem('ritualCompleted', 'true');
-            
-            // チャット画面にリダイレクト（justRegisteredパラメータを追加）
-            try {
-              const url = new URL(postRitualChatUrl, window.location.href);
-              url.searchParams.set('justRegistered', 'true');
-              window.location.href = url.toString();
-            } catch (error) {
-              console.error('[守護神の儀式] URL構築エラー:', error);
-              // フォールバック: シンプルにクエリパラメータを追加
-              const separator = postRitualChatUrl.includes('?') ? '&' : '?';
-              window.location.href = postRitualChatUrl + separator + 'justRegistered=true';
-            }
-            
-            // sessionStorageをクリア（リダイレクト後）
-            // 【重要】ritualCompletedフラグは削除しない（chat-init.jsで守護神確認メッセージを表示するために必要）
-            // chat-init.jsでメッセージ表示後に削除されるため、ここでは削除しない
-            setTimeout(() => {
-              sessionStorage.removeItem('postRitualChatUrl');
-              sessionStorage.removeItem('justRegistered');
-              // ritualCompletedフラグは削除しない（chat-init.jsで使用するため）
-            }, 1000);
-          }, 5000); // 5秒後にリダイレクト（結果を見る時間を確保）
+            sessionStorage.removeItem('postRitualChatUrl');
+            sessionStorage.removeItem('justRegistered');
+            // ritualCompletedフラグは削除しない（chat-init.jsで使用するため）
+          }, 1000);
         } else {
-          // 初回登録後でない場合（直接アクセスなど）は「鑑定士一覧へ」ボタンを表示
+          // 直接アクセスの場合：従来の結果表示
+          showResult(guardian);
+          
           const continueButton = document.getElementById('continueButton');
           if (continueButton) {
             continueButton.style.display = 'inline-block';
