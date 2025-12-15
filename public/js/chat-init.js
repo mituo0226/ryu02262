@@ -1559,8 +1559,8 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
     }
     
     // 親ウィンドウが存在する場合のみ、通知を試行
+    let hasNotified = false; // スコープを外に移動
     if (window.parent && window.parent !== window) {
-        let hasNotified = false;
         if (document.readyState === 'loading') {
             // まだ読み込み中の場合は、DOMContentLoaded時に通知
             document.addEventListener('DOMContentLoaded', () => {
@@ -1572,18 +1572,18 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
             // 既に読み込み済みの場合は即座に通知
             hasNotified = notifyParentReady();
         }
-    }
-    
-    // window.load時にも通知
-    if (document.readyState !== 'complete') {
-        window.addEventListener('load', () => {
+        
+        // window.load時にも通知
+        if (document.readyState !== 'complete') {
+            window.addEventListener('load', () => {
+                if (!hasNotified) {
+                    hasNotified = notifyParentReady();
+                }
+            });
+        } else {
             if (!hasNotified) {
                 hasNotified = notifyParentReady();
             }
-        });
-    } else {
-        if (!hasNotified) {
-            hasNotified = notifyParentReady();
         }
     }
     
@@ -1634,7 +1634,7 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
     });
     
     console.log('[iframe] postMessage通信の初期化完了', {
-        hasNotified,
+        hasParent: window.parent && window.parent !== window,
         documentReadyState: document.readyState
     });
 })();
