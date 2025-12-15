@@ -1508,23 +1508,25 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                 return false;
             }
         } else {
-            console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました');
+            // 通常のブラウジングの場合はログを出力しない
             return false;
         }
     }
     
-    // 即座に1回通知を試行
-    let hasNotified = false;
-    if (document.readyState === 'loading') {
-        // まだ読み込み中の場合は、DOMContentLoaded時に通知
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!hasNotified) {
-                hasNotified = notifyParentReady();
-            }
-        });
-    } else {
-        // 既に読み込み済みの場合は即座に通知
-        hasNotified = notifyParentReady();
+    // 親ウィンドウが存在する場合のみ、通知を試行
+    if (window.parent && window.parent !== window) {
+        let hasNotified = false;
+        if (document.readyState === 'loading') {
+            // まだ読み込み中の場合は、DOMContentLoaded時に通知
+            document.addEventListener('DOMContentLoaded', () => {
+                if (!hasNotified) {
+                    hasNotified = notifyParentReady();
+                }
+            });
+        } else {
+            // 既に読み込み済みの場合は即座に通知
+            hasNotified = notifyParentReady();
+        }
     }
     
     // window.load時にも通知
@@ -1644,9 +1646,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             } catch (error) {
                 console.error('[iframe] ❌ 親ウィンドウへの通知エラー:', error);
             }
-        } else {
-            console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました');
         }
+        // 通常のブラウジングの場合はログを出力しない（不要な情報のため）
     }
     
     // 初期化完了後に準備完了を通知（複数のタイミングで確実に通知）
@@ -1654,6 +1655,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const maxNotifyAttempts = 10;
     let notifyInterval = null;
     let hasNotified = false; // 既に通知済みかどうか
+    let noParentLogged = false; // 親ウィンドウ不在のログを既に出力したか
     
     // 通知を送信する関数（重複を防ぐ）
     function tryNotifyParent() {
@@ -1711,62 +1713,79 @@ window.addEventListener('DOMContentLoaded', async () => {
                 return false;
             }
         } else {
-            console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました');
+            // 親ウィンドウが存在しない場合（通常のブラウジング）
+            // ログは最初の1回だけ出力
+            if (!noParentLogged) {
+                console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました（通常のブラウジング）');
+                noParentLogged = true;
+            }
             return false;
         }
     }
     
-    // 1. DOMContentLoaded時に即座に1回通知
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('[iframe] DOMContentLoaded - 準備完了通知を送信（1秒後）');
-            setTimeout(() => {
-                tryNotifyParent();
-            }, 1000);
-        });
-    } else {
-        // 既にDOMContentLoaded済みの場合は即座に実行
-        console.log('[iframe] DOMContentLoaded済み - 準備完了通知を送信（1秒後）');
-        setTimeout(() => {
-            tryNotifyParent();
-        }, 1000);
-    }
+    // 親ウィンドウが存在する場合のみ、イベントリスナーを登録
+    const hasParentWindow = window.parent && window.parent !== window;
     
-    // 2. window.load時に1回通知（リソース読み込み完了後）
-    if (document.readyState !== 'complete') {
-        window.addEventListener('load', () => {
-            console.log('[iframe] window.load - 準備完了通知を送信（1秒後）');
+    if (hasParentWindow) {
+        // 1. DOMContentLoaded時に即座に1回通知
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('[iframe] DOMContentLoaded - 準備完了通知を送信（1秒後）');
+                setTimeout(() => {
+                    tryNotifyParent();
+                }, 1000);
+            });
+        } else {
+            // 既にDOMContentLoaded済みの場合は即座に実行
+            console.log('[iframe] DOMContentLoaded済み - 準備完了通知を送信（1秒後）');
             setTimeout(() => {
                 tryNotifyParent();
             }, 1000);
-        });
+        }
+        
+        // 2. window.load時に1回通知（リソース読み込み完了後）
+        if (document.readyState !== 'complete') {
+            window.addEventListener('load', () => {
+                console.log('[iframe] window.load - 準備完了通知を送信（1秒後）');
+                setTimeout(() => {
+                    tryNotifyParent();
+                }, 1000);
+            });
+        } else {
+            // 既にload済みの場合も試行
+            console.log('[iframe] window.load済み - 準備完了通知を送信（1秒後）');
+            setTimeout(() => {
+                tryNotifyParent();
+            }, 1000);
+        }
     } else {
-        // 既にload済みの場合も試行
-        console.log('[iframe] window.load済み - 準備完了通知を送信（1秒後）');
-        setTimeout(() => {
-            tryNotifyParent();
-        }, 1000);
+        console.log('[iframe] 親ウィンドウが存在しないため、イベントリスナーの登録をスキップします（通常のブラウジング）');
     }
     
     // 3. 念のため定期通知（最大10回、2秒ごと）
-    notifyInterval = setInterval(() => {
-        notifyAttempts++;
-        console.log(`[iframe] 定期通知 - 試行${notifyAttempts}/${maxNotifyAttempts}`);
-        if (tryNotifyParent()) {
-            // 通知成功したら停止
-            console.log('[iframe] 定期通知を終了（通知成功）');
-            return;
-        }
-        
-        if (notifyAttempts >= maxNotifyAttempts) {
-            clearInterval(notifyInterval);
-            console.warn('[iframe] 準備完了通知の最大試行回数に達しました', {
-                attempts: notifyAttempts,
-                hasChatData: !!ChatData,
-                hasAuthState: !!window.AuthState
-            });
-        }
-    }, 2000); // 2秒ごとに試行
+    // ただし、親ウィンドウが存在する場合のみ実行
+    if (window.parent && window.parent !== window) {
+        notifyInterval = setInterval(() => {
+            notifyAttempts++;
+            console.log(`[iframe] 定期通知 - 試行${notifyAttempts}/${maxNotifyAttempts}`);
+            if (tryNotifyParent()) {
+                // 通知成功したら停止
+                console.log('[iframe] 定期通知を終了（通知成功）');
+                return;
+            }
+            
+            if (notifyAttempts >= maxNotifyAttempts) {
+                clearInterval(notifyInterval);
+                console.warn('[iframe] 準備完了通知の最大試行回数に達しました', {
+                    attempts: notifyAttempts,
+                    hasChatData: !!ChatData,
+                    hasAuthState: !!window.AuthState
+                });
+            }
+        }, 2000); // 2秒ごとに試行
+    } else {
+        console.log('[iframe] 親ウィンドウが存在しないため、定期通知をスキップします');
+    }
     
     // デバッグ用: notifyParentReadyをグローバルに公開
     window.notifyParentReady = notifyParentReady;
