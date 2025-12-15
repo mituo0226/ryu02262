@@ -623,11 +623,28 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 7. ユーザーメッセージ数の計算 =====
-    // 今回送信されるメッセージを含めた数を計算
-    const userMessagesInHistory = conversationHistory.filter((msg) => msg.role === 'user').length;
-    const userMessageCount = userMessagesInHistory + 1; // 今回のメッセージを含める
-
-    console.log('[consult] ユーザーメッセージ数:', userMessageCount);
+    // ゲストユーザーの場合：フロントエンドから送信された guestMetadata.messageCount を信頼
+    // 登録ユーザーの場合：会話履歴から計算
+    let userMessageCount: number;
+    
+    if (!user) {
+      // ゲストユーザー：guestMetadata.messageCount（これまでのメッセージ数）+ 1（今回のメッセージ）
+      userMessageCount = sanitizedGuestCount + 1;
+      console.log('[consult] ゲストユーザーのメッセージ数（guestMetadata優先）:', {
+        sanitizedGuestCount: sanitizedGuestCount,
+        userMessageCount: userMessageCount,
+        conversationHistoryLength: conversationHistory.length,
+      });
+    } else {
+      // 登録ユーザー：会話履歴から計算
+      const userMessagesInHistory = conversationHistory.filter((msg) => msg.role === 'user').length;
+      userMessageCount = userMessagesInHistory + 1;
+      console.log('[consult] 登録ユーザーのメッセージ数（履歴から計算）:', {
+        userMessagesInHistory: userMessagesInHistory,
+        userMessageCount: userMessageCount,
+        conversationHistoryLength: conversationHistory.length,
+      });
+    }
 
     // ===== 8. 登録促進フラグの設定 =====
     // ゲストユーザーで、8-9通目の場合に登録を促す
