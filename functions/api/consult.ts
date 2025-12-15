@@ -813,6 +813,36 @@ export const onRequestPost: PagesFunction = async (context) => {
       console.log('🔍 [User Info] ゲストユーザーとして処理されています（userTokenが存在しないか無効）');
     }
 
+    // 守護神が決定済みの場合、会話履歴の先頭に確認メッセージを自動注入
+    if (user?.guardian && user.guardian.trim() !== '' && characterId === 'kaede') {
+      const guardianNames: Record<string, string> = {
+        'amaterasu': '天照大神',
+        'okuni-nushi': '大国主命',
+        'dainithi-nyorai': '大日如来',
+        'senju': '千手観音',
+        'fudo': '不動明王'
+      };
+      const guardianName = guardianNames[user.guardian] || user.guardian;
+      const userNickname = user.nickname || 'あなた';
+      
+      // 守護神確認メッセージ（会話履歴の先頭に追加することで、LLMが認識できるようにする）
+      const guardianConfirmationMessage = `${userNickname}さんの守護神は${guardianName}です。これからは、私と守護神である${guardianName}が鑑定を進めていきます。`;
+      
+      // 会話履歴の先頭にこのメッセージが既に存在するかチェック
+      const hasGuardianMessage = conversationHistory.some(msg => 
+        msg.role === 'assistant' && msg.content.includes(`${userNickname}さんの守護神は${guardianName}です`)
+      );
+      
+      // まだ存在しない場合のみ追加
+      if (!hasGuardianMessage) {
+        conversationHistory.unshift({
+          role: 'assistant',
+          content: guardianConfirmationMessage
+        });
+        console.log('🔍 [守護神確認] 会話履歴に守護神確認メッセージを自動注入:', guardianConfirmationMessage);
+      }
+    }
+
     // ユーザーメッセージの数を正しく計算
     // conversationHistory から user ロールのメッセージ数を取得
     const userMessagesInHistory = (conversationHistory || []).filter(msg => msg.role === 'user').length;

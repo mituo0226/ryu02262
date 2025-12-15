@@ -354,11 +354,8 @@
 
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
-        // assignedDeityは合言葉（passphrase）として保存されるが、
-        // Kaedeの場合はguardian-ritual.htmlで守護神IDに上書きされる
-        localStorage.setItem('assignedDeity', data.assignedDeity);
-        // 合言葉を別のキーにも保存（守護神IDで上書きされた場合のバックアップ）
-        localStorage.setItem('userPassphrase', data.assignedDeity);
+        // 合言葉（passphrase）を保存（登録時は守護神はまだ未定）
+        localStorage.setItem('userPassphrase', data.passphrase);
         localStorage.setItem('hasAccount', 'true');
         localStorage.setItem('birthYear', String(payload.birthYear));
         localStorage.setItem('birthMonth', String(payload.birthMonth));
@@ -367,7 +364,7 @@
         resultMessage.textContent = '登録が完了しました。合言葉を必ず控えてください。';
         resultMessage.classList.add('success');
 
-        passphraseText.textContent = data.assignedDeity;
+        passphraseText.textContent = data.passphrase;
         redirectTargetCache = getRedirectTarget();
         passphraseOverlay.classList.add('visible');
         passphraseOverlay.setAttribute('aria-hidden', 'false');

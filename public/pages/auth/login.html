@@ -309,7 +309,10 @@
 
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
-        localStorage.setItem('assignedDeity', data.assignedDeity);
+        // APIからguardianを取得してassignedDeityとして保存
+        if (data.guardian) {
+          localStorage.setItem('assignedDeity', data.guardian);
+        }
         localStorage.setItem('hasAccount', 'true');
 
         window.location.href = getRedirectTarget();

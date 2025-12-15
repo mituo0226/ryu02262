@@ -292,12 +292,12 @@
 
         resultMessage.textContent = '本人確認が完了しました。新しい合言葉を控えてください。';
         resultMessage.classList.add('success');
-        passphraseValue.textContent = data.assignedDeity;
+        passphraseValue.textContent = data.passphrase;
         passphraseDisplay.classList.add('visible');
 
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
-        localStorage.setItem('assignedDeity', data.assignedDeity);
+        localStorage.setItem('userPassphrase', data.passphrase);
         localStorage.setItem('hasAccount', 'true');
       } catch (error) {
         console.error(error);
