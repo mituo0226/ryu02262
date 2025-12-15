@@ -161,6 +161,10 @@ const ChatInit = {
                         
                         // フラグをsessionStorageに保存
                         sessionStorage.setItem('guardianMessageShown', 'true');
+                        
+                        // 守護神の儀式完了フラグをクリア
+                        sessionStorage.removeItem('acceptedGuardianRitual');
+                        console.log('[登録完了処理] acceptedGuardianRitualフラグをクリアしました');
                     }
                     
                     // URLパラメータからjustRegisteredを削除
@@ -248,7 +252,29 @@ const ChatInit = {
                     const shouldSkipRitual = ritualCompletedCheck === 'true' && sessionStorage.getItem('guardianMessageShown') === 'true';
                     
                     if (!shouldSkipRitual) {
-                        console.log('[登録完了処理] カエデの場合、守護神の儀式を開始');
+                        // 【重要】守護神の鑑定を受け入れた場合のみ、儀式を自動開始
+                        // 11回目の制限で登録した場合は、儀式を自動開始しない
+                        const acceptedGuardianRitual = sessionStorage.getItem('acceptedGuardianRitual');
+                        console.log('[登録完了処理] カエデの場合、守護神の儀式を開始するかチェック:', {
+                            acceptedGuardianRitual: acceptedGuardianRitual
+                        });
+                        
+                        if (acceptedGuardianRitual !== 'true') {
+                            console.log('[登録完了処理] 守護神の鑑定を受け入れていないため、儀式を自動開始しません');
+                            
+                            // URLパラメータからjustRegisteredを削除
+                            urlParams.delete('justRegistered');
+                            const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                            window.history.replaceState({}, '', newUrl);
+                            
+                            // sessionStorageからも登録完了フラグを削除
+                            sessionStorage.removeItem('justRegistered');
+                            
+                            // 登録ユーザーとして通常の会話を続ける
+                            return;
+                        }
+                        
+                        console.log('[登録完了処理] 守護神の鑑定を受け入れているため、儀式を自動開始します');
                         
                         // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
                         console.log('[登録完了処理] ゲスト履歴取得を開始:', character);
@@ -315,13 +341,14 @@ const ChatInit = {
                             setTimeout(async () => {
                                 await ChatInitInstance.startGuardianRitual(character, guestHistoryForRitual);
                                 
-                                // 守護神の儀式開始後、ゲスト履歴をクリア
+                                // 守護神の儀式開始後、ゲスト履歴とフラグをクリア
                                 if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
                                     AuthState.clearGuestHistory(character);
                                 }
                                 sessionStorage.removeItem(historyKey);
                                 sessionStorage.removeItem('pendingGuestHistoryMigration');
                                 sessionStorage.removeItem('pendingRitualGuestHistory');
+                                sessionStorage.removeItem('acceptedGuardianRitual'); // フラグをクリア
                                 ChatData.setGuestMessageCount(character, 0);
                             }, 500);
                         } else {
@@ -941,6 +968,12 @@ const ChatInit = {
                         if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
                             ChatUI.addRitualStartButton(messageElement, async () => {
                                 console.log('[守護神の儀式] ボタンがクリックされました');
+                                
+                                // 【重要】守護神の鑑定を受け入れたフラグを保存
+                                // ゲストユーザーが登録画面にリダイレクトされる場合に使用
+                                sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                                console.log('[守護神の儀式] acceptedGuardianRitualフラグを保存しました');
+                                
                                 const ChatInitInstance = window.ChatInit || this;
                                 if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
                                     await ChatInitInstance.startGuardianRitual(character);
@@ -962,6 +995,12 @@ const ChatInit = {
                     console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
                     const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
                     ChatUI.addMessage('error', `${characterNameForButton === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                    
+                    // 【重要】守護神の鑑定を受け入れたフラグを保存
+                    // 登録後に守護神の儀式を自動開始するかどうかの判定に使用
+                    sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                    console.log('[API応答] acceptedGuardianRitualフラグを保存しました');
+                    
                     setTimeout(() => {
                         ChatUI.showRitualConsentButtons();
                     }, 2000);
@@ -1408,6 +1447,11 @@ const ChatInit = {
         ChatUI.addRitualStartButton(messageElement, async () => {
             console.log('[守護神の儀式] ボタンがクリックされました（再表示）');
             
+            // 【重要】守護神の鑑定を受け入れたフラグを保存
+            // ゲストユーザーが登録画面にリダイレクトされる場合に使用
+            sessionStorage.setItem('acceptedGuardianRitual', 'true');
+            console.log('[守護神の儀式] acceptedGuardianRitualフラグを保存しました（再表示）');
+            
             // 保存されたゲスト履歴を取得
             const pendingRitualHistory = sessionStorage.getItem('pendingRitualGuestHistory');
             let ritualGuestHistory = [];
@@ -1450,7 +1494,7 @@ const ChatInit = {
             // 守護神の儀式を開始
             await this.startGuardianRitual(character, ritualGuestHistory);
             
-            // 守護神の儀式開始後、ゲスト履歴をクリア
+            // 守護神の儀式開始後、ゲスト履歴とフラグをクリア
             if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
                 AuthState.clearGuestHistory(character);
             }
@@ -1459,6 +1503,7 @@ const ChatInit = {
             sessionStorage.removeItem(historyKey);
             sessionStorage.removeItem('pendingGuestHistoryMigration');
             sessionStorage.removeItem('pendingRitualGuestHistory');
+            sessionStorage.removeItem('acceptedGuardianRitual'); // フラグをクリア
             ChatData.setGuestMessageCount(character, 0);
         });
     }
