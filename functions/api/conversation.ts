@@ -20,7 +20,7 @@ interface ConversationRow {
 interface UserRecord {
   id: number;
   nickname: string;
-  assigned_deity: string;
+  guardian: string | null;
 }
 
 interface RequestBody {

@@ -8,7 +8,8 @@ interface UpdateBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  assignedDeity?: string;
+  passphrase?: string;
+  guardian?: string;
 }
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
@@ -23,10 +24,11 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       birth_year: number;
       birth_month: number;
       birth_day: number;
-      assigned_deity: string;
+      passphrase: string;
+      guardian: string | null;
       created_at: string;
     }>(
-      `SELECT id, nickname, birth_year, birth_month, birth_day, assigned_deity, created_at
+      `SELECT id, nickname, birth_year, birth_month, birth_day, passphrase, guardian, created_at
        FROM users
        ORDER BY created_at DESC`
     ).all();
@@ -42,17 +44,17 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: jsonHeaders });
     }
 
-    const { id, nickname, birthYear, birthMonth, birthDay, assignedDeity } = body;
-    if (!id || !nickname || !birthYear || !birthMonth || !birthDay || !assignedDeity) {
-      return new Response(JSON.stringify({ error: 'All fields are required' }), { status: 400, headers: jsonHeaders });
+    const { id, nickname, birthYear, birthMonth, birthDay, passphrase, guardian } = body;
+    if (!id || !nickname || !birthYear || !birthMonth || !birthDay || !passphrase) {
+      return new Response(JSON.stringify({ error: 'All fields except guardian are required' }), { status: 400, headers: jsonHeaders });
     }
 
     await env.DB.prepare(
       `UPDATE users
-       SET nickname = ?, birth_year = ?, birth_month = ?, birth_day = ?, assigned_deity = ?
+       SET nickname = ?, birth_year = ?, birth_month = ?, birth_day = ?, passphrase = ?, guardian = ?
        WHERE id = ?`
     )
-      .bind(nickname.trim(), birthYear, birthMonth, birthDay, assignedDeity.trim(), id)
+      .bind(nickname.trim(), birthYear, birthMonth, birthDay, passphrase.trim(), guardian?.trim() || null, id)
       .run();
 
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });

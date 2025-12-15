@@ -47,7 +47,7 @@ interface ResponseBody {
 interface UserRecord {
   id: number;
   nickname: string;
-  assigned_deity: string;
+  guardian: string | null;
 }
 
 interface ConversationRow {
@@ -615,7 +615,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         );
       }
 
-      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, assigned_deity FROM users WHERE id = ?')
+      const record = await env.DB.prepare<UserRecord>('SELECT id, nickname, guardian FROM users WHERE id = ?')
         .bind(tokenPayload.userId)
         .first();
 
@@ -805,9 +805,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       console.log('🔍 [User Info] ユーザー情報を確認:', {
         userId: user.id,
         nickname: user.nickname,
-        assignedDeity: user.assigned_deity,
-        hasAssignedDeity: !!user.assigned_deity,
-        isGuardianRitualCompleted: !!(user.assigned_deity && user.assigned_deity.trim() !== ''),
+        guardian: user.guardian,
+        hasGuardian: !!user.guardian,
+        isGuardianRitualCompleted: !!(user.guardian && user.guardian.trim() !== ''),
       });
     } else {
       console.log('🔍 [User Info] ゲストユーザーとして処理されています（userTokenが存在しないか無効）');
@@ -919,7 +919,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       conversationHistoryLength: conversationHistory.length,
       userMessageCount: finalUserMessageCount, // 必ず正しい数値が渡される
       isRitualStart: isRitualStart, // 守護神の儀式開始メッセージかどうか
-      assignedDeity: user?.assigned_deity || null, // 守護神が決定済みの場合、登録を促す回答をしないようにする
+      guardian: user?.guardian || null, // 守護神が決定済みの場合、登録を促す回答をしないようにする
     });
 
     if (DEBUG_MODE) {
@@ -927,7 +927,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         characterId,
         userMessageCount: finalUserMessageCount,
         hasUser: !!user,
-        assignedDeity: user?.assigned_deity || null,
+        guardian: user?.guardian || null,
         includesGuardianRitualCompleted: systemPrompt.includes('守護神の儀式は既に完了しています'),
         includesPhaseInstruction: systemPrompt.includes('現在のフェーズ'),
         includesHearingPhase: systemPrompt.includes('ヒアリング'),
@@ -940,7 +940,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
     
     // 【デバッグ用】守護神の儀式完了ユーザーの場合、システムプロンプトの先頭200文字をログに出力
-    if (user?.assigned_deity && user.assigned_deity.trim() !== '') {
+    if (user?.guardian && user.guardian.trim() !== '') {
       console.log('🔍 [守護神完了ユーザー] システムプロンプトの先頭部分:', systemPrompt.substring(0, 300));
       console.log('🔍 [守護神完了ユーザー] 登録済みユーザーです。登録を促す指示は含まれていないはずです。');
     }

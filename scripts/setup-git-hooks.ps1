@@ -93,3 +93,5 @@ Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "これで、ワークツリーでのコミットは自動的にブロックされます。" -ForegroundColor Green
 
+
+

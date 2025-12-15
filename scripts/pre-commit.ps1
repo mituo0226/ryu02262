@@ -43,3 +43,5 @@ if ($CurrentPathNormalized -ne $ExpectedPathNormalized) {
 
 exit 0
 
+
+

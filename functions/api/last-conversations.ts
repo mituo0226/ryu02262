@@ -9,7 +9,7 @@ interface LastConversationRow {
 interface UserRecord {
   id: number;
   nickname: string;
-  assigned_deity: string;
+  guardian: string | null;
 }
 
 interface ResponseBody {
@@ -66,7 +66,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     }
 
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, assigned_deity FROM users WHERE id = ?'
+      'SELECT id, nickname, guardian FROM users WHERE id = ?'
     )
       .bind(tokenPayload.userId)
       .first();

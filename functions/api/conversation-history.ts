@@ -13,7 +13,7 @@ interface UserRecord {
   birth_year: number;
   birth_month: number;
   birth_day: number;
-  assigned_deity: string;
+  guardian: string | null;
 }
 
 interface ResponseBody {
@@ -81,7 +81,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     }
 
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, birth_year, birth_month, birth_day, assigned_deity FROM users WHERE id = ?'
+      'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE id = ?'
     )
       .bind(tokenPayload.userId)
       .first();
@@ -119,7 +119,7 @@ export const onRequestGet: PagesFunction = async (context) => {
           birthYear: user.birth_year,
           birthMonth: user.birth_month,
           birthDay: user.birth_day,
-          assignedDeity: user.assigned_deity,
+          guardian: user.guardian,
         } as ResponseBody),
         { status: 200, headers: corsHeaders }
       );

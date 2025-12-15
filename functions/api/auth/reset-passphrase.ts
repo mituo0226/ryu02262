@@ -11,7 +11,7 @@ interface ResetRequestBody {
 interface ResetResponseBody {
   userToken: string;
   nickname: string;
-  assignedDeity: string;
+  passphrase: string;
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -71,7 +71,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
     await env.DB.prepare(
       `UPDATE users
-       SET assigned_deity = ?
+       SET passphrase = ?
        WHERE id = ?`
     )
       .bind(newPassphrase, user.id)
@@ -82,7 +82,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     const responseBody: ResetResponseBody = {
       userToken,
       nickname: trimmedNickname,
-      assignedDeity: newPassphrase,
+      passphrase: newPassphrase,
     };
 
     return new Response(JSON.stringify(responseBody), { status: 200, headers });

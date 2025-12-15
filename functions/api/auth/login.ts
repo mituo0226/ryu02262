@@ -5,13 +5,14 @@ interface LoginRequestBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  assignedDeity?: string;
+  passphrase?: string;
 }
 
 interface LoginResponseBody {
   userToken: string;
   nickname: string;
-  assignedDeity: string;
+  passphrase: string;
+  guardian: string | null;
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -24,7 +25,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { nickname, birthYear, birthMonth, birthDay, assignedDeity } = body;
+  const { nickname, birthYear, birthMonth, birthDay, passphrase } = body;
 
   if (!nickname || typeof nickname !== 'string') {
     return new Response(JSON.stringify({ error: 'nickname is required' }), { status: 400, headers });
@@ -33,31 +34,32 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     typeof birthYear !== 'number' ||
     typeof birthMonth !== 'number' ||
     typeof birthDay !== 'number' ||
-    !assignedDeity
+    !passphrase
   ) {
-    return new Response(JSON.stringify({ error: '生年月日と割り当て神様を入力してください。' }), {
+    return new Response(JSON.stringify({ error: '生年月日と合言葉を入力してください。' }), {
       status: 400,
       headers,
     });
   }
 
   const trimmedNickname = nickname.trim();
-  const trimmedDeity = assignedDeity.trim();
+  const trimmedPassphrase = passphrase.trim();
 
   const user = await env.DB.prepare<{
     id: number;
     nickname: string;
-    assigned_deity: string;
+    passphrase: string;
+    guardian: string | null;
   }>(
-    `SELECT id, nickname, assigned_deity
+    `SELECT id, nickname, passphrase, guardian
      FROM users
      WHERE nickname = ?
        AND birth_year = ?
        AND birth_month = ?
        AND birth_day = ?
-       AND assigned_deity = ?`
+       AND passphrase = ?`
   )
-    .bind(trimmedNickname, birthYear, birthMonth, birthDay, trimmedDeity)
+    .bind(trimmedNickname, birthYear, birthMonth, birthDay, trimmedPassphrase)
     .first();
 
   if (!user) {
@@ -72,7 +74,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   const responseBody: LoginResponseBody = {
     userToken,
     nickname: user.nickname,
-    assignedDeity: user.assigned_deity,
+    passphrase: user.passphrase,
+    guardian: user.guardian,
   };
 
   return new Response(JSON.stringify(responseBody), { status: 200, headers });

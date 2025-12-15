@@ -99,3 +99,5 @@ Write-Host "========================================" -ForegroundColor Yellow
 Write-Host "同期完了" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Yellow
 
+
+

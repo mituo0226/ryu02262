@@ -10,7 +10,7 @@ interface RegisterRequestBody {
 
 interface RegisterResponseBody {
   userToken: string;
-  assignedDeity: string;
+  passphrase: string;
   nickname: string;
 }
 
@@ -55,13 +55,13 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     });
   }
 
-  const assignedDeity = getRandomDeity();
+  const passphrase = getRandomDeity();
 
   const insertResult: any = await env.DB.prepare(
-    `INSERT INTO users (nickname, birth_year, birth_month, birth_day, assigned_deity)
+    `INSERT INTO users (nickname, birth_year, birth_month, birth_day, passphrase)
      VALUES (?, ?, ?, ?, ?)`
   )
-    .bind(trimmedNickname, birthYear, birthMonth, birthDay, assignedDeity)
+    .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase)
     .run();
 
   const userId = insertResult?.meta?.last_row_id;
@@ -73,7 +73,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   const responseBody: RegisterResponseBody = {
     userToken,
-    assignedDeity,
+    passphrase,
     nickname: trimmedNickname,
   };
 

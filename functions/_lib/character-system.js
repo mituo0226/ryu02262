@@ -161,10 +161,10 @@ export function generateSystemPrompt(characterId, options = {}) {
     ? '\n【ゲストユーザーへの対応】\n- ゲストユーザーはまだ正式に登録していないため、親しみやすく接してください\n- 各鑑定士の性格設定（話し方、口調、性格）を必ず守って応答してください\n- 自然な会話の流れを大切にし、押し付けがましくならないようにしてください\n'
     : '';
 
-  // 守護神の儀式完了を検出（データベースにassigned_deityが登録されている場合）
-  const guardianRitualCompleted = options.assignedDeity && 
-    typeof options.assignedDeity === 'string' && 
-    options.assignedDeity.trim() !== '';
+  // 守護神の儀式完了を検出（データベースにguardianが登録されている場合）
+  const guardianRitualCompleted = options.guardian && 
+    typeof options.guardian === 'string' && 
+    options.guardian.trim() !== '';
   
   // 守護神名のマッピング
   const guardianNames = {
@@ -175,8 +175,8 @@ export function generateSystemPrompt(characterId, options = {}) {
     'fudo': '不動明王'
   };
   
-  const guardianName = guardianRitualCompleted && guardianNames[options.assignedDeity]
-    ? guardianNames[options.assignedDeity]
+  const guardianName = guardianRitualCompleted && guardianNames[options.guardian]
+    ? guardianNames[options.guardian]
     : null;
   
   const guardianRitualCompletedInstruction = guardianRitualCompleted && characterId === 'kaede'
