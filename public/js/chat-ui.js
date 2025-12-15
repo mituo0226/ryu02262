@@ -89,15 +89,8 @@ const ChatUI = {
             const birthMonth = userData?.birthMonth || null;
             const birthDay = userData?.birthDay || null;
             
-            // 守護神IDから日本語名に変換
-            const guardianNames = {
-                'amaterasu': '天照大神',
-                'okuni-nushi': '大国主命',
-                'dainithi-nyorai': '大日如来',
-                'senju': '千手観音',
-                'fudo': '不動明王'
-            };
-            const deity = guardianNames[deityId] || deityId;
+            // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+            const deity = deityId;
             
             let statusText = `鑑定名義: ${nickname}`;
             

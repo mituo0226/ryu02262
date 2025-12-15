@@ -106,15 +106,8 @@ const ChatInit = {
                     const userNickname = localStorage.getItem('userNickname') || 'あなた';
                     
                     if (assignedDeity) {
-                        // 守護神IDから守護神名を取得
-                        const guardianNames = {
-                            'amaterasu': '天照大神',
-                            'okuni-nushi': '大国主命',
-                            'dainithi-nyorai': '大日如来',
-                            'senju': '千手観音',
-                            'fudo': '不動明王'
-                        };
-                        const guardianName = guardianNames[assignedDeity] || assignedDeity;
+                        // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+                        const guardianName = assignedDeity;
                         
                         // 守護神を確認するメッセージを生成（ユーザー要求の形式）
                         const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
@@ -451,15 +444,8 @@ const ChatInit = {
                     
                     if (!hasGuardianMessage && assignedDeity) {
                         const userNickname = localStorage.getItem('userNickname') || 'あなた';
-                        
-                        const guardianNames = {
-                            'amaterasu': '天照大神',
-                            'okuni-nushi': '大国主命',
-                            'dainithi-nyorai': '大日如来',
-                            'senju': '千手観音',
-                            'fudo': '不動明王'
-                        };
-                        const guardianName = guardianNames[assignedDeity] || assignedDeity;
+                        // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+                        const guardianName = assignedDeity;
                         const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
                         
                         ChatData.conversationHistory.recentMessages.push({
@@ -830,14 +816,8 @@ const ChatInit = {
                         const userNickname = localStorage.getItem('userNickname') || 'あなた';
                         
                         if (assignedDeity) {
-                            const guardianNames = {
-                                'amaterasu': '天照大神',
-                                'okuni-nushi': '大国主命',
-                                'dainithi-nyorai': '大日如来',
-                                'senju': '千手観音',
-                                'fudo': '不動明王'
-                            };
-                            const guardianName = guardianNames[assignedDeity] || assignedDeity;
+                            // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+                            const guardianName = assignedDeity;
                             const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
                             
                             conversationHistory.push({

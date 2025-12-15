@@ -166,18 +166,8 @@ export function generateSystemPrompt(characterId, options = {}) {
     typeof options.guardian === 'string' && 
     options.guardian.trim() !== '';
   
-  // 守護神名のマッピング
-  const guardianNames = {
-    'amaterasu': '天照大神',
-    'okuni-nushi': '大国主命',
-    'dainithi-nyorai': '大日如来',
-    'senju': '千手観音',
-    'fudo': '不動明王'
-  };
-  
-  const guardianName = guardianRitualCompleted && guardianNames[options.guardian]
-    ? guardianNames[options.guardian]
-    : null;
+  // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+  const guardianName = guardianRitualCompleted ? options.guardian : null;
   
   const guardianRitualCompletedInstruction = guardianRitualCompleted && characterId === 'kaede'
     ? `

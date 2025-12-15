@@ -9,31 +9,31 @@
  */
 const GUARDIANS = [
   {
-    id: 'amaterasu',
+    id: '天照大神',
     name: '天照大神',
     image: 'amaterasu.png',
     message: 'あなたは天照大神に守られています。太陽のように明るく、前向きな力を授かっています。'
   },
   {
-    id: 'okuni-nushi',
+    id: '大国主命',
     name: '大国主命',
     image: 'okuni-nushi.png', // 注意: 実際のファイル名は okuni-nushi.png（仕様では okuni-nishi.png と記載されていましたが、実ファイルに合わせています）
     message: 'あなたは大国主命に守られています。豊かさと調和の力を授かっています。'
   },
   {
-    id: 'dainithi-nyorai',
+    id: '大日如来',
     name: '大日如来',
     image: 'dainithi-nyorai.png',
     message: 'あなたは大日如来に守られています。智慧と光明の力を授かっています。'
   },
   {
-    id: 'senju',
+    id: '千手観音',
     name: '千手観音',
     image: 'senju.png',
     message: 'あなたは千手観音に守られています。慈悲と救済の力を授かっています。'
   },
   {
-    id: 'fudo',
+    id: '不動明王',
     name: '不動明王',
     image: 'fudo.png',
     message: 'あなたは不動明王に守られています。不動の意志と守護の力を授かっています。'

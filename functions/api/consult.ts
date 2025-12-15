@@ -815,14 +815,8 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // 守護神が決定済みの場合、会話履歴の先頭に確認メッセージを自動注入
     if (user?.guardian && user.guardian.trim() !== '' && characterId === 'kaede') {
-      const guardianNames: Record<string, string> = {
-        'amaterasu': '天照大神',
-        'okuni-nushi': '大国主命',
-        'dainithi-nyorai': '大日如来',
-        'senju': '千手観音',
-        'fudo': '不動明王'
-      };
-      const guardianName = guardianNames[user.guardian] || user.guardian;
+      // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+      const guardianName = user.guardian;
       const userNickname = user.nickname || 'あなた';
       
       // 守護神確認メッセージ（会話履歴の先頭に追加することで、LLMが認識できるようにする）

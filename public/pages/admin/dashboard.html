@@ -864,11 +864,11 @@
             <label>守護神
               <select id="formGuardian">
                 <option value="">未決定</option>
-                <option value="amaterasu">天照大神</option>
-                <option value="okuni-nushi">大国主命</option>
-                <option value="dainithi-nyorai">大日如来</option>
-                <option value="senju">千手観音</option>
-                <option value="fudo">不動明王</option>
+                <option value="天照大神">天照大神</option>
+                <option value="大国主命">大国主命</option>
+                <option value="大日如来">大日如来</option>
+                <option value="千手観音">千手観音</option>
+                <option value="不動明王">不動明王</option>
               </select>
             </label>
             <div class="actions">
@@ -1118,22 +1118,14 @@
         return;
       }
       
-      // 守護神名のマッピング
-      const guardianNames = {
-        'amaterasu': '天照大神',
-        'okuni-nushi': '大国主命',
-        'dainithi-nyorai': '大日如来',
-        'senju': '千手観音',
-        'fudo': '不動明王'
-      };
-      
+      // 守護神名（データベースに日本語で保存されているのでそのまま表示）
       userTableBody.innerHTML = list.map((user) => `
         <tr>
           <td>${user.id}</td>
           <td>${user.nickname}</td>
           <td>${user.birth_year}/${user.birth_month}/${user.birth_day}</td>
           <td>${user.passphrase || '未設定'}</td>
-          <td>${user.guardian ? guardianNames[user.guardian] || user.guardian : '未決定'}</td>
+          <td>${user.guardian || '未決定'}</td>
           <td><button class="button-link" data-user-id="${user.id}">選択</button></td>
         </tr>
       `).join('');
