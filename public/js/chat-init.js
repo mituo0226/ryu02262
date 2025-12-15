@@ -1319,6 +1319,36 @@ const ChatInit = {
     async startGuardianRitual(character, guestHistory = null) {
         console.log('[守護神の儀式] 開始:', character, 'guestHistory:', guestHistory ? guestHistory.length : 0);
         
+        // 【重要】ゲストユーザーの場合は登録画面にリダイレクト
+        if (!AuthState.isRegistered()) {
+            console.log('[守護神の儀式] ゲストユーザーを登録画面にリダイレクトします');
+            
+            // ゲスト会話履歴を保存
+            if (!guestHistory || guestHistory.length === 0) {
+                guestHistory = ChatData.getGuestHistory(character) || [];
+            }
+            
+            if (guestHistory.length > 0) {
+                sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                    character: character,
+                    history: guestHistory
+                }));
+                console.log('[守護神の儀式] ゲスト履歴を保存:', {
+                    historyLength: guestHistory.length,
+                    userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                });
+            }
+            
+            // acceptedGuardianRitualフラグは既に保存されている（ボタンクリック時に保存済み）
+            
+            // 登録画面にリダイレクト
+            this.openRegistrationModal();
+            return;
+        }
+        
+        // 【登録ユーザーの場合のみ、以下の処理を実行】
+        console.log('[守護神の儀式] 登録ユーザーとして儀式を開始します');
+        
         // 送信ボタンを無効化
         if (ChatUI.sendButton) ChatUI.sendButton.disabled = true;
         
