@@ -725,6 +725,23 @@ const ChatInit = {
             // 応答メッセージを表示
             const characterName = ChatData.characterInfo[character]?.name || character;
             const responseText = response.message || response.response || '応答を取得できませんでした';
+            
+            // 楓専用の処理：「ニックネームと生年月日を入力」が含まれる場合、ユーザーの最後のメッセージを削除
+            if (isGuest && character === 'kaede') {
+                const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
+                                             responseText.includes('**ニックネームと生年月日を入力**') ||
+                                             responseText.includes('生年月日を入力');
+                if (hasRegistrationInput) {
+                    // 応答メッセージを表示する前に、ユーザーの最後のメッセージを削除
+                    const userMessages = Array.from(document.querySelectorAll('.message.user'));
+                    if (userMessages.length > 0) {
+                        const lastUserMessage = userMessages[userMessages.length - 1];
+                        console.log('[楓専用処理] 応答表示前にユーザーの最後のメッセージを削除します:', lastUserMessage.textContent);
+                        lastUserMessage.remove();
+                    }
+                }
+            }
+            
             const messageId = ChatUI.addMessage('character', responseText, characterName);
             ChatUI.scrollToLatest();
             

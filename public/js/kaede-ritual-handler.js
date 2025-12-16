@@ -448,15 +448,8 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             });
 
             // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
+            // 注意：ユーザーの最後のメッセージの削除は、chat-init.jsの応答表示前に実行されるため、ここでは不要
             setTimeout(() => {
-                // 【重要】ユーザーの最後のメッセージを削除（ボタン追加時に実行）
-                const userMessages = Array.from(document.querySelectorAll('.message.user'));
-                if (userMessages.length > 0) {
-                    const lastUserMessage = userMessages[userMessages.length - 1];
-                    console.log('[楓専用処理] ユーザーの最後のメッセージを削除します（ボタン追加時）:', lastUserMessage.textContent);
-                    lastUserMessage.remove();
-                }
-
                 const messageElement = messageId ? document.getElementById(messageId) : null;
                 if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
                     ChatUI.addRitualStartButton(messageElement, async () => {
