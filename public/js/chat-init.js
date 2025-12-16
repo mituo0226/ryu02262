@@ -380,28 +380,6 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                             });
                         }
                         
-                        // 自動的に守護神の儀式を開始
-                        console.log('[登録完了処理] 守護神の儀式を自動的に開始します');
-                        const ChatInitInstance = window.ChatInit || this;
-                        if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
-                            // 少し待ってから開始（UIの更新を待つため）
-                            setTimeout(async () => {
-                                await ChatInitInstance.startGuardianRitual(character, guestHistoryForRitual);
-                                
-                                // 守護神の儀式開始後、ゲスト履歴とフラグをクリア
-                                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                                    AuthState.clearGuestHistory(character);
-                                }
-                                sessionStorage.removeItem(historyKey);
-                                sessionStorage.removeItem('pendingGuestHistoryMigration');
-                                sessionStorage.removeItem('pendingRitualGuestHistory');
-                                sessionStorage.removeItem('acceptedGuardianRitual'); // フラグをクリア
-                                ChatData.setGuestMessageCount(character, 0);
-                            }, 500);
-                        } else {
-                            console.error('[登録完了処理] startGuardianRitual関数が見つかりません');
-                        }
-                        
                         // URLパラメータからjustRegisteredを削除
                         urlParams.delete('justRegistered');
                         const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
@@ -1327,40 +1305,21 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
      * 守護神の儀式への同意処理
      * @param {boolean} consent - 同意するかどうか
      */
-    async handleRitualConsent(consent) {
+    handleRitualConsent(consent) {
         ChatUI.hideRitualConsentButtons();
         
         // フラグをリセット（一度処理したので、再度表示されないようにする）
         ChatData.ritualConsentShown = true;
         
         if (consent) {
-            // 「はい」を押した場合 - 守護神の儀式を承認
-            const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '楓';
-            const ritualStartMessage = 'それではこれより守護神のイベントを開始いたします。\n画面が切り替わりますので、儀式を体験してください。';
+            // 「はい」を押した場合
+            const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
+            ChatUI.addMessage('character', 'ユーザー登録をすることにより、守護神の儀式を進めます', characterName);
             
-            console.log('[守護神の儀式承認] カエデのメッセージを表示:', ritualStartMessage);
-            
-            // カエデのメッセージを表示
-            ChatUI.addMessage('character', ritualStartMessage, characterName);
-            
-            // DOM更新を待つ
-            await new Promise(resolve => requestAnimationFrame(() => {
-                requestAnimationFrame(resolve);
-            }));
-            
-            // スクロールしてメッセージを表示
-            ChatUI.scrollToLatest();
-            
-            // 【重要】守護神の鑑定を受け入れたフラグを保存
-            // 登録後に守護神の儀式を自動開始するかどうかの判定に使用
-            sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            console.log('[守護神の儀式承認] acceptedGuardianRitualフラグを保存しました');
-            
-            // メッセージ表示後、少し待ってから登録画面に遷移
-            await this.delay(2000); // 2秒待つ（ユーザーがメッセージを読む時間を確保）
-            
-            console.log('[守護神の儀式承認] 登録画面に遷移します');
-            this.openRegistrationModal();
+            // メッセージを表示した後、少し待ってから登録画面に遷移
+            setTimeout(() => {
+                this.openRegistrationModal();
+            }, 2000);
         } else {
             // 「いいえ」を押した場合
             ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
