@@ -114,9 +114,9 @@ export const onRequestGet: PagesFunction = async (context) => {
 
     const conversations = historyResults.results || [];
 
-    // 儀式完了後の判定：会話履歴が存在しない、またはguardianが設定されている場合
-    // 儀式完了後は、APIの指示によりチャットをクリアする
-    const isAfterRitual = conversations.length === 0 && user.guardian;
+    // 儀式完了後の判定：guardianが設定されている場合
+    // 儀式完了後は、APIの指示によりチャットをクリアし、会話はゼロからスタート
+    const isAfterRitual = !!user.guardian;
 
     if (conversations.length === 0) {
       return new Response(
@@ -154,10 +154,6 @@ export const onRequestGet: PagesFunction = async (context) => {
       .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.message}`)
       .join('\n');
 
-    // 儀式完了後の判定：guardianが設定されている場合
-    // 儀式完了後は、APIの指示によりチャットをクリアし、会話はゼロからスタート
-    const isAfterRitual = !!user.guardian;
-    
     // 今日の最初のユーザーメッセージを取得（儀式完了後の定型文で使用）
     let firstQuestion: string | undefined = undefined;
     if (isAfterRitual) {
