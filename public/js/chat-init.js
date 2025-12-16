@@ -214,13 +214,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                         console.log('[登録完了処理] メッセージ入力欄をクリアしました');
                     }
                     
-                    // 送信ボタンを有効化（儀式完了後は送信可能にする）
-                    // 注意：updateSendButtonVisibility()は呼ばない（入力欄が空の時は非表示が正常な動作）
-                    // ユーザーが文字を入力すると、自動的にupdateSendButtonVisibility()が呼ばれて表示される
-                    if (ChatUI.sendButton) {
-                        ChatUI.sendButton.disabled = false;
-                        console.log('[登録完了処理] 送信ボタンを有効化しました（入力欄に文字を入力すると表示されます）');
-                    }
+                    // 送信ボタンの状態を更新（常に表示され、入力欄が空の時は無効化される）
+                    ChatUI.updateSendButtonVisibility();
+                    console.log('[登録完了処理] 送信ボタンの状態を更新しました（常に表示されます）');
                     
                     // 守護神の儀式完了フラグをクリア
                     sessionStorage.removeItem('acceptedGuardianRitual');
@@ -866,8 +862,7 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
         ChatUI.messageInput.value = '';
         ChatUI.updateSendButtonVisibility();
-        
-        if (ChatUI.sendButton) ChatUI.sendButton.disabled = true;
+        // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
         
         const messageToSend = message;
         
