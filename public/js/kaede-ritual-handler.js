@@ -2,6 +2,29 @@
  * kaede-ritual-handler.js
  * 楓（kaede）専用の守護神の儀式関連処理
  * 他の鑑定士とは独立した動作を行う
+ * 
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 【重要】守護神の儀式完了後の処理順序について
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 
+ * 儀式完了後のチャット画面表示では、以下の順序で処理を実行すること：
+ * 
+ * ステップ1: UI表示用の履歴をクリア
+ *   - チャット画面（messagesDiv）をクリア
+ *   - sessionStorageのゲスト履歴をクリア
+ * 
+ * ステップ2: firstQuestionを取得 ← 【必ずrecentMessagesクリア前に実行】
+ *   - APIから取得（historyData.firstQuestion）
+ *   - APIから取得できない場合は、ゲスト履歴から取得
+ * 
+ * ステップ3: recentMessagesをクリア ← 【必ずfirstQuestion取得後に実行】
+ *   - historyData.recentMessagesを空配列にする
+ *   - ChatData.conversationHistory.recentMessagesを空配列にする
+ * 
+ * ⚠️ 警告：ステップ2と3の順序を逆にすると、firstQuestionが取得できなくなり、
+ *          ユーザー登録後の楓の定型文に「最初の質問」が含まれなくなります。
+ * 
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 
 const KaedeRitualHandler = {
@@ -22,13 +45,27 @@ const KaedeRitualHandler = {
         // APIの指示によりチャットをクリア
         // 【重要】clearChatがfalseの場合でも、守護神の儀式完了後はチャットをクリアする
         const shouldClearChat = (historyData && historyData.clearChat) || true; // 常にクリア（守護神の儀式完了後は会話をゼロからスタート）
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 【処理順序が重要】以下の3ステップは必ずこの順序で実行すること
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ステップ1: UI表示用の履歴をクリア（画面から過去の吹き出しを削除）
+        // ステップ2: firstQuestionを取得（データベースまたはゲスト履歴から）
+        // ステップ3: データベース履歴（recentMessages）をクリア（UI表示防止）
+        // 
+        // ⚠️ 警告：ステップ2と3の順序を逆にすると、firstQuestionが取得できなくなります
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ステップ1: UI表示用の履歴をクリア
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         if (shouldClearChat) {
-            console.log('[楓専用処理] チャットをクリアします（儀式完了後）');
+            console.log('[楓専用処理] ステップ1: チャットをクリアします（儀式完了後）');
 
             // チャット画面をクリア（守護神の儀式完了後は会話をゼロからスタート）
             if (ChatUI.messagesDiv) {
                 ChatUI.messagesDiv.innerHTML = '';
-                console.log('[楓専用処理] チャット画面をクリアしました（儀式完了後）');
+                console.log('[楓専用処理] ✓ チャット画面をクリアしました');
             }
 
             // ゲスト履歴もクリア（API指示により）
@@ -40,31 +77,22 @@ const KaedeRitualHandler = {
             sessionStorage.removeItem(historyKey);
             sessionStorage.removeItem('pendingGuestHistoryMigration');
             ChatData.setGuestMessageCount(character, 0);
-            console.log('[楓専用処理] ゲスト履歴をクリアしました（儀式完了後）');
-            
-            // 【重要】historyDataのrecentMessagesもクリア（chat-init.jsでChatData.conversationHistoryに設定される前にクリア）
-            // これにより、chat-init.jsの243行目で`ChatData.conversationHistory = historyData`が実行されても、
-            // recentMessagesが空の状態で設定されるため、過去のユーザーメッセージが表示されない
-            if (historyData && historyData.recentMessages) {
-                historyData.recentMessages = [];
-                console.log('[楓専用処理] historyDataのrecentMessagesをクリアしました（データベースから取得した履歴が表示されないように）');
-            }
-            
-            // 会話履歴もクリア（ユーザーメッセージが表示されないようにするため）
-            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                ChatData.conversationHistory.recentMessages = [];
-                console.log('[楓専用処理] ChatData.conversationHistoryのrecentMessagesをクリアしました（ユーザーメッセージが表示されないように）');
-            }
+            console.log('[楓専用処理] ✓ ゲスト履歴をクリアしました');
         }
 
-        // 最初の質問を取得（APIから返された値、またはゲスト履歴から）
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ステップ2: firstQuestionを取得（⚠️ recentMessagesクリアより前に実行必須）
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        console.log('[楓専用処理] ステップ2: firstQuestionを取得します（recentMessagesクリア前）');
+        console.log('[楓専用処理] 【検証】historyData.recentMessages件数:', historyData?.recentMessages?.length || 0);
+        
         let firstQuestion = '';
         if (historyData && historyData.firstQuestion) {
             firstQuestion = historyData.firstQuestion.trim();
-            console.log('[楓専用処理] APIから最初の質問を取得:', firstQuestion.substring(0, 50) + '...');
+            console.log('[楓専用処理] ✓ APIからfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
         } else {
             // APIから取得できない場合は、ゲスト履歴から取得
-            console.log('[楓専用処理] APIから最初の質問が取得できませんでした。ゲスト履歴を確認します。');
+            console.log('[楓専用処理] APIからfirstQuestionが取得できませんでした。ゲスト履歴を確認します。');
             const guestHistory = (window.ChatInit && typeof window.ChatInit.getGuestHistoryForMigration === 'function') 
                 ? window.ChatInit.getGuestHistoryForMigration(character)
                 : [];
@@ -72,12 +100,36 @@ const KaedeRitualHandler = {
                 const firstUserMessage = guestHistory.find(msg => msg && msg.role === 'user');
                 if (firstUserMessage && firstUserMessage.content) {
                     firstQuestion = firstUserMessage.content.trim();
-                    console.log('[楓専用処理] ゲスト履歴から最初のユーザーメッセージを発見:', firstQuestion.substring(0, 50) + '...');
+                    console.log('[楓専用処理] ✓ ゲスト履歴からfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
                 }
             }
         }
+        
+        console.log('[楓専用処理] ✓ firstQuestion取得完了:', firstQuestion ? `"${firstQuestion.substring(0, 30)}..."` : '(空)');
 
-        // 定型文を構築
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ステップ3: recentMessagesをクリア（⚠️ firstQuestion取得後に実行必須）
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        if (shouldClearChat) {
+            console.log('[楓専用処理] ステップ3: recentMessagesをクリアします（firstQuestion取得後）');
+            
+            if (historyData && historyData.recentMessages) {
+                historyData.recentMessages = [];
+                console.log('[楓専用処理] ✓ historyData.recentMessagesをクリアしました');
+            }
+            
+            // 会話履歴もクリア（ユーザーメッセージが表示されないようにするため）
+            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                ChatData.conversationHistory.recentMessages = [];
+                console.log('[楓専用処理] ✓ ChatData.conversationHistory.recentMessagesをクリアしました');
+            }
+            
+            console.log('[楓専用処理] 【検証】クリア後のhistoryData.recentMessages件数:', historyData?.recentMessages?.length || 0);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 定型文を構築して表示
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const characterName = ChatData.characterInfo[character]?.name || '楓';
         const welcomeMessage = `儀式により${guardianConfirmationData.userNickname}様の守護神の${guardianConfirmationData.guardianName}を呼び出すことができました。
 
