@@ -49,7 +49,9 @@ const KaedeRitualHandler = {
         } else {
             // APIから取得できない場合は、ゲスト履歴から取得
             console.log('[楓専用処理] APIから最初の質問が取得できませんでした。ゲスト履歴を確認します。');
-            const guestHistory = ChatInit.getGuestHistoryForMigration(character);
+            const guestHistory = (window.ChatInit && typeof window.ChatInit.getGuestHistoryForMigration === 'function') 
+                ? window.ChatInit.getGuestHistoryForMigration(character)
+                : [];
             if (guestHistory && guestHistory.length > 0) {
                 const firstUserMessage = guestHistory.find(msg => msg && msg.role === 'user');
                 if (firstUserMessage && firstUserMessage.content) {
@@ -245,7 +247,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
             console.log('[楓専用処理] ゲスト履歴取得を開始:', character);
 
-            let guestHistory = ChatInit.getGuestHistoryForMigration(character);
+            let guestHistory = (window.ChatInit && typeof window.ChatInit.getGuestHistoryForMigration === 'function')
+                ? window.ChatInit.getGuestHistoryForMigration(character)
+                : [];
 
             if (guestHistory.length === 0) {
                 // フォールバック: ChatDataから直接取得
@@ -366,7 +370,13 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
                 // ゲストユーザーの場合は登録画面に遷移（登録後に儀式が開始される）
                 console.log('[楓専用処理] 登録画面に遷移します（登録後に儀式が開始されます）');
-                ChatInit.openRegistrationModal();
+                // ChatInit.openRegistrationModal()を呼び出す（グローバルスコープから）
+                if (window.ChatInit && typeof window.ChatInit.openRegistrationModal === 'function') {
+                    window.ChatInit.openRegistrationModal();
+                } else {
+                    // フォールバック: 直接遷移
+                    window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
+                }
 
                 return true; // 処理完了
             } catch (error) {
@@ -374,7 +384,11 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 // エラー時は従来の処理にフォールバック
                 ChatUI.addMessage('error', 'エラーが発生しました。登録画面に遷移します。', 'システム');
                 setTimeout(() => {
-                    ChatInit.openRegistrationModal();
+                    if (window.ChatInit && typeof window.ChatInit.openRegistrationModal === 'function') {
+                        window.ChatInit.openRegistrationModal();
+                    } else {
+                        window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
+                    }
                 }, 2000);
                 return true; // 処理完了
             }
