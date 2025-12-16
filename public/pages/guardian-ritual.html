@@ -265,6 +265,38 @@
       }
     }
 
+    /* チャット画面へ戻る際のフェードオーバーレイ */
+    .fade-to-chat {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      color: #eae4ff;
+      z-index: 400;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease-in-out;
+    }
+
+    .fade-to-chat.visible {
+      opacity: 1;
+    }
+
+    .fade-to-chat__title {
+      font-size: 22px;
+      font-weight: 700;
+      text-shadow: 0 0 24px rgba(138, 43, 226, 0.8);
+    }
+
+    .fade-to-chat__sub {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
     /* エラーメッセージ */
     .error-message {
       position: fixed;
@@ -558,6 +590,27 @@
     }
 
     /**
+     * チャット画面に戻る前のフェード演出
+     */
+    async function fadeToChatOverlay() {
+      const overlay = document.createElement('div');
+      overlay.className = 'fade-to-chat';
+      overlay.innerHTML = `
+        <div class="fade-to-chat__title">まもなく鑑定に戻ります</div>
+        <div class="fade-to-chat__sub">守護神とのつながりを整えています...</div>
+      `;
+      document.body.appendChild(overlay);
+
+      // reflowしてから可視化
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+      });
+
+      // 少し待ってから遷移できる状態に
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+
+    /**
      * 旧形式の結果表示（直接アクセス時のみ使用）
      */
     function showResult(guardian) {
@@ -676,7 +729,8 @@
           // 儀式完了フラグを設定
           sessionStorage.setItem('ritualCompleted', 'true');
           
-          // チャット画面にリダイレクト
+          // チャット画面にリダイレクト（フェード演出を挟む）
+          await fadeToChatOverlay();
           console.log('[守護神の儀式] チャット画面にリダイレクト:', postRitualChatUrl);
           try {
             const url = new URL(postRitualChatUrl, window.location.href);
