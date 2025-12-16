@@ -93,6 +93,22 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         ChatUI.updateSendButtonVisibility();
         console.log('[楓専用処理] 送信ボタンの状態を更新しました（文字入力時に表示されます）');
 
+        // 【重要】入力イベントリスナーが設定されているか確認し、設定されていない場合は再設定
+        if (ChatUI.messageInput) {
+            // 既存のinputイベントリスナーを確認（完全には確認できないので、再設定する）
+            // chat-init.jsで設定されているはずだが、念のため再設定
+            const hasListener = ChatUI.messageInput.getAttribute('data-input-listener-set');
+            if (!hasListener) {
+                ChatUI.messageInput.addEventListener('input', () => {
+                    if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
+                        window.ChatUI.updateSendButtonVisibility();
+                    }
+                });
+                ChatUI.messageInput.setAttribute('data-input-listener-set', 'true');
+                console.log('[楓専用処理] 入力イベントリスナーを再設定しました');
+            }
+        }
+
         // 守護神の儀式完了フラグをクリア
         sessionStorage.removeItem('acceptedGuardianRitual');
         sessionStorage.removeItem('ritualCompleted');
