@@ -189,22 +189,10 @@ const ChatInit = {
 
 ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guardianName}と共に掘り下げましょうか、それとも他のテーマで鑑定を進めますか？` : 'どのようなことについて鑑定を進めますか？'}`;
                     
-                    // 【重要】ユーザー登録後はUIをゼロからスタート
-                    // 守護神の儀式完了メッセージを表示する直前（会話履歴読み込み後、メッセージ表示直前）にUIをクリア
-                    // これにより、ゲスト時代のメッセージやデータベースから読み込んだ不要なメッセージを確実に削除
-                    if (ChatUI.messagesDiv) {
-                        const beforeClearCount = ChatUI.messagesDiv.children.length;
-                        console.log('[登録完了処理] 守護神メッセージ表示直前、UIを完全にクリアします（ゼロからスタート）', {
-                            beforeClearCount: beforeClearCount,
-                            messagesDiv: ChatUI.messagesDiv
-                        });
-                        ChatUI.messagesDiv.innerHTML = '';
-                        console.log('[登録完了処理] UIクリア完了。メッセージ数:', beforeClearCount, '→ 0');
-                    } else {
-                        console.warn('[登録完了処理] ⚠️ ChatUI.messagesDivが見つかりません');
-                    }
-                    
-                    // UIに守護神の儀式完了メッセージのみを表示（UIは完全にクリアされた状態）
+                    // 【重要】守護神の儀式開始前にカエデがメッセージを表示しているため、
+                    // UIをクリアする必要はない（カエデのメッセージが最後のメッセージとなっている）
+                    // カエデのメッセージの後に、守護神の儀式完了メッセージを追加する
+                    console.log('[登録完了処理] 守護神の儀式完了メッセージをカエデのメッセージの後に追加します');
                     ChatUI.addMessage('character', welcomeMessage, characterName);
                     
                     // 会話履歴に追加
