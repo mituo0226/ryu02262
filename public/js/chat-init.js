@@ -114,6 +114,11 @@ const ChatInit = {
                         confirmationMessage: `守護神の儀式が完了しました。私の守護神は${guardianName}です。`
                     };
                     
+                    // 守護神の儀式完了メッセージを表示する前に、guardianMessageShownフラグを設定
+                    // （その後の通常の初期化処理でゲスト履歴が表示されないようにするため）
+                    sessionStorage.setItem('guardianMessageShown', 'true');
+                    console.log('[登録完了処理] 守護神の儀式完了メッセージ表示前にguardianMessageShownフラグを設定しました');
+                    
                     // URLパラメータからjustRegisteredを削除
                     urlParams.delete('justRegistered');
                     const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
@@ -207,8 +212,8 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                     
                     guardianMessageShown = true;
                     
-                    // フラグをsessionStorageに保存
-                    sessionStorage.setItem('guardianMessageShown', 'true');
+                    // フラグは既に守護神の儀式完了メッセージ表示前に設定済み
+                    // sessionStorage.setItem('guardianMessageShown', 'true'); // 削除（既に設定済み）
                     
                     // メッセージ入力欄をクリア（守護神の儀式完了後に残っているメッセージを削除）
                     if (ChatUI.messageInput) {
