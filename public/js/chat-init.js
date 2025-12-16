@@ -130,29 +130,35 @@ const ChatInit = {
                 
                 // 【重要】守護神確認メッセージを送信（会話履歴読み込み後）
                 if (shouldSendGuardianConfirmation && guardianConfirmationData) {
-                    console.log('[登録完了処理] 🚀 守護神の儀式完了を APIに報告します:', guardianConfirmationData);
+                    console.log('[登録完了処理] 🚀 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
                     
-                    try {
-                        // ユーザー表示を伴わないサイレント送信
-                        const currentHistory = historyData?.recentMessages || [];
-                        const response = await ChatAPI.sendMessage(
-                            guardianConfirmationData.confirmationMessage,
-                            character,
-                            currentHistory,
-                            { userToken: localStorage.getItem('userToken') }
-                        );
-                        
-                        if (response && response.message) {
-                            console.log('[登録完了処理] ✅ APIへの守護神報告をサイレントで完了:', response.message.substring(0, 50) + '...');
-                            guardianMessageShown = true;
-                        } else {
-                            console.error('[登録完了処理] ❌ APIからの応答が不正:', response);
-                        }
-                    } catch (error) {
-                        console.error('[登録完了処理] ❌ API呼び出しエラー:', error);
-                        // フォールバックもユーザーへは表示しない
-                        guardianMessageShown = true;
+                    // 会話履歴から最初のユーザーメッセージを抽出
+                    const currentHistory = historyData?.recentMessages || [];
+                    const firstUserMessage = currentHistory.find(msg => msg && msg.role === 'user');
+                    const firstQuestion = firstUserMessage ? firstUserMessage.content : '';
+                    
+                    // 定型文を構築
+                    const characterName = ChatData.characterInfo[character]?.name || '楓';
+                    const welcomeMessage = `儀式により${guardianConfirmationData.userNickname}様の守護神の${guardianConfirmationData.guardianName}を呼び出すことができました。
+
+今後は私と${guardianConfirmationData.guardianName}であなたの運命を導いてまいります。
+
+鑑定を続けてまいりましょう。${firstQuestion ? `\n\n「${firstQuestion}」` : ''}
+
+${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guardianName}と共に掘り下げましょうか、それとも他のテーマで鑑定を進めますか？` : 'どのようなことについて鑑定を進めますか？'}`;
+                    
+                    // UIにメッセージを表示
+                    ChatUI.addMessage('character', welcomeMessage, characterName);
+                    
+                    // 会話履歴に追加
+                    if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                        ChatData.conversationHistory.recentMessages.push({
+                            role: 'assistant',
+                            content: welcomeMessage
+                        });
                     }
+                    
+                    guardianMessageShown = true;
                     
                     // フラグをsessionStorageに保存
                     sessionStorage.setItem('guardianMessageShown', 'true');
