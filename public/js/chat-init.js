@@ -133,67 +133,63 @@ const ChatInit = {
                 // 守護神メッセージ表示後も、その後の会話履歴を読み込んでAPIを通して鑑定を進める
                 const historyData = await ChatAPI.loadConversationHistory(character);
                 
-                // 【重要】守護神確認メッセージを送信（会話履歴読み込み後）
-                if (shouldSendGuardianConfirmation && guardianConfirmationData) {
-                    console.log('[登録完了処理] 🚀 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
-                    
-                    // 守護神の儀式を行った日（今日）の最初のユーザーメッセージを取得
-                    let firstQuestion = '';
-                    
-                    // 今日の日付を取得（YYYY-MM-DD形式）
-                    const today = new Date();
-                    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-                    console.log('[登録完了処理] 守護神の儀式を行った日（今日）:', todayStr);
-                    
-                    // 会話履歴から、今日の日付の最初のユーザーメッセージを抽出
-                    const currentHistory = historyData?.recentMessages || [];
-                    let firstUserMessageOfDay = null;
-                    
-                    if (currentHistory.length > 0) {
-                        // created_atが今日の日付で始まるメッセージをフィルタリング
-                        const todayMessages = currentHistory.filter(msg => {
-                            if (!msg || msg.role !== 'user') return false;
-                            if (!msg.created_at) return false;
-                            // created_atがISO形式（YYYY-MM-DDTHH:mm:ss...）の場合
-                            return msg.created_at.startsWith(todayStr);
-                        });
+                    // 【重要】守護神確認メッセージを送信（会話履歴読み込み後）
+                    if (shouldSendGuardianConfirmation && guardianConfirmationData) {
+                        console.log('[登録完了処理] 🚀 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
                         
-                        // 今日のメッセージの中から最初のユーザーメッセージを取得（時系列順に並んでいる想定）
-                        if (todayMessages.length > 0) {
-                            firstUserMessageOfDay = todayMessages[0];
-                            console.log('[登録完了処理] 今日の最初のユーザーメッセージを発見:', firstUserMessageOfDay.content.substring(0, 50) + '...');
+                        // APIの指示によりチャットをクリア
+                        if (historyData && historyData.clearChat) {
+                            console.log('[登録完了処理] API指示: チャットをクリアします（儀式完了後）');
+                            
+                            // チャット画面をクリア（APIの指示により）
+                            if (ChatUI.messagesDiv) {
+                                ChatUI.messagesDiv.innerHTML = '';
+                                console.log('[登録完了処理] チャット画面をクリアしました（API指示）');
+                            }
+                            
+                            // ゲスト履歴もクリア（API指示により）
+                            if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                                AuthState.clearGuestHistory(character);
+                            }
+                            const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                            const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                            sessionStorage.removeItem(historyKey);
+                            sessionStorage.removeItem('pendingGuestHistoryMigration');
+                            ChatData.setGuestMessageCount(character, 0);
+                            console.log('[登録完了処理] ゲスト履歴をクリアしました（API指示）');
                         }
-                    }
-                    
-                    // 今日のメッセージが見つからない場合は、ゲスト履歴から最初のユーザーメッセージを取得
-                    if (!firstUserMessageOfDay) {
-                        console.log('[登録完了処理] 今日の会話履歴から最初の質問が見つかりません。ゲスト履歴を確認します。');
-                        const guestHistory = this.getGuestHistoryForMigration(character);
-                        if (guestHistory && guestHistory.length > 0) {
-                            firstUserMessageOfDay = guestHistory.find(msg => msg && msg.role === 'user');
-                            console.log('[登録完了処理] ゲスト履歴から最初のユーザーメッセージを発見:', firstUserMessageOfDay ? firstUserMessageOfDay.content.substring(0, 50) + '...' : 'なし');
+                        
+                        // 最初の質問を取得（APIから返された値、またはゲスト履歴から）
+                        let firstQuestion = '';
+                        if (historyData && historyData.firstQuestion) {
+                            firstQuestion = historyData.firstQuestion.trim();
+                            console.log('[登録完了処理] APIから最初の質問を取得:', firstQuestion.substring(0, 50) + '...');
+                        } else {
+                            // APIから取得できない場合は、ゲスト履歴から取得
+                            console.log('[登録完了処理] APIから最初の質問が取得できませんでした。ゲスト履歴を確認します。');
+                            const guestHistory = this.getGuestHistoryForMigration(character);
+                            if (guestHistory && guestHistory.length > 0) {
+                                const firstUserMessage = guestHistory.find(msg => msg && msg.role === 'user');
+                                if (firstUserMessage && firstUserMessage.content) {
+                                    firstQuestion = firstUserMessage.content.trim();
+                                    console.log('[登録完了処理] ゲスト履歴から最初のユーザーメッセージを発見:', firstQuestion.substring(0, 50) + '...');
+                                }
+                            }
                         }
-                    }
-                    
-                    if (firstUserMessageOfDay && firstUserMessageOfDay.content) {
-                        firstQuestion = firstUserMessageOfDay.content.trim();
-                    }
-                    
-                    // 定型文を構築
-                    const characterName = ChatData.characterInfo[character]?.name || '楓';
-                    const welcomeMessage = `儀式により${guardianConfirmationData.userNickname}様の守護神の${guardianConfirmationData.guardianName}を呼び出すことができました。
+                        
+                        // 定型文を構築
+                        const characterName = ChatData.characterInfo[character]?.name || '楓';
+                        const welcomeMessage = `儀式により${guardianConfirmationData.userNickname}様の守護神の${guardianConfirmationData.guardianName}を呼び出すことができました。
 
 今後は私と${guardianConfirmationData.guardianName}であなたの運命を導いてまいります。
 
 鑑定を続けてまいりましょう。${firstQuestion ? `\n\n「${firstQuestion}」` : ''}
 
 ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guardianName}と共に掘り下げましょうか、それとも他のテーマで鑑定を進めますか？` : 'どのようなことについて鑑定を進めますか？'}`;
-                    
-                    // 【重要】守護神の儀式開始前にカエデがメッセージを表示しているため、
-                    // UIをクリアする必要はない（カエデのメッセージが最後のメッセージとなっている）
-                    // カエデのメッセージの後に、守護神の儀式完了メッセージを追加する
-                    console.log('[登録完了処理] 守護神の儀式完了メッセージをカエデのメッセージの後に追加します');
-                    ChatUI.addMessage('character', welcomeMessage, characterName);
+                        
+                        // APIの指示によりチャットをクリアした後、定型文のみを表示（会話はゼロからスタート）
+                        console.log('[登録完了処理] 守護神の儀式完了メッセージを表示します（会話はゼロからスタート）');
+                        ChatUI.addMessage('character', welcomeMessage, characterName);
                     
                     // 会話履歴に追加
                     if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
@@ -1305,21 +1301,77 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
      * 守護神の儀式への同意処理
      * @param {boolean} consent - 同意するかどうか
      */
-    handleRitualConsent(consent) {
+    async handleRitualConsent(consent) {
         ChatUI.hideRitualConsentButtons();
         
         // フラグをリセット（一度処理したので、再度表示されないようにする）
         ChatData.ritualConsentShown = true;
         
         if (consent) {
-            // 「はい」を押した場合
-            const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-            ChatUI.addMessage('character', 'ユーザー登録をすることにより、守護神の儀式を進めます', characterName);
+            // 「はい」を押した場合 - APIに守護神の儀式の開催を通知
+            const character = ChatData.currentCharacter;
+            const characterName = ChatData.characterInfo[character]?.name || '楓';
             
-            // メッセージを表示した後、少し待ってから登録画面に遷移
-            setTimeout(() => {
+            console.log('[守護神の儀式承認] APIに儀式開始を通知します');
+            
+            try {
+                // APIに儀式開始を通知（特別なメッセージを送信）
+                const ritualStartMessage = '守護神の儀式を開始します';
+                const guestHistory = ChatData.getGuestHistory(character) || [];
+                const conversationHistory = guestHistory.map(entry => ({
+                    role: entry.role || 'user',
+                    content: entry.content || entry.message || ''
+                }));
+                
+                // APIに送信（儀式開始の通知）
+                const response = await ChatAPI.sendMessage(
+                    ritualStartMessage,
+                    character,
+                    conversationHistory,
+                    {
+                        guestMetadata: { messageCount: ChatData.getGuestMessageCount(character) },
+                        ritualStart: true // 儀式開始のフラグ
+                    }
+                );
+                
+                console.log('[守護神の儀式承認] API応答:', response);
+                
+                // APIの指示に従ってチャットをクリア
+                if (response && response.clearChat) {
+                    console.log('[守護神の儀式承認] API指示: チャットをクリアします');
+                    
+                    // チャット画面をクリア（APIの指示により）
+                    if (ChatUI.messagesDiv) {
+                        ChatUI.messagesDiv.innerHTML = '';
+                        console.log('[守護神の儀式承認] チャット画面をクリアしました（API指示）');
+                    }
+                    
+                    // ゲスト履歴もクリア（API指示により）
+                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                        AuthState.clearGuestHistory(character);
+                    }
+                    const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                    const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                    sessionStorage.removeItem(historyKey);
+                    ChatData.setGuestMessageCount(character, 0);
+                    console.log('[守護神の儀式承認] ゲスト履歴をクリアしました（API指示）');
+                }
+                
+                // acceptedGuardianRitualフラグを保存（登録後に使用）
+                sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                
+                // ゲストユーザーの場合は登録画面に遷移（登録後に儀式が開始される）
+                console.log('[守護神の儀式承認] 登録画面に遷移します（登録後に儀式が開始されます）');
                 this.openRegistrationModal();
-            }, 2000);
+                
+            } catch (error) {
+                console.error('[守護神の儀式承認] API通知エラー:', error);
+                // エラー時は従来の処理にフォールバック
+                ChatUI.addMessage('error', 'エラーが発生しました。登録画面に遷移します。', 'システム');
+                setTimeout(() => {
+                    this.openRegistrationModal();
+                }, 2000);
+            }
         } else {
             // 「いいえ」を押した場合
             ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');

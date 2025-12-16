@@ -31,6 +31,8 @@ interface ResponseBody {
     created_at?: string;
   }>;
   error?: string;
+  clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
+  firstQuestion?: string; // 最初の質問（儀式完了後の定型文で使用）
 }
 
 export const onRequestGet: PagesFunction = async (context) => {
@@ -112,6 +114,10 @@ export const onRequestGet: PagesFunction = async (context) => {
 
     const conversations = historyResults.results || [];
 
+    // 儀式完了後の判定：会話履歴が存在しない、またはguardianが設定されている場合
+    // 儀式完了後は、APIの指示によりチャットをクリアする
+    const isAfterRitual = conversations.length === 0 && user.guardian;
+
     if (conversations.length === 0) {
       return new Response(
         JSON.stringify({
@@ -121,6 +127,7 @@ export const onRequestGet: PagesFunction = async (context) => {
           birthMonth: user.birth_month,
           birthDay: user.birth_day,
           assignedDeity: user.guardian,
+          clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
         } as ResponseBody),
         { status: 200, headers: corsHeaders }
       );
@@ -147,6 +154,25 @@ export const onRequestGet: PagesFunction = async (context) => {
       .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.message}`)
       .join('\n');
 
+    // 儀式完了後の判定：guardianが設定されている場合
+    // 儀式完了後は、APIの指示によりチャットをクリアし、会話はゼロからスタート
+    const isAfterRitual = !!user.guardian;
+    
+    // 今日の最初のユーザーメッセージを取得（儀式完了後の定型文で使用）
+    let firstQuestion: string | undefined = undefined;
+    if (isAfterRitual) {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+      const todayMessages = sortedConversations.filter((msg) => {
+        if (msg.role !== 'user') return false;
+        if (!msg.created_at) return false;
+        return msg.created_at.startsWith(todayStr);
+      });
+      if (todayMessages.length > 0) {
+        firstQuestion = todayMessages[0].message;
+      }
+    }
+
     return new Response(
       JSON.stringify({
         hasHistory: true,
@@ -158,6 +184,8 @@ export const onRequestGet: PagesFunction = async (context) => {
         lastConversationDate,
         recentMessages,
         conversationSummary: conversationText,
+        clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
+        firstQuestion: firstQuestion, // 最初の質問（儀式完了後の定型文で使用）
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

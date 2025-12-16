@@ -27,6 +27,7 @@ interface RequestBody {
   clientHistory?: ClientHistoryEntry[];
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;
+  ritualStart?: boolean; // 守護神の儀式開始通知フラグ
 }
 
 interface ResponseBody {
@@ -42,6 +43,7 @@ interface ResponseBody {
   remainingGuestMessages?: number;
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai';
+  clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
 }
 
 interface UserRecord {
@@ -725,8 +727,12 @@ export const onRequestPost: PagesFunction = async (context) => {
     const showTarotCard =
       characterId === 'yukino' && tarotKeywords.some((keyword) => responseMessage.includes(keyword));
 
-    // ===== 13. 会話履歴の保存（登録ユーザーの場合）=====
-    if (user) {
+    // ===== 13. 守護神の儀式開始通知の処理 =====
+    // ritualStartフラグがtrueの場合、チャットクリア指示を返す
+    const shouldClearChat = body.ritualStart === true;
+    
+    // ===== 14. 会話履歴の保存（登録ユーザーの場合、ただし儀式開始時は保存しない）=====
+    if (user && !shouldClearChat) {
       // 100件制限チェック
       const messageCountResult = await env.DB.prepare<{ count: number }>(
         `SELECT COUNT(*) as count 
@@ -794,7 +800,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       console.log('[consult] 会話履歴を保存しました');
     }
 
-    // ===== 14. レスポンスを返す =====
+    // ===== 15. レスポンスを返す =====
     return new Response(
       JSON.stringify({
         message: responseMessage,
@@ -809,6 +815,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           : Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1)),
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
+        clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

@@ -130,6 +130,11 @@ const ChatAPI = {
         if (options.migrateHistory) {
             payload.migrateHistory = true;
         }
+        
+        // 儀式開始フラグ（守護神の儀式の開催を通知）
+        if (options.ritualStart) {
+            payload.ritualStart = true;
+        }
 
         try {
             const response = await fetch('/api/consult', {
