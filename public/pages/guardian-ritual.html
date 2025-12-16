@@ -544,19 +544,20 @@
           guardianRevealImage.alt = guardian.name;
           
           // 画像の読み込みを待つ
-          guardianRevealImage.addEventListener('load', async () => {
+            guardianRevealImage.addEventListener('load', async () => {
             guardianReveal.classList.add('visible');
+            
+            // ローディングテキストを非表示（守護神の紹介表示前に非表示にする）
+            if (loadingText) {
+              loadingText.style.display = 'none';
+            }
+            
             if (guardianIntro && guardianIntroTitle && guardianIntroMessage) {
               guardianIntroTitle.textContent = `守護神：${guardian.name}`;
               guardianIntroMessage.textContent = guardian.message || 'あなたを見守る守護神です。';
               guardianIntro.classList.add('visible');
             }
             await new Promise(resolve => setTimeout(resolve, 3000));
-            
-            // ローディングテキストを非表示
-            if (loadingText) {
-              loadingText.style.display = 'none';
-            }
             
             resolve();
           }, { once: true });
