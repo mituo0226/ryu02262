@@ -216,8 +216,33 @@
       font-size: 20px;
       color: #cfaeff;
       z-index: 10;
+      text-align: center;
       text-shadow: 0 0 20px rgba(138, 43, 226, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
       animation: pulse-text 2s ease-in-out infinite;
+    }
+
+    .loading-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(207, 174, 255, 0.6);
+      box-shadow:
+        0 0 12px rgba(138, 43, 226, 0.4),
+        inset 0 0 12px rgba(138, 43, 226, 0.6);
+      animation: breathe 1.8s ease-in-out infinite;
+    }
+
+    .loading-main {
+      font-size: 20px;
+    }
+
+    .loading-sub {
+      font-size: 16px;
+      opacity: 0.8;
     }
 
     @keyframes pulse-text {
@@ -225,6 +250,17 @@
         opacity: 0.6;
       }
       50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(0.9);
+        opacity: 0.75;
+      }
+      50% {
+        transform: scale(1.08);
         opacity: 1;
       }
     }
@@ -330,7 +366,11 @@
     <div class="guardian-reveal" id="guardianReveal">
       <img class="guardian-reveal-image" id="guardianRevealImage" src="" alt="守護神">
     </div>
-    <div class="loading-text" id="loadingText">儀式を執り行っています...</div>
+    <div class="loading-text" id="loadingText">
+      <div class="loading-icon"></div>
+      <div class="loading-main">儀式を執り行っています...</div>
+      <div class="loading-sub">もうすぐ結果が表示されます</div>
+    </div>
   </div>
 
   <!-- 結果表示エリア -->
