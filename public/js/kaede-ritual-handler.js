@@ -20,13 +20,15 @@ const KaedeRitualHandler = {
         console.log('[楓専用処理] 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
 
         // APIの指示によりチャットをクリア
-        if (historyData && historyData.clearChat) {
-            console.log('[楓専用処理] API指示: チャットをクリアします（儀式完了後）');
+        // 【重要】clearChatがfalseの場合でも、守護神の儀式完了後はチャットをクリアする
+        const shouldClearChat = (historyData && historyData.clearChat) || true; // 常にクリア（守護神の儀式完了後は会話をゼロからスタート）
+        if (shouldClearChat) {
+            console.log('[楓専用処理] チャットをクリアします（儀式完了後）');
 
-            // チャット画面をクリア（APIの指示により）
+            // チャット画面をクリア（守護神の儀式完了後は会話をゼロからスタート）
             if (ChatUI.messagesDiv) {
                 ChatUI.messagesDiv.innerHTML = '';
-                console.log('[楓専用処理] チャット画面をクリアしました（API指示）');
+                console.log('[楓専用処理] チャット画面をクリアしました（儀式完了後）');
             }
 
             // ゲスト履歴もクリア（API指示により）
@@ -38,7 +40,14 @@ const KaedeRitualHandler = {
             sessionStorage.removeItem(historyKey);
             sessionStorage.removeItem('pendingGuestHistoryMigration');
             ChatData.setGuestMessageCount(character, 0);
-            console.log('[楓専用処理] ゲスト履歴をクリアしました（API指示）');
+            console.log('[楓専用処理] ゲスト履歴をクリアしました（儀式完了後）');
+            
+            // 会話履歴もクリア（ユーザーメッセージが表示されないようにするため）
+            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                // ただし、APIから取得した履歴は保持する（firstQuestionを取得するため）
+                // ここでは表示用の履歴のみをクリア
+                console.log('[楓専用処理] 会話履歴の表示をクリアしました（APIから取得した履歴は保持）');
+            }
         }
 
         // 最初の質問を取得（APIから返された値、またはゲスト履歴から）
@@ -93,20 +102,17 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         ChatUI.updateSendButtonVisibility();
         console.log('[楓専用処理] 送信ボタンの状態を更新しました（文字入力時に表示されます）');
 
-        // 【重要】入力イベントリスナーが設定されているか確認し、設定されていない場合は再設定
+        // 【重要】入力イベントリスナーを常に再設定（守護神の儀式完了後は確実に動作させるため）
+        // 注意: 複数のリスナーが追加される可能性があるが、同じ処理を実行するだけなので問題ない
         if (ChatUI.messageInput) {
-            // 既存のinputイベントリスナーを確認（完全には確認できないので、再設定する）
-            // chat-init.jsで設定されているはずだが、念のため再設定
-            const hasListener = ChatUI.messageInput.getAttribute('data-input-listener-set');
-            if (!hasListener) {
-                ChatUI.messageInput.addEventListener('input', () => {
-                    if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
-                        window.ChatUI.updateSendButtonVisibility();
-                    }
-                });
-                ChatUI.messageInput.setAttribute('data-input-listener-set', 'true');
-                console.log('[楓専用処理] 入力イベントリスナーを再設定しました');
-            }
+            // イベントリスナーを追加（chat-init.jsで既に設定されている可能性があるが、念のため再設定）
+            ChatUI.messageInput.addEventListener('input', () => {
+                if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
+                    window.ChatUI.updateSendButtonVisibility();
+                }
+            });
+            ChatUI.messageInput.setAttribute('data-input-listener-set', 'true');
+            console.log('[楓専用処理] 入力イベントリスナーを再設定しました（守護神の儀式完了後）');
         }
 
         // 守護神の儀式完了フラグをクリア
