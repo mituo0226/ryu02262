@@ -297,6 +297,46 @@
       opacity: 0.9;
     }
 
+    /* 守護神導出待ちメッセージのアニメーション */
+    .guardian-coming-soon {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      color: #ffd700;
+      text-align: center;
+      z-index: 12;
+      opacity: 0;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+      animation: guardian-coming-pulse 2s ease-in-out infinite;
+    }
+
+    .guardian-coming-soon.visible {
+      opacity: 1;
+      animation: guardian-coming-pulse 2s ease-in-out infinite, guardian-coming-fade 3s ease-in-out infinite;
+    }
+
+    @keyframes guardian-coming-pulse {
+      0%, 100% {
+        transform: translateX(-50%) scale(1);
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+      }
+      50% {
+        transform: translateX(-50%) scale(1.05);
+        text-shadow: 0 0 30px rgba(255, 215, 0, 1);
+      }
+    }
+
+    @keyframes guardian-coming-fade {
+      0%, 100% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
     .guardian-intro {
       position: absolute;
       bottom: 12%;
@@ -412,6 +452,11 @@
         font-size: 18px;
         bottom: 15%;
       }
+
+      .guardian-coming-soon {
+        font-size: 18px;
+        bottom: 10%;
+      }
     }
 
     /* 縦長スマホ対応 */
@@ -436,6 +481,11 @@
 
       .loading-text {
         font-size: 16px;
+      }
+
+      .guardian-coming-soon {
+        font-size: 16px;
+        bottom: 8%;
       }
     }
   </style>
@@ -655,8 +705,21 @@
       const message = `${nickname}さん、あなたの守護神は${guardian.name}です。\nこれより${guardian.name}と共に鑑定を開始します`;
       await typeWriter(message, messageText, 80);
       
-      // メッセージ表示完了後、3秒待機
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // メッセージ表示完了後、少し待ってから「もうすぐ守護神が導き出されます」を表示
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const comingSoonMessage = document.createElement('div');
+      comingSoonMessage.className = 'guardian-coming-soon';
+      comingSoonMessage.textContent = 'もうすぐ守護神が導き出されます...';
+      ritualOverlay.appendChild(comingSoonMessage);
+      
+      // アニメーションを開始
+      requestAnimationFrame(() => {
+        comingSoonMessage.classList.add('visible');
+      });
+      
+      // 残りの待機時間（合計3秒になるように調整）
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     /**
