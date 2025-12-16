@@ -214,6 +214,15 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                         console.log('[登録完了処理] メッセージ入力欄をクリアしました');
                     }
                     
+                    // 送信ボタンの表示を更新（入力欄が空なので非表示になる）
+                    ChatUI.updateSendButtonVisibility();
+                    
+                    // 送信ボタンを有効化（儀式完了後は送信可能にする）
+                    if (ChatUI.sendButton) {
+                        ChatUI.sendButton.disabled = false;
+                        console.log('[登録完了処理] 送信ボタンを有効化しました');
+                    }
+                    
                     // 守護神の儀式完了フラグをクリア
                     sessionStorage.removeItem('acceptedGuardianRitual');
                     sessionStorage.removeItem('ritualCompleted');
@@ -1450,7 +1459,17 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             const ritualStartMessage = 'それではこれより守護神のイベントを開始いたします。\n画面が切り替わりますので、儀式を体験してください。';
             
             console.log('[守護神の儀式] 儀式開始前のメッセージを表示:', ritualStartMessage);
+            
+            // メッセージを確実に表示するため、DOM更新を待つ
             ChatUI.addMessage('character', ritualStartMessage, characterName);
+            
+            // DOM更新を待つ
+            await new Promise(resolve => requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            }));
+            
+            // スクロールしてメッセージを表示
+            ChatUI.scrollToLatest();
             
             // 会話履歴に追加（ただし、データベースには保存しない）
             conversationHistory.push({ role: 'assistant', content: ritualStartMessage });
@@ -1463,8 +1482,6 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 // ChatData.conversationHistory.recentMessages = conversationHistory;
                 console.log('[守護神の儀式] 儀式開始メッセージはデータベースに保存しません（一時メッセージ）');
             }
-            
-            ChatUI.scrollToLatest();
             
             // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
             await this.delay(2000); // 2秒待つ（ユーザーがメッセージを読む時間を確保）
