@@ -732,42 +732,15 @@ const ChatInit = {
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 
-                // 守護神の儀式に関するメッセージの場合、ボタンを追加
-                // 【非表示化】ゲストユーザーのフェーズ5で表示される「守護神の儀式を開始する」ボタンは表示しない
-                // 「ニックネームと生年月日を入力」という言葉が実際にメッセージに含まれている場合のみボタンを表示
-                // 太字マークダウン（**）が含まれている可能性があるため、両方をチェック
-                // または「それでは守護神の儀式を始めます」というメッセージの後にボタンを追加
-                // 以下のコードは非表示化のためコメントアウト
-                /*
-                const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
-                                             responseText.includes('**ニックネームと生年月日を入力**');
-                if (hasRegistrationInput || responseText.includes('それでは守護神の儀式を始めます')) {
-                    console.log('[API応答] 守護神の儀式に関するメッセージを検出。ボタンを追加します。', {
-                        hasRegistrationInput: responseText.includes('ニックネームと生年月日を入力'),
-                        hasRitualStart: responseText.includes('それでは守護神の儀式を始めます'),
-                        messagePreview: responseText.substring(0, 100) + '...'
-                    });
-                    // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
-                    setTimeout(() => {
-                        const messageElement = messageId ? document.getElementById(messageId) : null;
-                        if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
-                            ChatUI.addRitualStartButton(messageElement, async () => {
-                                console.log('[守護神の儀式] ボタンがクリックされました');
-                                
-                                // 【重要】守護神の鑑定を受け入れたフラグを保存
-                                // ゲストユーザーが登録画面にリダイレクトされる場合に使用
-                                sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                                console.log('[守護神の儀式] acceptedGuardianRitualフラグを保存しました');
-                                
-                                const ChatInitInstance = window.ChatInit || this;
-                                if (ChatInitInstance && typeof ChatInitInstance.startGuardianRitual === 'function') {
-                                    await ChatInitInstance.startGuardianRitual(character);
-                                }
-                            });
-                        }
-                    }, 1000); // メッセージが完全に表示されるまで1秒待つ
+                // 楓専用の処理：守護神の儀式開始ボタンを追加
+                // 「ニックネームと生年月日を入力」という言葉を検知したときにボタンを表示
+                if (character === 'kaede' && window.KaedeRitualHandler) {
+                    window.KaedeRitualHandler.addRitualStartButtonToMessageIfNeeded(
+                        responseText,
+                        messageId,
+                        character
+                    );
                 }
-                */
                 
                 // ゲストユーザーの場合、registrationSuggestedをチェック
                 console.log('[API応答] registrationSuggestedチェック:', {

@@ -397,6 +397,67 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
             return true; // 処理完了
         }
+    },
+
+    /**
+     * API応答メッセージに守護神の儀式開始ボタンを追加（楓専用）
+     * 「ニックネームと生年月日を入力」という言葉を検知したときにボタンを表示
+     * @param {string} responseText - API応答メッセージ
+     * @param {string} messageId - メッセージ要素のID
+     * @param {string} character - キャラクターID（'kaede'）
+     * @returns {boolean} ボタンが追加されたかどうか
+     */
+    addRitualStartButtonToMessageIfNeeded(responseText, messageId, character) {
+        if (character !== 'kaede') {
+            return false; // 楓以外は処理しない
+        }
+
+        // 「ニックネームと生年月日を入力」という言葉を検知
+        const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
+                                     responseText.includes('**ニックネームと生年月日を入力**') ||
+                                     responseText.includes('生年月日を入力');
+
+        if (hasRegistrationInput) {
+            console.log('[楓専用処理] 「ニックネームと生年月日を入力」を検出。守護神の儀式開始ボタンを追加します。', {
+                hasRegistrationInput,
+                messagePreview: responseText.substring(0, 100) + '...'
+            });
+
+            // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
+            setTimeout(() => {
+                const messageElement = messageId ? document.getElementById(messageId) : null;
+                if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
+                    ChatUI.addRitualStartButton(messageElement, async () => {
+                        console.log('[楓専用処理] 守護神の儀式開始ボタンがクリックされました');
+
+                        // 【重要】守護神の鑑定を受け入れたフラグを保存
+                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                        console.log('[楓専用処理] acceptedGuardianRitualフラグを保存しました');
+
+                        // 楓専用のhandleRitualConsentを呼び出す
+                        if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
+                            await window.KaedeRitualHandler.handleRitualConsent(true);
+                        } else {
+                            // フォールバック: 直接startGuardianRitualを呼び出す
+                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                                await window.ChatInit.startGuardianRitual(character);
+                            }
+                        }
+                    });
+                    console.log('[楓専用処理] 守護神の儀式開始ボタンを追加しました');
+                } else {
+                    console.warn('[楓専用処理] メッセージ要素またはaddRitualStartButtonが見つかりません', {
+                        messageId,
+                        messageElement: !!messageElement,
+                        hasAddRitualStartButton: typeof ChatUI.addRitualStartButton === 'function'
+                    });
+                }
+            }, 1000); // メッセージが完全に表示されるまで1秒待つ
+
+            return true; // ボタンが追加された
+        }
+
+        return false; // ボタンは追加されなかった
     }
 };
 
