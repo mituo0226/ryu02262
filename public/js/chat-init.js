@@ -200,6 +200,12 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                     // フラグをsessionStorageに保存
                     sessionStorage.setItem('guardianMessageShown', 'true');
                     
+                    // メッセージ入力欄をクリア（守護神の儀式完了後に残っているメッセージを削除）
+                    if (ChatUI.messageInput) {
+                        ChatUI.messageInput.value = '';
+                        console.log('[登録完了処理] メッセージ入力欄をクリアしました');
+                    }
+                    
                     // 守護神の儀式完了フラグをクリア
                     sessionStorage.removeItem('acceptedGuardianRitual');
                     sessionStorage.removeItem('ritualCompleted');
@@ -447,7 +453,22 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             // ゲスト履歴を表示
             if (guestHistory.length > 0) {
                 const info = ChatData.characterInfo[character];
-                guestHistory.forEach((entry) => {
+                // 守護神の儀式完了直後（guardianMessageShown）の場合、最新のユーザーメッセージを除外
+                let displayHistory = guestHistory;
+                if (guardianMessageShown) {
+                    // 最新のユーザーメッセージを探して除外（最後から逆順に検索）
+                    const filteredHistory = [...guestHistory];
+                    for (let i = filteredHistory.length - 1; i >= 0; i--) {
+                        if (filteredHistory[i] && filteredHistory[i].role === 'user') {
+                            console.log('[ゲスト履歴表示] 守護神の儀式完了直後のため、最新のユーザーメッセージを除外:', filteredHistory[i].content.substring(0, 50) + '...');
+                            filteredHistory.splice(i, 1);
+                            break; // 最初に見つかったユーザーメッセージを削除したら終了
+                        }
+                    }
+                    displayHistory = filteredHistory;
+                }
+                
+                displayHistory.forEach((entry) => {
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     ChatUI.addMessage(type, entry.content, sender);
@@ -484,6 +505,20 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             if (historyData && historyData.hasHistory) {
                 ChatData.conversationHistory = historyData;
                 ChatData.userNickname = historyData.nickname || ChatData.userNickname;
+                
+                // 守護神の儀式完了直後（guardianMessageShown）の場合、会話履歴から最新のユーザーメッセージを除外
+                // （ユーザーが最後に入力したメッセージが表示されないようにするため）
+                if (guardianMessageShown && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                    const recentMessages = ChatData.conversationHistory.recentMessages;
+                    // 最新のユーザーメッセージを探して除外
+                    for (let i = recentMessages.length - 1; i >= 0; i--) {
+                        if (recentMessages[i] && recentMessages[i].role === 'user') {
+                            console.log('[会話履歴読み込み] 守護神の儀式完了直後のため、最新のユーザーメッセージを除外:', recentMessages[i].content.substring(0, 50) + '...');
+                            recentMessages.splice(i, 1);
+                            break; // 最初に見つかったユーザーメッセージを削除したら終了
+                        }
+                    }
+                }
                 
                 // 守護神確認メッセージがpendingGuardianMessageに保存されている場合、会話履歴に追加
                 const pendingGuardianMessage = sessionStorage.getItem('pendingGuardianMessage');
