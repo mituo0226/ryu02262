@@ -294,6 +294,95 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             // 会話履歴の読み込み後の処理は続行（初期メッセージの表示など）
             return false; // 処理は続行
         }
+    },
+
+    /**
+     * 守護神の儀式への同意処理（楓専用）
+     * @param {boolean} consent - 同意するかどうか
+     * @returns {Promise<boolean>} 処理が完了したかどうか（true: 処理完了、false: 処理しない）
+     */
+    async handleRitualConsent(consent) {
+        const character = ChatData.currentCharacter;
+        if (character !== 'kaede') {
+            return false; // 楓以外は処理しない
+        }
+
+        ChatUI.hideRitualConsentButtons();
+
+        // フラグをリセット（一度処理したので、再度表示されないようにする）
+        ChatData.ritualConsentShown = true;
+
+        if (consent) {
+            // 「はい」を押した場合 - APIに守護神の儀式の開催を通知
+            const characterName = ChatData.characterInfo[character]?.name || '楓';
+
+            console.log('[楓専用処理] APIに儀式開始を通知します');
+
+            try {
+                // APIに儀式開始を通知（特別なメッセージを送信）
+                const ritualStartMessage = '守護神の儀式を開始します';
+                const guestHistory = ChatData.getGuestHistory(character) || [];
+                const conversationHistory = guestHistory.map(entry => ({
+                    role: entry.role || 'user',
+                    content: entry.content || entry.message || ''
+                }));
+
+                // APIに送信（儀式開始の通知）
+                const response = await ChatAPI.sendMessage(
+                    ritualStartMessage,
+                    character,
+                    conversationHistory,
+                    {
+                        guestMetadata: { messageCount: ChatData.getGuestMessageCount(character) },
+                        ritualStart: true // 儀式開始のフラグ
+                    }
+                );
+
+                console.log('[楓専用処理] API応答:', response);
+
+                // APIの指示に従ってチャットをクリア
+                if (response && response.clearChat) {
+                    console.log('[楓専用処理] API指示: チャットをクリアします');
+
+                    // チャット画面をクリア（APIの指示により）
+                    if (ChatUI.messagesDiv) {
+                        ChatUI.messagesDiv.innerHTML = '';
+                        console.log('[楓専用処理] チャット画面をクリアしました（API指示）');
+                    }
+
+                    // ゲスト履歴もクリア（API指示により）
+                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                        AuthState.clearGuestHistory(character);
+                    }
+                    const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                    const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                    sessionStorage.removeItem(historyKey);
+                    ChatData.setGuestMessageCount(character, 0);
+                    console.log('[楓専用処理] ゲスト履歴をクリアしました（API指示）');
+                }
+
+                // acceptedGuardianRitualフラグを保存（登録後に使用）
+                sessionStorage.setItem('acceptedGuardianRitual', 'true');
+
+                // ゲストユーザーの場合は登録画面に遷移（登録後に儀式が開始される）
+                console.log('[楓専用処理] 登録画面に遷移します（登録後に儀式が開始されます）');
+                ChatInit.openRegistrationModal();
+
+                return true; // 処理完了
+            } catch (error) {
+                console.error('[楓専用処理] API通知エラー:', error);
+                // エラー時は従来の処理にフォールバック
+                ChatUI.addMessage('error', 'エラーが発生しました。登録画面に遷移します。', 'システム');
+                setTimeout(() => {
+                    ChatInit.openRegistrationModal();
+                }, 2000);
+                return true; // 処理完了
+            }
+        } else {
+            // 「いいえ」を押した場合
+            ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
+            return true; // 処理完了
+        }
     }
 };
 

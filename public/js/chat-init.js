@@ -1050,76 +1050,31 @@ const ChatInit = {
      * @param {boolean} consent - 同意するかどうか
      */
     async handleRitualConsent(consent) {
+        const character = ChatData.currentCharacter;
+        
+        // 楓専用の処理を独立したファイルから呼び出す
+        if (character === 'kaede' && window.KaedeRitualHandler) {
+            const handled = await window.KaedeRitualHandler.handleRitualConsent(consent);
+            if (handled) {
+                return; // 楓専用の処理が完了した
+            }
+        }
+        
+        // 楓以外、またはKaedeRitualHandlerが存在しない場合のフォールバック処理
         ChatUI.hideRitualConsentButtons();
         
         // フラグをリセット（一度処理したので、再度表示されないようにする）
         ChatData.ritualConsentShown = true;
         
         if (consent) {
-            // 「はい」を押した場合 - APIに守護神の儀式の開催を通知
-            const character = ChatData.currentCharacter;
-            const characterName = ChatData.characterInfo[character]?.name || '楓';
+            // 「はい」を押した場合
+            const characterName = ChatData.characterInfo[character]?.name || '鑑定士';
+            ChatUI.addMessage('character', 'ユーザー登録をすることにより、守護神の儀式を進めます', characterName);
             
-            console.log('[守護神の儀式承認] APIに儀式開始を通知します');
-            
-            try {
-                // APIに儀式開始を通知（特別なメッセージを送信）
-                const ritualStartMessage = '守護神の儀式を開始します';
-                const guestHistory = ChatData.getGuestHistory(character) || [];
-                const conversationHistory = guestHistory.map(entry => ({
-                    role: entry.role || 'user',
-                    content: entry.content || entry.message || ''
-                }));
-                
-                // APIに送信（儀式開始の通知）
-                const response = await ChatAPI.sendMessage(
-                    ritualStartMessage,
-                    character,
-                    conversationHistory,
-                    {
-                        guestMetadata: { messageCount: ChatData.getGuestMessageCount(character) },
-                        ritualStart: true // 儀式開始のフラグ
-                    }
-                );
-                
-                console.log('[守護神の儀式承認] API応答:', response);
-                
-                // APIの指示に従ってチャットをクリア
-                if (response && response.clearChat) {
-                    console.log('[守護神の儀式承認] API指示: チャットをクリアします');
-                    
-                    // チャット画面をクリア（APIの指示により）
-                    if (ChatUI.messagesDiv) {
-                        ChatUI.messagesDiv.innerHTML = '';
-                        console.log('[守護神の儀式承認] チャット画面をクリアしました（API指示）');
-                    }
-                    
-                    // ゲスト履歴もクリア（API指示により）
-                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                        AuthState.clearGuestHistory(character);
-                    }
-                    const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-                    const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-                    sessionStorage.removeItem(historyKey);
-                    ChatData.setGuestMessageCount(character, 0);
-                    console.log('[守護神の儀式承認] ゲスト履歴をクリアしました（API指示）');
-                }
-                
-                // acceptedGuardianRitualフラグを保存（登録後に使用）
-                sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                
-                // ゲストユーザーの場合は登録画面に遷移（登録後に儀式が開始される）
-                console.log('[守護神の儀式承認] 登録画面に遷移します（登録後に儀式が開始されます）');
+            // メッセージを表示した後、少し待ってから登録画面に遷移
+            setTimeout(() => {
                 this.openRegistrationModal();
-                
-            } catch (error) {
-                console.error('[守護神の儀式承認] API通知エラー:', error);
-                // エラー時は従来の処理にフォールバック
-                ChatUI.addMessage('error', 'エラーが発生しました。登録画面に遷移します。', 'システム');
-                setTimeout(() => {
-                    this.openRegistrationModal();
-                }, 2000);
-            }
+            }, 2000);
         } else {
             // 「いいえ」を押した場合
             ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
