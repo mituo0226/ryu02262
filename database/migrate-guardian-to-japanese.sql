@@ -10,3 +10,5 @@ UPDATE users SET guardian = '不動明王' WHERE guardian = 'fudo';
 -- 確認
 SELECT id, nickname, guardian FROM users ORDER BY id;
 
+
+
