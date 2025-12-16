@@ -218,6 +218,59 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             const userNickname = localStorage.getItem('userNickname') || 'あなた';
             const guardianName = assignedDeity;
 
+            // 【重要】ゲスト履歴をデータベースに移行（登録直後の場合）
+            // この処理は非同期なので、awaitせずにバックグラウンドで実行
+            const acceptedRitual = sessionStorage.getItem('acceptedGuardianRitual') === 'true';
+            if (acceptedRitual) {
+                console.log('[楓専用処理] ゲスト履歴のデータベース移行を開始します');
+                
+                // ゲスト履歴を取得
+                let guestHistory = [];
+                const pendingHistory = sessionStorage.getItem('pendingRitualGuestHistory');
+                if (pendingHistory) {
+                    try {
+                        const data = JSON.parse(pendingHistory);
+                        guestHistory = data.history || [];
+                    } catch (e) {
+                        console.error('[楓専用処理] pendingRitualGuestHistory解析エラー:', e);
+                    }
+                }
+                
+                if (guestHistory.length === 0) {
+                    // フォールバック: ChatDataから取得
+                    guestHistory = (window.ChatData && typeof window.ChatData.getGuestHistory === 'function')
+                        ? window.ChatData.getGuestHistory(character) || []
+                        : [];
+                }
+                
+                if (guestHistory.length > 0) {
+                    const conversationHistory = guestHistory.map(entry => ({
+                        role: entry.role || 'user',
+                        content: entry.content || entry.message || ''
+                    }));
+                    
+                    console.log('[楓専用処理] ゲスト履歴をデータベースに移行:', conversationHistory.length, '件');
+                    
+                    // 非同期でAPI呼び出し（処理を待たない）
+                    (async () => {
+                        try {
+                            await window.ChatAPI.sendMessage(
+                                '守護神の儀式を開始します',
+                                character,
+                                conversationHistory,
+                                {
+                                    migrateHistory: true,
+                                    ritualStart: true
+                                }
+                            );
+                            console.log('[楓専用処理] ゲスト履歴のデータベース移行が完了しました');
+                        } catch (error) {
+                            console.error('[楓専用処理] ゲスト履歴のデータベース移行に失敗:', error);
+                        }
+                    })();
+                }
+            }
+
             // 【重要】guardianMessageShownフラグは、handleGuardianRitualCompletionで定型文表示後に設定される
             // ここで先に設定すると、他の処理で「既に表示済み」と誤判定される可能性があるため削除
 
@@ -470,6 +523,13 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
                 // acceptedGuardianRitualフラグを保存（登録後に使用）
                 sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                
+                // 【重要】最初のユーザーメッセージをsessionStorageに保存（登録後に使用）
+                const firstUserMessage = conversationHistory.find(msg => msg.role === 'user');
+                if (firstUserMessage && firstUserMessage.content) {
+                    sessionStorage.setItem('firstQuestionBeforeRitual', firstUserMessage.content);
+                    console.log('[楓専用処理] 最初の質問をsessionStorageに保存:', firstUserMessage.content.substring(0, 50) + '...');
+                }
 
                 // ゲストユーザーの場合は登録画面に遷移（登録後に儀式が開始される）
                 console.log('[楓専用処理] 登録画面に遷移します（登録後に儀式が開始されます）');
