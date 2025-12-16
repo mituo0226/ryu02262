@@ -689,19 +689,11 @@ const ChatInit = {
                 messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
             }
             
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:695',message:'APIリクエスト前のメッセージカウント確認',data:{character:character,isGuest:isGuest,messageCountForAPI:messageCountForAPI,historyLength:conversationHistory.length,userMessagesInHistory:conversationHistory.filter(msg => msg && msg.role === 'user').length,expectedPhaseAfterAPI:messageCountForAPI + 1 === 1 ? 'フェーズ1' : messageCountForAPI + 1 === 2 ? 'フェーズ2' : messageCountForAPI + 1 === 3 ? 'フェーズ3' : 'フェーズ4'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
-            
             // APIリクエストのオプション
             // guestMetadata.messageCount は「これまでのメッセージ数（今回送信するメッセージを含まない）」
             const options = {
                 guestMetadata: isGuest ? { messageCount: messageCountForAPI } : undefined
             };
-            
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:702',message:'APIリクエスト送信',data:{character:character,message:messageToSend.substring(0,50)+'...',guestMetadata:options.guestMetadata,historyLength:conversationHistory.length,expectedPhaseAfterAPI:messageCountForAPI + 1 === 1 ? 'フェーズ1' : messageCountForAPI + 1 === 2 ? 'フェーズ2' : messageCountForAPI + 1 === 3 ? 'フェーズ3' : 'フェーズ4'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             
             // APIリクエストを送信
             const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
@@ -720,10 +712,6 @@ const ChatInit = {
                 if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
                 return;
             }
-            
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:717',message:'API応答受信',data:{character:character,messageCountForAPI:messageCountForAPI,expectedPhaseAfterAPI:messageCountForAPI + 1 === 1 ? 'フェーズ1' : messageCountForAPI + 1 === 2 ? 'フェーズ2' : messageCountForAPI + 1 === 3 ? 'フェーズ3' : 'フェーズ4',responseLength:response.message ? response.message.length : 0,responsePreview:response.message ? response.message.substring(0,100)+'...' : 'なし',hasThreeChoices:response.message ? /(家族|理想|経済|穏やか|笑い合う|相手|余裕)/.test(response.message) : false,registrationSuggested:response.registrationSuggested},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             
             // 応答メッセージを表示
             const characterName = ChatData.characterInfo[character]?.name || character;
