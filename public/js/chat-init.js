@@ -580,6 +580,13 @@ const ChatInit = {
         // ただし、会話履歴には先に追加する必要がある（APIが認識できるように）
         const messageToSend = message;
         
+        // 【重要】ユーザーメッセージを送信時点で即座に表示（ユーザーが送信を確認できるように）
+        if (!skipUserMessage) {
+            ChatUI.addMessage('user', messageToSend, 'あなた');
+            await this.delay(100);
+            ChatUI.scrollToLatest();
+        }
+        
         ChatUI.messageInput.value = '';
         ChatUI.updateSendButtonVisibility();
         // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
@@ -735,11 +742,19 @@ const ChatInit = {
                 }
             }
             
-            // ユーザーメッセージを表示（条件が満たされた場合のみ）
-            if (shouldShowUserMessage) {
-                ChatUI.addMessage('user', messageToSend, 'あなた');
-                await this.delay(100);
-                ChatUI.scrollToLatest();
+            // ユーザーメッセージは既に送信時に表示済み（588行目付近）
+            // 「ニックネームと生年月日を入力」が含まれる場合は、表示されたユーザーメッセージを削除
+            if (!shouldShowUserMessage && !skipUserMessage) {
+                // 最後のユーザーメッセージを削除
+                const userMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+                if (userMessages.length > 0) {
+                    const lastUserMessage = userMessages[userMessages.length - 1];
+                    const messageText = lastUserMessage.querySelector('div:last-child')?.textContent?.trim();
+                    if (messageText === messageToSend) {
+                        lastUserMessage.remove();
+                        console.log('[楓専用処理] ユーザーメッセージを削除しました:', messageToSend);
+                    }
+                }
             }
             
             const messageId = ChatUI.addMessage('character', responseText, characterName);
