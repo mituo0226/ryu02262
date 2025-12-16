@@ -826,6 +826,13 @@ const ChatInit = {
         const lastUserMessage = sessionStorage.getItem('lastUserMessage');
         const consultResponse = sessionStorage.getItem('lastConsultResponse');
         const consultError = sessionStorage.getItem('lastConsultError');
+        
+        // 【重要】守護神の儀式完了後（guardianMessageShownフラグが設定されている場合）は、lastUserMessageを表示しない
+        const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+        if (guardianMessageShown && lastUserMessage) {
+            console.log('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを表示しません。');
+            sessionStorage.removeItem('lastUserMessage');
+        }
 
         if (consultError) {
             ChatUI.addMessage('error', `エラーが発生しました: ${consultError}`, 'システム');
@@ -834,7 +841,7 @@ const ChatInit = {
             return;
         }
 
-        if (lastUserMessage) {
+        if (lastUserMessage && !guardianMessageShown) {
             try {
                 const userMsgData = JSON.parse(lastUserMessage);
                 const messageToCheck = userMsgData.message.trim();

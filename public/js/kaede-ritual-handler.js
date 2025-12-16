@@ -125,9 +125,11 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         // 守護神の儀式完了フラグをクリア
         sessionStorage.removeItem('acceptedGuardianRitual');
         sessionStorage.removeItem('ritualCompleted');
+        // 【重要】lastUserMessageをクリア（handleReturnFromAnimationでユーザーメッセージが表示されないようにするため）
+        sessionStorage.removeItem('lastUserMessage');
         // 【重要】guardianMessageShownフラグを設定（会話履歴が表示されないようにするため）
         sessionStorage.setItem('guardianMessageShown', 'true');
-        console.log('[楓専用処理] ritualCompletedフラグとacceptedGuardianRitualフラグをクリアしました。guardianMessageShownフラグを設定しました。');
+        console.log('[楓専用処理] ritualCompletedフラグとacceptedGuardianRitualフラグをクリアしました。lastUserMessageもクリアしました。guardianMessageShownフラグを設定しました。');
 
         return true; // 処理完了
     },
