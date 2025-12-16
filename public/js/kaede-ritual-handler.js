@@ -175,14 +175,23 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         // 【重要】入力イベントリスナーを常に再設定（守護神の儀式完了後は確実に動作させるため）
         // 注意: 複数のリスナーが追加される可能性があるが、同じ処理を実行するだけなので問題ない
         if (ChatUI.messageInput) {
-            // イベントリスナーを追加（chat-init.jsで既に設定されている可能性があるが、念のため再設定）
+            // Enterキーのイベントリスナーを追加（chat-init.jsで既に設定されている可能性があるが、念のため再設定）
+            ChatUI.messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    window.sendMessage();
+                }
+            });
+            
+            // inputイベントリスナーを追加
             ChatUI.messageInput.addEventListener('input', () => {
                 if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
                     window.ChatUI.updateSendButtonVisibility();
                 }
             });
+            
             ChatUI.messageInput.setAttribute('data-input-listener-set', 'true');
-            console.log('[楓専用処理] 入力イベントリスナーを再設定しました（守護神の儀式完了後）');
+            console.log('[楓専用処理] 入力イベントリスナー（keydown/input）を再設定しました（守護神の儀式完了後）');
         }
 
         // 守護神の儀式完了フラグをクリア
