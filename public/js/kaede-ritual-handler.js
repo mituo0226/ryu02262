@@ -87,11 +87,22 @@ const KaedeRitualHandler = {
         console.log('[楓専用処理] 【検証】historyData.recentMessages件数:', historyData?.recentMessages?.length || 0);
         
         let firstQuestion = '';
-        if (historyData && historyData.firstQuestion) {
+        
+        // 優先順位1: sessionStorageから取得（儀式開始前に保存された最初の質問）
+        const savedFirstQuestion = sessionStorage.getItem('firstQuestionBeforeRitual');
+        if (savedFirstQuestion) {
+            firstQuestion = savedFirstQuestion.trim();
+            console.log('[楓専用処理] ✓ sessionStorageからfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
+            // 使用後は削除
+            sessionStorage.removeItem('firstQuestionBeforeRitual');
+        }
+        // 優先順位2: APIから取得
+        else if (historyData && historyData.firstQuestion) {
             firstQuestion = historyData.firstQuestion.trim();
             console.log('[楓専用処理] ✓ APIからfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
-        } else {
-            // APIから取得できない場合は、ゲスト履歴から取得
+        }
+        // 優先順位3: ゲスト履歴から取得
+        else {
             console.log('[楓専用処理] APIからfirstQuestionが取得できませんでした。ゲスト履歴を確認します。');
             const guestHistory = (window.ChatInit && typeof window.ChatInit.getGuestHistoryForMigration === 'function') 
                 ? window.ChatInit.getGuestHistoryForMigration(character)

@@ -1146,7 +1146,7 @@ const ChatInit = {
             return;
         }
         
-        // 【登録ユーザーの場合のみ、以下の処理を実行】
+            // 【登録ユーザーの場合のみ、以下の処理を実行】
         console.log('[守護神の儀式] 登録ユーザーとして儀式を開始します');
         
         // 送信ボタンを無効化
@@ -1159,6 +1159,7 @@ const ChatInit = {
             
             // 会話履歴の決定（優先順位順）
             let conversationHistory = [];
+            let needsMigration = false; // ゲスト履歴の移行が必要かどうか
             
             // 1. 登録ユーザーの会話履歴がある場合はそれを使用
             if (historyData && historyData.hasHistory && historyData.recentMessages && historyData.recentMessages.length > 0) {
@@ -1174,9 +1175,11 @@ const ChatInit = {
                     role: entry.role || 'user',
                     content: entry.content || entry.message || ''
                 }));
+                needsMigration = true; // ゲスト履歴をデータベースに移行する必要がある
                 console.log('[守護神の儀式] ゲスト会話履歴を使用:', conversationHistory.length, {
                     userMessages: conversationHistory.filter(msg => msg.role === 'user').length,
-                    assistantMessages: conversationHistory.filter(msg => msg.role === 'assistant').length
+                    assistantMessages: conversationHistory.filter(msg => msg.role === 'assistant').length,
+                    needsMigration: needsMigration
                 });
             } 
             // 3. どちらもない場合は空配列
@@ -1186,6 +1189,35 @@ const ChatInit = {
             }
             
             console.log('[守護神の儀式] 使用する会話履歴:', conversationHistory);
+            
+            // 【重要】ゲスト履歴の移行が必要な場合は、ダミーメッセージを送信してデータベースに保存
+            if (needsMigration && conversationHistory.length > 0) {
+                console.log('[守護神の儀式] ゲスト履歴をデータベースに移行します:', conversationHistory.length, '件');
+                
+                // 最初のユーザーメッセージを取得してsessionStorageに保存
+                const firstUserMessage = conversationHistory.find(msg => msg.role === 'user');
+                if (firstUserMessage && firstUserMessage.content) {
+                    sessionStorage.setItem('firstQuestionBeforeRitual', firstUserMessage.content);
+                    console.log('[守護神の儀式] 最初の質問をsessionStorageに保存:', firstUserMessage.content.substring(0, 50) + '...');
+                }
+                
+                try {
+                    // ダミーメッセージを送信（守護神の儀式開始を通知）
+                    await ChatAPI.sendMessage(
+                        '守護神の儀式を開始します',
+                        character,
+                        conversationHistory,
+                        {
+                            migrateHistory: true, // ゲスト履歴をデータベースに移行
+                            ritualStart: true // 儀式開始フラグ
+                        }
+                    );
+                    console.log('[守護神の儀式] ゲスト履歴の移行が完了しました');
+                } catch (error) {
+                    console.error('[守護神の儀式] ゲスト履歴の移行に失敗:', error);
+                    // エラーでも処理は続行（儀式は開始できる）
+                }
+            }
             
             // 【重要】ユーザー登録後は、守護神の儀式開始前にカエデのメッセージを表示
             // これにより、儀式完了後にユーザーの履歴が残らない（カエデが最後のメッセージになる）
