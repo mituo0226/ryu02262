@@ -214,9 +214,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                         console.log('[登録完了処理] メッセージ入力欄をクリアしました');
                     }
                     
-                    // 送信ボタンの状態を更新（常に表示され、入力欄が空の時は無効化される）
+                    // 送信ボタンの状態を更新（入力欄が空なので非表示になるが、文字入力時に確実に表示される）
                     ChatUI.updateSendButtonVisibility();
-                    console.log('[登録完了処理] 送信ボタンの状態を更新しました（常に表示されます）');
+                    console.log('[登録完了処理] 送信ボタンの状態を更新しました（文字入力時に表示されます）');
                     
                     // 守護神の儀式完了フラグをクリア
                     sessionStorage.removeItem('acceptedGuardianRitual');

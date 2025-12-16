@@ -193,21 +193,19 @@ const ChatUI = {
     },
 
     /**
-     * 送信ボタンの状態を更新
-     * 【重要】送信ボタンは常に表示される（visibleクラスは常に保持）
-     * 入力欄が空の時はdisabledにするだけ
+     * 送信ボタンの表示/非表示を更新
+     * 【重要】入力欄に文字が入力された時、いかなる場合でも送信ボタンが表示される
      */
     updateSendButtonVisibility() {
         if (!this.sendButton || !this.messageInput) return;
         
-        // 送信ボタンは常に表示される（visibleクラスを常に追加）
-        this.sendButton.classList.add('visible');
-        
-        // 入力欄が空の時は無効化、文字がある時は有効化
         if (this.messageInput.value.trim().length > 0) {
+            // 入力欄に文字がある → 送信ボタンを表示（いかなる場合でも）
+            this.sendButton.classList.add('visible');
             this.sendButton.disabled = false;
         } else {
-            this.sendButton.disabled = true;
+            // 入力欄が空 → 送信ボタンを非表示
+            this.sendButton.classList.remove('visible');
         }
     },
 
