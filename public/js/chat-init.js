@@ -576,17 +576,13 @@ const ChatInit = {
             ChatUI.updateUserStatus(false);
         }
 
-        if (!skipUserMessage) {
-            ChatUI.addMessage('user', message, 'あなた');
-            await this.delay(100);
-            ChatUI.scrollToLatest();
-        }
-
+        // ユーザーメッセージの追加は、API応答を確認してから行う（楓の場合の条件分岐のため）
+        // ただし、会話履歴には先に追加する必要がある（APIが認識できるように）
+        const messageToSend = message;
+        
         ChatUI.messageInput.value = '';
         ChatUI.updateSendButtonVisibility();
         // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
-        
-        const messageToSend = message;
         
         if (skipAnimation) {
             const currentUrl = window.location.href;
@@ -726,20 +722,24 @@ const ChatInit = {
             const characterName = ChatData.characterInfo[character]?.name || character;
             const responseText = response.message || response.response || '応答を取得できませんでした';
             
-            // 楓専用の処理：「ニックネームと生年月日を入力」が含まれる場合、ユーザーの最後のメッセージを削除
+            // 楓専用の処理：「ニックネームと生年月日を入力」が含まれる場合は、ユーザーメッセージを表示しない
+            // それ以外の場合は、ユーザーメッセージを表示する
+            let shouldShowUserMessage = !skipUserMessage;
             if (isGuest && character === 'kaede') {
                 const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
                                              responseText.includes('**ニックネームと生年月日を入力**') ||
                                              responseText.includes('生年月日を入力');
                 if (hasRegistrationInput) {
-                    // 応答メッセージを表示する前に、ユーザーの最後のメッセージを削除
-                    const userMessages = Array.from(document.querySelectorAll('.message.user'));
-                    if (userMessages.length > 0) {
-                        const lastUserMessage = userMessages[userMessages.length - 1];
-                        console.log('[楓専用処理] 応答表示前にユーザーの最後のメッセージを削除します:', lastUserMessage.textContent);
-                        lastUserMessage.remove();
-                    }
+                    shouldShowUserMessage = false;
+                    console.log('[楓専用処理] 「ニックネームと生年月日を入力」を検出。ユーザーメッセージを表示しません。');
                 }
+            }
+            
+            // ユーザーメッセージを表示（条件が満たされた場合のみ）
+            if (shouldShowUserMessage) {
+                ChatUI.addMessage('user', messageToSend, 'あなた');
+                await this.delay(100);
+                ChatUI.scrollToLatest();
             }
             
             const messageId = ChatUI.addMessage('character', responseText, characterName);
