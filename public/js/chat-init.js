@@ -1011,9 +1011,12 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 
                 // 守護神の儀式に関するメッセージの場合、ボタンを追加
+                // 【非表示化】ゲストユーザーのフェーズ5で表示される「守護神の儀式を開始する」ボタンは表示しない
                 // 「ニックネームと生年月日を入力」という言葉が実際にメッセージに含まれている場合のみボタンを表示
                 // 太字マークダウン（**）が含まれている可能性があるため、両方をチェック
                 // または「それでは守護神の儀式を始めます」というメッセージの後にボタンを追加
+                // 以下のコードは非表示化のためコメントアウト
+                /*
                 const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
                                              responseText.includes('**ニックネームと生年月日を入力**');
                 if (hasRegistrationInput || responseText.includes('それでは守護神の儀式を始めます')) {
@@ -1042,6 +1045,7 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                         }
                     }, 1000); // メッセージが完全に表示されるまで1秒待つ
                 }
+                */
                 
                 // ゲストユーザーの場合、registrationSuggestedをチェック
                 console.log('[API応答] registrationSuggestedチェック:', {
