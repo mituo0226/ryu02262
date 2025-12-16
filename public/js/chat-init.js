@@ -174,6 +174,16 @@ const ChatInit = {
                         firstQuestion = firstUserMessageOfDay.content.trim();
                     }
                     
+                    // UIから最後のユーザーメッセージを削除（守護神の儀式完了前に表示されたメッセージを削除）
+                    if (ChatUI.messagesDiv) {
+                        const messages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+                        if (messages.length > 0) {
+                            const lastUserMessage = messages[messages.length - 1];
+                            console.log('[登録完了処理] UIから最後のユーザーメッセージを削除:', lastUserMessage.textContent.substring(0, 50) + '...');
+                            lastUserMessage.remove();
+                        }
+                    }
+                    
                     // 定型文を構築
                     const characterName = ChatData.characterInfo[character]?.name || '楓';
                     const welcomeMessage = `儀式により${guardianConfirmationData.userNickname}様の守護神の${guardianConfirmationData.guardianName}を呼び出すことができました。
@@ -440,6 +450,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         }
         
         try {
+            // 守護神の儀式完了直後のフラグを事前にチェック
+            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+            
             // 会話履歴を読み込む
             const historyData = await ChatAPI.loadConversationHistory(character);
             
@@ -500,7 +513,7 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             
             // 初回メッセージを表示
             // ただし、守護神の儀式完了直後（guardianMessageShown）の場合は、既に守護神確認メッセージを表示済みなのでスキップ
-            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+            // ※guardianMessageShownは上で既に定義済み
             
             if (historyData && historyData.hasHistory) {
                 ChatData.conversationHistory = historyData;
