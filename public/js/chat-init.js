@@ -132,10 +132,26 @@ const ChatInit = {
                 if (shouldSendGuardianConfirmation && guardianConfirmationData) {
                     console.log('[登録完了処理] 🚀 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
                     
-                    // 会話履歴から最初のユーザーメッセージを抽出
+                    // 会話履歴から最初のユーザーメッセージを抽出（登録ユーザーの履歴を優先）
+                    let firstQuestion = '';
                     const currentHistory = historyData?.recentMessages || [];
-                    const firstUserMessage = currentHistory.find(msg => msg && msg.role === 'user');
-                    const firstQuestion = firstUserMessage ? firstUserMessage.content : '';
+                    let firstUserMessage = currentHistory.find(msg => msg && msg.role === 'user');
+                    
+                    // 登録ユーザーの履歴に見つからない場合は、ゲスト履歴から取得を試みる
+                    if (!firstUserMessage) {
+                        console.log('[登録完了処理] 登録ユーザーの履歴から最初の質問が見つかりません。ゲスト履歴を確認します。');
+                        const guestHistory = this.getGuestHistoryForMigration(character);
+                        if (guestHistory && guestHistory.length > 0) {
+                            firstUserMessage = guestHistory.find(msg => msg && msg.role === 'user');
+                            console.log('[登録完了処理] ゲスト履歴から最初のユーザーメッセージを発見:', firstUserMessage ? firstUserMessage.content.substring(0, 50) + '...' : 'なし');
+                        }
+                    } else {
+                        console.log('[登録完了処理] 登録ユーザーの履歴から最初のユーザーメッセージを発見:', firstUserMessage.content.substring(0, 50) + '...');
+                    }
+                    
+                    if (firstUserMessage && firstUserMessage.content) {
+                        firstQuestion = firstUserMessage.content.trim();
+                    }
                     
                     // 定型文を構築
                     const characterName = ChatData.characterInfo[character]?.name || '楓';
