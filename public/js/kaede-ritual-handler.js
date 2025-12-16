@@ -43,10 +43,10 @@ const KaedeRitualHandler = {
             console.log('[楓専用処理] ゲスト履歴をクリアしました（儀式完了後）');
             
             // 会話履歴もクリア（ユーザーメッセージが表示されないようにするため）
+            // 【重要】会話履歴のrecentMessagesを空にする（データベースから取得した履歴が表示されないように）
             if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                // ただし、APIから取得した履歴は保持する（firstQuestionを取得するため）
-                // ここでは表示用の履歴のみをクリア
-                console.log('[楓専用処理] 会話履歴の表示をクリアしました（APIから取得した履歴は保持）');
+                ChatData.conversationHistory.recentMessages = [];
+                console.log('[楓専用処理] 会話履歴のrecentMessagesをクリアしました（ユーザーメッセージが表示されないように）');
             }
         }
 
@@ -118,7 +118,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         // 守護神の儀式完了フラグをクリア
         sessionStorage.removeItem('acceptedGuardianRitual');
         sessionStorage.removeItem('ritualCompleted');
-        console.log('[楓専用処理] ritualCompletedフラグとacceptedGuardianRitualフラグをクリアしました');
+        // 【重要】guardianMessageShownフラグを設定（会話履歴が表示されないようにするため）
+        sessionStorage.setItem('guardianMessageShown', 'true');
+        console.log('[楓専用処理] ritualCompletedフラグとacceptedGuardianRitualフラグをクリアしました。guardianMessageShownフラグを設定しました。');
 
         return true; // 処理完了
     },
