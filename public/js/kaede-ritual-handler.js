@@ -42,11 +42,18 @@ const KaedeRitualHandler = {
             ChatData.setGuestMessageCount(character, 0);
             console.log('[楓専用処理] ゲスト履歴をクリアしました（儀式完了後）');
             
+            // 【重要】historyDataのrecentMessagesもクリア（chat-init.jsでChatData.conversationHistoryに設定される前にクリア）
+            // これにより、chat-init.jsの243行目で`ChatData.conversationHistory = historyData`が実行されても、
+            // recentMessagesが空の状態で設定されるため、過去のユーザーメッセージが表示されない
+            if (historyData && historyData.recentMessages) {
+                historyData.recentMessages = [];
+                console.log('[楓専用処理] historyDataのrecentMessagesをクリアしました（データベースから取得した履歴が表示されないように）');
+            }
+            
             // 会話履歴もクリア（ユーザーメッセージが表示されないようにするため）
-            // 【重要】会話履歴のrecentMessagesを空にする（データベースから取得した履歴が表示されないように）
             if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
                 ChatData.conversationHistory.recentMessages = [];
-                console.log('[楓専用処理] 会話履歴のrecentMessagesをクリアしました（ユーザーメッセージが表示されないように）');
+                console.log('[楓専用処理] ChatData.conversationHistoryのrecentMessagesをクリアしました（ユーザーメッセージが表示されないように）');
             }
         }
 
