@@ -203,13 +203,12 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
         // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
         if ((ritualCompleted === 'true' || assignedDeity) && sessionStorage.getItem('guardianMessageShown') !== 'true') {
-            console.log('[楓専用処理] 守護神の儀式は既に完了しています。会話履歴読み込み後にAPIに報告します。');
+            console.log('[楓専用処理] 守護神の儀式は既に完了しています。会話履歴読み込み後に定型文を表示します。');
             const userNickname = localStorage.getItem('userNickname') || 'あなた';
             const guardianName = assignedDeity;
 
-            // 守護神の儀式完了メッセージを表示する前に、guardianMessageShownフラグを設定
-            sessionStorage.setItem('guardianMessageShown', 'true');
-            console.log('[楓専用処理] 守護神の儀式完了メッセージ表示前にguardianMessageShownフラグを設定しました');
+            // 【重要】guardianMessageShownフラグは、handleGuardianRitualCompletionで定型文表示後に設定される
+            // ここで先に設定すると、他の処理で「既に表示済み」と誤判定される可能性があるため削除
 
             // URLパラメータからjustRegisteredを削除
             urlParams.delete('justRegistered');

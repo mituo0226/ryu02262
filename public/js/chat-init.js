@@ -265,9 +265,12 @@ const ChatInit = {
                 // 守護神の儀式が完了している場合、会話履歴に守護神確認メッセージが含まれているか確認
                 // 含まれていない場合は追加（APIが儀式完了を認識できるように）
                 // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
+                // 【重要】guardianMessageShownがtrueの場合は、楓専用の定型文が既に表示されているためスキップ
                 const ritualCompleted = sessionStorage.getItem('ritualCompleted');
                 const assignedDeity = localStorage.getItem('assignedDeity');
-                if ((ritualCompleted === 'true' || assignedDeity) && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                const guardianMessageShownCheck = sessionStorage.getItem('guardianMessageShown') === 'true';
+                
+                if ((ritualCompleted === 'true' || assignedDeity) && !guardianMessageShownCheck && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
                     const hasGuardianMessage = ChatData.conversationHistory.recentMessages.some(msg => 
                         msg.role === 'assistant' && msg.content && msg.content.includes('の守護神は')
                     );

@@ -154,22 +154,31 @@ export const onRequestGet: PagesFunction = async (context) => {
       .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.message}`)
       .join('\n');
 
-    // 最初のユーザーメッセージを取得（儀式完了後の定型文で使用）
-    // 【重要】日付に関係なく、全ての会話履歴から最初のユーザーメッセージを取得
-    // ゲストとして会話を開始した日とユーザー登録した日が異なる場合を考慮
+    // 今日の最初のユーザーメッセージを取得（儀式完了後の定型文で使用）
     let firstQuestion: string | undefined = undefined;
     if (isAfterRitual) {
-      // 全てのユーザーメッセージから最初のものを取得（時系列順にソート済み）
-      const userMessages = sortedConversations.filter((msg) => msg.role === 'user');
-      if (userMessages.length > 0) {
-        firstQuestion = userMessages[0].message;
-        console.log('[conversation-history] firstQuestion取得:', {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+      const todayMessages = sortedConversations.filter((msg) => {
+        if (msg.role !== 'user') return false;
+        if (!msg.created_at) return false;
+        return msg.created_at.startsWith(todayStr);
+      });
+      if (todayMessages.length > 0) {
+        firstQuestion = todayMessages[0].message;
+        console.log('[conversation-history] 今日のfirstQuestion取得:', {
           message: firstQuestion.substring(0, 50) + '...',
-          created_at: userMessages[0].created_at,
-          totalUserMessages: userMessages.length
+          created_at: todayMessages[0].created_at,
+          todayStr: todayStr,
+          totalTodayUserMessages: todayMessages.length,
+          totalUserMessages: sortedConversations.filter(m => m.role === 'user').length
         });
       } else {
-        console.log('[conversation-history] firstQuestion取得失敗: ユーザーメッセージが見つかりません');
+        console.log('[conversation-history] 今日のfirstQuestion取得失敗:', {
+          todayStr: todayStr,
+          totalUserMessages: sortedConversations.filter(m => m.role === 'user').length,
+          allDates: sortedConversations.filter(m => m.role === 'user').map(m => m.created_at).slice(0, 5)
+        });
       }
     }
 
