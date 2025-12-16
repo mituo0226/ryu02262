@@ -1456,69 +1456,45 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             
             console.log('[守護神の儀式] 使用する会話履歴:', conversationHistory);
             
-            // 守護神の儀式開始メッセージを会話履歴に追加（表示はしない）
-            const ritualMessage = '守護神の儀式を始めてください';
-            conversationHistory.push({ role: 'user', content: ritualMessage });
+            // 【重要】ユーザー登録後は、守護神の儀式開始前にカエデのメッセージを表示
+            // これにより、儀式完了後にユーザーの履歴が残らない（カエデが最後のメッセージになる）
+            const characterName = ChatData.characterInfo[character]?.name || '楓';
+            const ritualStartMessage = 'それではこれより守護神のイベントを開始いたします。\n画面が切り替わりますので、儀式を体験してください。';
             
-            // ユーザーメッセージ数を計算（守護神の儀式開始メッセージを含めない）
-            const userMessagesBeforeRitual = conversationHistory.slice(0, -1).filter(msg => msg.role === 'user').length;
-            const ritualUserMessageCount = userMessagesBeforeRitual + 1; // 守護神の儀式開始メッセージを含める
+            console.log('[守護神の儀式] 儀式開始前のメッセージを表示:', ritualStartMessage);
+            ChatUI.addMessage('character', ritualStartMessage, characterName);
             
-            console.log('[守護神の儀式] APIに送信:', ritualMessage, {
-                conversationHistoryLength: conversationHistory.length,
-                userMessagesBeforeRitual: userMessagesBeforeRitual,
-                ritualUserMessageCount: ritualUserMessageCount
-            });
+            // 会話履歴に追加（ただし、データベースには保存しない）
+            conversationHistory.push({ role: 'assistant', content: ritualStartMessage });
             
-            // 共通のAPI関数を使用（現在のメッセージを除く）
-            // ゲスト履歴がある場合は、migrateHistoryオプションを追加
-            const options = {
-                migrateHistory: guestHistory && guestHistory.length > 0
-            };
-            
-            const response = await ChatAPI.sendMessage(
-                ritualMessage,
-                character,
-                conversationHistory.slice(0, -1), // 現在のメッセージを除く
-                options
-            );
-            
-            console.log('[守護神の儀式] APIレスポンス:', response);
-            
-            if (response.error) {
-                console.error('[守護神の儀式] エラー:', response.error);
-                ChatUI.addMessage('error', response.error, 'システム');
-                // エラーの場合、追加したユーザーメッセージを削除
-                conversationHistory.pop();
-                return;
+            // 会話履歴を保存（登録ユーザーの場合）
+            // 注：このメッセージはデータベースに保存しない（儀式開始前のメッセージのため）
+            // ただし、ChatDataには追加しておく（次の処理で使用する可能性があるため）
+            if (AuthState.isRegistered() && ChatData.conversationHistory) {
+                // このメッセージはデータベースには保存しない（一時的なメッセージ）
+                // ChatData.conversationHistory.recentMessages = conversationHistory;
+                console.log('[守護神の儀式] 儀式開始メッセージはデータベースに保存しません（一時メッセージ）');
             }
             
-            if (response.message) {
-                console.log('[守護神の儀式] 成功、メッセージを表示:', response.message);
-                ChatUI.addMessage('character', response.message, response.characterName || ChatData.characterInfo[character].name);
-                
-                // 会話履歴を更新（assistantの応答を追加）
-                conversationHistory.push({ role: 'assistant', content: response.message });
-                
-                // 会話履歴を保存（登録ユーザーの場合）
-                if (AuthState.isRegistered() && ChatData.conversationHistory) {
-                    ChatData.conversationHistory.recentMessages = conversationHistory;
-                }
-                
-                ChatUI.scrollToLatest();
-                
-                // アニメーション画面に遷移せず、直接メッセージを表示
-            } else {
-                console.error('[守護神の儀式] レスポンスにメッセージがありません:', response);
-                ChatUI.addMessage('error', '守護神の儀式の開始に失敗しました（メッセージが空です）', 'システム');
-                // エラーの場合、追加したユーザーメッセージを削除
-                conversationHistory.pop();
-            }
+            ChatUI.scrollToLatest();
+            
+            // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
+            await this.delay(2000); // 2秒待つ（ユーザーがメッセージを読む時間を確保）
+            
+            // guardian-ritual.htmlに遷移
+            // 現在のチャット画面のURLを保存（儀式完了後に戻るため）
+            const currentChatUrl = window.location.href;
+            sessionStorage.setItem('postRitualChatUrl', currentChatUrl);
+            
+            console.log('[守護神の儀式] guardian-ritual.htmlに遷移:', currentChatUrl);
+            window.location.href = '../guardian-ritual.html';
+            return; // 遷移するため、以降の処理は実行されない
+            
         } catch (error) {
             console.error('[守護神の儀式] 例外エラー:', error);
             ChatUI.addMessage('error', '守護神の儀式の開始に失敗しました: ' + error.message, 'システム');
         } finally {
-            // 送信ボタンを再有効化
+            // 送信ボタンを再有効化（遷移する場合は実行されないが、エラー時は必要）
             if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
             if (ChatUI.messageInput) ChatUI.messageInput.focus();
         }
