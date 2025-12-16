@@ -216,6 +216,20 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                         console.log('[登録完了処理] メッセージ入力欄をクリアしました');
                     }
                     
+                    // 念のため、守護神の儀式完了メッセージ表示後に再度UIから最後のユーザーメッセージを削除
+                    // （ゲスト履歴が表示される前に確実に削除するため）
+                    requestAnimationFrame(() => {
+                        if (ChatUI.messagesDiv) {
+                            const messages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+                            if (messages.length > 0) {
+                                // 全てのユーザーメッセージを確認し、最後のものを削除
+                                const lastUserMessage = messages[messages.length - 1];
+                                console.log('[登録完了処理] 守護神の儀式完了メッセージ表示後、最後のユーザーメッセージを削除:', lastUserMessage.textContent.substring(0, 50) + '...');
+                                lastUserMessage.remove();
+                            }
+                        }
+                    });
+                    
                     // 守護神の儀式完了フラグをクリア
                     sessionStorage.removeItem('acceptedGuardianRitual');
                     sessionStorage.removeItem('ritualCompleted');
@@ -464,24 +478,12 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             }
             
             // ゲスト履歴を表示
-            if (guestHistory.length > 0) {
+            // 守護神の儀式完了直後（guardianMessageShown）の場合は、ゲスト履歴を表示しない
+            // （既に守護神の儀式完了メッセージが表示されているため）
+            if (guestHistory.length > 0 && !guardianMessageShown) {
                 const info = ChatData.characterInfo[character];
-                // 守護神の儀式完了直後（guardianMessageShown）の場合、最新のユーザーメッセージを除外
-                let displayHistory = guestHistory;
-                if (guardianMessageShown) {
-                    // 最新のユーザーメッセージを探して除外（最後から逆順に検索）
-                    const filteredHistory = [...guestHistory];
-                    for (let i = filteredHistory.length - 1; i >= 0; i--) {
-                        if (filteredHistory[i] && filteredHistory[i].role === 'user') {
-                            console.log('[ゲスト履歴表示] 守護神の儀式完了直後のため、最新のユーザーメッセージを除外:', filteredHistory[i].content.substring(0, 50) + '...');
-                            filteredHistory.splice(i, 1);
-                            break; // 最初に見つかったユーザーメッセージを削除したら終了
-                        }
-                    }
-                    displayHistory = filteredHistory;
-                }
                 
-                displayHistory.forEach((entry) => {
+                guestHistory.forEach((entry) => {
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     ChatUI.addMessage(type, entry.content, sender);
