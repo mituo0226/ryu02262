@@ -132,25 +132,46 @@ const ChatInit = {
                 if (shouldSendGuardianConfirmation && guardianConfirmationData) {
                     console.log('[登録完了処理] 🚀 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
                     
-                    // 会話履歴から最初のユーザーメッセージを抽出（登録ユーザーの履歴を優先）
+                    // 守護神の儀式を行った日（今日）の最初のユーザーメッセージを取得
                     let firstQuestion = '';
-                    const currentHistory = historyData?.recentMessages || [];
-                    let firstUserMessage = currentHistory.find(msg => msg && msg.role === 'user');
                     
-                    // 登録ユーザーの履歴に見つからない場合は、ゲスト履歴から取得を試みる
-                    if (!firstUserMessage) {
-                        console.log('[登録完了処理] 登録ユーザーの履歴から最初の質問が見つかりません。ゲスト履歴を確認します。');
-                        const guestHistory = this.getGuestHistoryForMigration(character);
-                        if (guestHistory && guestHistory.length > 0) {
-                            firstUserMessage = guestHistory.find(msg => msg && msg.role === 'user');
-                            console.log('[登録完了処理] ゲスト履歴から最初のユーザーメッセージを発見:', firstUserMessage ? firstUserMessage.content.substring(0, 50) + '...' : 'なし');
+                    // 今日の日付を取得（YYYY-MM-DD形式）
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+                    console.log('[登録完了処理] 守護神の儀式を行った日（今日）:', todayStr);
+                    
+                    // 会話履歴から、今日の日付の最初のユーザーメッセージを抽出
+                    const currentHistory = historyData?.recentMessages || [];
+                    let firstUserMessageOfDay = null;
+                    
+                    if (currentHistory.length > 0) {
+                        // created_atが今日の日付で始まるメッセージをフィルタリング
+                        const todayMessages = currentHistory.filter(msg => {
+                            if (!msg || msg.role !== 'user') return false;
+                            if (!msg.created_at) return false;
+                            // created_atがISO形式（YYYY-MM-DDTHH:mm:ss...）の場合
+                            return msg.created_at.startsWith(todayStr);
+                        });
+                        
+                        // 今日のメッセージの中から最初のユーザーメッセージを取得（時系列順に並んでいる想定）
+                        if (todayMessages.length > 0) {
+                            firstUserMessageOfDay = todayMessages[0];
+                            console.log('[登録完了処理] 今日の最初のユーザーメッセージを発見:', firstUserMessageOfDay.content.substring(0, 50) + '...');
                         }
-                    } else {
-                        console.log('[登録完了処理] 登録ユーザーの履歴から最初のユーザーメッセージを発見:', firstUserMessage.content.substring(0, 50) + '...');
                     }
                     
-                    if (firstUserMessage && firstUserMessage.content) {
-                        firstQuestion = firstUserMessage.content.trim();
+                    // 今日のメッセージが見つからない場合は、ゲスト履歴から最初のユーザーメッセージを取得
+                    if (!firstUserMessageOfDay) {
+                        console.log('[登録完了処理] 今日の会話履歴から最初の質問が見つかりません。ゲスト履歴を確認します。');
+                        const guestHistory = this.getGuestHistoryForMigration(character);
+                        if (guestHistory && guestHistory.length > 0) {
+                            firstUserMessageOfDay = guestHistory.find(msg => msg && msg.role === 'user');
+                            console.log('[登録完了処理] ゲスト履歴から最初のユーザーメッセージを発見:', firstUserMessageOfDay ? firstUserMessageOfDay.content.substring(0, 50) + '...' : 'なし');
+                        }
+                    }
+                    
+                    if (firstUserMessageOfDay && firstUserMessageOfDay.content) {
+                        firstQuestion = firstUserMessageOfDay.content.trim();
                     }
                     
                     // 定型文を構築

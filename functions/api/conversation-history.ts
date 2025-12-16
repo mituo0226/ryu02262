@@ -28,6 +28,7 @@ interface ResponseBody {
   recentMessages?: Array<{
     role: 'user' | 'assistant';
     content: string;
+    created_at?: string;
   }>;
   error?: string;
 }
@@ -133,10 +134,11 @@ export const onRequestGet: PagesFunction = async (context) => {
       ? sortedConversations[sortedConversations.length - 1].created_at 
       : null;
 
-    // 最近のメッセージを返す（最新10件）
+    // 最近のメッセージを返す（最新10件、created_atも含める）
     const recentMessages = sortedConversations.slice(-10).map((row) => ({
       role: row.role,
       content: row.message,
+      created_at: row.created_at,
     }));
 
     // 会話の要約を生成（最後の数件のメッセージから）
