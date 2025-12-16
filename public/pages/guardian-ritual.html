@@ -297,43 +297,66 @@
       opacity: 0.9;
     }
 
-    /* 守護神導出待ちメッセージのアニメーション */
+    /* 守護神導出待ちメッセージのアニメーション（神秘的な演出） */
     .guardian-coming-soon {
       position: absolute;
       bottom: 12%;
       left: 50%;
       transform: translateX(-50%);
       font-size: 20px;
-      color: #ffd700;
       text-align: center;
       z-index: 12;
       opacity: 0;
-      text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-      animation: guardian-coming-pulse 2s ease-in-out infinite;
+      color: #ffd700;
+      text-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.8),
+        0 0 20px rgba(138, 43, 226, 0.6),
+        0 0 30px rgba(255, 107, 157, 0.4);
+      animation: guardian-mystic-glow 3s ease-in-out infinite;
     }
 
     .guardian-coming-soon.visible {
       opacity: 1;
-      animation: guardian-coming-pulse 2s ease-in-out infinite, guardian-coming-fade 3s ease-in-out infinite;
+      animation: guardian-mystic-float 4s ease-in-out infinite, guardian-mystic-glow 3s ease-in-out infinite, guardian-mystic-shimmer 3s ease-in-out infinite;
     }
 
-    @keyframes guardian-coming-pulse {
+    @keyframes guardian-mystic-float {
       0%, 100% {
-        transform: translateX(-50%) scale(1);
-        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        transform: translateX(-50%) translateY(0);
       }
       50% {
-        transform: translateX(-50%) scale(1.05);
-        text-shadow: 0 0 30px rgba(255, 215, 0, 1);
+        transform: translateX(-50%) translateY(-10px);
       }
     }
 
-    @keyframes guardian-coming-fade {
+    @keyframes guardian-mystic-glow {
       0%, 100% {
-        opacity: 0.7;
+        text-shadow: 
+          0 0 10px rgba(255, 215, 0, 0.8),
+          0 0 20px rgba(138, 43, 226, 0.6),
+          0 0 30px rgba(255, 107, 157, 0.4);
+        opacity: 0.85;
       }
       50% {
+        text-shadow: 
+          0 0 20px rgba(255, 215, 0, 1),
+          0 0 40px rgba(138, 43, 226, 0.9),
+          0 0 60px rgba(255, 107, 157, 0.7),
+          0 0 80px rgba(196, 69, 105, 0.5);
         opacity: 1;
+        color: #ffed4e;
+      }
+    }
+
+    @keyframes guardian-mystic-shimmer {
+      0%, 100% {
+        color: #ffd700;
+      }
+      33% {
+        color: #ff6b9d;
+      }
+      66% {
+        color: #c44569;
       }
     }
 
@@ -705,12 +728,12 @@
       const message = `${nickname}さん、あなたの守護神は${guardian.name}です。\nこれより${guardian.name}と共に鑑定を開始します`;
       await typeWriter(message, messageText, 80);
       
-      // メッセージ表示完了後、少し待ってから「もうすぐ守護神が導き出されます」を表示
+      // メッセージ表示完了後、少し待ってから「楓が<守護神名>を呼び出しています、お待ちください」を表示
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const comingSoonMessage = document.createElement('div');
       comingSoonMessage.className = 'guardian-coming-soon';
-      comingSoonMessage.textContent = 'もうすぐ守護神が導き出されます...';
+      comingSoonMessage.textContent = `楓が${guardian.name}を呼び出しています、お待ちください`;
       ritualOverlay.appendChild(comingSoonMessage);
       
       // アニメーションを開始
