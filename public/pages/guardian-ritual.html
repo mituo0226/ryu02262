@@ -470,8 +470,8 @@
         <h2 class="guardian-name" id="guardianName"></h2>
         <p class="guardian-message" id="guardianMessage"></p>
       </div>
-      <!-- 初回登録後の場合は「鑑定士一覧へ」ボタンを非表示（自動的にチャット画面にリダイレクトされるため） -->
-      <a href="../main.html" class="continue-button" id="continueButton" style="margin-top: 30px; display: none;">鑑定士一覧へ</a>
+      <!-- 直接アクセスの場合は「カエデとのチャットに戻る」ボタンを表示 -->
+      <a href="../chat/chat.html?character=kaede" class="continue-button" id="continueButton" style="margin-top: 30px; display: none;">カエデとのチャットに戻る</a>
     </div>
   </div>
 
@@ -790,7 +790,7 @@
           await new Promise(resolve => setTimeout(resolve, 2000));
           console.log('[守護神の儀式] データベースコミット待機完了');
           
-          // 「鑑定士一覧へ」ボタンを非表示
+          // 「カエデとのチャットに戻る」ボタンを非表示（自動的にチャット画面にリダイレクトされるため）
           const continueButton = document.getElementById('continueButton');
           if (continueButton) {
             continueButton.style.display = 'none';
