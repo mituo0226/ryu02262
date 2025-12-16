@@ -317,6 +317,14 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         ChatData.ritualConsentShown = true;
 
         if (consent) {
+            // 「はい」を押した場合 - ユーザーの最後のメッセージを削除
+            const userMessages = Array.from(document.querySelectorAll('.message.user'));
+            if (userMessages.length > 0) {
+                const lastUserMessage = userMessages[userMessages.length - 1];
+                console.log('[楓専用処理] ユーザーの最後のメッセージを削除します（handleRitualConsent）:', lastUserMessage.textContent);
+                lastUserMessage.remove();
+            }
+
             // 「はい」を押した場合 - APIに守護神の儀式の開催を通知
             const characterName = ChatData.characterInfo[character]?.name || '楓';
 
@@ -429,6 +437,14 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
                     ChatUI.addRitualStartButton(messageElement, async () => {
                         console.log('[楓専用処理] 守護神の儀式開始ボタンがクリックされました');
+
+                        // 【重要】ユーザーの最後のメッセージを削除（ボタンクリック時に実行）
+                        const userMessages = Array.from(document.querySelectorAll('.message.user'));
+                        if (userMessages.length > 0) {
+                            const lastUserMessage = userMessages[userMessages.length - 1];
+                            console.log('[楓専用処理] ユーザーの最後のメッセージを削除します:', lastUserMessage.textContent);
+                            lastUserMessage.remove();
+                        }
 
                         // 【重要】守護神の鑑定を受け入れたフラグを保存
                         sessionStorage.setItem('acceptedGuardianRitual', 'true');
