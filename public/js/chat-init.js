@@ -119,6 +119,20 @@ const ChatInit = {
                     sessionStorage.setItem('guardianMessageShown', 'true');
                     console.log('[登録完了処理] 守護神の儀式完了メッセージ表示前にguardianMessageShownフラグを設定しました');
                     
+                    // 【重要】ユーザー登録後はUIをゼロからスタート
+                    // フラグ設定直後に即座にUIをクリア（ゲスト履歴が表示される前に実行）
+                    if (ChatUI.messagesDiv) {
+                        const beforeClearCount = ChatUI.messagesDiv.children.length;
+                        console.log('[登録完了処理] フラグ設定直後にUIをクリア（ゲスト履歴表示を防止）', {
+                            beforeClearCount: beforeClearCount,
+                            messagesDiv: ChatUI.messagesDiv
+                        });
+                        ChatUI.messagesDiv.innerHTML = '';
+                        console.log('[登録完了処理] UIクリア完了。メッセージ数:', beforeClearCount, '→ 0');
+                    } else {
+                        console.warn('[登録完了処理] ⚠️ ChatUI.messagesDivが見つかりません');
+                    }
+                    
                     // URLパラメータからjustRegisteredを削除
                     urlParams.delete('justRegistered');
                     const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
@@ -189,7 +203,8 @@ const ChatInit = {
 
 ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guardianName}と共に掘り下げましょうか、それとも他のテーマで鑑定を進めますか？` : 'どのようなことについて鑑定を進めますか？'}`;
                     
-                    // UIにメッセージを表示
+                    // UIに守護神の儀式完了メッセージのみを表示
+                    // （UIは既にクリア済み - フラグ設定直後に実行）
                     ChatUI.addMessage('character', welcomeMessage, characterName);
                     
                     // 会話履歴に追加
@@ -466,7 +481,15 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
             // ゲスト履歴を表示
             // 守護神の儀式完了直後（guardianMessageShown）の場合は、ゲスト履歴を表示しない
             // （既に守護神の儀式完了メッセージが表示されているため）
-            if (guestHistory.length > 0 && !guardianMessageShown) {
+            // 【重要】sessionStorageから直接読み取る（let変数のスコープ外のため）
+            const guardianMessageShownFromStorage = sessionStorage.getItem('guardianMessageShown') === 'true';
+            console.log('[初期化] ゲスト履歴表示チェック:', {
+                guestHistoryLength: guestHistory.length,
+                guardianMessageShownFromStorage: guardianMessageShownFromStorage,
+                willDisplay: guestHistory.length > 0 && !guardianMessageShownFromStorage
+            });
+            if (guestHistory.length > 0 && !guardianMessageShownFromStorage) {
+                console.log('[初期化] ゲスト履歴を表示します:', guestHistory.length, '件');
                 const info = ChatData.characterInfo[character];
                 
                 guestHistory.forEach((entry) => {
