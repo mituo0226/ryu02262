@@ -465,44 +465,22 @@ const ChatInit = {
             return;
         }
         
-        // 守護神の儀式開始ボタンが表示されている場合は、メッセージ送信をブロック
-        if (ChatUI.isRitualStartButtonVisible()) {
-            ChatUI.showRitualStartPrompt();
-            return;
-        }
-
         const isGuest = !AuthState.isRegistered();
         
         // メッセージ送信ボタンを押した時点で、即座にカウントを開始
         if (isGuest) {
-            // メッセージ送信前：現在のカウントを取得して制限をチェック
+            // メッセージ送信前：現在のカウントを取得（10通目以降は強制的に儀式開始へ）
             const currentCount = ChatData.getGuestMessageCount(character);
-            
             if (currentCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                ChatUI.addMessage('error', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
-                
-                // 【重要】登録画面に遷移する前に、ゲスト会話履歴を保存
-                const guestHistory = ChatData.getGuestHistory(character) || [];
-                console.log('[メッセージ制限] ゲスト履歴を保存:', {
-                    character: character,
-                    historyLength: guestHistory.length,
-                    userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
-                });
-                
-                if (guestHistory.length > 0) {
-                    sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
-                        character: character,
-                        history: guestHistory
-                    }));
-                    console.log('[メッセージ制限] pendingGuestHistoryMigrationに保存完了');
+                console.log('[メッセージ制限] 10通目以降のため、守護神の儀式を強制開始します');
+                if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
+                    await window.KaedeRitualHandler.forceStartGuardianRitual(character);
+                } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
+                    await window.KaedeRitualHandler.handleRitualConsent(true);
                 }
-                
-                setTimeout(() => {
-                    window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
-                }, 2000);
                 return;
             }
-            
+
             // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
             // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
             ChatData.addToGuestHistory(character, 'user', message);
@@ -518,6 +496,17 @@ const ChatInit = {
             
             // 会話履歴に追加した後、最新のカウントを取得（これが送信時のカウント）
             const messageCount = ChatData.getGuestMessageCount(character);
+
+            // 10通目に到達したら、会話を続けず儀式を強制開始
+            if (messageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                console.log('[メッセージ制限] 10通目に到達したため、守護神の儀式を強制開始します');
+                if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
+                    await window.KaedeRitualHandler.forceStartGuardianRitual(character);
+                } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
+                    await window.KaedeRitualHandler.handleRitualConsent(true);
+                }
+                return;
+            }
             
             const isFirstMessage = currentCount === 0;
             if (isFirstMessage) {
@@ -754,9 +743,9 @@ const ChatInit = {
             // 会話履歴を更新
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
+                const guestMessageCount = ChatData.getGuestMessageCount(character);
                 
                 // 楓専用の処理：守護神の儀式開始ボタンを追加
-                // 「ニックネームと生年月日を入力」という言葉を検知したときにボタンを表示
                 if (character === 'kaede' && window.KaedeRitualHandler) {
                     window.KaedeRitualHandler.addRitualStartButtonToMessageIfNeeded(
                         responseText,
@@ -773,7 +762,7 @@ const ChatInit = {
                     responseKeys: Object.keys(response)
                 });
                 
-                if (response.registrationSuggested && !ChatData.ritualConsentShown) {
+                if (response.registrationSuggested && !ChatData.ritualConsentShown && guestMessageCount >= 5 && guestMessageCount < ChatData.GUEST_MESSAGE_LIMIT) {
                     console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
                     const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
                     ChatUI.addMessage('error', `${characterNameForButton === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
