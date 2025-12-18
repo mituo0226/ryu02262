@@ -763,18 +763,33 @@ const ChatInit = {
                 });
                 
                 if (response.registrationSuggested && !ChatData.ritualConsentShown && guestMessageCount >= 5 && guestMessageCount < ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
-                    const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
-                    ChatUI.addMessage('error', `${characterNameForButton === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
-                    
-                    // 【重要】守護神の鑑定を受け入れたフラグを保存
-                    // 登録後に守護神の儀式を自動開始するかどうかの判定に使用
-                    sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                    console.log('[API応答] acceptedGuardianRitualフラグを保存しました');
-                    
-                    setTimeout(() => {
-                        ChatUI.showRitualConsentButtons();
-                    }, 2000);
+                    // 楓は「守護神の儀式を始めますか？」の同意ダイアログを8〜9通目で出すと不自然なため、
+                    // ここではダイアログは出さず「上限が近い」案内だけ表示する。
+                    if (character === 'kaede') {
+                        const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
+                        if (sessionStorage.getItem(preLimitNoticeKey) !== 'true') {
+                            const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - guestMessageCount);
+                            ChatUI.addMessage(
+                                'error',
+                                `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
+                                'システム'
+                            );
+                            sessionStorage.setItem(preLimitNoticeKey, 'true');
+                        }
+                    } else {
+                        console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
+                        const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
+                        ChatUI.addMessage('error', `${characterNameForButton === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                        
+                        // 【重要】守護神の鑑定を受け入れたフラグを保存
+                        // 登録後に守護神の儀式を自動開始するかどうかの判定に使用
+                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                        console.log('[API応答] acceptedGuardianRitualフラグを保存しました');
+                        
+                        setTimeout(() => {
+                            ChatUI.showRitualConsentButtons();
+                        }, 2000);
+                    }
                 } else {
                     console.log('[API応答] 登録ボタンを表示しません:', {
                         registrationSuggested: response.registrationSuggested,
@@ -879,18 +894,41 @@ const ChatInit = {
                             ChatUI.addMessage('error', data.message, 'システム');
                         }
                         if (data.needsRegistration && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
-                            ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
-                            setTimeout(() => {
-                                ChatUI.showRitualConsentButtons();
-                            }, 3000);
-                        } else if (data.registrationSuggested && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
-                            // 既にボタンが表示されている場合は表示しない
-                            if (!ChatData.ritualConsentShown) {
-                                const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                                ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                            // 楓は同意ダイアログを出さず、案内のみ表示
+                            if (ChatData.currentCharacter === 'kaede') {
+                                ChatUI.addMessage(
+                                    'error',
+                                    'まもなく無料でお話できる回数の上限です。10通目以降はユーザー登録が必要になります。',
+                                    'システム'
+                                );
+                            } else {
+                                ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
                                 setTimeout(() => {
                                     ChatUI.showRitualConsentButtons();
-                                }, 2000);
+                                }, 3000);
+                            }
+                        } else if (data.registrationSuggested && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
+                            // 楓は同意ダイアログを出さず、案内のみ表示
+                            if (ChatData.currentCharacter === 'kaede') {
+                                const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
+                                if (sessionStorage.getItem(preLimitNoticeKey) !== 'true') {
+                                    const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - currentGuestCount);
+                                    ChatUI.addMessage(
+                                        'error',
+                                        `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
+                                        'システム'
+                                    );
+                                    sessionStorage.setItem(preLimitNoticeKey, 'true');
+                                }
+                            } else {
+                                // 既にボタンが表示されている場合は表示しない
+                                if (!ChatData.ritualConsentShown) {
+                                    const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
+                                    ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                                    setTimeout(() => {
+                                        ChatUI.showRitualConsentButtons();
+                                    }, 2000);
+                                }
                             }
                         } else if (currentGuestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
                             // 10通目（上限）に達している場合は案内を出して強制的に登録・儀式へ
@@ -991,21 +1029,44 @@ const ChatInit = {
                             }, 3000);
                         }
                         else if (data.needsRegistration && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
-                            // 既にボタンが表示されている場合は表示しない
-                            if (!ChatData.ritualConsentShown) {
-                                ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
-                                setTimeout(() => {
-                                    ChatUI.showRitualConsentButtons();
-                                }, 3000);
+                            // 楓は同意ダイアログを出さず、案内のみ表示
+                            if (ChatData.currentCharacter === 'kaede') {
+                                ChatUI.addMessage(
+                                    'error',
+                                    'まもなく無料でお話できる回数の上限です。10通目以降はユーザー登録が必要になります。',
+                                    'システム'
+                                );
+                            } else {
+                                // 既にボタンが表示されている場合は表示しない
+                                if (!ChatData.ritualConsentShown) {
+                                    ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
+                                    setTimeout(() => {
+                                        ChatUI.showRitualConsentButtons();
+                                    }, 3000);
+                                }
                             }
                         } else if (data.registrationSuggested && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
-                            // 既にボタンが表示されている場合は表示しない
-                            if (!ChatData.ritualConsentShown) {
-                                const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                                ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
-                                setTimeout(() => {
-                                    ChatUI.showRitualConsentButtons();
-                                }, 2000);
+                            // 楓は同意ダイアログを出さず、案内のみ表示
+                            if (ChatData.currentCharacter === 'kaede') {
+                                const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
+                                if (sessionStorage.getItem(preLimitNoticeKey) !== 'true') {
+                                    const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - guestCount);
+                                    ChatUI.addMessage(
+                                        'error',
+                                        `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
+                                        'システム'
+                                    );
+                                    sessionStorage.setItem(preLimitNoticeKey, 'true');
+                                }
+                            } else {
+                                // 既にボタンが表示されている場合は表示しない
+                                if (!ChatData.ritualConsentShown) {
+                                    const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
+                                    ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                                    setTimeout(() => {
+                                        ChatUI.showRitualConsentButtons();
+                                    }, 2000);
+                                }
                             }
                         }
                     }
