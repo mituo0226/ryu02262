@@ -268,7 +268,7 @@
       return decoded || '../welcome-back.html';
     }
 
-    registerLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
+    registerLink.href = `register.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
 
     window.addEventListener('DOMContentLoaded', () => {
       if (relogin) {
