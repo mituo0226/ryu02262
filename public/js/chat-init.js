@@ -874,15 +874,16 @@ const ChatInit = {
                 if (data.needsRegistration || (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token')))) {
                     const isGuest = !AuthState.isRegistered();
                     if (isGuest) {
+                        const currentGuestCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
                         if (data.message) {
                             ChatUI.addMessage('error', data.message, 'システム');
                         }
-                        if (data.needsRegistration) {
+                        if (data.needsRegistration && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
                             ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
                             setTimeout(() => {
                                 ChatUI.showRitualConsentButtons();
                             }, 3000);
-                        } else if (data.registrationSuggested) {
+                        } else if (data.registrationSuggested && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
                             // 既にボタンが表示されている場合は表示しない
                             if (!ChatData.ritualConsentShown) {
                                 const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
@@ -891,6 +892,11 @@ const ChatInit = {
                                     ChatUI.showRitualConsentButtons();
                                 }, 2000);
                             }
+                        } else if (currentGuestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                            // 10通目（上限）に達している場合は強制的に登録・儀式へ
+                            setTimeout(() => {
+                                this.openRegistrationModal();
+                            }, 2000);
                         } else {
                             setTimeout(() => {
                                 this.openRegistrationModal();
@@ -983,7 +989,7 @@ const ChatInit = {
                                 this.openRegistrationModal();
                             }, 2000);
                         }
-                        else if (data.needsRegistration) {
+                        else if (data.needsRegistration && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
                             // 既にボタンが表示されている場合は表示しない
                             if (!ChatData.ritualConsentShown) {
                                 ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
@@ -991,7 +997,7 @@ const ChatInit = {
                                     ChatUI.showRitualConsentButtons();
                                 }, 3000);
                             }
-                        } else if (data.registrationSuggested) {
+                        } else if (data.registrationSuggested && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
                             // 既にボタンが表示されている場合は表示しない
                             if (!ChatData.ritualConsentShown) {
                                 const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
