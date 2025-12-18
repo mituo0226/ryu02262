@@ -893,10 +893,11 @@ const ChatInit = {
                                 }, 2000);
                             }
                         } else if (currentGuestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                            // 10通目（上限）に達している場合は強制的に登録・儀式へ
+                            // 10通目（上限）に達している場合は案内を出して強制的に登録・儀式へ
+                            ChatUI.addMessage('error', '会話が10通を超えたため、これより先はユーザー登録が必要です。登録画面へ移動します。', 'システム');
                             setTimeout(() => {
                                 this.openRegistrationModal();
-                            }, 2000);
+                            }, 3000);
                         } else {
                             setTimeout(() => {
                                 this.openRegistrationModal();
@@ -984,10 +985,10 @@ const ChatInit = {
                         ChatUI.updateUserStatus(false);
                         
                         if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                            ChatUI.addMessage('error', 'これ以上鑑定を続けるには正式な登録が必要です。登録ボタンから手続きをお願いします。', 'システム');
+                            ChatUI.addMessage('error', '会話が10通を超えたため、これより先はユーザー登録が必要です。登録画面へ移動します。', 'システム');
                             setTimeout(() => {
                                 this.openRegistrationModal();
-                            }, 2000);
+                            }, 3000);
                         }
                         else if (data.needsRegistration && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
                             // 既にボタンが表示されている場合は表示しない
