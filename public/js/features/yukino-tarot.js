@@ -547,32 +547,12 @@
                     });
                 }
                 
-                // カードを拡大するリンク
-                const expandLink = document.createElement('div');
-                expandLink.textContent = 'カードを拡大する';
-                expandLink.style.fontSize = '12px';
-                expandLink.style.color = 'rgba(255, 255, 255, 0.8)';
-                expandLink.style.cursor = 'pointer';
-                expandLink.style.marginTop = '8px';
-                expandLink.style.textDecoration = 'underline';
-                expandLink.style.transition = 'color 0.2s ease';
-                expandLink.addEventListener('mouseenter', () => {
-                    expandLink.style.color = 'rgba(255, 255, 255, 1)';
-                });
-                expandLink.addEventListener('mouseleave', () => {
-                    expandLink.style.color = 'rgba(255, 255, 255, 0.8)';
-                });
-                expandLink.addEventListener('click', () => {
-                    showCardModal(card.name, card.image);
-                });
-                
                 cardWrapper.appendChild(cardLabel);
                 cardWrapper.appendChild(cardContainer);
                 cardWrapper.appendChild(cardNameLabel);
                 if (isFirstGreeting) {
                     cardWrapper.appendChild(flipButton);
                 }
-                cardWrapper.appendChild(expandLink);
                 cardsContainer.appendChild(cardWrapper);
             });
             
