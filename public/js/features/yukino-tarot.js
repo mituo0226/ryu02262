@@ -349,10 +349,14 @@
                 // カード名ラベル - 最初は非表示
                 const cardNameLabel = document.createElement('div');
                 cardNameLabel.textContent = card.name;
-                cardNameLabel.style.fontSize = '11px';
-                cardNameLabel.style.color = 'rgba(255, 255, 255, 0.9)';
-                cardNameLabel.style.fontWeight = '500';
-                cardNameLabel.style.marginTop = '4px';
+                cardNameLabel.style.fontSize = '14px';
+                cardNameLabel.style.color = 'rgba(255, 255, 255, 1)';
+                cardNameLabel.style.fontWeight = '600';
+                cardNameLabel.style.marginTop = '8px';
+                cardNameLabel.style.padding = '4px 8px';
+                cardNameLabel.style.backgroundColor = 'rgba(138, 43, 226, 0.3)';
+                cardNameLabel.style.borderRadius = '4px';
+                cardNameLabel.style.textAlign = 'center';
                 cardNameLabel.style.opacity = '0'; // 最初は非表示
                 cardNameLabel.style.transition = 'opacity 0.3s ease';
                 
