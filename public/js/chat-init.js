@@ -939,8 +939,11 @@ const ChatInit = {
                 const userMsgData = JSON.parse(lastUserMessage);
                 const messageToCheck = userMsgData.message.trim();
                 
+                // タロットカードの解説リクエストメッセージは表示しない
                 if (messageToCheck.includes('以下のタロットカードについて') || 
-                    messageToCheck.includes('このカードの意味、私の状況にどのように関連しているか')) {
+                    messageToCheck.includes('このカードの意味、私の') ||
+                    messageToCheck.includes('のカード「') ||
+                    messageToCheck.includes('について、詳しく解説してください')) {
                     sessionStorage.removeItem('lastUserMessage');
                     return;
                 }
