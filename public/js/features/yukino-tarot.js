@@ -45,6 +45,95 @@
     }
 
     /**
+     * 次のカードへの案内を検出
+     * @param {string} text - メッセージテキスト
+     * @returns {string|null} 次のカードの位置（現在/未来）、または null
+     */
+    function detectNextCardGuidance(text) {
+        if (text.includes('次は、現在のカード') || text.includes('次は現在のカード')) {
+            return '現在';
+        }
+        if (text.includes('次は、未来のカード') || text.includes('次は未来のカード')) {
+            return '未来';
+        }
+        return null;
+    }
+
+    /**
+     * 次のカードへ進むボタンを表示
+     * @param {string} nextCardPosition - 次のカードの位置（現在/未来）
+     * @param {HTMLElement} container - ボタンを表示するコンテナ
+     * @param {Function} sendMessageCallback - メッセージ送信コールバック
+     */
+    function displayNextCardButton(nextCardPosition, container, sendMessageCallback) {
+        const button = document.createElement('button');
+        button.textContent = `「${nextCardPosition}」のタロットを見る`;
+        button.style.marginTop = '16px';
+        button.style.padding = '12px 24px';
+        button.style.fontSize = '14px';
+        button.style.fontWeight = '600';
+        button.style.color = '#ffffff';
+        button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+        button.style.border = '2px solid rgba(138, 43, 226, 0.9)';
+        button.style.borderRadius = '8px';
+        button.style.cursor = 'pointer';
+        button.style.transition = 'all 0.3s ease';
+        button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        
+        // ボタンのホバー効果
+        button.addEventListener('mouseenter', () => {
+            button.style.backgroundColor = 'rgba(138, 43, 226, 0.9)';
+            button.style.transform = 'translateY(-2px)';
+            button.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.2)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        });
+        
+        // ボタンのクリックイベント
+        button.addEventListener('click', () => {
+            // ボタンを無効化（二重クリック防止）
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.style.cursor = 'not-allowed';
+            
+            // 次のカードを表示
+            const remainingCardsStr = sessionStorage.getItem('yukinoRemainingCards');
+            if (remainingCardsStr) {
+                const remainingCards = JSON.parse(remainingCardsStr);
+                if (remainingCards.length > 0) {
+                    const nextCard = remainingCards[0];
+                    const updatedRemaining = remainingCards.slice(1);
+                    sessionStorage.setItem('yukinoRemainingCards', JSON.stringify(updatedRemaining));
+                    
+                    console.log('[タロットカード] ボタンから次のカードを表示します。', {
+                        nextCard: nextCard,
+                        remainingAfter: updatedRemaining
+                    });
+                    
+                    // ボタンをフェードアウト
+                    button.style.transition = 'opacity 0.3s ease';
+                    button.style.opacity = '0';
+                    
+                    // 次のカードを表示
+                    setTimeout(() => {
+                        button.remove();
+                        displayNextTarotCard(nextCard, container, sendMessageCallback);
+                    }, 300);
+                } else {
+                    console.log('[タロットカード] すべてのカードの解説が完了しました。');
+                    sessionStorage.removeItem('yukinoRemainingCards');
+                    button.remove();
+                }
+            }
+        });
+        
+        container.appendChild(button);
+    }
+
+    /**
      * カード拡大表示モーダル
      * @param {string} cardName - カード名
      * @param {string} imageFile - 画像ファイル名
@@ -508,31 +597,8 @@
                             }
                         }, 100);
                         
-                        // 次のカードを表示（isFirstGreetingの場合のみ、sessionStorageから取得）
-                        if (isFirstGreeting) {
-                            setTimeout(() => {
-                                const remainingCardsStr = sessionStorage.getItem('yukinoRemainingCards');
-                                if (remainingCardsStr) {
-                                    const remainingCards = JSON.parse(remainingCardsStr);
-                                    if (remainingCards.length > 0) {
-                                        const nextCard = remainingCards[0];
-                                        const updatedRemaining = remainingCards.slice(1);
-                                        sessionStorage.setItem('yukinoRemainingCards', JSON.stringify(updatedRemaining));
-                                        
-                                        console.log('[タロットカード] 次のカードを表示します。', {
-                                            nextCard: nextCard,
-                                            remainingAfter: updatedRemaining
-                                        });
-                                        
-                                        // 次のカードを表示（container = チャットメッセージのコンテナ）
-                                        displayNextTarotCard(nextCard, container, sendMessageCallback);
-                                    } else {
-                                        console.log('[タロットカード] すべてのカードの解説が完了しました。');
-                                        sessionStorage.removeItem('yukinoRemainingCards');
-                                    }
-                                }
-                            }, 1000);
-                        }
+                        // 次のカードの表示は、AIの案内メッセージ後のボタンクリックで行う
+                        // （自動表示ロジックを削除）
                     };
                     
                     // カードを拡大表示（「雪乃の解説」ボタン付き）
@@ -628,8 +694,21 @@
 
     // グローバルに公開
     window.YukinoTarot = {
-        detect: detectTarotCards,
-        display: displayTarotCards
+        detect: function(text) {
+            // タロットカードまたは次のカードへの案内を検出
+            return detectTarotCards(text) || detectNextCardGuidance(text) !== null;
+        },
+        display: function(text, container, sendMessageCallback) {
+            // 次のカードへの案内を検出
+            const nextCardPosition = detectNextCardGuidance(text);
+            if (nextCardPosition) {
+                // ボタンを表示
+                displayNextCardButton(nextCardPosition, container, sendMessageCallback);
+            } else {
+                // タロットカードを表示
+                displayTarotCards(text, container, sendMessageCallback);
+            }
+        }
     };
 })();
 
