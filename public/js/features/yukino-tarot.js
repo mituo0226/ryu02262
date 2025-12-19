@@ -761,14 +761,47 @@
                             cardInner.style.transform = 'rotateY(180deg)';
                             flippedCards.add(card.position);
                             
-                            // カードをめくった瞬間に画面いっぱいに表示してフェードアウト
-                            showCardFullscreenFade(card.name, card.image);
-                            
                             // カードをめくった後にラベルを表示
                             setTimeout(() => {
                                 cardLabel.style.opacity = '1';
                                 cardNameLabel.style.opacity = '1';
                             }, 300);
+                            
+                            // カードを拡大表示し、「雪乃の解説」ボタンを表示
+                            const onNormalExplanationClick = () => {
+                                // カード情報をsessionStorageに保存（AIに解説の指示を出すため）
+                                const cardInfo = {
+                                    name: card.name,
+                                    position: card.position,
+                                    image: card.image
+                                };
+                                sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify(cardInfo));
+                                
+                                console.log(`[タロットカード] ${card.position}のカードの解説をリクエストします（sessionStorageに保存）。`, {
+                                    cardName: card.name,
+                                    position: card.position,
+                                    cardInfo: cardInfo
+                                });
+                                
+                                // 空のメッセージを送信してAI応答をトリガー（ユーザーメッセージは表示しない）
+                                setTimeout(async () => {
+                                    if (sendMessageCallback) {
+                                        if (typeof sendMessageCallback === 'function') {
+                                            // sendMessage(skipUserMessage, skipAnimation, messageOverride)
+                                            // messageOverrideに特別なマーカーを含めて、システムプロンプトで検出できるようにする
+                                            const triggerMessage = `[TAROT_EXPLANATION_TRIGGER:${card.position}:${card.name}]`;
+                                            await sendMessageCallback(true, true, triggerMessage); // skipUserMessage = true, skipAnimation = true
+                                        } else {
+                                            console.error('メッセージ送信に失敗: sendMessageCallbackが関数ではありません', sendMessageCallback);
+                                        }
+                                    } else {
+                                        console.error('メッセージ送信に失敗: sendMessageCallbackが存在しません');
+                                    }
+                                }, 100);
+                            };
+                            
+                            // カードを拡大表示（「雪乃の解説」ボタン付き）
+                            showCardFullscreenWithExplanation(card.name, card.image, card.position, onNormalExplanationClick);
                             
                             // めくられた後は、クリックイベントを削除し、「拡大する」ボタンを表示
                             cardContainer.removeEventListener('click', normalFlipHandler);
