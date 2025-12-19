@@ -533,6 +533,13 @@
                     
                     // カードを拡大表示（「雪乃の解説」ボタン付き）
                     showCardFullscreenWithExplanation(card.name, card.image, card.position, onExplanationClick);
+                    
+                    // めくられた後は、クリックイベントを変更して拡大表示できるようにする
+                    cardContainer.removeEventListener('click', flipCard);
+                    cardContainer.style.cursor = 'pointer';
+                    cardContainer.addEventListener('click', () => {
+                        showCardModal(card.name, card.image);
+                    });
                 };
                 
                 // ゲストモードの最初の挨拶の場合、順番にカードを表示し、ユーザーがめくらせる
@@ -559,12 +566,12 @@
                     });
                 } else {
                     // 通常のタロット占い：クリックでカードをめくる
-                    let isFlipped = false;
+                    let isFlippedNormal = false;
                     const flippedCards = new Set();
                     
-                    cardContainer.addEventListener('click', () => {
-                        if (!isFlipped) {
-                            isFlipped = true;
+                    const normalFlipHandler = () => {
+                        if (!isFlippedNormal) {
+                            isFlippedNormal = true;
                             cardInner.style.transform = 'rotateY(180deg)';
                             flippedCards.add(card.position);
                             
@@ -576,8 +583,17 @@
                                 cardLabel.style.opacity = '1';
                                 cardNameLabel.style.opacity = '1';
                             }, 300);
+                            
+                            // めくられた後は、クリックイベントを変更して拡大表示できるようにする
+                            cardContainer.removeEventListener('click', normalFlipHandler);
+                            cardContainer.style.cursor = 'pointer';
+                            cardContainer.addEventListener('click', () => {
+                                showCardModal(card.name, card.image);
+                            });
                         }
-                    });
+                    };
+                    
+                    cardContainer.addEventListener('click', normalFlipHandler);
                 }
                 
                 cardWrapper.appendChild(cardLabel);
