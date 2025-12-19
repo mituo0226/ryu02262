@@ -454,14 +454,18 @@
                             message: message
                         });
                         
-                        // メッセージを送信
+                        // メッセージを送信（入力欄に設定せず、直接メッセージを渡す）
                         setTimeout(async () => {
-                            const messageInputEl = document.getElementById('messageInput');
-                            if (messageInputEl && sendMessageCallback) {
-                                messageInputEl.value = message;
-                                await sendMessageCallback(true, true); // skipUserMessage = true, skipAnimation = true
+                            if (sendMessageCallback) {
+                                // sendMessage関数にメッセージを直接渡す（第3引数）
+                                if (typeof sendMessageCallback === 'function') {
+                                    // sendMessage(skipUserMessage, skipAnimation, messageOverride)
+                                    await sendMessageCallback(true, true, message); // skipUserMessage = true, skipAnimation = true, messageOverride = message
+                                } else {
+                                    console.error('メッセージ送信に失敗: sendMessageCallbackが関数ではありません', sendMessageCallback);
+                                }
                             } else {
-                                console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessageCallback=', sendMessageCallback);
+                                console.error('メッセージ送信に失敗: sendMessageCallbackが存在しません');
                             }
                         }, 100);
                         

@@ -539,8 +539,9 @@ const ChatInit = {
      * @param {boolean} skipUserMessage - ユーザーメッセージをスキップするか
      * @param {boolean} skipAnimation - アニメーションをスキップするか
      */
-    async sendMessage(skipUserMessage = false, skipAnimation = false) {
-        const message = ChatUI.messageInput.value.trim();
+    async sendMessage(skipUserMessage = false, skipAnimation = false, messageOverride = null) {
+        // メッセージの取得：オーバーライドが指定されている場合はそれを使用、そうでなければ入力欄から取得
+        const message = messageOverride || ChatUI.messageInput.value.trim();
         const character = ChatData.currentCharacter;
 
         if (!message) {
@@ -1507,7 +1508,7 @@ const ChatInit = {
 window.ChatInit = ChatInit;
 
 // グローバル関数として公開
-window.sendMessage = () => ChatInit.sendMessage();
+window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // postMessage関連の初期化（DOMContentLoadedの外で即座に実行）
