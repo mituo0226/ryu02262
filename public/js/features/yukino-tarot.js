@@ -115,7 +115,7 @@
     /**
      * 次のカードへの案内を検出
      * @param {string} text - メッセージテキスト
-     * @returns {string|null} 次のカードの位置（現在/未来）、または null
+     * @returns {string|null} 次のカードの位置（現在/未来）、「まとめ」、または null
      */
     function detectNextCardGuidance(text) {
         if (text.includes('次は、現在のカード') || text.includes('次は現在のカード')) {
@@ -124,7 +124,85 @@
         if (text.includes('次は、未来のカード') || text.includes('次は未来のカード')) {
             return '未来';
         }
+        if (text.includes('3枚のカードから見えてきた') || text.includes('運勢をまとめ')) {
+            return 'まとめ';
+        }
         return null;
+    }
+
+    /**
+     * 雪乃のまとめボタンを表示
+     * @param {HTMLElement} container - ボタンを表示するコンテナ
+     * @param {Function} sendMessageCallback - メッセージ送信コールバック
+     */
+    function displaySummaryButton(container, sendMessageCallback) {
+        const button = document.createElement('button');
+        button.textContent = '雪乃のまとめ';
+        button.style.marginTop = '16px';
+        button.style.padding = '12px 24px';
+        button.style.fontSize = '14px';
+        button.style.fontWeight = '600';
+        button.style.color = '#ffffff';
+        button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+        button.style.border = '2px solid rgba(138, 43, 226, 0.9)';
+        button.style.borderRadius = '8px';
+        button.style.cursor = 'pointer';
+        button.style.transition = 'all 0.3s ease';
+        button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        
+        // ボタンのホバー効果
+        button.addEventListener('mouseenter', () => {
+            button.style.backgroundColor = 'rgba(138, 43, 226, 0.9)';
+            button.style.transform = 'translateY(-2px)';
+            button.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.2)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        });
+        
+        // ボタンのクリックイベント
+        button.addEventListener('click', async () => {
+            // ボタンを無効化（二重クリック防止）
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.style.cursor = 'not-allowed';
+            
+            // 3枚のカード情報を取得
+            const allThreeCards = JSON.parse(sessionStorage.getItem('yukinoAllThreeCards'));
+            
+            // まとめ鑑定のトリガーメッセージを送信
+            if (sendMessageCallback && typeof sendMessageCallback === 'function') {
+                // 3枚のカード情報をマーカーに含める
+                const cardsInfo = allThreeCards.map(c => `${c.position}:${c.name}`).join(',');
+                const triggerMessage = `[TAROT_SUMMARY_TRIGGER:${cardsInfo}]`;
+                
+                console.log('[タロットカード] まとめ鑑定をリクエストします。', {
+                    allThreeCards: allThreeCards,
+                    triggerMessage: triggerMessage
+                });
+                
+                // ボタンをフェードアウト
+                button.style.transition = 'opacity 0.3s ease';
+                button.style.opacity = '0';
+                
+                setTimeout(() => {
+                    button.remove();
+                    // まとめ鑑定のメッセージを送信
+                    sendMessageCallback(true, true, triggerMessage);
+                    
+                    // 3枚のカードモードを終了
+                    sessionStorage.removeItem('yukinoInitialThreeCardsMode');
+                    sessionStorage.removeItem('yukinoAllThreeCards');
+                    sessionStorage.removeItem('yukinoRemainingCards');
+                }, 300);
+            } else {
+                console.error('メッセージ送信に失敗: sendMessageCallbackが存在しません');
+            }
+        });
+        
+        container.appendChild(button);
     }
 
     /**
@@ -166,12 +244,18 @@
     }
 
     /**
-     * 次のカードへ進むボタンを表示
-     * @param {string} nextCardPosition - 次のカードの位置（現在/未来）
+     * 次のカードへ進むボタンまたはまとめボタンを表示
+     * @param {string} nextCardPosition - 次のカードの位置（現在/未来/まとめ）
      * @param {HTMLElement} container - ボタンを表示するコンテナ
      * @param {Function} sendMessageCallback - メッセージ送信コールバック
      */
     function displayNextCardButton(nextCardPosition, container, sendMessageCallback) {
+        // 「まとめ」の場合は、専用のボタンを表示
+        if (nextCardPosition === 'まとめ') {
+            displaySummaryButton(container, sendMessageCallback);
+            return;
+        }
+        
         const button = document.createElement('button');
         button.textContent = `「${nextCardPosition}」のタロットを見る`;
         button.style.marginTop = '16px';
