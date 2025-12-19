@@ -45,6 +45,74 @@
     }
 
     /**
+     * 最初のタロットカードを見るボタンを表示
+     * @param {HTMLElement} container - ボタンを表示するコンテナ
+     * @param {Function} sendMessageCallback - メッセージ送信コールバック
+     */
+    function displayFirstCardButton(container, sendMessageCallback) {
+        const button = document.createElement('button');
+        button.textContent = '過去のタロットカードを見る';
+        button.style.marginTop = '16px';
+        button.style.padding = '12px 24px';
+        button.style.fontSize = '14px';
+        button.style.fontWeight = '600';
+        button.style.color = '#ffffff';
+        button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+        button.style.border = '2px solid rgba(138, 43, 226, 0.9)';
+        button.style.borderRadius = '8px';
+        button.style.cursor = 'pointer';
+        button.style.transition = 'all 0.3s ease';
+        button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        
+        // ボタンのホバー効果
+        button.addEventListener('mouseenter', () => {
+            button.style.backgroundColor = 'rgba(138, 43, 226, 0.9)';
+            button.style.transform = 'translateY(-2px)';
+            button.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.2)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        });
+        
+        // ボタンのクリックイベント
+        button.addEventListener('click', () => {
+            // ボタンを無効化（二重クリック防止）
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.style.cursor = 'not-allowed';
+            
+            // ボタンをフェードアウト
+            button.style.transition = 'opacity 0.3s ease';
+            button.style.opacity = '0';
+            
+            // 3枚のカードモードを有効化
+            sessionStorage.setItem('yukinoInitialThreeCardsMode', 'true');
+            
+            // ボタンを削除して、カード表示をトリガー
+            setTimeout(() => {
+                button.remove();
+                // カード表示をトリガー（既にsessionStorageに保存されているカードを使用）
+                const remainingCardsStr = sessionStorage.getItem('yukinoRemainingCards');
+                if (remainingCardsStr) {
+                    const remainingCards = JSON.parse(remainingCardsStr);
+                    if (remainingCards.length > 0) {
+                        // 最初のカード（過去）を表示するために、全カードリストを再構築
+                        const allThreeCards = JSON.parse(sessionStorage.getItem('yukinoAllThreeCards'));
+                        if (allThreeCards && allThreeCards.length > 0) {
+                            // 過去のカードを表示（forcedCardsとして渡す）
+                            displayTarotCards('', container, sendMessageCallback, [allThreeCards[0]]);
+                        }
+                    }
+                }
+            }, 300);
+        });
+        
+        container.appendChild(button);
+    }
+
+    /**
      * 次のカードへの案内を検出
      * @param {string} text - メッセージテキスト
      * @returns {string|null} 次のカードの位置（現在/未来）、または null
@@ -443,17 +511,22 @@
             // ゲストモードの最初の挨拶かどうか
             const isFirstGreeting = selectedCards.length === 3 && selectedCards[0].position === '過去';
             
-            // isFirstGreetingの場合、残りのカードをsessionStorageに保存し、最初のカードだけを表示
+            // isFirstGreetingの場合、3枚のカード情報をsessionStorageに保存し、ボタンを表示
             if (isFirstGreeting) {
+                sessionStorage.setItem('yukinoAllThreeCards', JSON.stringify(selectedCards));
                 sessionStorage.setItem('yukinoRemainingCards', JSON.stringify(selectedCards.slice(1)));
-                console.log('[タロットカード] 3枚のカードを準備しました。最初は過去のカードのみ表示します。', {
-                    displayCard: selectedCards[0],
+                console.log('[タロットカード] 3枚のカードを準備しました。「過去のタロットカードを見る」ボタンを表示します。', {
+                    allCards: selectedCards,
                     remainingCards: selectedCards.slice(1)
                 });
+                
+                // 「過去のタロットカードを見る」ボタンを表示
+                displayFirstCardButton(container, sendMessageCallback);
+                return; // カードは表示しない（ボタンクリック後に表示）
             }
             
-            // 表示するカードを決定（isFirstGreetingの場合は最初のカードのみ）
-            const cardsToProcess = isFirstGreeting ? [selectedCards[0]] : selectedCards;
+            // 表示するカードを決定
+            const cardsToProcess = selectedCards;
             
             cardsToProcess.forEach((card, index) => {
                 const cardWrapper = document.createElement('div');
@@ -586,6 +659,9 @@
                     isFlipped = true;
                     cardInner.style.transform = 'rotateY(180deg)';
                     
+                    // 3枚のカードモードかどうかを確認
+                    const isThreeCardsMode = sessionStorage.getItem('yukinoInitialThreeCardsMode') === 'true';
+                    
                     // ガイダンスボタンを非表示
                     flipButton.style.opacity = '0';
                     flipButton.style.pointerEvents = 'none';
@@ -632,15 +708,24 @@
                         // （自動表示ロジックを削除）
                     };
                     
-                    // カードを拡大表示（「雪乃の解説」ボタン付き）
-                    showCardFullscreenWithExplanation(card.name, card.image, card.position, onExplanationClick);
-                    
-                    // めくられた後は、クリックイベントを削除し、「拡大する」ボタンを表示
-                    cardContainer.removeEventListener('click', flipCard);
-                    cardContainer.style.cursor = 'default';
-                    
-                    // 「拡大する」ボタンを表示
-                    displayExpandCardButton(card.name, card.image, cardWrapper);
+                    // 3枚のカードモードまたはisFirstGreetingの場合、「雪乃の解説」ボタン付き拡大表示
+                    if (isThreeCardsMode || isFirstGreeting) {
+                        // カードを拡大表示（「雪乃の解説」ボタン付き）
+                        showCardFullscreenWithExplanation(card.name, card.image, card.position, onExplanationClick);
+                        
+                        // めくられた後は、クリックイベントを削除し、「拡大する」ボタンを表示
+                        cardContainer.removeEventListener('click', flipCard);
+                        cardContainer.style.cursor = 'default';
+                        
+                        // 「拡大する」ボタンを表示
+                        displayExpandCardButton(card.name, card.image, cardWrapper);
+                    } else {
+                        // 通常のタロット占い：即座にフェードアウト
+                        // （この分岐は現在使用されていないが、将来の拡張のために残す）
+                        cardContainer.removeEventListener('click', flipCard);
+                        cardContainer.style.cursor = 'default';
+                        displayExpandCardButton(card.name, card.image, cardWrapper);
+                    }
                 };
                 
                 // ゲストモードの最初の挨拶の場合、順番にカードを表示し、ユーザーがめくらせる
@@ -733,10 +818,10 @@
             // 次のカードへの案内を検出
             const nextCardPosition = detectNextCardGuidance(text);
             if (nextCardPosition) {
-                // ボタンを表示
+                // 次のカードへ進むボタンを表示
                 displayNextCardButton(nextCardPosition, container, sendMessageCallback);
             } else {
-                // タロットカードを表示
+                // タロットカードを表示（または「過去のタロットカードを見る」ボタンを表示）
                 displayTarotCards(text, container, sendMessageCallback);
             }
         }
