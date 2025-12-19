@@ -445,22 +445,28 @@
                     
                     // カードを拡大表示し、「雪乃の解説」ボタンを表示
                     const onExplanationClick = () => {
-                        // めくったカードの解説を自動的に送信
-                        const message = `${card.position}のカード「${card.name}」について、詳しく解説してください。このカードの意味、私の${card.position}の状況にどのように関連しているか、そして具体的なアドバイスをお願いします。`;
+                        // カード情報をsessionStorageに保存（AIに解説の指示を出すため）
+                        const cardInfo = {
+                            name: card.name,
+                            position: card.position,
+                            image: card.image
+                        };
+                        sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify(cardInfo));
                         
-                        console.log(`[タロットカード] ${card.position}のカードの解説をリクエストします。`, {
+                        console.log(`[タロットカード] ${card.position}のカードの解説をリクエストします（sessionStorageに保存）。`, {
                             cardName: card.name,
                             position: card.position,
-                            message: message
+                            cardInfo: cardInfo
                         });
                         
-                        // メッセージを送信（入力欄に設定せず、直接メッセージを渡す）
+                        // 空のメッセージを送信してAI応答をトリガー（ユーザーメッセージは表示しない）
                         setTimeout(async () => {
                             if (sendMessageCallback) {
-                                // sendMessage関数にメッセージを直接渡す（第3引数）
                                 if (typeof sendMessageCallback === 'function') {
                                     // sendMessage(skipUserMessage, skipAnimation, messageOverride)
-                                    await sendMessageCallback(true, true, message); // skipUserMessage = true, skipAnimation = true, messageOverride = message
+                                    // messageOverrideに特別なマーカーを含めて、システムプロンプトで検出できるようにする
+                                    const triggerMessage = `[TAROT_EXPLANATION_TRIGGER:${card.position}:${card.name}]`;
+                                    await sendMessageCallback(true, true, triggerMessage); // skipUserMessage = true, skipAnimation = true
                                 } else {
                                     console.error('メッセージ送信に失敗: sendMessageCallbackが関数ではありません', sendMessageCallback);
                                 }

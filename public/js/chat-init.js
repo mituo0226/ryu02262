@@ -550,8 +550,11 @@ const ChatInit = {
         
         const isGuest = !AuthState.isRegistered();
         
+        // タロットカード解説トリガーマーカーを検出
+        const isTarotExplanationTrigger = message.includes('[TAROT_EXPLANATION_TRIGGER:');
+        
         // メッセージ送信ボタンを押した時点で、即座にカウントを開始
-        if (isGuest) {
+        if (isGuest && !isTarotExplanationTrigger) {
             // メッセージ送信前：現在のカウントを取得（10通目以降は強制的に儀式開始へ）
             const currentCount = ChatData.getGuestMessageCount(character);
             if (currentCount >= ChatData.GUEST_MESSAGE_LIMIT) {
@@ -656,7 +659,8 @@ const ChatInit = {
         const messageToSend = message;
         
         // 【重要】ユーザーメッセージを送信時点で即座に表示（ユーザーが送信を確認できるように）
-        if (!skipUserMessage) {
+        // タロットカード解説トリガーマーカーの場合は表示しない
+        if (!skipUserMessage && !isTarotExplanationTrigger) {
             ChatUI.addMessage('user', messageToSend, 'あなた');
             await this.delay(100);
             ChatUI.scrollToLatest();
@@ -678,7 +682,8 @@ const ChatInit = {
             return;
         }
         
-        if (!skipUserMessage) {
+        // タロットカード解説トリガーマーカーの場合は、sessionStorageに保存しない
+        if (!skipUserMessage && !isTarotExplanationTrigger) {
             // メッセージカウントを取得（既にゲストユーザーの場合は上で取得済み）
             let messageCount = 0;
             if (isGuest) {
@@ -939,11 +944,12 @@ const ChatInit = {
                 const userMsgData = JSON.parse(lastUserMessage);
                 const messageToCheck = userMsgData.message.trim();
                 
-                // タロットカードの解説リクエストメッセージは表示しない
+                // タロットカードの解説リクエストメッセージ・トリガーマーカーは表示しない
                 if (messageToCheck.includes('以下のタロットカードについて') || 
                     messageToCheck.includes('このカードの意味、私の') ||
                     messageToCheck.includes('のカード「') ||
-                    messageToCheck.includes('について、詳しく解説してください')) {
+                    messageToCheck.includes('について、詳しく解説してください') ||
+                    messageToCheck.includes('[TAROT_EXPLANATION_TRIGGER:')) {
                     sessionStorage.removeItem('lastUserMessage');
                     return;
                 }
