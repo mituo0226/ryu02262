@@ -60,6 +60,44 @@
     }
 
     /**
+     * カードの拡大ボタンを表示
+     * @param {string} cardName - カード名
+     * @param {string} imageFile - 画像ファイル名
+     * @param {HTMLElement} cardWrapper - カードのラッパー要素
+     */
+    function displayExpandCardButton(cardName, imageFile, cardWrapper) {
+        const expandButton = document.createElement('button');
+        expandButton.textContent = '拡大する';
+        expandButton.style.marginTop = '8px';
+        expandButton.style.padding = '6px 16px';
+        expandButton.style.fontSize = '12px';
+        expandButton.style.fontWeight = '600';
+        expandButton.style.color = '#ffffff';
+        expandButton.style.backgroundColor = 'rgba(138, 43, 226, 0.6)';
+        expandButton.style.border = '1px solid rgba(138, 43, 226, 0.8)';
+        expandButton.style.borderRadius = '6px';
+        expandButton.style.cursor = 'pointer';
+        expandButton.style.transition = 'all 0.2s ease';
+        
+        // ボタンのホバー効果
+        expandButton.addEventListener('mouseenter', () => {
+            expandButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
+            expandButton.style.transform = 'scale(1.05)';
+        });
+        expandButton.addEventListener('mouseleave', () => {
+            expandButton.style.backgroundColor = 'rgba(138, 43, 226, 0.6)';
+            expandButton.style.transform = 'scale(1)';
+        });
+        
+        // ボタンのクリックイベント
+        expandButton.addEventListener('click', () => {
+            showCardModal(cardName, imageFile);
+        });
+        
+        cardWrapper.appendChild(expandButton);
+    }
+
+    /**
      * 次のカードへ進むボタンを表示
      * @param {string} nextCardPosition - 次のカードの位置（現在/未来）
      * @param {HTMLElement} container - ボタンを表示するコンテナ
@@ -529,13 +567,6 @@
                 cardImage.style.width = '100%';
                 cardImage.style.height = '100%';
                 cardImage.style.objectFit = 'cover';
-                cardImage.style.cursor = 'pointer';
-                
-                // クリックで拡大表示
-                cardImage.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    showCardModal(card.name, card.image);
-                });
                 
                 cardFront.appendChild(cardImage);
                 
@@ -604,12 +635,12 @@
                     // カードを拡大表示（「雪乃の解説」ボタン付き）
                     showCardFullscreenWithExplanation(card.name, card.image, card.position, onExplanationClick);
                     
-                    // めくられた後は、クリックイベントを変更して拡大表示できるようにする
+                    // めくられた後は、クリックイベントを削除し、「拡大する」ボタンを表示
                     cardContainer.removeEventListener('click', flipCard);
-                    cardContainer.style.cursor = 'pointer';
-                    cardContainer.addEventListener('click', () => {
-                        showCardModal(card.name, card.image);
-                    });
+                    cardContainer.style.cursor = 'default';
+                    
+                    // 「拡大する」ボタンを表示
+                    displayExpandCardButton(card.name, card.image, cardWrapper);
                 };
                 
                 // ゲストモードの最初の挨拶の場合、順番にカードを表示し、ユーザーがめくらせる
@@ -654,12 +685,12 @@
                                 cardNameLabel.style.opacity = '1';
                             }, 300);
                             
-                            // めくられた後は、クリックイベントを変更して拡大表示できるようにする
+                            // めくられた後は、クリックイベントを削除し、「拡大する」ボタンを表示
                             cardContainer.removeEventListener('click', normalFlipHandler);
-                            cardContainer.style.cursor = 'pointer';
-                            cardContainer.addEventListener('click', () => {
-                                showCardModal(card.name, card.image);
-                            });
+                            cardContainer.style.cursor = 'default';
+                            
+                            // 「拡大する」ボタンを表示
+                            displayExpandCardButton(card.name, card.image, cardWrapper);
                         }
                     };
                     
