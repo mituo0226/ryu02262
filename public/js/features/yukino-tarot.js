@@ -216,6 +216,8 @@
                 cardWrapper.style.flexDirection = 'column';
                 cardWrapper.style.alignItems = 'center';
                 cardWrapper.style.gap = '6px';
+                cardWrapper.dataset.cardIndex = index.toString(); // カードのインデックスを保存
+                cardWrapper.dataset.cardPosition = card.position; // カードの位置を保存
                 
                 // カードラベル（位置：過去・現在・未来）
                 const cardLabel = document.createElement('div');
@@ -305,17 +307,77 @@
                 cardInner.appendChild(cardFront);
                 cardContainer.appendChild(cardInner);
                 
-                // ゲストモードの最初の挨拶の場合、カードを自動的にめくった状態で表示
+                // ゲストモードの最初の挨拶の場合、順番にカードを表示し、ユーザーがめくらせる
                 if (isFirstGreeting) {
-                    // カードを自動的にめくった状態にする
-                    cardInner.style.transform = 'rotateY(180deg)';
-                    
-                    // 順番にカードを表示するアニメーション（過去→現在→未来）
+                    // カードは裏面から表示（ユーザーがクリックでめくる）
+                    // 過去のカードから順番に表示
                     cardContainer.style.opacity = '0';
-                    setTimeout(() => {
-                        cardContainer.style.transition = 'opacity 0.5s ease';
-                        cardContainer.style.opacity = '1';
-                    }, index * 500); // 0.5秒ずつずらして表示
+                    cardContainer.style.pointerEvents = 'none'; // まだ表示されていないカードはクリック不可
+                    
+                    // 過去のカード（index === 0）を最初に表示
+                    if (index === 0) {
+                        setTimeout(() => {
+                            cardContainer.style.transition = 'opacity 0.5s ease';
+                            cardContainer.style.opacity = '1';
+                            cardContainer.style.pointerEvents = 'auto';
+                        }, 500);
+                    }
+                    
+                    // クリックでカードをめくる
+                    let isFlipped = false;
+                    cardContainer.addEventListener('click', () => {
+                        if (!isFlipped && cardContainer.style.pointerEvents === 'auto') {
+                            isFlipped = true;
+                            cardInner.style.transform = 'rotateY(180deg)';
+                            
+                            // カードをめくった瞬間に画面いっぱいに表示してフェードアウト
+                            showCardFullscreenFade(card.name, card.image);
+                            
+                            // カードをめくった後にラベルを表示
+                            setTimeout(() => {
+                                cardLabel.style.opacity = '1';
+                                cardNameLabel.style.opacity = '1';
+                            }, 300);
+                            
+                            // めくったカードの解説を自動的に送信
+                            const cardInfo = `${card.position}のカード: ${card.name}`;
+                            const message = `${card.position}のカード「${card.name}」について、詳しく解説してください。このカードの意味、私の${card.position}の状況にどのように関連しているか、そして具体的なアドバイスをお願いします。`;
+                            
+                            console.log(`[タロットカード] ${card.position}のカードをめくりました。解説をリクエストします。`, {
+                                cardName: card.name,
+                                position: card.position,
+                                message: message
+                            });
+                            
+                            // 少し遅延を入れてから自動的にメッセージを送信
+                            setTimeout(async () => {
+                                const messageInputEl = document.getElementById('messageInput');
+                                if (messageInputEl && sendMessageCallback) {
+                                    messageInputEl.value = message;
+                                    await sendMessageCallback(true, true); // skipUserMessage = true, skipAnimation = true
+                                } else {
+                                    console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessageCallback=', sendMessageCallback);
+                                }
+                            }, 1000); // 1秒後に送信
+                            
+                            // 次のカードを表示（現在→未来の順番）
+                            if (index < selectedCards.length - 1) {
+                                const nextCardIndex = index + 1;
+                                // データ属性で次のカードを検索
+                                const nextCardWrapper = cardsContainer.querySelector(`[data-card-index="${nextCardIndex}"]`);
+                                if (nextCardWrapper) {
+                                    const nextCardContainer = nextCardWrapper.querySelector('.tarot-flip-card');
+                                    if (nextCardContainer) {
+                                        setTimeout(() => {
+                                            nextCardContainer.style.transition = 'opacity 0.5s ease';
+                                            nextCardContainer.style.opacity = '1';
+                                            nextCardContainer.style.pointerEvents = 'auto';
+                                        }, 500);
+                                    }
+                                }
+                            }
+                        }
+                    });
                 } else {
                     // 通常のタロット占い：クリックでカードをめくる
                     let isFlipped = false;
