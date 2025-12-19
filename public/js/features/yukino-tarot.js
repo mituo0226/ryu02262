@@ -219,24 +219,49 @@
                 cardWrapper.dataset.cardIndex = index.toString(); // カードのインデックスを保存
                 cardWrapper.dataset.cardPosition = card.position; // カードの位置を保存
                 
-                // カードラベル（位置：過去・現在・未来）
+                // カードラベル（位置：過去・現在・未来）- 最初は非表示
                 const cardLabel = document.createElement('div');
                 cardLabel.textContent = card.position || '';
                 cardLabel.style.fontSize = '12px';
                 cardLabel.style.color = 'rgba(255, 255, 255, 0.8)';
                 cardLabel.style.fontWeight = '600';
-                cardLabel.style.opacity = isFirstGreeting ? '1' : '0';
+                cardLabel.style.opacity = '0'; // 最初は非表示
                 cardLabel.style.transition = 'opacity 0.3s ease';
                 
-                // カード名ラベル
+                // カード名ラベル - 最初は非表示
                 const cardNameLabel = document.createElement('div');
                 cardNameLabel.textContent = card.name;
                 cardNameLabel.style.fontSize = '11px';
                 cardNameLabel.style.color = 'rgba(255, 255, 255, 0.9)';
                 cardNameLabel.style.fontWeight = '500';
                 cardNameLabel.style.marginTop = '4px';
-                cardNameLabel.style.opacity = isFirstGreeting ? '1' : '0';
+                cardNameLabel.style.opacity = '0'; // 最初は非表示
                 cardNameLabel.style.transition = 'opacity 0.3s ease';
+                
+                // 「カードをめくる」ガイダンスボタン（ゲストモードの最初の挨拶の場合のみ）
+                const flipButton = document.createElement('button');
+                flipButton.textContent = 'カードをめくる';
+                flipButton.style.marginTop = '8px';
+                flipButton.style.padding = '8px 16px';
+                flipButton.style.fontSize = '12px';
+                flipButton.style.color = '#ffffff';
+                flipButton.style.backgroundColor = 'rgba(138, 43, 226, 0.6)';
+                flipButton.style.border = '1px solid rgba(138, 43, 226, 0.8)';
+                flipButton.style.borderRadius = '6px';
+                flipButton.style.cursor = 'pointer';
+                flipButton.style.transition = 'all 0.2s ease';
+                flipButton.style.opacity = isFirstGreeting ? '1' : '0';
+                flipButton.style.pointerEvents = isFirstGreeting ? 'auto' : 'none';
+                
+                // ボタンのホバー効果
+                flipButton.addEventListener('mouseenter', () => {
+                    flipButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
+                    flipButton.style.transform = 'scale(1.05)';
+                });
+                flipButton.addEventListener('mouseleave', () => {
+                    flipButton.style.backgroundColor = 'rgba(138, 43, 226, 0.6)';
+                    flipButton.style.transform = 'scale(1)';
+                });
                 
                 // カードコンテナ（3D flip用）
                 const cardContainer = document.createElement('div');
@@ -307,6 +332,71 @@
                 cardInner.appendChild(cardFront);
                 cardContainer.appendChild(cardInner);
                 
+                // カードをめくる処理（共通関数）
+                const flipCard = () => {
+                    if (isFlipped || cardContainer.style.pointerEvents !== 'auto') {
+                        return;
+                    }
+                    
+                    isFlipped = true;
+                    cardInner.style.transform = 'rotateY(180deg)';
+                    
+                    // ガイダンスボタンを非表示
+                    flipButton.style.opacity = '0';
+                    flipButton.style.pointerEvents = 'none';
+                    
+                    // カードをめくった瞬間に画面いっぱいに表示してフェードアウト
+                    showCardFullscreenFade(card.name, card.image);
+                    
+                    // カードをめくった後にラベルを表示
+                    setTimeout(() => {
+                        cardLabel.style.opacity = '1';
+                        cardNameLabel.style.opacity = '1';
+                    }, 300);
+                    
+                    // めくったカードの解説を自動的に送信
+                    const message = `${card.position}のカード「${card.name}」について、詳しく解説してください。このカードの意味、私の${card.position}の状況にどのように関連しているか、そして具体的なアドバイスをお願いします。`;
+                    
+                    console.log(`[タロットカード] ${card.position}のカードをめくりました。解説をリクエストします。`, {
+                        cardName: card.name,
+                        position: card.position,
+                        message: message
+                    });
+                    
+                    // 少し遅延を入れてから自動的にメッセージを送信
+                    setTimeout(async () => {
+                        const messageInputEl = document.getElementById('messageInput');
+                        if (messageInputEl && sendMessageCallback) {
+                            messageInputEl.value = message;
+                            await sendMessageCallback(true, true); // skipUserMessage = true, skipAnimation = true
+                        } else {
+                            console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessageCallback=', sendMessageCallback);
+                        }
+                    }, 1000); // 1秒後に送信
+                    
+                    // 次のカードを表示（現在→未来の順番）
+                    if (index < selectedCards.length - 1) {
+                        const nextCardIndex = index + 1;
+                        // データ属性で次のカードを検索
+                        const nextCardWrapper = cardsContainer.querySelector(`[data-card-index="${nextCardIndex}"]`);
+                        if (nextCardWrapper) {
+                            const nextCardContainer = nextCardWrapper.querySelector('.tarot-flip-card');
+                            const nextFlipButton = nextCardWrapper.querySelector('button');
+                            if (nextCardContainer) {
+                                setTimeout(() => {
+                                    nextCardContainer.style.transition = 'opacity 0.5s ease';
+                                    nextCardContainer.style.opacity = '1';
+                                    nextCardContainer.style.pointerEvents = 'auto';
+                                    if (nextFlipButton) {
+                                        nextFlipButton.style.opacity = '1';
+                                        nextFlipButton.style.pointerEvents = 'auto';
+                                    }
+                                }, 500);
+                            }
+                        }
+                    }
+                };
+                
                 // ゲストモードの最初の挨拶の場合、順番にカードを表示し、ユーザーがめくらせる
                 if (isFirstGreeting) {
                     // カードは裏面から表示（ユーザーがクリックでめくる）
@@ -325,58 +415,10 @@
                     
                     // クリックでカードをめくる
                     let isFlipped = false;
-                    cardContainer.addEventListener('click', () => {
-                        if (!isFlipped && cardContainer.style.pointerEvents === 'auto') {
-                            isFlipped = true;
-                            cardInner.style.transform = 'rotateY(180deg)';
-                            
-                            // カードをめくった瞬間に画面いっぱいに表示してフェードアウト
-                            showCardFullscreenFade(card.name, card.image);
-                            
-                            // カードをめくった後にラベルを表示
-                            setTimeout(() => {
-                                cardLabel.style.opacity = '1';
-                                cardNameLabel.style.opacity = '1';
-                            }, 300);
-                            
-                            // めくったカードの解説を自動的に送信
-                            const cardInfo = `${card.position}のカード: ${card.name}`;
-                            const message = `${card.position}のカード「${card.name}」について、詳しく解説してください。このカードの意味、私の${card.position}の状況にどのように関連しているか、そして具体的なアドバイスをお願いします。`;
-                            
-                            console.log(`[タロットカード] ${card.position}のカードをめくりました。解説をリクエストします。`, {
-                                cardName: card.name,
-                                position: card.position,
-                                message: message
-                            });
-                            
-                            // 少し遅延を入れてから自動的にメッセージを送信
-                            setTimeout(async () => {
-                                const messageInputEl = document.getElementById('messageInput');
-                                if (messageInputEl && sendMessageCallback) {
-                                    messageInputEl.value = message;
-                                    await sendMessageCallback(true, true); // skipUserMessage = true, skipAnimation = true
-                                } else {
-                                    console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessageCallback=', sendMessageCallback);
-                                }
-                            }, 1000); // 1秒後に送信
-                            
-                            // 次のカードを表示（現在→未来の順番）
-                            if (index < selectedCards.length - 1) {
-                                const nextCardIndex = index + 1;
-                                // データ属性で次のカードを検索
-                                const nextCardWrapper = cardsContainer.querySelector(`[data-card-index="${nextCardIndex}"]`);
-                                if (nextCardWrapper) {
-                                    const nextCardContainer = nextCardWrapper.querySelector('.tarot-flip-card');
-                                    if (nextCardContainer) {
-                                        setTimeout(() => {
-                                            nextCardContainer.style.transition = 'opacity 0.5s ease';
-                                            nextCardContainer.style.opacity = '1';
-                                            nextCardContainer.style.pointerEvents = 'auto';
-                                        }, 500);
-                                    }
-                                }
-                            }
-                        }
+                    cardContainer.addEventListener('click', flipCard);
+                    flipButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        flipCard();
                     });
                 } else {
                     // 通常のタロット占い：クリックでカードをめくる
@@ -423,6 +465,9 @@
                 cardWrapper.appendChild(cardLabel);
                 cardWrapper.appendChild(cardContainer);
                 cardWrapper.appendChild(cardNameLabel);
+                if (isFirstGreeting) {
+                    cardWrapper.appendChild(flipButton);
+                }
                 cardWrapper.appendChild(expandLink);
                 cardsContainer.appendChild(cardWrapper);
             });
