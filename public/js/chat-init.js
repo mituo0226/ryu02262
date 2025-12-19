@@ -300,18 +300,100 @@ const ChatInit = {
                     });
                 }
                 
+                // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
+                // 守護神の判定はデータベース（historyData.assignedDeity = guardianカラム）を優先
+                // 会話履歴の有無に関わらず、guardianが未登録であれば儀式を開始（楓専用）
+                if (!isGuestMode && character === 'kaede' && !justRegistered && !shouldTriggerRegistrationFlow) {
+                    // データベースのguardianカラムから取得した値（優先）
+                    const hasAssignedDeity = historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+                    
+                    // 守護神が未決定（データベースのguardianカラムが未設定）の場合、自動的に儀式を開始
+                    if (!hasAssignedDeity) {
+                        console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神（guardian）が未登録（DB確認）のため、自動的に儀式を開始します。', {
+                            assignedDeityFromDB: historyData.assignedDeity,
+                            hasHistory: historyData.hasHistory,
+                            recentMessagesLength: historyData.recentMessages?.length || 0
+                        });
+                        
+                        // 自動的に守護神の儀式を開始するためのフラグを設定
+                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                        
+                        // 自動的に守護神の儀式を開始
+                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                            await window.ChatInit.startGuardianRitual(character, null);
+                            return; // 儀式開始後は処理を終了
+                        }
+                    }
+                }
+                
                 if (guestHistory.length === 0 && !guardianMessageShown) {
                     const initialMessage = ChatData.generateInitialMessage(character, historyData);
                     ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                 }
             } else if (historyData && historyData.nickname) {
                 ChatData.userNickname = historyData.nickname;
+                
+                // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
+                // 守護神の判定はデータベース（historyData.assignedDeity = guardianカラム）を優先
+                // 会話履歴の有無に関わらず、guardianが未登録であれば儀式を開始（楓専用）
+                if (!isGuestMode && character === 'kaede' && !justRegistered && !shouldTriggerRegistrationFlow) {
+                    // データベースのguardianカラムから取得した値（優先）
+                    const hasAssignedDeity = historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+                    
+                    // 守護神が未決定（データベースのguardianカラムが未設定）の場合、自動的に儀式を開始
+                    if (!hasAssignedDeity) {
+                        console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神（guardian）が未登録（DB確認）のため、自動的に儀式を開始します。', {
+                            assignedDeityFromDB: historyData.assignedDeity,
+                            nickname: historyData.nickname
+                        });
+                        
+                        // 自動的に守護神の儀式を開始するためのフラグを設定
+                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                        
+                        // 自動的に守護神の儀式を開始
+                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                            await window.ChatInit.startGuardianRitual(character, null);
+                            return; // 儀式開始後は処理を終了
+                        }
+                    }
+                }
+                
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown) {
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname);
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
             } else {
+                // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
+                // この分岐ではhistoryDataが取得できなかった場合のため、会話履歴を再取得してデータベースのguardianカラムを確認
+                // 会話履歴の有無に関わらず、guardianが未登録であれば儀式を開始（楓専用）
+                if (!isGuestMode && character === 'kaede' && !justRegistered && !shouldTriggerRegistrationFlow) {
+                    // 会話履歴を再取得してデータベースのguardianカラムを確認
+                    try {
+                        const recheckHistoryData = await ChatAPI.loadConversationHistory(character);
+                        const hasAssignedDeity = recheckHistoryData && recheckHistoryData.assignedDeity && recheckHistoryData.assignedDeity.trim() !== '';
+                        
+                        // 守護神が未決定（データベースのguardianカラムが未設定）の場合、自動的に儀式を開始
+                        if (!hasAssignedDeity) {
+                            console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神（guardian）が未登録（DB再確認）のため、自動的に儀式を開始します。', {
+                                assignedDeityFromDB: recheckHistoryData?.assignedDeity
+                            });
+                            
+                            // 自動的に守護神の儀式を開始するためのフラグを設定
+                            sessionStorage.setItem('acceptedGuardianRitual', 'true');
+                            
+                            // 自動的に守護神の儀式を開始
+                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                                await window.ChatInit.startGuardianRitual(character, null);
+                                return; // 儀式開始後は処理を終了
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[楓専用処理] 会話履歴の再取得に失敗:', error);
+                        // エラー時は処理を続行（通常の初回メッセージを表示）
+                    }
+                }
+                
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown) {
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
@@ -1210,9 +1292,18 @@ const ChatInit = {
         if (ChatUI.sendButton) ChatUI.sendButton.disabled = true;
         
         try {
-            // 会話履歴を取得（登録直後は空のはず）
+            // 会話履歴を取得（データベースのguardianカラムを確認するため）
             const historyData = await ChatAPI.loadConversationHistory(character);
             console.log('[守護神の儀式] 会話履歴データ:', historyData);
+            
+            // 【重要】データベースのguardianカラムから守護神が既に決定されているかチェック（優先）
+            if (historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '') {
+                console.log('[守護神の儀式] データベースで守護神が既に決定されていることを確認（' + historyData.assignedDeity + '）。儀式を開始しません。');
+                // localStorageにも同期（表示用）
+                localStorage.setItem('assignedDeity', historyData.assignedDeity);
+                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+                return; // 儀式を開始しない
+            }
             
             // 会話履歴の決定（優先順位順）
             let conversationHistory = [];
