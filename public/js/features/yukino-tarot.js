@@ -249,37 +249,54 @@
     }
 
     /**
+     * 次のタロットカードを表示する関数（過去→現在→未来の順番）
+     * @param {Object} card - 表示するカード情報
+     * @param {HTMLElement} container - カードを表示するコンテナ
+     * @param {Function} sendMessageCallback - メッセージ送信コールバック
+     */
+    function displayNextTarotCard(card, container, sendMessageCallback) {
+        console.log('[タロットカード] displayNextTarotCard 呼び出し', card);
+        // displayTarotCards関数を再利用（forcedCardsとして1枚のカードを渡す）
+        displayTarotCards('', container, sendMessageCallback, [card]);
+    }
+
+    /**
      * タロットカードをランダムに選択して表示
      * ゲストモードの最初の挨拶では、過去・現在・未来の3枚を順番に自動的にめくった状態で表示
      * @param {string} text - メッセージテキスト
      * @param {HTMLElement} container - カードを表示するコンテナ
      * @param {Function} sendMessageCallback - メッセージ送信コールバック関数 (skipUserMessage, skipAnimation)
      */
-    function displayTarotCards(text, container, sendMessageCallback) {
-        // タロット占いが開始されたかどうかを検出
-        const hasTarotReading = detectTarotCards(text);
-        
-        // ゲストモードの最初の挨拶かどうかを判定（過去・現在・未来の3枚を表示）
-        const isFirstGreeting = text.includes('過去・現在・未来') || text.includes('過去、現在、未来');
-        
-        // タロット占いが開始された場合、カードを選択
+    function displayTarotCards(text, container, sendMessageCallback, forcedCards = null) {
+        // forcedCardsが指定されている場合、それを使用
         let selectedCards = [];
-        if (hasTarotReading) {
-            const allCardNames = Object.keys(tarotCardImageMap);
-            const shuffled = [...allCardNames].sort(() => Math.random() - 0.5);
+        if (forcedCards) {
+            selectedCards = forcedCards;
+        } else {
+            // タロット占いが開始されたかどうかを検出
+            const hasTarotReading = detectTarotCards(text);
             
-            if (isFirstGreeting) {
-                // ゲストモードの最初の挨拶：過去・現在・未来の3枚を選択
-                selectedCards = [
-                    { position: '過去', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] },
-                    { position: '現在', name: shuffled[1], image: tarotCardImageMap[shuffled[1]] },
-                    { position: '未来', name: shuffled[2], image: tarotCardImageMap[shuffled[2]] }
-                ];
-            } else {
-                // 通常のタロット占い：1枚のカードをランダムに選択
-                selectedCards = [
-                    { position: '', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] }
-                ];
+            // ゲストモードの最初の挨拶かどうかを判定（過去・現在・未来の3枚を表示）
+            const isFirstGreeting = text.includes('過去・現在・未来') || text.includes('過去、現在、未来');
+            
+            // タロット占いが開始された場合、カードを選択
+            if (hasTarotReading) {
+                const allCardNames = Object.keys(tarotCardImageMap);
+                const shuffled = [...allCardNames].sort(() => Math.random() - 0.5);
+                
+                if (isFirstGreeting) {
+                    // ゲストモードの最初の挨拶：過去・現在・未来の3枚を選択
+                    selectedCards = [
+                        { position: '過去', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] },
+                        { position: '現在', name: shuffled[1], image: tarotCardImageMap[shuffled[1]] },
+                        { position: '未来', name: shuffled[2], image: tarotCardImageMap[shuffled[2]] }
+                    ];
+                } else {
+                    // 通常のタロット占い：1枚のカードをランダムに選択
+                    selectedCards = [
+                        { position: '', name: shuffled[0], image: tarotCardImageMap[shuffled[0]] }
+                    ];
+                }
             }
         }
         
@@ -299,7 +316,19 @@
             // ゲストモードの最初の挨拶かどうか
             const isFirstGreeting = selectedCards.length === 3 && selectedCards[0].position === '過去';
             
-            selectedCards.forEach((card, index) => {
+            // isFirstGreetingの場合、残りのカードをsessionStorageに保存し、最初のカードだけを表示
+            if (isFirstGreeting) {
+                sessionStorage.setItem('yukinoRemainingCards', JSON.stringify(selectedCards.slice(1)));
+                console.log('[タロットカード] 3枚のカードを準備しました。最初は過去のカードのみ表示します。', {
+                    displayCard: selectedCards[0],
+                    remainingCards: selectedCards.slice(1)
+                });
+            }
+            
+            // 表示するカードを決定（isFirstGreetingの場合は最初のカードのみ）
+            const cardsToProcess = isFirstGreeting ? [selectedCards[0]] : selectedCards;
+            
+            cardsToProcess.forEach((card, index) => {
                 const cardWrapper = document.createElement('div');
                 cardWrapper.style.display = 'flex';
                 cardWrapper.style.flexDirection = 'column';
@@ -475,26 +504,30 @@
                             }
                         }, 100);
                         
-                        // 次のカードを表示（現在→未来の順番）
-                        if (index < selectedCards.length - 1) {
-                            const nextCardIndex = index + 1;
-                            // データ属性で次のカードを検索
-                            const nextCardWrapper = cardsContainer.querySelector(`[data-card-index="${nextCardIndex}"]`);
-                            if (nextCardWrapper) {
-                                const nextCardContainer = nextCardWrapper.querySelector('.tarot-flip-card');
-                                const nextFlipButton = nextCardWrapper.querySelector('button');
-                                if (nextCardContainer) {
-                                    setTimeout(() => {
-                                        nextCardContainer.style.transition = 'opacity 0.5s ease';
-                                        nextCardContainer.style.opacity = '1';
-                                        nextCardContainer.style.pointerEvents = 'auto';
-                                        if (nextFlipButton) {
-                                            nextFlipButton.style.opacity = '1';
-                                            nextFlipButton.style.pointerEvents = 'auto';
-                                        }
-                                    }, 500);
+                        // 次のカードを表示（isFirstGreetingの場合のみ、sessionStorageから取得）
+                        if (isFirstGreeting) {
+                            setTimeout(() => {
+                                const remainingCardsStr = sessionStorage.getItem('yukinoRemainingCards');
+                                if (remainingCardsStr) {
+                                    const remainingCards = JSON.parse(remainingCardsStr);
+                                    if (remainingCards.length > 0) {
+                                        const nextCard = remainingCards[0];
+                                        const updatedRemaining = remainingCards.slice(1);
+                                        sessionStorage.setItem('yukinoRemainingCards', JSON.stringify(updatedRemaining));
+                                        
+                                        console.log('[タロットカード] 次のカードを表示します。', {
+                                            nextCard: nextCard,
+                                            remainingAfter: updatedRemaining
+                                        });
+                                        
+                                        // 次のカードを表示（container = チャットメッセージのコンテナ）
+                                        displayNextTarotCard(nextCard, container, sendMessageCallback);
+                                    } else {
+                                        console.log('[タロットカード] すべてのカードの解説が完了しました。');
+                                        sessionStorage.removeItem('yukinoRemainingCards');
+                                    }
                                 }
-                            }
+                            }, 1000);
                         }
                     };
                     
