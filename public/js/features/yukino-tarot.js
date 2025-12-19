@@ -332,6 +332,9 @@
                 cardInner.appendChild(cardFront);
                 cardContainer.appendChild(cardInner);
                 
+                // カードをめくったかどうかのフラグ
+                let isFlipped = false;
+                
                 // カードをめくる処理（共通関数）
                 const flipCard = () => {
                     if (isFlipped || cardContainer.style.pointerEvents !== 'auto') {
@@ -414,7 +417,6 @@
                     }
                     
                     // クリックでカードをめくる
-                    let isFlipped = false;
                     cardContainer.addEventListener('click', flipCard);
                     flipButton.addEventListener('click', (e) => {
                         e.stopPropagation();
