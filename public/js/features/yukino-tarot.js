@@ -160,6 +160,95 @@
     }
 
     /**
+     * カードを拡大表示し、「雪乃の解説」ボタンを表示
+     * @param {string} cardName - カード名
+     * @param {string} imageFile - 画像ファイル名
+     * @param {string} cardPosition - カードの位置（過去/現在/未来）
+     * @param {Function} onExplanationClick - 解説ボタンがクリックされたときのコールバック
+     */
+    function showCardFullscreenWithExplanation(cardName, imageFile, cardPosition, onExplanationClick) {
+        // 既存のオーバーレイがあれば削除
+        const existingOverlay = document.getElementById('tarotCardFullscreenOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        const fullscreenOverlay = document.createElement('div');
+        fullscreenOverlay.id = 'tarotCardFullscreenOverlay';
+        fullscreenOverlay.style.position = 'fixed';
+        fullscreenOverlay.style.top = '0';
+        fullscreenOverlay.style.left = '0';
+        fullscreenOverlay.style.width = '100vw';
+        fullscreenOverlay.style.height = '100vh';
+        fullscreenOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.95)';
+        fullscreenOverlay.style.zIndex = '9999';
+        fullscreenOverlay.style.display = 'flex';
+        fullscreenOverlay.style.flexDirection = 'column';
+        fullscreenOverlay.style.justifyContent = 'center';
+        fullscreenOverlay.style.alignItems = 'center';
+        fullscreenOverlay.style.opacity = '0';
+        fullscreenOverlay.style.transition = 'opacity 0.5s ease-in';
+        
+        const cardImage = document.createElement('img');
+        cardImage.src = `../../photo/TAROT/${imageFile}`;
+        cardImage.alt = cardName;
+        cardImage.style.maxWidth = '70vw';
+        cardImage.style.maxHeight = '70vh';
+        cardImage.style.objectFit = 'contain';
+        cardImage.style.borderRadius = '12px';
+        cardImage.style.boxShadow = '0 8px 32px rgba(138, 43, 226, 0.8)';
+        cardImage.style.marginBottom = '24px';
+        
+        // 「雪乃の解説」ボタン
+        const explanationButton = document.createElement('button');
+        explanationButton.textContent = '雪乃の解説';
+        explanationButton.style.padding = '12px 32px';
+        explanationButton.style.fontSize = '16px';
+        explanationButton.style.fontWeight = '600';
+        explanationButton.style.color = '#ffffff';
+        explanationButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
+        explanationButton.style.border = '2px solid rgba(138, 43, 226, 1)';
+        explanationButton.style.borderRadius = '8px';
+        explanationButton.style.cursor = 'pointer';
+        explanationButton.style.transition = 'all 0.2s ease';
+        explanationButton.style.boxShadow = '0 4px 16px rgba(138, 43, 226, 0.4)';
+        
+        // ボタンのホバー効果
+        explanationButton.addEventListener('mouseenter', () => {
+            explanationButton.style.backgroundColor = 'rgba(138, 43, 226, 1)';
+            explanationButton.style.transform = 'scale(1.05)';
+            explanationButton.style.boxShadow = '0 6px 20px rgba(138, 43, 226, 0.6)';
+        });
+        explanationButton.addEventListener('mouseleave', () => {
+            explanationButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
+            explanationButton.style.transform = 'scale(1)';
+            explanationButton.style.boxShadow = '0 4px 16px rgba(138, 43, 226, 0.4)';
+        });
+        
+        // ボタンクリック時の処理
+        explanationButton.addEventListener('click', () => {
+            // オーバーレイをフェードアウト
+            fullscreenOverlay.style.opacity = '0';
+            setTimeout(() => {
+                fullscreenOverlay.remove();
+                // 解説を開始
+                if (onExplanationClick) {
+                    onExplanationClick();
+                }
+            }, 500);
+        });
+        
+        fullscreenOverlay.appendChild(cardImage);
+        fullscreenOverlay.appendChild(explanationButton);
+        document.body.appendChild(fullscreenOverlay);
+        
+        // フェードイン
+        setTimeout(() => {
+            fullscreenOverlay.style.opacity = '1';
+        }, 10);
+    }
+
+    /**
      * タロットカードをランダムに選択して表示
      * ゲストモードの最初の挨拶では、過去・現在・未来の3枚を順番に自動的にめくった状態で表示
      * @param {string} text - メッセージテキスト
@@ -348,56 +437,59 @@
                     flipButton.style.opacity = '0';
                     flipButton.style.pointerEvents = 'none';
                     
-                    // カードをめくった瞬間に画面いっぱいに表示してフェードアウト
-                    showCardFullscreenFade(card.name, card.image);
-                    
                     // カードをめくった後にラベルを表示
                     setTimeout(() => {
                         cardLabel.style.opacity = '1';
                         cardNameLabel.style.opacity = '1';
                     }, 300);
                     
-                    // めくったカードの解説を自動的に送信
-                    const message = `${card.position}のカード「${card.name}」について、詳しく解説してください。このカードの意味、私の${card.position}の状況にどのように関連しているか、そして具体的なアドバイスをお願いします。`;
-                    
-                    console.log(`[タロットカード] ${card.position}のカードをめくりました。解説をリクエストします。`, {
-                        cardName: card.name,
-                        position: card.position,
-                        message: message
-                    });
-                    
-                    // 少し遅延を入れてから自動的にメッセージを送信
-                    setTimeout(async () => {
-                        const messageInputEl = document.getElementById('messageInput');
-                        if (messageInputEl && sendMessageCallback) {
-                            messageInputEl.value = message;
-                            await sendMessageCallback(true, true); // skipUserMessage = true, skipAnimation = true
-                        } else {
-                            console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessageCallback=', sendMessageCallback);
-                        }
-                    }, 1000); // 1秒後に送信
-                    
-                    // 次のカードを表示（現在→未来の順番）
-                    if (index < selectedCards.length - 1) {
-                        const nextCardIndex = index + 1;
-                        // データ属性で次のカードを検索
-                        const nextCardWrapper = cardsContainer.querySelector(`[data-card-index="${nextCardIndex}"]`);
-                        if (nextCardWrapper) {
-                            const nextCardContainer = nextCardWrapper.querySelector('.tarot-flip-card');
-                            const nextFlipButton = nextCardWrapper.querySelector('button');
-                            if (nextCardContainer) {
-                                setTimeout(() => {
-                                    nextCardContainer.style.transition = 'opacity 0.5s ease';
-                                    nextCardContainer.style.opacity = '1';
-                                    nextCardContainer.style.pointerEvents = 'auto';
-                                    if (nextFlipButton) {
-                                        nextFlipButton.style.opacity = '1';
-                                        nextFlipButton.style.pointerEvents = 'auto';
-                                    }
-                                }, 500);
+                    // カードを拡大表示し、「雪乃の解説」ボタンを表示
+                    const onExplanationClick = () => {
+                        // めくったカードの解説を自動的に送信
+                        const message = `${card.position}のカード「${card.name}」について、詳しく解説してください。このカードの意味、私の${card.position}の状況にどのように関連しているか、そして具体的なアドバイスをお願いします。`;
+                        
+                        console.log(`[タロットカード] ${card.position}のカードの解説をリクエストします。`, {
+                            cardName: card.name,
+                            position: card.position,
+                            message: message
+                        });
+                        
+                        // メッセージを送信
+                        setTimeout(async () => {
+                            const messageInputEl = document.getElementById('messageInput');
+                            if (messageInputEl && sendMessageCallback) {
+                                messageInputEl.value = message;
+                                await sendMessageCallback(true, true); // skipUserMessage = true, skipAnimation = true
+                            } else {
+                                console.error('メッセージ送信に失敗: messageInputEl=', messageInputEl, 'sendMessageCallback=', sendMessageCallback);
+                            }
+                        }, 100);
+                        
+                        // 次のカードを表示（現在→未来の順番）
+                        if (index < selectedCards.length - 1) {
+                            const nextCardIndex = index + 1;
+                            // データ属性で次のカードを検索
+                            const nextCardWrapper = cardsContainer.querySelector(`[data-card-index="${nextCardIndex}"]`);
+                            if (nextCardWrapper) {
+                                const nextCardContainer = nextCardWrapper.querySelector('.tarot-flip-card');
+                                const nextFlipButton = nextCardWrapper.querySelector('button');
+                                if (nextCardContainer) {
+                                    setTimeout(() => {
+                                        nextCardContainer.style.transition = 'opacity 0.5s ease';
+                                        nextCardContainer.style.opacity = '1';
+                                        nextCardContainer.style.pointerEvents = 'auto';
+                                        if (nextFlipButton) {
+                                            nextFlipButton.style.opacity = '1';
+                                            nextFlipButton.style.pointerEvents = 'auto';
+                                        }
+                                    }, 500);
+                                }
                             }
                         }
-                    }
+                    };
+                    
+                    // カードを拡大表示（「雪乃の解説」ボタン付き）
+                    showCardFullscreenWithExplanation(card.name, card.image, card.position, onExplanationClick);
                 };
                 
                 // ゲストモードの最初の挨拶の場合、順番にカードを表示し、ユーザーがめくらせる
