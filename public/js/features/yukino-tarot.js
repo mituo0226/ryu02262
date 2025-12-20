@@ -118,15 +118,30 @@
      * @returns {string|null} 次のカードの位置（現在/未来）、「まとめ」、または null
      */
     function detectNextCardGuidance(text) {
+        console.log('🔍🔍🔍 [原因調査] detectNextCardGuidance 呼び出し:', {
+            AIメッセージ全文: text,
+            AIメッセージ長: text.length,
+            '「次は現在のカード」含む': text.includes('次は、現在のカード') || text.includes('次は現在のカード'),
+            '「次は未来のカード」含む': text.includes('次は、未来のカード') || text.includes('次は未来のカード'),
+            '「3枚のカードから見えてきた」含む': text.includes('3枚のカードから見えてきた'),
+            '「運勢をまとめ」含む': text.includes('運勢をまとめ'),
+            sessionStorage_残りカード: sessionStorage.getItem('yukinoRemainingCards'),
+            sessionStorage_全カード: sessionStorage.getItem('yukinoAllThreeCards')
+        });
+        
         if (text.includes('次は、現在のカード') || text.includes('次は現在のカード')) {
+            console.log('🔍 [原因調査] 判定結果: 「現在」のカードへ');
             return '現在';
         }
         if (text.includes('次は、未来のカード') || text.includes('次は未来のカード')) {
+            console.log('🔍 [原因調査] 判定結果: 「未来」のカードへ');
             return '未来';
         }
         if (text.includes('3枚のカードから見えてきた') || text.includes('運勢をまとめ')) {
+            console.log('🔍 [原因調査] 判定結果: 「まとめ」へ');
             return 'まとめ';
         }
+        console.log('🔍 [原因調査] 判定結果: 案内なし（null）');
         return null;
     }
 
@@ -597,8 +612,21 @@
             
             // isFirstGreetingの場合、3枚のカード情報をsessionStorageに保存し、ボタンを表示
             if (isFirstGreeting) {
+                console.log('🔍🔍🔍 [原因調査] 最初の挨拶で3枚のカードを準備:', {
+                    選択されたカード: selectedCards,
+                    カード1_過去: selectedCards[0],
+                    カード2_現在: selectedCards[1],
+                    カード3_未来: selectedCards[2]
+                });
+                
                 sessionStorage.setItem('yukinoAllThreeCards', JSON.stringify(selectedCards));
                 sessionStorage.setItem('yukinoRemainingCards', JSON.stringify(selectedCards.slice(1)));
+                
+                console.log('🔍🔍🔍 [原因調査] sessionStorageに保存完了:', {
+                    全カード: JSON.parse(sessionStorage.getItem('yukinoAllThreeCards')),
+                    残りカード: JSON.parse(sessionStorage.getItem('yukinoRemainingCards'))
+                });
+                
                 console.log('[タロットカード] 3枚のカードを準備しました。「過去のタロットカードを見る」ボタンを表示します。', {
                     allCards: selectedCards,
                     remainingCards: selectedCards.slice(1)
@@ -766,10 +794,11 @@
                         };
                         sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify(cardInfo));
                         
-                        console.log(`[タロットカード] ${card.position}のカードの解説をリクエストします（sessionStorageに保存）。`, {
-                            cardName: card.name,
-                            position: card.position,
-                            cardInfo: cardInfo
+                        console.log('🔍🔍🔍 [原因調査] カードの解説をリクエスト:', {
+                            カード名: card.name,
+                            カードの位置: card.position,
+                            カード情報: cardInfo,
+                            現在の残りカード: JSON.parse(sessionStorage.getItem('yukinoRemainingCards') || '[]')
                         });
                         
                         // 空のメッセージを送信してAI応答をトリガー（ユーザーメッセージは表示しない）
@@ -779,6 +808,11 @@
                                     // sendMessage(skipUserMessage, skipAnimation, messageOverride)
                                     // messageOverrideに特別なマーカーを含めて、システムプロンプトで検出できるようにする
                                     const triggerMessage = `[TAROT_EXPLANATION_TRIGGER:${card.position}:${card.name}]`;
+                                    console.log('🔍🔍🔍 [原因調査] AIへトリガーメッセージ送信:', {
+                                        トリガーメッセージ: triggerMessage,
+                                        位置: card.position,
+                                        カード名: card.name
+                                    });
                                     await sendMessageCallback(true, true, triggerMessage); // skipUserMessage = true, skipAnimation = true
                                 } else {
                                     console.error('メッセージ送信に失敗: sendMessageCallbackが関数ではありません', sendMessageCallback);
@@ -932,13 +966,25 @@
             return detectTarotCards(text) || detectNextCardGuidance(text) !== null;
         },
         display: function(text, container, sendMessageCallback) {
+            console.log('🔍🔍🔍 [原因調査] YukinoTarot.display 呼び出し:', {
+                AIメッセージ全文: text,
+                AIメッセージ長: text.length
+            });
+            
             // 次のカードへの案内を検出
             const nextCardPosition = detectNextCardGuidance(text);
+            
+            console.log('🔍🔍🔍 [原因調査] detectNextCardGuidance の結果:', {
+                検出された位置: nextCardPosition
+            });
+            
             if (nextCardPosition) {
                 // 次のカードへ進むボタンを表示
+                console.log('🔍 [原因調査] 次のカードへ進むボタンを表示します:', nextCardPosition);
                 displayNextCardButton(nextCardPosition, container, sendMessageCallback);
             } else {
                 // タロットカードを表示（または「過去のタロットカードを見る」ボタンを表示）
+                console.log('🔍 [原因調査] タロットカードを表示します');
                 displayTarotCards(text, container, sendMessageCallback);
             }
         }

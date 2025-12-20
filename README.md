@@ -1,5 +1,48 @@
 # 鑑定サイトプロジェクト
 
+## ⚠️ 重要：開発を始める前に必ず確認
+
+### 作業ディレクトリの確認
+
+**このディレクトリで作業していますか？**
+```
+C:\Users\mituo\Desktop\kaede
+```
+
+**❌ ワークツリー (`C:\Users\mituo\.cursor\worktrees\kaede\*`) で作業しないでください！**
+
+ワークツリーで修正しても、実際のサーバーには反映されません。
+
+#### 確認方法
+
+PowerShellで以下のコマンドを実行：
+```powershell
+.\scripts\check-workdir.ps1
+```
+
+または、手動で確認：
+```powershell
+Get-Location
+# 結果が C:\Users\mituo\Desktop\kaede であることを確認
+```
+
+---
+
+### ファイルの役割を理解する
+
+各鑑定士には**2種類の設定ファイル**があります：
+
+| ファイル | 役割 | 修正が必要な場合 |
+|---------|------|----------------|
+| `functions\_lib\characters\*.js` | **バックエンド**<br>AIの性格・話し方・プロンプト | AIの返答内容を変えたい |
+| `public\js\features\*.js` | **フロントエンド**<br>UI・カード表示・動作 | ボタンやアニメーションを変えたい |
+
+**詳細**: [FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) を参照
+
+**開発ガイド**: [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) を参照
+
+---
+
 ## プロジェクト構成
 
 マッチングサイト内の鑑定サイトページを制作するプロジェクトです。

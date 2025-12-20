@@ -1,73 +1,79 @@
 # 作業ディレクトリ確認スクリプト
-# このスクリプトを実行して、正しいディレクトリで作業しているか確認
+# 修正作業を始める前に必ず実行してください
 
-$ExpectedPath = "C:\Users\mituo\Desktop\kaede"
-$CurrentPath = (Get-Location).Path
-
-Write-Host "========================================" -ForegroundColor Yellow
-Write-Host "作業ディレクトリ確認" -ForegroundColor Yellow
-Write-Host "========================================" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "期待されるパス: $ExpectedPath" -ForegroundColor Cyan
-Write-Host "現在のパス:     $CurrentPath" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  作業ディレクトリ確認" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-if ($CurrentPath -eq $ExpectedPath) {
-    Write-Host "✅ 正しいディレクトリで作業しています" -ForegroundColor Green
+# 現在のディレクトリを取得
+$currentDir = Get-Location
+Write-Host "現在のディレクトリ:" -ForegroundColor Yellow
+Write-Host "  $currentDir" -ForegroundColor White
+Write-Host ""
+
+# 期待されるディレクトリ
+$expectedDir = "C:\Users\mituo\Desktop\kaede"
+
+# 確認
+if ($currentDir.Path -eq $expectedDir) {
+    Write-Host "✅ 正しいディレクトリです！" -ForegroundColor Green
+    Write-Host "   作業を開始できます。" -ForegroundColor Green
+} elseif ($currentDir.Path -like "*\.cursor\worktrees\kaede\*") {
+    Write-Host "⚠️  警告：ワークツリーで作業しようとしています！" -ForegroundColor Red
+    Write-Host "   このディレクトリでの変更は、実際のサーバーに反映されません。" -ForegroundColor Red
+    Write-Host "" 
+    Write-Host "正しいディレクトリに移動してください：" -ForegroundColor Yellow
+    Write-Host "  cd $expectedDir" -ForegroundColor White
     Write-Host ""
-    
-    # Gitの状態を確認
-    $status = git status --short
-    $branch = git branch --show-current
-    $remoteStatus = git log origin/main..HEAD --oneline
-    $localStatus = git log HEAD..origin/main --oneline
-    
-    Write-Host "Gitブランチ: $branch" -ForegroundColor Cyan
-    Write-Host ""
-    
-    if ($status) {
-        Write-Host "未コミットの変更:" -ForegroundColor Yellow
-        Write-Host $status
-    } else {
-        Write-Host "未コミットの変更はありません" -ForegroundColor Green
-    }
-    
-    Write-Host ""
-    if ($remoteStatus) {
-        Write-Host "⚠️ 未プッシュのコミットがあります:" -ForegroundColor Yellow
-        Write-Host $remoteStatus
-    } else {
-        Write-Host "✅ すべてのコミットがプッシュ済みです" -ForegroundColor Green
-    }
-    
-    if ($localStatus) {
-        Write-Host "⚠️ 未取得のコミットがあります:" -ForegroundColor Yellow
-        Write-Host $localStatus
-        Write-Host "git pull を実行してください" -ForegroundColor Yellow
-    } else {
-        Write-Host "✅ リモートと同期されています" -ForegroundColor Green
-    }
-    
+    exit 1
 } else {
-    Write-Host "❌ 警告: 間違ったディレクトリで作業しています！" -ForegroundColor Red
+    Write-Host "⚠️  警告：期待されるディレクトリではありません。" -ForegroundColor Yellow
     Write-Host ""
-    
-    if ($CurrentPath -like "*\.cursor\worktrees\kaede\*") {
-        Write-Host "⚠️ ワークツリーで作業しています" -ForegroundColor Red
-        Write-Host "   ワークツリーでの作業は禁止されています" -ForegroundColor Red
-        Write-Host ""
-        Write-Host "正しいディレクトリに移動してください:" -ForegroundColor Yellow
-        Write-Host "   cd C:\Users\mituo\Desktop\kaede" -ForegroundColor Cyan
-    } else {
-        Write-Host "正しいディレクトリに移動してください:" -ForegroundColor Yellow
-        Write-Host "   cd C:\Users\mituo\Desktop\kaede" -ForegroundColor Cyan
+    Write-Host "期待されるディレクトリ: $expectedDir" -ForegroundColor Yellow
+    Write-Host ""
+    $continue = Read-Host "このまま続行しますか？ (y/N)"
+    if ($continue -ne "y" -and $continue -ne "Y") {
+        Write-Host "作業を中止しました。" -ForegroundColor Red
+        exit 1
     }
-    
+}
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  ファイルの存在確認" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+
+# 重要なファイルの存在を確認
+$files = @(
+    "functions\_lib\characters\yukino.js",
+    "public\js\features\yukino-tarot.js",
+    "public\js\chat-init.js"
+)
+
+$allExist = $true
+foreach ($file in $files) {
+    $fullPath = Join-Path $currentDir.Path $file
+    if (Test-Path $fullPath) {
+        Write-Host "✅ $file" -ForegroundColor Green
+    } else {
+        Write-Host "❌ $file (見つかりません)" -ForegroundColor Red
+        $allExist = $false
+    }
+}
+
+Write-Host ""
+
+if ($allExist) {
+    Write-Host "すべての重要なファイルが存在します。" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  一部のファイルが見つかりません。" -ForegroundColor Red
+    Write-Host "   正しいディレクトリか確認してください。" -ForegroundColor Red
     exit 1
 }
 
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Yellow
-
-
-
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "準備完了！作業を開始できます。" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Cyan
