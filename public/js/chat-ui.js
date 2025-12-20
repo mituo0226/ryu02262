@@ -34,7 +34,17 @@ const ChatUI = {
      * @param {Object} characterInfo - キャラクター情報
      */
     setCurrentCharacter(characterId, characterInfo) {
+        // #region agent log
+        console.log('🔍🔍🔍 [ChatUI.setCurrentCharacter]', {
+            引数のcharacterId: characterId,
+            characterInfoが存在: !!characterInfo,
+            characterInfoのキー: characterInfo ? Object.keys(characterInfo) : [],
+            指定されたキャラクターが存在: characterInfo ? !!characterInfo[characterId] : false
+        });
+        // #endregion
+        
         if (!characterInfo[characterId]) {
+            console.warn('[ChatUI.setCurrentCharacter] ⚠️ characterInfo[' + characterId + '] が存在しないため、kaedeにフォールバックします');
             characterId = 'kaede';
         }
         

@@ -40,6 +40,18 @@ const ChatInit = {
 
         // キャラクターを設定
         const character = ChatData.getCharacterFromURL();
+        
+        // #region agent log
+        console.log('🔍🔍🔍 [キャラクター初期化]', {
+            URLから取得: character,
+            現在のURL: window.location.href,
+            URLSearchParams: Object.fromEntries(new URLSearchParams(window.location.search)),
+            以前のcurrentCharacter: ChatData.currentCharacter,
+            sessionStorage_kaede履歴: sessionStorage.getItem('guestConversationHistory_kaede') ? 'あり' : 'なし',
+            sessionStorage_yukino履歴: sessionStorage.getItem('guestConversationHistory_yukino') ? 'あり' : 'なし'
+        });
+        // #endregion
+        
         ChatData.currentCharacter = character;
         ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
         
