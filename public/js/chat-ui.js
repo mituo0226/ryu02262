@@ -180,7 +180,7 @@ const ChatUI = {
         textDiv.textContent = displayText;
         messageDiv.appendChild(textDiv);
 
-        if (type === 'character' && window.CharacterFeatures) {
+        if ((type === 'character' || type === 'welcome') && window.CharacterFeatures) {
             const sendMessageCallback = typeof window.sendMessage === 'function' ? window.sendMessage : null;
             if (window.CharacterFeatures.detect(ChatData.currentCharacter, text)) {
                 window.CharacterFeatures.display(ChatData.currentCharacter, text, messageDiv, sendMessageCallback);
