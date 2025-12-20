@@ -189,14 +189,33 @@
             // 3枚のカード情報を取得
             const allThreeCards = JSON.parse(sessionStorage.getItem('yukinoAllThreeCards'));
             
+            // ユーザーの最初のメッセージを取得
+            let firstUserMessage = '';
+            try {
+                const guestHistory = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
+                const firstUser = guestHistory.find(msg => msg && msg.role === 'user');
+                if (firstUser && firstUser.content) {
+                    // トリガーマーカーを除外してユーザーの実際のメッセージを取得
+                    const content = firstUser.content;
+                    if (!content.includes('[TAROT_EXPLANATION_TRIGGER') && !content.includes('[TAROT_SUMMARY_TRIGGER')) {
+                        firstUserMessage = content;
+                    }
+                }
+            } catch (error) {
+                console.error('[タロットカード] ユーザーの最初のメッセージ取得エラー:', error);
+            }
+            
             // まとめ鑑定のトリガーメッセージを送信
             if (sendMessageCallback && typeof sendMessageCallback === 'function') {
-                // 3枚のカード情報をマーカーに含める
+                // 3枚のカード情報とユーザーの最初のメッセージをマーカーに含める
                 const cardsInfo = allThreeCards.map(c => `${c.position}:${c.name}`).join(',');
-                const triggerMessage = `[TAROT_SUMMARY_TRIGGER:${cardsInfo}]`;
+                const triggerMessage = firstUserMessage 
+                    ? `[TAROT_SUMMARY_TRIGGER:${cardsInfo}|FIRST_MESSAGE:${firstUserMessage}]`
+                    : `[TAROT_SUMMARY_TRIGGER:${cardsInfo}]`;
                 
                 console.log('[タロットカード] まとめ鑑定をリクエストします。', {
                     allThreeCards: allThreeCards,
+                    firstUserMessage: firstUserMessage,
                     triggerMessage: triggerMessage
                 });
                 
