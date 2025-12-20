@@ -405,6 +405,9 @@
      * @param {string} imageFile - 画像ファイル名
      */
     function showCardModal(cardName, imageFile) {
+        // cardNameがオブジェクトの場合は、nameプロパティを使用
+        const displayName = typeof cardName === 'object' ? cardName.name : cardName;
+        
         // 既存のモーダルがあれば削除
         const existingModal = document.getElementById('tarotCardModal');
         if (existingModal) {
@@ -426,7 +429,7 @@
         
         const cardImage = document.createElement('img');
         cardImage.src = `../../photo/TAROT/${imageFile}`;
-        cardImage.alt = cardName;
+        cardImage.alt = displayName;
         cardImage.style.maxWidth = '90vw';
         cardImage.style.maxHeight = '90vh';
         cardImage.style.objectFit = 'contain';
@@ -479,6 +482,9 @@
      * @param {string} imageFile - 画像ファイル名
      */
     function showCardFullscreenFade(cardName, imageFile) {
+        // cardNameがオブジェクトの場合は、nameプロパティを使用
+        const displayName = typeof cardName === 'object' ? cardName.name : cardName;
+        
         const fullscreenOverlay = document.createElement('div');
         fullscreenOverlay.style.position = 'fixed';
         fullscreenOverlay.style.top = '0';
@@ -495,7 +501,7 @@
         
         const cardImage = document.createElement('img');
         cardImage.src = `../../photo/TAROT/${imageFile}`;
-        cardImage.alt = cardName;
+        cardImage.alt = displayName;
         cardImage.style.maxWidth = '90vw';
         cardImage.style.maxHeight = '90vh';
         cardImage.style.objectFit = 'contain';
@@ -714,13 +720,13 @@
                 });
                 
                 // 自動的に最初のカード（過去）を表示
-                const cardName = selectedCards[0];
-                const imageFile = tarotCardImageMap[cardName];
+                const cardData = selectedCards[0];
+                const imageFile = tarotCardImageMap[cardData.name];
                 if (imageFile) {
                     // sessionStorageに初期3枚モード をフラグ立て
                     sessionStorage.setItem('yukinoInitialThreeCardsMode', 'true');
-                    // カードを表示
-                    showCardModal(cardName, imageFile);
+                    // カードを表示（cardData.name を渡す）
+                    showCardModal(cardData, imageFile);
                 }
             }
             
