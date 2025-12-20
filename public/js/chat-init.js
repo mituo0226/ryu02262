@@ -779,7 +779,7 @@ const ChatInit = {
                     送信メッセージ: messageToSend.substring(0, 50),
                     タロット解説トリガー: isTarotExplanationTrigger,
                     会話履歴のユーザーメッセージ数: currentCount,
-                    楓専用_-1適用: character === 'kaede',
+                    '楓専用_マイナス1適用': character === 'kaede',
                     APIに送信する値: messageCountForAPI,
                     API側で計算される最終値: messageCountForAPI + 1,
                     期待されるフェーズ: character === 'kaede' 
