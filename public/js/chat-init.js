@@ -25,7 +25,7 @@ const ChatInit = {
 
         // キャラクター情報を読み込む
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:27',message:'loadCharacterData呼び出し前',data:{character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:27',message:'loadCharacterData呼び出し前',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         await ChatData.loadCharacterData();
         // #region agent log
