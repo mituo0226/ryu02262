@@ -362,34 +362,26 @@ const ChatInit = {
                 
                 if (guestHistory.length === 0 && !guardianMessageShown) {
                     // ゲストユーザーで会話履歴が空の場合：初回メッセージを表示
-                    // 雪乃の場合、ゲストユーザーとして初めて入室した時のみ、特別なメッセージを表示
-                    if (character === 'yukino' && isGuestMode) {
-                        const isFirstGuestVisit = sessionStorage.getItem('yukinoFirstGuestVisit') !== 'false';
-                        if (isFirstGuestVisit) {
-                            // ゲストユーザーとして初めて入室した時の特別なメッセージ
-                            const firstGuestMessage = `はじめまして、笹岡雪乃です
-
-私のチャットに来てくださってありがとうございます。
-まずはタロットカードであなたの運勢を占ってみます。3枚のカードで過去、現在、未来を占って、今のあなたの状況を見てみますね。
-
-どうかよろしくお願いします。`;
-                            ChatUI.addMessage('welcome', firstGuestMessage, ChatData.characterInfo[character].name);
-                            // 2回目以降は既存のメッセージを使用するため、フラグを false にする
-                            sessionStorage.setItem('yukinoFirstGuestVisit', 'false');
-                            console.log('[初期化] 雪乃のゲストユーザー初回入室：特別なメッセージを表示しました');
-                        } else {
-                            // 2回目以降のゲスト入室：既存のメッセージを使用
-                            const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                            ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
-                        }
+                    // 会話履歴がある場合はreturning、ない場合はfirstTime
+                    if (historyData && historyData.hasHistory) {
+                        const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                        ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                     } else {
-                        // 雪乃以外、または登録ユーザー：会話履歴がある場合はreturning、ない場合はfirstTime
-                        if (historyData && historyData.hasHistory) {
-                            const initialMessage = ChatData.generateInitialMessage(character, historyData);
-                            ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
-                        } else {
-                            const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                            ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
+                        // ゲストユーザーとして初めて入室したかどうかを判定
+                        const firstGuestVisitKey = `${character}FirstGuestVisit`;
+                        const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
+                        
+                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                            character, 
+                            ChatData.userNickname || 'あなた',
+                            isFirstGuestVisit
+                        );
+                        ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
+                        
+                        // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
+                        if (isFirstGuestVisit) {
+                            sessionStorage.setItem(firstGuestVisitKey, 'false');
+                            console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
                         }
                     }
                 }
@@ -423,30 +415,21 @@ const ChatInit = {
                 
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown) {
-                    // 雪乃の場合、ゲストユーザーとして初めて入室した時のみ、特別なメッセージを表示
-                    if (character === 'yukino' && isGuestMode) {
-                        const isFirstGuestVisit = sessionStorage.getItem('yukinoFirstGuestVisit') !== 'false';
-                        if (isFirstGuestVisit) {
-                            // ゲストユーザーとして初めて入室した時の特別なメッセージ
-                            const firstGuestMessage = `はじめまして、笹岡雪乃です
-
-私のチャットに来てくださってありがとうございます。
-まずはタロットカードであなたの運勢を占ってみます。3枚のカードで過去、現在、未来を占って、今のあなたの状況を見てみますね。
-
-どうかよろしくお願いします。`;
-                            ChatUI.addMessage('welcome', firstGuestMessage, info.name);
-                            // 2回目以降は既存のメッセージを使用するため、フラグを false にする
-                            sessionStorage.setItem('yukinoFirstGuestVisit', 'false');
-                            console.log('[初期化] 雪乃のゲストユーザー初回入室：特別なメッセージを表示しました');
-                        } else {
-                            // 2回目以降のゲスト入室：既存のメッセージを使用
-                            const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname);
-                            ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                        }
-                    } else {
-                        // 雪乃以外、または登録ユーザー：既存のメッセージを使用
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname);
-                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    // ゲストユーザーとして初めて入室したかどうかを判定
+                    const firstGuestVisitKey = `${character}FirstGuestVisit`;
+                    const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
+                    
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                        character, 
+                        ChatData.userNickname || 'あなた',
+                        isFirstGuestVisit
+                    );
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    
+                    // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
+                    if (isFirstGuestVisit) {
+                        sessionStorage.setItem(firstGuestVisitKey, 'false');
+                        console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
                     }
                 }
             } else {
@@ -482,30 +465,21 @@ const ChatInit = {
                 
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown) {
-                    // 雪乃の場合、ゲストユーザーとして初めて入室した時のみ、特別なメッセージを表示
-                    if (character === 'yukino' && isGuestMode) {
-                        const isFirstGuestVisit = sessionStorage.getItem('yukinoFirstGuestVisit') !== 'false';
-                        if (isFirstGuestVisit) {
-                            // ゲストユーザーとして初めて入室した時の特別なメッセージ
-                            const firstGuestMessage = `はじめまして、笹岡雪乃です
-
-私のチャットに来てくださってありがとうございます。
-まずはタロットカードであなたの運勢を占ってみます。3枚のカードで過去、現在、未来を占って、今のあなたの状況を見てみますね。
-
-どうかよろしくお願いします。`;
-                            ChatUI.addMessage('welcome', firstGuestMessage, info.name);
-                            // 2回目以降は既存のメッセージを使用するため、フラグを false にする
-                            sessionStorage.setItem('yukinoFirstGuestVisit', 'false');
-                            console.log('[初期化] 雪乃のゲストユーザー初回入室：特別なメッセージを表示しました');
-                        } else {
-                            // 2回目以降のゲスト入室：既存のメッセージを使用
-                            const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                            ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                        }
-                    } else {
-                        // 雪乃以外、または登録ユーザー：既存のメッセージを使用
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    // ゲストユーザーとして初めて入室したかどうかを判定
+                    const firstGuestVisitKey = `${character}FirstGuestVisit`;
+                    const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
+                    
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                        character, 
+                        ChatData.userNickname || 'あなた',
+                        isFirstGuestVisit
+                    );
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    
+                    // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
+                    if (isFirstGuestVisit) {
+                        sessionStorage.setItem(firstGuestVisitKey, 'false');
+                        console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
                     }
                 }
             }
@@ -555,30 +529,21 @@ const ChatInit = {
                 }
             } else {
                 // 会話履歴が空の場合：初回メッセージを表示
-                // 雪乃の場合、ゲストユーザーとして初めて入室した時のみ、特別なメッセージを表示
-                if (character === 'yukino' && isGuestMode) {
-                    const isFirstGuestVisit = sessionStorage.getItem('yukinoFirstGuestVisit') !== 'false';
-                    if (isFirstGuestVisit) {
-                        // ゲストユーザーとして初めて入室した時の特別なメッセージ
-                        const firstGuestMessage = `はじめまして、笹岡雪乃です
-
-私のチャットに来てくださってありがとうございます。
-まずはタロットカードであなたの運勢を占ってみます。3枚のカードで過去、現在、未来を占って、今のあなたの状況を見てみますね。
-
-どうかよろしくお願いします。`;
-                        ChatUI.addMessage('welcome', firstGuestMessage, info.name);
-                        // 2回目以降は既存のメッセージを使用するため、フラグを false にする
-                        sessionStorage.setItem('yukinoFirstGuestVisit', 'false');
-                        console.log('[初期化] 雪乃のゲストユーザー初回入室：特別なメッセージを表示しました');
-                    } else {
-                        // 2回目以降のゲスト入室：既存のメッセージを使用
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    }
-                } else {
-                    // 雪乃以外、または登録ユーザー：既存のメッセージを使用
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                // ゲストユーザーとして初めて入室したかどうかを判定
+                const firstGuestVisitKey = `${character}FirstGuestVisit`;
+                const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
+                
+                const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                    character, 
+                    ChatData.userNickname || 'あなた',
+                    isFirstGuestVisit
+                );
+                ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                
+                // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
+                if (isFirstGuestVisit) {
+                    sessionStorage.setItem(firstGuestVisitKey, 'false');
+                    console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
                 }
             }
         }

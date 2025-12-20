@@ -272,16 +272,35 @@ const ChatData = {
      * 各鑑定師の初めての会話メッセージを生成
      * @param {string} characterId - キャラクターID
      * @param {string} nickname - ニックネーム
+     * @param {boolean} isGuestFirstVisit - ゲストユーザーとして初めて入室した場合true
      * @returns {string} メッセージ
      */
-    generateFirstTimeMessage(characterId, nickname) {
+    generateFirstTimeMessage(characterId, nickname, isGuestFirstVisit = false) {
         const character = this.characterInfo[characterId];
-        if (!character || !character.messages || !character.messages.firstTime) {
+        if (!character || !character.messages) {
             return `${nickname}さん、初めまして。`;
         }
         
+        // ゲストユーザーとして初めて入室した場合、firstTimeGuestを優先的に使用
+        // firstTimeGuestが存在しない場合は、既存のfirstTimeを使用（後方互換性）
+        let messageTemplate = null;
+        if (isGuestFirstVisit && character.messages.firstTimeGuest) {
+            messageTemplate = character.messages.firstTimeGuest;
+        } else if (character.messages.firstTime) {
+            messageTemplate = character.messages.firstTime;
+        }
+        
+        if (!messageTemplate) {
+            return `${nickname}さん、初めまして。`;
+        }
+        
+        // firstTimeGuestはテンプレート変数を含まない可能性があるため、その場合はそのまま返す
+        if (!messageTemplate.includes('{nickname}')) {
+            return messageTemplate;
+        }
+        
         return this.replaceMessageTemplate(
-            character.messages.firstTime,
+            messageTemplate,
             nickname,
             null,
             null,
