@@ -708,14 +708,20 @@
                     残りカード: JSON.parse(sessionStorage.getItem('yukinoRemainingCards'))
                 });
                 
-                console.log('[タロットカード] 3枚のカードを準備しました。「過去のタロットカードを見る」ボタンを表示します。', {
+                console.log('[タロットカード] 3枚のカードを準備しました。自動的にカード表示を開始します。', {
                     allCards: selectedCards,
                     remainingCards: selectedCards.slice(1)
                 });
                 
-                // 「過去のタロットカードを見る」ボタンを表示
-                displayFirstCardButton(container, sendMessageCallback);
-                return; // カードは表示しない（ボタンクリック後に表示）
+                // 自動的に最初のカード（過去）を表示
+                const cardName = selectedCards[0];
+                const imageFile = tarotCardImageMap[cardName];
+                if (imageFile) {
+                    // sessionStorageに初期3枚モード をフラグ立て
+                    sessionStorage.setItem('yukinoInitialThreeCardsMode', 'true');
+                    // カードを表示
+                    showCardModal(cardName, imageFile);
+                }
             }
             
             // 表示するカードを決定
