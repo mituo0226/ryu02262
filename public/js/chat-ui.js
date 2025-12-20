@@ -131,6 +131,11 @@ const ChatUI = {
      * @returns {string} メッセージ要素のID
      */
     addMessage(type, text, sender, options = {}) {
+        // #region agent log
+        if (type === 'welcome') {
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-ui.js:133',message:'addMessage welcome呼び出し',data:{type,sender,textLength:text.length,textPreview:text.substring(0,200),containsOldMessage:text.includes('あなたさん、初めまして')||text.includes('システムからお聞き'),containsNewMessage:text.includes('はじめまして、笹岡雪乃です')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        }
+        // #endregion
         if (!this.messagesDiv) return null;
         
         const messageDiv = document.createElement('div');
