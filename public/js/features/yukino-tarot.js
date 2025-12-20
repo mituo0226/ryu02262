@@ -146,6 +146,13 @@
      * @param {Function} sendMessageCallback - メッセージ送信コールバック
      */
     function displaySummaryButton(container, sendMessageCallback) {
+        // 既にまとめボタンが表示済みの場合は表示しない（一度きりの表示）
+        const summaryShown = sessionStorage.getItem('yukinoSummaryShown') === 'true';
+        if (summaryShown) {
+            console.log('[タロットカード] まとめボタンは既に表示済みのため、表示しません');
+            return;
+        }
+        
         const button = document.createElement('button');
         button.textContent = '雪乃のまとめ';
         button.style.marginTop = '16px';
@@ -199,6 +206,11 @@
                 
                 setTimeout(() => {
                     button.remove();
+                    
+                    // まとめボタンが表示されたことをフラグに保存（一度きりの表示）
+                    sessionStorage.setItem('yukinoSummaryShown', 'true');
+                    console.log('[タロットカード] まとめボタン表示完了フラグを保存しました');
+                    
                     // まとめ鑑定のメッセージを送信
                     sendMessageCallback(true, true, triggerMessage);
                     

@@ -174,6 +174,7 @@ const ChatInit = {
                         sessionStorage.removeItem('yukinoAllThreeCards');
                         sessionStorage.removeItem('yukinoRemainingCards');
                         sessionStorage.removeItem('yukinoTarotCardForExplanation');
+                        sessionStorage.removeItem('yukinoSummaryShown');
                         console.log('[登録完了処理] 雪乃のタロット関連フラグをクリアしました');
                     }
                     
@@ -218,6 +219,7 @@ const ChatInit = {
                     sessionStorage.removeItem('yukinoAllThreeCards');
                     sessionStorage.removeItem('yukinoRemainingCards');
                     sessionStorage.removeItem('yukinoTarotCardForExplanation');
+                    sessionStorage.removeItem('yukinoSummaryShown');
                     console.log('[初期化] 雪乃の新規会話：タロット関連フラグをクリアしました');
                 }
             }
