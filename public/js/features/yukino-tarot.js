@@ -118,8 +118,7 @@
      * @returns {string|null} 次のカードの位置（現在/未来）、「まとめ」、または null
      */
     function detectNextCardGuidance(text) {
-        console.log('🔍🔍🔍 [原因調査] detectNextCardGuidance 呼び出し:', {
-            AIメッセージ全文: text,
+        console.log('[タロットカード] detectNextCardGuidance 呼び出し:', {
             AIメッセージ長: text.length,
             '「次は現在のカード」含む': text.includes('次は、現在のカード') || text.includes('次は現在のカード'),
             '「次は未来のカード」含む': text.includes('次は、未来のカード') || text.includes('次は未来のカード'),
@@ -130,18 +129,14 @@
         });
         
         if (text.includes('次は、現在のカード') || text.includes('次は現在のカード')) {
-            console.log('🔍 [原因調査] 判定結果: 「現在」のカードへ');
             return '現在';
         }
         if (text.includes('次は、未来のカード') || text.includes('次は未来のカード')) {
-            console.log('🔍 [原因調査] 判定結果: 「未来」のカードへ');
             return '未来';
         }
         if (text.includes('3枚のカードから見えてきた') || text.includes('運勢をまとめ')) {
-            console.log('🔍 [原因調査] 判定結果: 「まとめ」へ');
             return 'まとめ';
         }
-        console.log('🔍 [原因調査] 判定結果: 案内なし（null）');
         return null;
     }
 
@@ -570,8 +565,23 @@
             // タロット占いが開始されたかどうかを検出
             const hasTarotReading = detectTarotCards(text);
             
+            // 【重要】3枚のカード準備が既に完了している場合、isFirstGreetingを強制的にfalseにする
+            // これにより、AIが何度も「過去、現在、未来」と言っても、2度目以降は3枚のカードを準備しない
+            const threeCardsPrepared = sessionStorage.getItem('yukinoThreeCardsPrepared') === 'true';
+            
             // ゲストモードの最初の挨拶かどうかを判定（過去・現在・未来の3枚を表示）
-            const isFirstGreeting = text.includes('過去・現在・未来') || text.includes('過去、現在、未来');
+            // ただし、既に3枚のカードが準備済みの場合は、最初の挨拶とみなさない
+            let isFirstGreeting = false;
+            if (!threeCardsPrepared) {
+                isFirstGreeting = text.includes('過去・現在・未来') || text.includes('過去、現在、未来');
+            }
+            
+            console.log('[タロットカード] displayTarotCards:', {
+                hasTarotReading,
+                threeCardsPrepared,
+                isFirstGreeting,
+                AIメッセージ: text.substring(0, 100)
+            });
             
             // タロット占いが開始された場合、カードを選択
             if (hasTarotReading) {
@@ -585,6 +595,11 @@
                         { position: '現在', name: shuffled[1], image: tarotCardImageMap[shuffled[1]] },
                         { position: '未来', name: shuffled[2], image: tarotCardImageMap[shuffled[2]] }
                     ];
+                    
+                    // 【重要】3枚のカード準備完了フラグをsessionStorageに保存
+                    // これにより、2度目以降は3枚のカードを準備しない
+                    sessionStorage.setItem('yukinoThreeCardsPrepared', 'true');
+                    console.log('[タロットカード] ✅ 3枚のカード準備完了フラグを保存しました');
                 } else {
                     // 通常のタロット占い：1枚のカードをランダムに選択
                     selectedCards = [
@@ -794,11 +809,9 @@
                         };
                         sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify(cardInfo));
                         
-                        console.log('🔍🔍🔍 [原因調査] カードの解説をリクエスト:', {
+                        console.log('[タロットカード] カードの解説をリクエスト:', {
                             カード名: card.name,
-                            カードの位置: card.position,
-                            カード情報: cardInfo,
-                            現在の残りカード: JSON.parse(sessionStorage.getItem('yukinoRemainingCards') || '[]')
+                            カードの位置: card.position
                         });
                         
                         // 空のメッセージを送信してAI応答をトリガー（ユーザーメッセージは表示しない）
@@ -808,14 +821,11 @@
                                     // sendMessage(skipUserMessage, skipAnimation, messageOverride)
                                     // messageOverrideに特別なマーカーを含めて、システムプロンプトで検出できるようにする
                                     const triggerMessage = `[TAROT_EXPLANATION_TRIGGER:${card.position}:${card.name}]`;
-                                    console.log('🔍🔍🔍 [原因調査] AIへトリガーメッセージ送信:', {
+                                    console.log('[タロットカード] AIへトリガーメッセージ送信:', {
                                         トリガーメッセージ: triggerMessage,
                                         位置: card.position,
                                         カード名: card.name
                                     });
-                                    // #region agent log
-                                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'yukino-tarot.js:816',message:'タロットボタンクリック_トリガー送信直前',data:{cardPosition:card.position,cardName:card.name,triggerMessage:triggerMessage},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-                                    // #endregion
                                     await sendMessageCallback(true, true, triggerMessage); // skipUserMessage = true, skipAnimation = true
                                 } else {
                                     console.error('メッセージ送信に失敗: sendMessageCallbackが関数ではありません', sendMessageCallback);
@@ -969,25 +979,14 @@
             return detectTarotCards(text) || detectNextCardGuidance(text) !== null;
         },
         display: function(text, container, sendMessageCallback) {
-            console.log('🔍🔍🔍 [原因調査] YukinoTarot.display 呼び出し:', {
-                AIメッセージ全文: text,
-                AIメッセージ長: text.length
-            });
-            
             // 次のカードへの案内を検出
             const nextCardPosition = detectNextCardGuidance(text);
             
-            console.log('🔍🔍🔍 [原因調査] detectNextCardGuidance の結果:', {
-                検出された位置: nextCardPosition
-            });
-            
             if (nextCardPosition) {
                 // 次のカードへ進むボタンを表示
-                console.log('🔍 [原因調査] 次のカードへ進むボタンを表示します:', nextCardPosition);
                 displayNextCardButton(nextCardPosition, container, sendMessageCallback);
             } else {
                 // タロットカードを表示（または「過去のタロットカードを見る」ボタンを表示）
-                console.log('🔍 [原因調査] タロットカードを表示します');
                 displayTarotCards(text, container, sendMessageCallback);
             }
         }
