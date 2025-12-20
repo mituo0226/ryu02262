@@ -32,8 +32,8 @@
         '世界': 'THE WORLD.png',
     };
 
-    // タロットカードの検出キーワード
-    const tarotKeywords = ['タロットカードをめくってみましょうね', 'タロットカードを引きました', 'タロットカード', '過去、現在、未来', '過去・現在・未来', '3枚のカード'];
+    // タロットカードの検出キーワード（初回メッセージの「過去、現在、未来」は除外）
+    const tarotKeywords = ['タロットカードをめくってみましょうね', 'タロットカードを引きました', 'タロットカード'];
 
     /**
      * タロットカードが含まれているか検出
@@ -655,8 +655,8 @@
                 AIメッセージ: text.substring(0, 100)
             });
             
-            // タロット占いが開始された場合、カードを選択
-            if (hasTarotReading) {
+            // タロット占いが開始された場合、またはゲストモードの最初の挨拶の場合、カードを選択
+            if (hasTarotReading || isFirstGreeting) {
                 const allCardNames = Object.keys(tarotCardImageMap);
                 const shuffled = [...allCardNames].sort(() => Math.random() - 0.5);
                 
@@ -714,20 +714,66 @@
                     残りカード: JSON.parse(sessionStorage.getItem('yukinoRemainingCards'))
                 });
                 
-                console.log('[タロットカード] 3枚のカードを準備しました。自動的にカード表示を開始します。', {
+                console.log('[タロットカード] 3枚のカードを準備しました。「タロット占い開始」ボタンを表示します。', {
                     allCards: selectedCards,
                     remainingCards: selectedCards.slice(1)
                 });
                 
-                // 自動的に最初のカード（過去）を表示
-                const cardData = selectedCards[0];
-                const imageFile = tarotCardImageMap[cardData.name];
-                if (imageFile) {
-                    // sessionStorageに初期3枚モード をフラグ立て
+                // 「タロット占い開始」ボタンを表示（自動開始ではなく）
+                const button = document.createElement('button');
+                button.textContent = 'タロット占い開始';
+                button.style.marginTop = '16px';
+                button.style.padding = '12px 24px';
+                button.style.fontSize = '14px';
+                button.style.fontWeight = '600';
+                button.style.color = '#ffffff';
+                button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+                button.style.border = '2px solid rgba(138, 43, 226, 0.9)';
+                button.style.borderRadius = '8px';
+                button.style.cursor = 'pointer';
+                button.style.transition = 'all 0.3s ease';
+                button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                
+                // ボタンのホバー効果
+                button.addEventListener('mouseenter', () => {
+                    button.style.backgroundColor = 'rgba(138, 43, 226, 0.9)';
+                    button.style.transform = 'translateY(-2px)';
+                    button.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.2)';
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+                    button.style.transform = 'translateY(0)';
+                    button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                });
+                
+                // ボタンのクリックイベント
+                button.addEventListener('click', () => {
+                    // ボタンを無効化（二重クリック防止）
+                    button.disabled = true;
+                    button.style.opacity = '0.5';
+                    button.style.cursor = 'not-allowed';
+                    
+                    // ボタンをフェードアウト
+                    button.style.transition = 'opacity 0.3s ease';
+                    button.style.opacity = '0';
+                    
+                    // 3枚のカードモードを有効化
                     sessionStorage.setItem('yukinoInitialThreeCardsMode', 'true');
-                    // カードを表示（cardData.name を渡す）
-                    showCardModal(cardData, imageFile);
-                }
+                    
+                    // ボタンを削除して、最初のカードを表示
+                    setTimeout(() => {
+                        button.remove();
+                        // 最初のカード（過去）を表示
+                        const cardData = selectedCards[0];
+                        const imageFile = tarotCardImageMap[cardData.name];
+                        if (imageFile) {
+                            showCardModal(cardData, imageFile);
+                        }
+                    }, 300);
+                });
+                
+                container.appendChild(button);
+                return; // ここで終了（カード自体は表示しない）
             }
             
             // 表示するカードを決定
