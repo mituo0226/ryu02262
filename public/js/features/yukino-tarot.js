@@ -813,6 +813,9 @@
                                         位置: card.position,
                                         カード名: card.name
                                     });
+                                    // #region agent log
+                                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'yukino-tarot.js:816',message:'タロットボタンクリック_トリガー送信直前',data:{cardPosition:card.position,cardName:card.name,triggerMessage:triggerMessage},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+                                    // #endregion
                                     await sendMessageCallback(true, true, triggerMessage); // skipUserMessage = true, skipAnimation = true
                                 } else {
                                     console.error('メッセージ送信に失敗: sendMessageCallbackが関数ではありません', sendMessageCallback);

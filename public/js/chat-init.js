@@ -581,10 +581,21 @@ const ChatInit = {
 
             // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
             // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
+            
+            // #region agent log
+            const historyBeforeAdd = ChatData.getGuestHistory(character);
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:584_BEFORE',message:'会話履歴追加【前】',data:{character:character,isTarotTrigger:isTarotExplanationTrigger,messageToAdd:message.substring(0,100),historyLength:historyBeforeAdd.length,userMessageCount:historyBeforeAdd.filter(m=>m&&m.role==='user').length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            
             ChatData.addToGuestHistory(character, 'user', message);
             
             // 会話履歴が正しく保存されたことを確認
             const savedHistory = ChatData.getGuestHistory(character);
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:584_AFTER',message:'会話履歴追加【後】',data:{character:character,isTarotTrigger:isTarotExplanationTrigger,messageAdded:message.substring(0,100),historyLength:savedHistory.length,userMessageCount:savedHistory.filter(m=>m&&m.role==='user').length,lastMessage:savedHistory.length>0?savedHistory[savedHistory.length-1]:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            
             console.log('[メッセージ送信] 会話履歴に追加後の確認:', {
                 character,
                 historyLength: savedHistory.length,
@@ -799,6 +810,7 @@ const ChatInit = {
                         : (messageCountForAPI + 1 === 1 ? '初回挨拶' : 'カード解説/まとめ'),
                     会話履歴全体: conversationHistory.map(m => ({ role: m.role, content: m.content?.substring(0, 30) }))
                 });
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:789',message:'messageCountForAPI計算完了',data:{character:character,isTarotTrigger:isTarotExplanationTrigger,currentCount:currentCount,messageCountForAPI:messageCountForAPI,expectedUserMessageCount:messageCountForAPI+1,conversationHistoryLength:conversationHistory.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
                 // #endregion
             } else {
                 // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
@@ -868,6 +880,11 @@ const ChatInit = {
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 const guestMessageCount = ChatData.getGuestMessageCount(character);
+                
+                // #region agent log
+                const historyAfterResponse = ChatData.getGuestHistory(character);
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:881',message:'AI応答を会話履歴に追加_直後',data:{character:character,responsePreview:responseText.substring(0,100),guestMessageCount:guestMessageCount,historyLength:historyAfterResponse.length,userMessageCount:historyAfterResponse.filter(m=>m&&m.role==='user').length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
                 
                 // 楓専用の処理：守護神の儀式開始ボタンを追加
                 if (character === 'kaede' && window.KaedeRitualHandler) {
@@ -1148,6 +1165,12 @@ const ChatInit = {
                         
                         const guestCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
                         console.log('[応答受信] 最終的なゲストカウント:', guestCount);
+                        
+                        // #region agent log
+                        const finalHistory = ChatData.getGuestHistory(ChatData.currentCharacter);
+                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:1162',message:'AI応答追加後_最終状態',data:{character:ChatData.currentCharacter,guestCount:guestCount,historyLength:finalHistory.length,userMessageCount:finalHistory.filter(m=>m&&m.role==='user').length,assistantMessageCount:finalHistory.filter(m=>m&&m.role==='assistant').length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+                        // #endregion
+                        
                         ChatUI.updateUserStatus(false);
                         
                         if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
