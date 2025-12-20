@@ -362,27 +362,17 @@ const ChatInit = {
                 
                 if (guestHistory.length === 0 && !guardianMessageShown) {
                     // ゲストユーザーで会話履歴が空の場合：初回メッセージを表示
-                    // 会話履歴がある場合はreturning、ない場合はfirstTime
+                    // 会話履歴がある場合はreturning、ない場合はfirstTimeGuest
                     if (historyData && historyData.hasHistory) {
                         const initialMessage = ChatData.generateInitialMessage(character, historyData);
                         ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                     } else {
-                        // ゲストユーザーとして初めて入室したかどうかを判定
-                        const firstGuestVisitKey = `${character}FirstGuestVisit`;
-                        const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
-                        
+                        // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
                         const firstTimeMessage = ChatData.generateFirstTimeMessage(
                             character, 
-                            ChatData.userNickname || 'あなた',
-                            isFirstGuestVisit
+                            ChatData.userNickname || 'あなた'
                         );
                         ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
-                        
-                        // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
-                        if (isFirstGuestVisit) {
-                            sessionStorage.setItem(firstGuestVisitKey, 'false');
-                            console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
-                        }
                     }
                 }
             } else if (historyData && historyData.nickname) {
@@ -415,22 +405,12 @@ const ChatInit = {
                 
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown) {
-                    // ゲストユーザーとして初めて入室したかどうかを判定
-                    const firstGuestVisitKey = `${character}FirstGuestVisit`;
-                    const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
-                    
+                    // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(
                         character, 
-                        ChatData.userNickname || 'あなた',
-                        isFirstGuestVisit
+                        ChatData.userNickname || 'あなた'
                     );
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    
-                    // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
-                    if (isFirstGuestVisit) {
-                        sessionStorage.setItem(firstGuestVisitKey, 'false');
-                        console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
-                    }
                 }
             } else {
                 // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
@@ -465,22 +445,12 @@ const ChatInit = {
                 
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown) {
-                    // ゲストユーザーとして初めて入室したかどうかを判定
-                    const firstGuestVisitKey = `${character}FirstGuestVisit`;
-                    const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
-                    
+                    // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(
                         character, 
-                        ChatData.userNickname || 'あなた',
-                        isFirstGuestVisit
+                        ChatData.userNickname || 'あなた'
                     );
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    
-                    // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
-                    if (isFirstGuestVisit) {
-                        sessionStorage.setItem(firstGuestVisitKey, 'false');
-                        console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
-                    }
                 }
             }
             
@@ -528,23 +498,12 @@ const ChatInit = {
                     }
                 }
             } else {
-                // 会話履歴が空の場合：初回メッセージを表示
-                // ゲストユーザーとして初めて入室したかどうかを判定
-                const firstGuestVisitKey = `${character}FirstGuestVisit`;
-                const isFirstGuestVisit = isGuestMode && sessionStorage.getItem(firstGuestVisitKey) !== 'false';
-                
+                // 会話履歴が空の場合：各鑑定士の初回メッセージ（firstTimeGuest）を使用
                 const firstTimeMessage = ChatData.generateFirstTimeMessage(
                     character, 
-                    ChatData.userNickname || 'あなた',
-                    isFirstGuestVisit
+                    ChatData.userNickname || 'あなた'
                 );
                 ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                
-                // 初回入室の場合、フラグを false にする（2回目以降は既存のメッセージを使用）
-                if (isFirstGuestVisit) {
-                    sessionStorage.setItem(firstGuestVisitKey, 'false');
-                    console.log(`[初期化] ${character}のゲストユーザー初回入室：firstTimeGuestメッセージを表示しました`);
-                }
             }
         }
 
