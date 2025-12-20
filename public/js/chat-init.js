@@ -175,6 +175,7 @@ const ChatInit = {
                         sessionStorage.removeItem('yukinoRemainingCards');
                         sessionStorage.removeItem('yukinoTarotCardForExplanation');
                         sessionStorage.removeItem('yukinoSummaryShown');
+                        sessionStorage.removeItem('yukinoFirstMessageInSession'); // セッション最初のメッセージもクリア
                         console.log('[登録完了処理] 雪乃のタロット関連フラグをクリアしました');
                     }
                     
@@ -220,6 +221,7 @@ const ChatInit = {
                     sessionStorage.removeItem('yukinoRemainingCards');
                     sessionStorage.removeItem('yukinoTarotCardForExplanation');
                     sessionStorage.removeItem('yukinoSummaryShown');
+                    sessionStorage.removeItem('yukinoFirstMessageInSession'); // セッション最初のメッセージもクリア
                     console.log('[初期化] 雪乃の新規会話：タロット関連フラグをクリアしました');
                 }
             }
@@ -634,6 +636,12 @@ const ChatInit = {
                     messageCount: messageCount,
                     historyLength: savedHistory.length
                 });
+                
+                // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
+                if (character === 'yukino' && !isTarotExplanationTrigger) {
+                    sessionStorage.setItem('yukinoFirstMessageInSession', message);
+                    console.log('[メッセージ送信] 雪乃のセッション最初のメッセージを記録:', message.substring(0, 50));
+                }
             } else {
                 console.log('[メッセージ送信] メッセージを送信しました:', {
                     character,
@@ -817,6 +825,16 @@ const ChatInit = {
             } else {
                 // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
                 messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                
+                // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
+                // yukinoFirstMessageInSessionがまだ設定されていない場合、そのセッションで最初のメッセージ
+                if (character === 'yukino' && !isTarotExplanationTrigger) {
+                    const existingFirstMessage = sessionStorage.getItem('yukinoFirstMessageInSession');
+                    if (!existingFirstMessage) {
+                        sessionStorage.setItem('yukinoFirstMessageInSession', messageToSend);
+                        console.log('[メッセージ送信] 登録ユーザー（雪乃）のセッション最初のメッセージを記録:', messageToSend.substring(0, 50));
+                    }
+                }
             }
             
             // APIリクエストのオプション

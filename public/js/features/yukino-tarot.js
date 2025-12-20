@@ -189,30 +189,20 @@
             // 3枚のカード情報を取得
             const allThreeCards = JSON.parse(sessionStorage.getItem('yukinoAllThreeCards'));
             
-            // ユーザーの最初のメッセージを取得（登録ユーザーとゲストユーザーに対応）
+            // ユーザーの最初のメッセージを取得（そのセッションで雪乃に入場した最初のメッセージ）
+            // 優先順位：
+            // 1. yukinoFirstMessageInSession（そのセッションで最初に送信したメッセージ）
+            // 2. guestConversationHistory_yukinoの最初のメッセージ（ゲストユーザーの場合）
+            // 3. ChatData.conversationHistory.recentMessagesの最初のメッセージ（登録ユーザーの場合、最後の手段）
             let firstUserMessage = '';
             try {
-                // 登録ユーザーの場合：ChatData.conversationHistoryから取得
-                const AuthState = window.AuthState;
-                const ChatData = window.ChatData;
-                
-                if (AuthState && typeof AuthState.isRegistered === 'function' && AuthState.isRegistered()) {
-                    // 登録ユーザー：データベースから取得した会話履歴から最初のメッセージを取得
-                    if (ChatData && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                        const registeredHistory = ChatData.conversationHistory.recentMessages;
-                        // recentMessagesは既に時系列順（古い順）に並んでいるため、最初のユーザーメッセージを探す
-                        const firstUser = registeredHistory.find(msg => msg && msg.role === 'user');
-                        if (firstUser && firstUser.content) {
-                            // トリガーマーカーを除外してユーザーの実際のメッセージを取得
-                            const content = firstUser.content;
-                            if (!content.includes('[TAROT_EXPLANATION_TRIGGER') && !content.includes('[TAROT_SUMMARY_TRIGGER')) {
-                                firstUserMessage = content;
-                                console.log('[タロットカード] 登録ユーザー（雪乃）の最初のメッセージを取得:', firstUserMessage);
-                            }
-                        }
-                    }
+                // 優先順位1: そのセッションで最初に送信したメッセージ（最も確実）
+                const sessionFirstMessage = sessionStorage.getItem('yukinoFirstMessageInSession');
+                if (sessionFirstMessage) {
+                    firstUserMessage = sessionFirstMessage;
+                    console.log('[タロットカード] セッション最初のメッセージを取得（yukinoFirstMessageInSession）:', firstUserMessage.substring(0, 50));
                 } else {
-                    // ゲストユーザーの場合：sessionStorageから取得
+                    // 優先順位2: ゲストユーザーの場合、sessionStorageの会話履歴から取得
                     const guestHistory = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
                     const firstUser = guestHistory.find(msg => msg && msg.role === 'user');
                     if (firstUser && firstUser.content) {
@@ -220,7 +210,29 @@
                         const content = firstUser.content;
                         if (!content.includes('[TAROT_EXPLANATION_TRIGGER') && !content.includes('[TAROT_SUMMARY_TRIGGER')) {
                             firstUserMessage = content;
-                            console.log('[タロットカード] ゲストユーザー（雪乃）の最初のメッセージを取得:', firstUserMessage);
+                            console.log('[タロットカード] ゲストユーザー（雪乃）の最初のメッセージを取得:', firstUserMessage.substring(0, 50));
+                        }
+                    }
+                    
+                    // 優先順位3: 登録ユーザーの場合、データベースから取得した会話履歴から取得（最後の手段）
+                    if (!firstUserMessage) {
+                        const AuthState = window.AuthState;
+                        const ChatData = window.ChatData;
+                        
+                        if (AuthState && typeof AuthState.isRegistered === 'function' && AuthState.isRegistered()) {
+                            if (ChatData && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                                const registeredHistory = ChatData.conversationHistory.recentMessages;
+                                // recentMessagesは既に時系列順（古い順）に並んでいるため、最初のユーザーメッセージを探す
+                                const firstRegisteredUser = registeredHistory.find(msg => msg && msg.role === 'user');
+                                if (firstRegisteredUser && firstRegisteredUser.content) {
+                                    // トリガーマーカーを除外してユーザーの実際のメッセージを取得
+                                    const content = firstRegisteredUser.content;
+                                    if (!content.includes('[TAROT_EXPLANATION_TRIGGER') && !content.includes('[TAROT_SUMMARY_TRIGGER')) {
+                                        firstUserMessage = content;
+                                        console.log('[タロットカード] 登録ユーザー（雪乃）の最初のメッセージを取得（データベース履歴から）:', firstUserMessage.substring(0, 50));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
