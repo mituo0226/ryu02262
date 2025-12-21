@@ -767,14 +767,17 @@
                         // 雪乃のAIメッセージとして表示（チャット吹き出し）
                         if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
                             const characterName = window.ChatData?.characterInfo?.yukino?.name || '笹岡雪乃';
-                            window.ChatUI.addMessage('character', 'それではまず過去のタロットから占いますね。カードを伏せておきますので、めくってください。', characterName);
+                            const messageId = window.ChatUI.addMessage('character', 'それではまず過去のタロットから占いますね。カードを伏せておきますので、めくってください。', characterName);
+                            
+                            // メッセージ要素を取得し、その中にカードを表示
+                            setTimeout(() => {
+                                const messageElement = document.getElementById(messageId);
+                                if (messageElement) {
+                                    const cardData = selectedCards[0];
+                                    displayNextTarotCard(cardData, messageElement, sendMessageCallback, { initialFlow: true });
+                                }
+                            }, 300);
                         }
-                        
-                        // 最初のカード（過去）を表示（裏面＋「カードをめくる」）
-                        setTimeout(() => {
-                            const cardData = selectedCards[0];
-                            displayNextTarotCard(cardData, container, sendMessageCallback, { initialFlow: true });
-                        }, 500);
                     }, 300);
                 });
                 
