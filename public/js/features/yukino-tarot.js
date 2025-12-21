@@ -696,8 +696,8 @@
             cardsContainer.dataset.tarotCards = JSON.stringify(selectedCards);
             
             // ゲストモードの最初の挨拶かどうか
-            // options.initialFlowがtrueの場合は、既にボタンがクリックされた後なので、ボタン表示をスキップ
-            const isFirstGreeting = !options.initialFlow && (selectedCards.length === 3 && selectedCards[0].position === '過去');
+            // options.skipButtonDisplayがtrueの場合は、ボタン表示をスキップ
+            const isFirstGreeting = !options.skipButtonDisplay && (selectedCards.length === 3 && selectedCards[0].position === '過去');
             
             // isFirstGreetingの場合、3枚のカード情報をsessionStorageに保存し、ボタンを表示
             if (isFirstGreeting) {
@@ -774,8 +774,15 @@
                             setTimeout(() => {
                                 const messageElement = document.getElementById(messageId);
                                 if (messageElement) {
-                                    const cardData = selectedCards[0];
-                                    displayNextTarotCard(cardData, messageElement, sendMessageCallback, { initialFlow: true });
+                                    // sessionStorageから過去のカードを取得
+                                    const allThreeCardsStr = sessionStorage.getItem('yukinoAllThreeCards');
+                                    if (allThreeCardsStr) {
+                                        const allThreeCards = JSON.parse(allThreeCardsStr);
+                                        const pastCard = allThreeCards[0]; // 過去のカード
+                                        
+                                        // カードの裏面を表示（ボタン表示をスキップ）
+                                        displayNextTarotCard(pastCard, messageElement, sendMessageCallback, { skipButtonDisplay: true });
+                                    }
                                 }
                             }, 300);
                         }
