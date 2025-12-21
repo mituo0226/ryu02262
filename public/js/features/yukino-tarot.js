@@ -1143,16 +1143,8 @@
                             remainingAfter: updatedRemaining
                         });
                         
-                        // ガイダンス文をチャット下部に表示
-                        const guidance = document.createElement('div');
-                        guidance.textContent = `次は${nextCardPosition}のタロットカードをめくってみましょう。`;
-                        guidance.style.marginTop = '12px';
-                        guidance.style.color = '#e8e8ff';
-                        guidance.style.fontSize = '14px';
-                        guidance.style.lineHeight = '1.6';
-                        container.appendChild(guidance);
-                        
-                        displayNextTarotCard(nextCard, container, sendMessageCallback, { initialFlow: true });
+                        // AIメッセージ内にカード裏面を直接表示（ガイダンス文は不要、AIが既に言っている）
+                        displayNextTarotCard(nextCard, container, sendMessageCallback, { skipButtonDisplay: true });
                     }
                 }
             } else {
