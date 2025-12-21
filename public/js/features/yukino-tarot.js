@@ -696,7 +696,8 @@
             cardsContainer.dataset.tarotCards = JSON.stringify(selectedCards);
             
             // ゲストモードの最初の挨拶かどうか
-            const isFirstGreeting = options.initialFlow === true || (selectedCards.length === 3 && selectedCards[0].position === '過去');
+            // options.initialFlowがtrueの場合は、既にボタンがクリックされた後なので、ボタン表示をスキップ
+            const isFirstGreeting = !options.initialFlow && (selectedCards.length === 3 && selectedCards[0].position === '過去');
             
             // isFirstGreetingの場合、3枚のカード情報をsessionStorageに保存し、ボタンを表示
             if (isFirstGreeting) {
