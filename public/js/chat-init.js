@@ -1004,6 +1004,49 @@ const ChatInit = {
             const messageId = ChatUI.addMessage('character', responseText, characterName);
             ChatUI.scrollToLatest();
             
+            // 雪乃のタロット：AIの解説後に自動的に次のステップを実行
+            if (character === 'yukino' && responseText.includes('[TAROT_EXPLANATION_TRIGGER:')) {
+                const match = responseText.match(/\[TAROT_EXPLANATION_TRIGGER:(.+?):(.+?)\]/);
+                if (match) {
+                    const position = match[1]; // 過去/現在/未来
+                    const cardName = match[2];
+                    
+                    console.log('[タロット自動処理] AIの解説を検出:', { position, cardName });
+                    
+                    // 少し待ってから次のステップを実行（ユーザーがAIの解説を読む時間を確保）
+                    setTimeout(() => {
+                        if (position === '過去') {
+                            // システムメッセージを追加
+                            ChatUI.addMessage('character', 'それでは次に現在のカードをめくりましょう！', characterName);
+                            
+                            // 現在のカードの裏面を表示
+                            if (window.YukinoTarot && window.YukinoTarot.displayNextTarotCard) {
+                                window.YukinoTarot.displayNextTarotCard({ skipButtonDisplay: true });
+                            }
+                        } else if (position === '現在') {
+                            // システムメッセージを追加
+                            ChatUI.addMessage('character', 'それでは次に未来のカードをめくりましょう！', characterName);
+                            
+                            // 未来のカードの裏面を表示
+                            if (window.YukinoTarot && window.YukinoTarot.displayNextTarotCard) {
+                                window.YukinoTarot.displayNextTarotCard({ skipButtonDisplay: true });
+                            }
+                        } else if (position === '未来') {
+                            // システムメッセージを追加
+                            ChatUI.addMessage('character', 'それでは、まとめて解説しましょう！！', characterName);
+                            
+                            // 「雪乃のまとめ」ボタンを表示
+                            if (window.YukinoTarot && window.YukinoTarot.displaySummaryButton) {
+                                const messagesDiv = document.getElementById('messages');
+                                if (messagesDiv) {
+                                    window.YukinoTarot.displaySummaryButton(messagesDiv);
+                                }
+                            }
+                        }
+                    }, 1000); // 1秒待ってから次のステップを実行
+                }
+            }
+            
             // 会話履歴を更新
             if (isGuest) {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);

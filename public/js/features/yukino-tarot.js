@@ -1174,7 +1174,10 @@
                 // タロットカードを表示（または「過去のタロットカードを見る」ボタンを表示）
                 displayTarotCards(text, container, sendMessageCallback);
             }
-        }
+        },
+        // 外部から呼び出せるようにエクスポート
+        displayNextTarotCard: displayNextTarotCard,
+        displaySummaryButton: displaySummaryButton
     };
 })();
 
