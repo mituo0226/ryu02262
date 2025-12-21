@@ -427,6 +427,22 @@
         modal.style.justifyContent = 'center';
         modal.style.alignItems = 'center';
         
+        // カード名ラベル
+        const cardNameLabel = document.createElement('div');
+        cardNameLabel.textContent = displayName;
+        cardNameLabel.style.position = 'absolute';
+        cardNameLabel.style.top = '20px';
+        cardNameLabel.style.left = '50%';
+        cardNameLabel.style.transform = 'translateX(-50%)';
+        cardNameLabel.style.fontSize = '24px';
+        cardNameLabel.style.fontWeight = '700';
+        cardNameLabel.style.color = '#ffffff';
+        cardNameLabel.style.textShadow = '0 4px 8px rgba(0, 0, 0, 0.8)';
+        cardNameLabel.style.padding = '12px 24px';
+        cardNameLabel.style.backgroundColor = 'rgba(138, 43, 226, 0.7)';
+        cardNameLabel.style.borderRadius = '8px';
+        cardNameLabel.style.zIndex = '10001';
+        
         const cardImage = document.createElement('img');
         cardImage.src = `../../photo/TAROT/${imageFile}`;
         cardImage.alt = displayName;
@@ -464,6 +480,7 @@
             modal.remove();
         });
         
+        modal.appendChild(cardNameLabel);
         modal.appendChild(cardImage);
         modal.appendChild(closeButton);
         document.body.appendChild(modal);
