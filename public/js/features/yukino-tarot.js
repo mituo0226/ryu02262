@@ -764,18 +764,17 @@
                     setTimeout(() => {
                         button.remove();
                         
-                        // ガイダンス文を表示（チャット風テキスト）
-                        const guidance = document.createElement('div');
-                        guidance.textContent = 'それではまず過去のタロットから占いますね。カードを伏せておきますので、めくってください。';
-                        guidance.style.marginTop = '12px';
-                        guidance.style.color = '#e8e8ff';
-                        guidance.style.fontSize = '14px';
-                        guidance.style.lineHeight = '1.6';
-                        container.appendChild(guidance);
+                        // 雪乃のAIメッセージとして表示（チャット吹き出し）
+                        if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                            const characterName = window.ChatData?.characterInfo?.yukino?.name || '笹岡雪乃';
+                            window.ChatUI.addMessage('character', 'それではまず過去のタロットから占いますね。カードを伏せておきますので、めくってください。', characterName);
+                        }
                         
                         // 最初のカード（過去）を表示（裏面＋「カードをめくる」）
-                        const cardData = selectedCards[0];
-                        displayNextTarotCard(cardData, container, sendMessageCallback, { initialFlow: true });
+                        setTimeout(() => {
+                            const cardData = selectedCards[0];
+                            displayNextTarotCard(cardData, container, sendMessageCallback, { initialFlow: true });
+                        }, 500);
                     }, 300);
                 });
                 
