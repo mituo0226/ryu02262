@@ -805,13 +805,15 @@
                 cardWrapper.dataset.cardIndex = index.toString(); // カードのインデックスを保存
                 cardWrapper.dataset.cardPosition = card.position; // カードの位置を保存
                 
-                // カードラベル（位置：過去・現在・未来）- 最初は非表示
+                // カードラベル（位置：過去・現在・未来）- 常に表示
                 const cardLabel = document.createElement('div');
-                cardLabel.textContent = card.position || '';
-                cardLabel.style.fontSize = '12px';
-                cardLabel.style.color = 'rgba(255, 255, 255, 0.8)';
-                cardLabel.style.fontWeight = '600';
-                cardLabel.style.opacity = '0'; // 最初は非表示
+                cardLabel.textContent = card.position ? `～あなたの${card.position}～` : '';
+                cardLabel.style.fontSize = '14px';
+                cardLabel.style.color = 'rgba(255, 215, 0, 1)'; // 金色で目立たせる
+                cardLabel.style.fontWeight = '700';
+                cardLabel.style.opacity = '1'; // 常に表示
+                cardLabel.style.marginBottom = '8px';
+                cardLabel.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.5)';
                 cardLabel.style.transition = 'opacity 0.3s ease';
                 
                 // カード名ラベル - 最初は非表示
