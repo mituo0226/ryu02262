@@ -8,6 +8,9 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
+        // ⚠️ 最優先：タロットカード情報を一時保存（初期化処理で消される前に）
+        const tempCardInfo = sessionStorage.getItem('yukinoTarotCardForExplanation');
+        
         // ChatUIを初期化
         if (ChatUI && typeof ChatUI.init === 'function') {
             ChatUI.init();
@@ -237,8 +240,8 @@ const ChatInit = {
                 // 会話履歴が空の場合、雪乃のタロット関連フラグもクリア（新規会話として扱う）
                 // ⚠️ ただし、yukinoTarotCardForExplanationは解説後のボタン表示で使うため、クリアしない
                 if (guestHistory.length === 0 && character === 'yukino') {
-                    // yukinoTarotCardForExplanationが存在する場合は、解説待ち状態なのでクリアしない
-                    const cardInfoExists = sessionStorage.getItem('yukinoTarotCardForExplanation') !== null;
+                    // tempCardInfoが存在する場合は、解説待ち状態なのでクリアしない
+                    const cardInfoExists = tempCardInfo !== null;
                     
                     if (!cardInfoExists) {
                         // 新規会話なので、タロット関連フラグをクリア
@@ -250,6 +253,9 @@ const ChatInit = {
                         console.log('[初期化] 雪乃の新規会話：タロット関連フラグをクリアしました');
                     } else {
                         console.log('[初期化] カード解説待ち状態を検出。フラグクリアをスキップします。');
+                        // 一時保存していたカード情報を復元
+                        sessionStorage.setItem('yukinoTarotCardForExplanation', tempCardInfo);
+                        console.log('[初期化] カード情報を復元しました:', tempCardInfo);
                     }
                 }
             }
