@@ -1043,8 +1043,9 @@ ${cardNames}
             
             console.log('[タロット占い] 1枚のカード鑑定完了');
             
-            // 「雪乃に個別相談する」ボタンを表示
-            showConsultationButton();
+            // 1枚のタロット鑑定後は、ボタンを表示せずに自動的に入力欄を有効化
+            // （会話の流れを中断しないため）
+            enableMessageInput();
             
         } catch (error) {
             console.error('[タロット占い] エラー:', error);
