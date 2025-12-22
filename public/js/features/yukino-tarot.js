@@ -577,14 +577,64 @@ ${cardNames}
                 window.ChatData.addToHistory(character, 'assistant', data.message);
             }
             
-            // タロット占い完了
+            // タロット占い完了 - 入力欄を有効化
             console.log('[タロット占い] 完了しました');
+            enableMessageInput();
             
         } catch (error) {
             console.error('[タロットまとめ] エラー:', error);
             hideLoadingOverlay();
             alert('まとめの取得に失敗しました。もう一度お試しください。');
+            
+            // エラー時も入力欄を有効化
+            enableMessageInput();
         }
+    }
+
+    /**
+     * 入力欄を無効化（タロット鑑定中）
+     */
+    function disableMessageInput() {
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = 'タロット鑑定中です...鑑定が終わったら質問してくださいね';
+            messageInput.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
+            messageInput.style.cursor = 'not-allowed';
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = true;
+            sendButton.style.opacity = '0.5';
+            sendButton.style.cursor = 'not-allowed';
+        }
+        
+        console.log('[タロット占い] 入力欄を無効化しました');
+    }
+
+    /**
+     * 入力欄を有効化（タロット鑑定終了後）
+     */
+    function enableMessageInput() {
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        if (messageInput) {
+            messageInput.disabled = false;
+            messageInput.placeholder = 'メッセージを入力';
+            messageInput.style.backgroundColor = '';
+            messageInput.style.cursor = '';
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = false;
+            sendButton.style.opacity = '';
+            sendButton.style.cursor = '';
+        }
+        
+        console.log('[タロット占い] 入力欄を有効化しました');
     }
 
     /**
@@ -596,6 +646,9 @@ ${cardNames}
         currentState.phase = '過去';
         
         console.log('[タロット占い] 開始:', currentState.cards);
+        
+        // 入力欄を無効化
+        disableMessageInput();
         
         // 雪乃のメッセージを表示
         const messagesDiv = document.getElementById('messages');
