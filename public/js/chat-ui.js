@@ -189,6 +189,26 @@ const ChatUI = {
 
         this.messagesDiv.appendChild(messageDiv);
         
+        // 雪乃のメッセージに「タロットカードを1枚引いてみましょう」が含まれている場合、1枚のカード鑑定を開始
+        if ((type === 'character' || type === 'assistant') && 
+            ChatData.currentCharacter === 'yukino' && 
+            (text.includes('タロットカードを1枚引いてみましょう') || 
+             text.includes('カードを1枚引いてみましょう') ||
+             text.includes('タロットカードを1枚めくってみましょう') ||
+             text.includes('カードを1枚めくってみましょう'))) {
+            
+            console.log('[chat-ui] 1枚のタロット鑑定を検出しました');
+            
+            // 少し待ってから1枚のカード鑑定を開始
+            setTimeout(() => {
+                if (window.YukinoTarot && typeof window.YukinoTarot.startSingleCard === 'function') {
+                    window.YukinoTarot.startSingleCard();
+                } else {
+                    console.error('[タロット占い] YukinoTarot.startSingleCardが見つかりません');
+                }
+            }, 500);
+        }
+        
         // 雪乃の初回メッセージの後に「タロット占い開始」ボタンを追加
         if ((type === 'welcome' || type === 'character') && 
             ChatData.currentCharacter === 'yukino' && 

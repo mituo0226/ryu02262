@@ -55,6 +55,21 @@
     }
 
     /**
+     * 1枚のカードをランダムに選択
+     */
+    function selectSingleCard() {
+        const allCards = Object.keys(TAROT_CARDS);
+        const randomIndex = Math.floor(Math.random() * allCards.length);
+        const cardName = allCards[randomIndex];
+        
+        return {
+            position: '現在',
+            name: cardName,
+            image: TAROT_CARDS[cardName]
+        };
+    }
+
+    /**
      * ローディングオーバーレイを表示
      */
     function showLoadingOverlay(message = 'タロットカードの解説を作成中...') {
@@ -688,10 +703,241 @@ ${cardNames}
         }, 500);
     }
 
+    /**
+     * 1枚のカード鑑定を開始
+     */
+    function startSingleCardReading() {
+        console.log('[タロット占い] 1枚のカード鑑定を開始');
+        
+        // 1枚のカードを選択
+        const singleCard = selectSingleCard();
+        currentState.phase = '1枚鑑定';
+        currentState.cards = [singleCard];
+        currentState.isCardFlipped = false;
+        currentState.isExplanationShown = false;
+        
+        // 入力欄を無効化
+        disableMessageInput();
+        
+        // メッセージエリアを取得
+        const messagesDiv = document.getElementById('messagesDiv');
+        if (!messagesDiv) {
+            console.error('[タロット占い] メッセージエリアが見つかりません');
+            return;
+        }
+        
+        // 雪乃のメッセージを表示
+        if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+            window.ChatUI.addMessage('character', 'それでは、カードを伏せておきますので、めくってください。', '笹岡雪乃');
+            window.ChatUI.scrollToLatest();
+        }
+        
+        // カードを表示
+        setTimeout(() => {
+            displaySingleCard(singleCard, messagesDiv);
+        }, 500);
+    }
+
+    /**
+     * 1枚のカードを表示
+     */
+    function displaySingleCard(card, container) {
+        console.log('[タロット占い] 1枚のカードを表示:', card.name);
+        
+        const cardContainer = document.createElement('div');
+        cardContainer.style.width = '100%';
+        cardContainer.style.display = 'flex';
+        cardContainer.style.justifyContent = 'center';
+        cardContainer.style.marginTop = '16px';
+        cardContainer.style.marginBottom = '16px';
+        
+        const cardWrapper = document.createElement('div');
+        cardWrapper.style.position = 'relative';
+        cardWrapper.style.width = '200px';
+        cardWrapper.style.textAlign = 'center';
+        
+        // カード位置ラベル
+        const cardLabel = document.createElement('div');
+        cardLabel.textContent = `～現在のあなた～`;
+        cardLabel.style.fontSize = '16px';
+        cardLabel.style.fontWeight = 'bold';
+        cardLabel.style.color = '#8a2be2';
+        cardLabel.style.marginBottom = '12px';
+        cardLabel.style.opacity = '1';
+        cardWrapper.appendChild(cardLabel);
+        
+        // カード画像コンテナ
+        const cardImageWrapper = document.createElement('div');
+        cardImageWrapper.style.position = 'relative';
+        cardImageWrapper.style.width = '200px';
+        cardImageWrapper.style.height = '320px';
+        cardImageWrapper.style.cursor = 'pointer';
+        cardImageWrapper.style.perspective = '1000px';
+        
+        // 裏面画像
+        const backImage = document.createElement('img');
+        backImage.src = '/photo/TAROT/card back.png';
+        backImage.alt = 'カードの裏';
+        backImage.style.position = 'absolute';
+        backImage.style.top = '0';
+        backImage.style.left = '0';
+        backImage.style.width = '100%';
+        backImage.style.height = '100%';
+        backImage.style.objectFit = 'contain';
+        backImage.style.borderRadius = '8px';
+        backImage.style.transition = 'opacity 0.6s ease';
+        backImage.style.opacity = '1';
+        
+        // 表面画像
+        const frontImage = document.createElement('img');
+        frontImage.src = `/photo/TAROT/${card.image}`;
+        frontImage.alt = card.name;
+        frontImage.style.position = 'absolute';
+        frontImage.style.top = '0';
+        frontImage.style.left = '0';
+        frontImage.style.width = '100%';
+        frontImage.style.height = '100%';
+        frontImage.style.objectFit = 'contain';
+        frontImage.style.borderRadius = '8px';
+        frontImage.style.transition = 'opacity 0.6s ease';
+        frontImage.style.opacity = '0';
+        
+        cardImageWrapper.appendChild(backImage);
+        cardImageWrapper.appendChild(frontImage);
+        cardWrapper.appendChild(cardImageWrapper);
+        
+        // カード名表示エリア
+        const cardNameLabel = document.createElement('div');
+        cardNameLabel.style.fontSize = '18px';
+        cardNameLabel.style.fontWeight = 'bold';
+        cardNameLabel.style.color = '#333';
+        cardNameLabel.style.marginTop = '12px';
+        cardNameLabel.style.opacity = '0';
+        cardNameLabel.style.transition = 'opacity 0.3s ease';
+        cardWrapper.appendChild(cardNameLabel);
+        
+        // めくるガイド
+        const flipGuide = document.createElement('div');
+        flipGuide.textContent = 'カードをタップしてめくってください';
+        flipGuide.style.fontSize = '14px';
+        flipGuide.style.color = '#666';
+        flipGuide.style.marginTop = '8px';
+        flipGuide.style.opacity = '1';
+        flipGuide.style.transition = 'opacity 0.3s ease';
+        cardWrapper.appendChild(flipGuide);
+        
+        // カードをめくる処理
+        let isFlipped = false;
+        cardImageWrapper.addEventListener('click', () => {
+            if (isFlipped) return;
+            
+            isFlipped = true;
+            backImage.style.opacity = '0';
+            frontImage.style.opacity = '1';
+            
+            setTimeout(() => {
+                cardNameLabel.textContent = card.name;
+                cardNameLabel.style.opacity = '1';
+                flipGuide.style.opacity = '0';
+                
+                // 拡大ボタンと解説ボタンを表示
+                const expandButton = document.createElement('button');
+                expandButton.textContent = '拡大する';
+                expandButton.style.marginTop = '12px';
+                expandButton.style.padding = '8px 16px';
+                expandButton.style.fontSize = '14px';
+                expandButton.style.backgroundColor = '#8a2be2';
+                expandButton.style.color = '#fff';
+                expandButton.style.border = 'none';
+                expandButton.style.borderRadius = '4px';
+                expandButton.style.cursor = 'pointer';
+                expandButton.style.marginRight = '8px';
+                expandButton.addEventListener('click', () => {
+                    showCardModal(card.name, card.image);
+                });
+                
+                const explainButton = document.createElement('button');
+                explainButton.textContent = '雪乃の解説';
+                explainButton.style.marginTop = '12px';
+                explainButton.style.padding = '8px 16px';
+                explainButton.style.fontSize = '14px';
+                explainButton.style.backgroundColor = '#ff69b4';
+                explainButton.style.color = '#fff';
+                explainButton.style.border = 'none';
+                explainButton.style.borderRadius = '4px';
+                explainButton.style.cursor = 'pointer';
+                explainButton.addEventListener('click', () => {
+                    explainButton.disabled = true;
+                    explainButton.style.opacity = '0.5';
+                    explainButton.style.cursor = 'not-allowed';
+                    requestSingleCardExplanation(card);
+                });
+                
+                cardWrapper.appendChild(expandButton);
+                cardWrapper.appendChild(explainButton);
+            }, 300);
+        });
+        
+        cardContainer.appendChild(cardWrapper);
+        container.appendChild(cardContainer);
+        
+        if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+            window.ChatUI.scrollToLatest();
+        }
+    }
+
+    /**
+     * 1枚のカードの解説をAPIにリクエスト
+     */
+    async function requestSingleCardExplanation(card) {
+        console.log('[タロット占い] 1枚のカード解説をリクエスト:', card.name);
+        
+        showLoadingOverlay(`カード「${card.name}」の解説を作成中...`);
+        
+        try {
+            const response = await fetch('/api/consult', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: `[TAROT_SINGLE_CARD:${card.name}]`,
+                    character: 'yukino',
+                    clientHistory: [],
+                    guestMetadata: { messageCount: 0 }
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            hideLoadingOverlay();
+            
+            // 雪乃の解説を表示
+            if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                window.ChatUI.addMessage('character', data.message, '笹岡雪乃');
+                window.ChatUI.scrollToLatest();
+            }
+            
+            console.log('[タロット占い] 1枚のカード鑑定完了');
+            
+            // 入力欄を有効化
+            enableMessageInput();
+            
+        } catch (error) {
+            console.error('[タロット占い] エラー:', error);
+            hideLoadingOverlay();
+            alert('カードの解説の取得に失敗しました。もう一度お試しください。');
+            enableMessageInput();
+        }
+    }
+
     // グローバルに公開
     window.YukinoTarot = {
-        start: startTarotReading
+        start: startTarotReading,
+        startSingleCard: startSingleCardReading
     };
     
     console.log('[タロット機能] 初期化完了（新規実装）');
 })();
+
