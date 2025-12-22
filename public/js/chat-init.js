@@ -235,13 +235,22 @@ const ChatInit = {
                 guestHistory = ChatData.getGuestHistory(character);
                 
                 // 会話履歴が空の場合、雪乃のタロット関連フラグもクリア（新規会話として扱う）
-                // ⚠️ ただし、yukinoTarotCardForExplanationは初期化タロット処理で使うため、後でクリアする
+                // ⚠️ ただし、yukinoTarotCardForExplanationは解説後のボタン表示で使うため、クリアしない
                 if (guestHistory.length === 0 && character === 'yukino') {
-                    // 即座にクリアするフラグ（新規会話用）
-                    sessionStorage.removeItem('yukinoThreeCardsPrepared');
-                    sessionStorage.removeItem('yukinoSummaryShown');
-                    sessionStorage.removeItem('yukinoFirstMessageInSession'); // セッション最初のメッセージもクリア
-                    console.log('[初期化] 雪乃の新規会話：一部タロット関連フラグをクリアしました（カード情報は初期化タロット処理後にクリア）');
+                    // yukinoTarotCardForExplanationが存在する場合は、解説待ち状態なのでクリアしない
+                    const cardInfoExists = sessionStorage.getItem('yukinoTarotCardForExplanation') !== null;
+                    
+                    if (!cardInfoExists) {
+                        // 新規会話なので、タロット関連フラグをクリア
+                        sessionStorage.removeItem('yukinoThreeCardsPrepared');
+                        sessionStorage.removeItem('yukinoAllThreeCards');
+                        sessionStorage.removeItem('yukinoRemainingCards');
+                        sessionStorage.removeItem('yukinoSummaryShown');
+                        sessionStorage.removeItem('yukinoFirstMessageInSession');
+                        console.log('[初期化] 雪乃の新規会話：タロット関連フラグをクリアしました');
+                    } else {
+                        console.log('[初期化] カード解説待ち状態を検出。フラグクリアをスキップします。');
+                    }
                 }
             }
             
