@@ -9,7 +9,18 @@ const ChatInit = {
      */
     async initPage() {
         // ⚠️ 最優先：タロットカード情報を一時保存（初期化処理で消される前に）
-        const tempCardInfo = sessionStorage.getItem('yukinoTarotCardForExplanation');
+        // sessionStorageではページ遷移時に失われる可能性があるため、localStorageもチェック
+        let tempCardInfo = sessionStorage.getItem('yukinoTarotCardForExplanation');
+        if (!tempCardInfo) {
+            tempCardInfo = localStorage.getItem('_yukinoTarotCardForExplanation_temp');
+            if (tempCardInfo) {
+                // localStorageから取得できた場合は、sessionStorageに復元
+                sessionStorage.setItem('yukinoTarotCardForExplanation', tempCardInfo);
+                // 使用後は即座に削除
+                localStorage.removeItem('_yukinoTarotCardForExplanation_temp');
+                console.log('[初期化] localStorageからカード情報を復元しました');
+            }
+        }
         
         // ChatUIを初期化
         if (ChatUI && typeof ChatUI.init === 'function') {
