@@ -265,6 +265,23 @@ const ChatUI = {
             
             buttonWrapper.appendChild(startButton);
             messageDiv.appendChild(buttonWrapper);
+            
+            // 初回の3枚タロット鑑定が完了するまで、メッセージ入力欄を無効化
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            if (messageInput) {
+                messageInput.disabled = true;
+                messageInput.placeholder = '3枚のタロット鑑定を完了してから相談できます';
+                messageInput.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
+                messageInput.style.cursor = 'not-allowed';
+            }
+            if (sendButton) {
+                sendButton.disabled = true;
+                sendButton.style.opacity = '0.5';
+                sendButton.style.cursor = 'not-allowed';
+            }
+            
+            console.log('[chat-ui] 初回タロット鑑定ボタン表示 - 入力欄を無効化しました');
         }
         
         requestAnimationFrame(() => {
