@@ -603,6 +603,22 @@ ${cardNames}
             messageInput.placeholder = 'タロット鑑定中です...鑑定が終わったら質問してくださいね';
             messageInput.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
             messageInput.style.cursor = 'not-allowed';
+            
+            // プレースホルダーの色を濃くしてコントラストを改善
+            messageInput.classList.add('tarot-disabled');
+            
+            // スタイルが存在しない場合は追加
+            if (!document.getElementById('tarot-disabled-style')) {
+                const style = document.createElement('style');
+                style.id = 'tarot-disabled-style';
+                style.textContent = `
+                    #messageInput.tarot-disabled::placeholder {
+                        color: #555 !important;
+                        opacity: 1 !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
         }
         
         if (sendButton) {
@@ -626,6 +642,9 @@ ${cardNames}
             messageInput.placeholder = 'メッセージを入力';
             messageInput.style.backgroundColor = '';
             messageInput.style.cursor = '';
+            
+            // プレースホルダーのスタイルクラスを削除
+            messageInput.classList.remove('tarot-disabled');
         }
         
         if (sendButton) {
