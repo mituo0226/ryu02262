@@ -199,6 +199,13 @@ const ChatUI = {
             
             console.log('[chat-ui] 1枚のタロット鑑定を検出しました');
             
+            // 安全策：入力欄が無効化されている場合（3枚鑑定中）はスキップ
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput && messageInput.disabled) {
+                console.log('[chat-ui] タロット鑑定中のため、1枚鑑定の自動開始をスキップします');
+                return;
+            }
+            
             // 少し待ってから1枚のカード鑑定を開始
             setTimeout(() => {
                 if (window.YukinoTarot && typeof window.YukinoTarot.startSingleCard === 'function') {

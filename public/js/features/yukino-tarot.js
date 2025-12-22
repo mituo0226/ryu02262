@@ -592,9 +592,9 @@ ${cardNames}
                 window.ChatData.addToHistory(character, 'assistant', data.message);
             }
             
-            // タロット占い完了 - 入力欄を有効化
+            // タロット占い完了 - 「雪乃に個別相談する」ボタンを表示
             console.log('[タロット占い] 完了しました');
-            enableMessageInput();
+            showConsultationButton();
             
         } catch (error) {
             console.error('[タロットまとめ] エラー:', error);
@@ -604,6 +604,68 @@ ${cardNames}
             // エラー時も入力欄を有効化
             enableMessageInput();
         }
+    }
+
+    /**
+     * 「雪乃に個別相談する」ボタンを表示（まとめ鑑定完了後）
+     */
+    function showConsultationButton() {
+        const messagesDiv = document.getElementById('messages');
+        if (!messagesDiv) {
+            console.error('[タロット占い] メッセージエリアが見つかりません');
+            return;
+        }
+        
+        // ボタンコンテナを作成
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.width = '100%';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.justifyContent = 'center';
+        buttonContainer.style.marginTop = '24px';
+        buttonContainer.style.marginBottom = '24px';
+        
+        // 「雪乃に個別相談する」ボタン
+        const consultButton = document.createElement('button');
+        consultButton.textContent = '雪乃に個別相談する';
+        consultButton.style.padding = '12px 32px';
+        consultButton.style.fontSize = '16px';
+        consultButton.style.fontWeight = '600';
+        consultButton.style.color = '#ffffff';
+        consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
+        consultButton.style.border = '2px solid rgba(255, 105, 180, 1)';
+        consultButton.style.borderRadius = '8px';
+        consultButton.style.cursor = 'pointer';
+        consultButton.style.transition = 'all 0.2s ease';
+        consultButton.style.boxShadow = '0 4px 16px rgba(255, 105, 180, 0.4)';
+        
+        consultButton.addEventListener('mouseenter', () => {
+            consultButton.style.backgroundColor = 'rgba(255, 105, 180, 1)';
+            consultButton.style.transform = 'scale(1.05)';
+        });
+        consultButton.addEventListener('mouseleave', () => {
+            consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
+            consultButton.style.transform = 'scale(1)';
+        });
+        
+        consultButton.addEventListener('click', () => {
+            consultButton.disabled = true;
+            consultButton.style.opacity = '0.5';
+            consultButton.style.cursor = 'not-allowed';
+            
+            // 入力欄を有効化
+            enableMessageInput();
+            
+            console.log('[タロット占い] 個別相談モードに移行しました');
+        });
+        
+        buttonContainer.appendChild(consultButton);
+        messagesDiv.appendChild(buttonContainer);
+        
+        if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+            window.ChatUI.scrollToLatest();
+        }
+        
+        console.log('[タロット占い] 「雪乃に個別相談する」ボタンを表示しました');
     }
 
     /**
@@ -921,8 +983,8 @@ ${cardNames}
             
             console.log('[タロット占い] 1枚のカード鑑定完了');
             
-            // 入力欄を有効化
-            enableMessageInput();
+            // 「雪乃に個別相談する」ボタンを表示
+            showConsultationButton();
             
         } catch (error) {
             console.error('[タロット占い] エラー:', error);
