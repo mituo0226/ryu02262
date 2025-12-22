@@ -8,30 +8,6 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
-        // ⚠️ 【最優先】雪乃のタロット：初期化の最初にsessionStorageからカード情報をチェック
-        // tarot-waitingから戻ってきた場合のカード情報を、フラグクリア前に取得
-        const yukinoCardInfo = (() => {
-            const currentChar = new URLSearchParams(window.location.search).get('character');
-            if (currentChar === 'yukino') {
-                const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
-                if (cardInfoStr) {
-                    try {
-                        const card = JSON.parse(cardInfoStr);
-                        console.log('[初期化タロット自動処理] sessionStorageからカード情報を検出（最優先取得）:', {
-                            position: card.position,
-                            name: card.name
-                        });
-                        // sessionStorageをクリア
-                        sessionStorage.removeItem('yukinoTarotCardForExplanation');
-                        return card;
-                    } catch (error) {
-                        console.error('[初期化タロット自動処理] カード情報の解析エラー:', error);
-                    }
-                }
-            }
-            return null;
-        })();
-        
         // ChatUIを初期化
         if (ChatUI && typeof ChatUI.init === 'function') {
             ChatUI.init();
@@ -1027,57 +1003,30 @@ const ChatInit = {
             const messageId = ChatUI.addMessage('character', responseText, characterName);
             ChatUI.scrollToLatest();
             
-            // 雪乃のタロット：AIの解説後に自動的に次のステップを実行
-            // sessionStorageからカード情報を取得して次のステップを判定
+            // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
             if (character === 'yukino') {
                 const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
                 if (cardInfoStr) {
                     try {
                         const card = JSON.parse(cardInfoStr);
-                        console.log('[タロット自動処理] カード解説後の自動処理を実行:', {
+                        console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
                             position: card.position,
                             name: card.name
                         });
                         
-                        // sessionStorageをクリア（次回の解説まで残さない）
+                        // sessionStorageをクリア
                         sessionStorage.removeItem('yukinoTarotCardForExplanation');
                         
-                        // 少し待ってから次のステップを実行（ユーザーがAIの解説を読む時間を確保）
-                        setTimeout(() => {
-                            if (card.position === '過去') {
-                                // システムメッセージを追加
-                                const msgId = ChatUI.addMessage('character', 'それでは次に現在のカードをめくりましょう！', characterName);
-                                ChatUI.scrollToLatest();
-                                
-                                // 現在のカードの裏面を表示
-                                if (window.YukinoTarot && window.YukinoTarot.displayNextTarotCard) {
-                                    window.YukinoTarot.displayNextTarotCard({ skipButtonDisplay: true });
-                                }
-                            } else if (card.position === '現在') {
-                                // システムメッセージを追加
-                                const msgId = ChatUI.addMessage('character', 'それでは次に未来のカードをめくりましょう！', characterName);
-                                ChatUI.scrollToLatest();
-                                
-                                // 未来のカードの裏面を表示
-                                if (window.YukinoTarot && window.YukinoTarot.displayNextTarotCard) {
-                                    window.YukinoTarot.displayNextTarotCard({ skipButtonDisplay: true });
-                                }
-                            } else if (card.position === '未来') {
-                                // システムメッセージを追加
-                                const msgId = ChatUI.addMessage('character', 'それでは、まとめて解説しましょう！！', characterName);
-                                ChatUI.scrollToLatest();
-                                
-                                // 「雪乃のまとめ」ボタンを表示
-                                if (window.YukinoTarot && window.YukinoTarot.displaySummaryButton) {
-                                    const messagesDiv = document.getElementById('messages');
-                                    if (messagesDiv) {
-                                        window.YukinoTarot.displaySummaryButton(messagesDiv);
-                                    }
-                                }
-                            }
-                        }, 1500); // 1.5秒待ってから次のステップを実行
+                        // メッセージコンテナを取得
+                        const messagesDiv = document.getElementById('messages');
+                        if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
+                            // 少し待ってからボタンを表示（AI応答が完全に表示された後）
+                            setTimeout(() => {
+                                window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
+                            }, 500);
+                        }
                     } catch (error) {
-                        console.error('[タロット自動処理] カード情報の解析エラー:', error);
+                        console.error('[タロットボタン表示] カード情報の解析エラー:', error);
                     }
                 }
             }
@@ -2105,45 +2054,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
         tryNotifyParent();
     }, 500);
-    
-    // 雪乃のタロット：yukinoCardInfoが存在する場合、1.5秒後に次のステップを実行
-    if (yukinoCardInfo) {
-        setTimeout(() => {
-            const card = yukinoCardInfo;
-            const characterName = ChatData.characterInfo['yukino'].name;
-            
-            if (card.position === '過去') {
-                ChatUI.addMessage('character', 'それでは次に現在のカードをめくりましょう！', characterName);
-                ChatUI.scrollToLatest();
-                if (window.YukinoTarot && window.YukinoTarot.displayNextTarotCard) {
-                    window.YukinoTarot.displayNextTarotCard({ skipButtonDisplay: true });
-                }
-            } else if (card.position === '現在') {
-                ChatUI.addMessage('character', 'それでは次に未来のカードをめくりましょう！', characterName);
-                ChatUI.scrollToLatest();
-                if (window.YukinoTarot && window.YukinoTarot.displayNextTarotCard) {
-                    window.YukinoTarot.displayNextTarotCard({ skipButtonDisplay: true });
-                }
-            } else if (card.position === '未来') {
-                ChatUI.addMessage('character', 'それでは、まとめて解説しましょう！！', characterName);
-                ChatUI.scrollToLatest();
-                if (window.YukinoTarot && window.YukinoTarot.displaySummaryButton) {
-                    const messagesDiv = document.getElementById('messages');
-                    if (messagesDiv) {
-                        window.YukinoTarot.displaySummaryButton(messagesDiv);
-                    }
-                }
-            }
-        }, 1500);
-    } else {
-        // カード情報がない場合、新規会話なので残りのフラグもクリア
-        const currentChar = new URLSearchParams(window.location.search).get('character');
-        if (currentChar === 'yukino') {
-            console.log('[初期化タロット自動処理] カード情報なし。残りのタロットフラグをクリアします。');
-            sessionStorage.removeItem('yukinoAllThreeCards');
-            sessionStorage.removeItem('yukinoRemainingCards');
-        }
-    }
     
     // 管理者用コマンドハンドラー（postMessage）
     window.addEventListener('message', async (event) => {
