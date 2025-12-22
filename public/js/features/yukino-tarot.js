@@ -312,6 +312,17 @@
                         if (flippedCards.size === selectedCards.length) {
                             console.log('すべてのカードがめくられました。自動的に鑑定をリクエストします。');
                             
+                            // ⚠️ カード情報をsessionStorageとlocalStorageに保存（解説後のボタン表示で使用）
+                            const cardForExplanation = {
+                                position: card.position || '過去', // 位置情報がない場合は「過去」とする
+                                name: card.name,
+                                image: card.image
+                            };
+                            const cardInfoJson = JSON.stringify(cardForExplanation);
+                            sessionStorage.setItem('yukinoTarotCardForExplanation', cardInfoJson);
+                            localStorage.setItem('_yukinoTarotCardForExplanation_temp', cardInfoJson);
+                            console.log('[タロットカード] カード情報を保存しました:', cardForExplanation);
+                            
                             // カード情報をメッセージとして送信
                             const cardInfo = selectedCards.map(card => card.name).join('\n');
                             const message = `以下のタロットカードについて、詳しく解説してください。\n${cardInfo}\n\nこのカードの意味、私の状況にどのように関連しているか、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
