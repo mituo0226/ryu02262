@@ -592,9 +592,9 @@ ${cardNames}
                 window.ChatData.addToHistory(character, 'assistant', data.message);
             }
             
-            // タロット占い完了 - 「雪乃に個別相談する」ボタンを表示
+            // タロット占い完了 - 定型文とシステムメッセージを送信
             console.log('[タロット占い] 完了しました');
-            showConsultationButton();
+            await sendCompletionMessages(character, userToken);
             
         } catch (error) {
             console.error('[タロットまとめ] エラー:', error);
@@ -603,6 +603,66 @@ ${cardNames}
             
             // エラー時も入力欄を有効化
             enableMessageInput();
+        }
+    }
+
+    /**
+     * タロット鑑定完了メッセージを送信（定型文とシステムメッセージ）
+     */
+    async function sendCompletionMessages(character, userToken) {
+        try {
+            // 1. 雪乃の定型文をチャットに表示
+            const completionMessage = 'あなたの現在の運勢結果はここまでです。ここからは全く新しい鑑定を始めましょう';
+            
+            if (window.ChatUI && window.ChatUI.addMessage) {
+                window.ChatUI.addMessage('character', completionMessage, '笹岡雪乃');
+                window.ChatUI.scrollToLatest();
+            }
+            
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'assistant', completionMessage);
+            }
+            
+            // 2. システムメッセージをAPIに送信（チャットには非表示）
+            const systemMessage = '3枚のカードの鑑定は終わりました。これから先は新しい鑑定をゼロから始めてください';
+            
+            const payload = { message: systemMessage, character };
+            
+            if (userToken) {
+                payload.userToken = userToken;
+            } else {
+                const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
+                payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+            }
+            
+            const response = await fetch('/api/consult', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // システムメッセージとAIの返答を会話履歴に追加（チャットには非表示）
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'user', systemMessage);
+                window.ChatData.addToHistory(character, 'assistant', data.message);
+            }
+            
+            console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
+            
+            // 3. 「雪乃に個別相談する」ボタンを表示
+            showConsultationButton();
+            
+        } catch (error) {
+            console.error('[タロット完了メッセージ] エラー:', error);
+            // エラーが発生しても、ボタンは表示する
+            showConsultationButton();
         }
     }
 
