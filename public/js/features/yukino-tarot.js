@@ -720,7 +720,7 @@ ${cardNames}
         disableMessageInput();
         
         // メッセージエリアを取得
-        const messagesDiv = document.getElementById('messagesDiv');
+        const messagesDiv = document.getElementById('messages');
         if (!messagesDiv) {
             console.error('[タロット占い] メッセージエリアが見つかりません');
             return;
