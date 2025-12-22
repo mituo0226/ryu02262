@@ -604,7 +604,7 @@ ${cardNames}
             messageInput.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
             messageInput.style.cursor = 'not-allowed';
             
-            // プレースホルダーの色を濃くしてコントラストを改善
+            // プレースホルダーの色を白くしてコントラストを改善
             messageInput.classList.add('tarot-disabled');
             
             // スタイルが存在しない場合は追加
@@ -613,7 +613,7 @@ ${cardNames}
                 style.id = 'tarot-disabled-style';
                 style.textContent = `
                     #messageInput.tarot-disabled::placeholder {
-                        color: #555 !important;
+                        color: #fff !important;
                         opacity: 1 !important;
                     }
                 `;
