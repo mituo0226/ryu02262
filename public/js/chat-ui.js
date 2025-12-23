@@ -195,7 +195,11 @@ const ChatUI = {
             (text.includes('タロットカードを1枚引いてみましょう') || 
              text.includes('カードを1枚引いてみましょう') ||
              text.includes('タロットカードを1枚めくってみましょう') ||
-             text.includes('カードを1枚めくってみましょう'))) {
+             text.includes('カードを1枚めくってみましょう') ||
+             text.includes('タロットカードを引いてみましょう') ||
+             text.includes('タロットを1枚引いてみましょう') ||
+             text.includes('タロットを引いてみましょう') ||
+             text.includes('1枚引いてみましょう'))) {
             
             console.log('[chat-ui] 1枚のタロット鑑定を検出しました');
             
