@@ -145,3 +145,5 @@ C:\Users\mituo\.cursor\projects\c-Users-mituo-Desktop-kaede\terminals\1.txt
 - [ ] 原因を特定してから修正を開始する
 
 
+
+
