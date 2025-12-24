@@ -1019,15 +1019,25 @@ ${cardNames}
         try {
             // 会話履歴を取得（ユーザーの相談内容を含む）
             const character = 'yukino';
-            const conversationHistory = (window.ChatData && typeof window.ChatData.getHistory === 'function') 
-                ? window.ChatData.getHistory(character) || []
-                : [];
-            
-            console.log('[タロット占い] 会話履歴を取得:', conversationHistory.length, '件');
             
             // ユーザートークンを取得
             const userToken = (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) 
                 || localStorage.getItem('userToken');
+            
+            // 会話履歴を取得
+            // - 登録ユーザー: API側でデータベースから取得するため、空の配列でOK
+            // - ゲストユーザー: sessionStorageから取得した履歴を送信
+            let conversationHistory = [];
+            if (!userToken) {
+                // ゲストモード: sessionStorageから履歴を取得
+                conversationHistory = (window.ChatData && typeof window.ChatData.getGuestHistory === 'function') 
+                    ? window.ChatData.getGuestHistory(character) || []
+                    : [];
+                console.log('[タロット占い] ゲスト会話履歴を取得:', conversationHistory.length, '件');
+            } else {
+                // 登録ユーザー: API側でデータベースから取得するため空でOK
+                console.log('[タロット占い] 登録ユーザー: API側でデータベースから履歴を取得');
+            }
             
             // リクエストペイロードを作成
             const payload = {
