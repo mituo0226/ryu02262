@@ -19,6 +19,7 @@ export function generateYukinoPrompt(options = {}) {
     userMessageCount,
     isJustRegistered,
     needsRegistration,
+    lastGuestMessage,
   } = options;
 
   // 雪乃専用の指示を生成
@@ -92,11 +93,11 @@ export function generateYukinoPrompt(options = {}) {
    - 例：「さっき『（ユーザーの最後のメッセージ）』とおっしゃっていましたね」
 
 3. **会話を続けるか確認する**
-   - 例：「続けますか？」
+   - 例：「どんな話をしましょうか？」
    - 例：「お話を続けましょうか？」
 
 【返答の例】：
-「${userNickname}さん、おかえりなさい。ユーザー登録する前のメッセージは、『（ユーザーの最後のメッセージ）』でしたよね。続けますか？」
+「${userNickname}さん、おかえりなさい。ユーザー登録する前のメッセージは、『（ユーザーの最後のメッセージ）』でしたよね。どんな話をしましょうか？」
 
 【重要な注意事項】：
 ✅ ユーザーの最後のメッセージを**必ず引用**すること
@@ -161,8 +162,55 @@ export function generateYukinoPrompt(options = {}) {
 `;
     console.log('[yukino] 登録後の初回メッセージ指示を生成:', userNickname);
   } else if (userNickname && hasPreviousConversation) {
-    // 登録済みユーザーの通常の相談
-    yukinoSpecificInstruction = `
+    // 登録済みユーザーの再訪問
+    // ゲストモード時の最後のメッセージを引用（毎回表示）
+    
+    if (lastGuestMessage) {
+      // ゲストモード時のメッセージが存在する場合（ゲストから登録したユーザー）
+      yukinoSpecificInstruction = `
+========================================
+【【最重要・絶対遵守】登録済みユーザーの再訪問メッセージ】
+========================================
+
+相談者「${userNickname}さん」は既にユーザー登録を完了しており、再訪問されました。
+ゲストモードで会話していた時の最後のメッセージは以下です：
+
+**ゲストモード時の最後のメッセージ：**
+「${lastGuestMessage}」
+
+【必須の対応】：
+以下の順序で、必ず全てを含めてメッセージを作成してください：
+
+1. **「おかえりなさい」と迎える**
+   - 例：「${userNickname}さん、おかえりなさい」
+   - 例：「おかえりなさい、${userNickname}さん」
+
+2. **ゲストモード時の最後のメッセージを引用する**
+   - 上記の「ゲストモード時の最後のメッセージ」を**そのまま引用**してください
+   - 例：「ユーザー登録する前のメッセージは、『${lastGuestMessage}』でしたよね」
+   - 例：「最初にお話ししていた『${lastGuestMessage}』のこと、覚えています」
+
+3. **会話を促す**
+   - 例：「どんな話をしましょうか？」
+   - 例：「今日は何かお悩みごとでもありますか？」
+
+【返答の例】：
+「${userNickname}さん、おかえりなさい。ユーザー登録する前のメッセージは、『${lastGuestMessage}』でしたよね。どんな話をしましょうか？」
+
+【重要な注意事項】：
+✅ ゲストモード時の最後のメッセージを**必ず引用**すること
+✅ 上記に示されたメッセージをそのまま使用すること
+✅ 簡潔で分かりやすい文章にすること
+❌ ユーザー登録を促すこと
+❌ 生年月日の入力を求めること
+
+この指示は最優先で守ってください。
+========================================
+`;
+      console.log('[yukino] 登録済みユーザー再訪問指示を生成（ゲストからの登録）:', userNickname, lastGuestMessage);
+    } else {
+      // ゲストモード時のメッセージが存在しない場合（直接登録したユーザー）
+      yukinoSpecificInstruction = `
 ========================================
 【【最重要・絶対遵守】登録済みユーザーの通常の相談】
 ========================================
@@ -183,7 +231,8 @@ export function generateYukinoPrompt(options = {}) {
 この指示は最優先で守ってください。
 ========================================
 `;
-    console.log('[yukino] 登録済みユーザー指示を生成:', userNickname);
+      console.log('[yukino] 登録済みユーザー通常指示を生成（直接登録）:', userNickname);
+    }
   } else if (!userNickname) {
     // ゲストユーザーの対応
     const msgCount = Math.max(0, Math.floor(userMessageCount || 0));

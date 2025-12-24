@@ -198,6 +198,15 @@ const ChatInit = {
                     // カエデ以外の場合：ゲスト履歴をデータベースに保存し、クリーンな画面で開始
                     console.log('[登録完了処理] カエデ以外のキャラクター:', character);
                     
+                    // キャラクター専用ハンドラーの登録完了後処理を呼び出す
+                    if (character === 'yukino' && window.YukinoHandler) {
+                        await window.YukinoHandler.handlePostRegistration(historyData);
+                    } else if (character === 'sora' && window.SoraHandler) {
+                        await window.SoraHandler.handlePostRegistration(historyData);
+                    } else if (character === 'kaon' && window.KaonHandler) {
+                        await window.KaonHandler.handlePostRegistration(historyData);
+                    }
+                    
                     // ゲスト履歴を取得
                     const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                     let guestHistory = [];

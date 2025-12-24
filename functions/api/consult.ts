@@ -14,6 +14,7 @@ type ConversationRole = 'user' | 'assistant';
 interface ClientHistoryEntry {
   role: ConversationRole;
   content: string;
+  isGuestMessage?: boolean;
 }
 
 interface GuestMetadata {
@@ -55,6 +56,7 @@ interface UserRecord {
 interface ConversationRow {
   role: ConversationRole;
   message: string;
+  is_guest_message?: number;
 }
 
 interface LLMResponseResult {
@@ -556,7 +558,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (user) {
       // 登録ユーザー：データベースから履歴を取得
       const historyResults = await env.DB.prepare<ConversationRow>(
-        `SELECT role, message
+        `SELECT role, message, is_guest_message
          FROM conversations
          WHERE user_id = ? AND character_id = ?
          ORDER BY COALESCE(timestamp, created_at) DESC
@@ -569,6 +571,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         historyResults.results?.slice().reverse().map((row) => ({
           role: row.role,
           content: row.message,
+          isGuestMessage: row.is_guest_message === 1,
         })) ?? [];
 
       // ゲスト履歴の移行処理（登録直後の場合）
@@ -663,7 +666,25 @@ export const onRequestPost: PagesFunction = async (context) => {
       trimmedMessage.includes('守護神の儀式を始めて') ||
       trimmedMessage === '守護神の儀式を始めてください';
 
-    // ===== 10. システムプロンプトの生成 =====
+    // ===== 10. ゲストモード時の最後のメッセージを抽出 =====
+    let lastGuestMessage: string | null = null;
+    
+    if (user && characterId === 'yukino') {
+      // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージを探す
+      const guestUserMessages = conversationHistory
+        .filter((msg) => msg.role === 'user' && msg.isGuestMessage === true)
+        .map((msg) => msg.content);
+      
+      if (guestUserMessages.length > 0) {
+        lastGuestMessage = guestUserMessages[guestUserMessages.length - 1];
+        console.log('[consult] ゲストモード時の最後のメッセージを抽出:', {
+          lastGuestMessage: lastGuestMessage?.substring(0, 50) + '...',
+          guestUserMessagesCount: guestUserMessages.length,
+        });
+      }
+    }
+
+    // ===== 11. システムプロンプトの生成 =====
     // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、ゲストから登録したばかり
     const isJustRegistered = user && body.migrateHistory === true;
     
@@ -676,6 +697,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       isRitualStart: isRitualStart,
       guardian: user?.guardian || null,
       isJustRegistered: isJustRegistered,
+      lastGuestMessage: lastGuestMessage,
     });
 
     console.log('[consult] システムプロンプト生成:', {

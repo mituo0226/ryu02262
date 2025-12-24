@@ -18,6 +18,56 @@ const YukinoHandler = {
         if (window.YukinoTarot && typeof window.YukinoTarot.init === 'function') {
             window.YukinoTarot.init();
         }
+        
+        // ゲストモード再訪問のチェック
+        this.checkGuestRevisit();
+    },
+
+    /**
+     * ゲストモード再訪問のチェック
+     * 一度ゲストで会話した後、再度ゲストで訪問した場合は強制的にユーザー登録画面へ
+     */
+    checkGuestRevisit() {
+        // 登録済みユーザーはチェック不要
+        if (window.AuthState && window.AuthState.isRegistered()) {
+            console.log('[雪乃ハンドラー] 登録済みユーザー - 再訪問チェックをスキップ');
+            return;
+        }
+
+        // ゲストモードで会話したことがあるかをチェック
+        const hasConversedAsGuest = localStorage.getItem('yukinoGuestConversed');
+        
+        if (hasConversedAsGuest === 'true') {
+            console.log('[雪乃ハンドラー] ゲストモード再訪問を検知 - ユーザー登録画面へリダイレクト');
+            
+            // システムメッセージを表示
+            ChatUI.addMessage('character', 
+                '前回はゲストモードでお話しいただきましたが、続きをお話しするにはユーザー登録が必要です。生年月日とニックネームを登録してください。お金がかかったりはしませんから、安心してくださいね。', 
+                this.characterName
+            );
+            
+            // 入力欄を無効化
+            if (ChatUI.messageInput) {
+                ChatUI.messageInput.disabled = true;
+                ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
+            }
+            if (ChatUI.sendButton) {
+                ChatUI.sendButton.disabled = true;
+            }
+            
+            // 3秒後にユーザー登録画面へリダイレクト
+            setTimeout(() => {
+                window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
+            }, 3000);
+        }
+    },
+
+    /**
+     * ゲストモードで会話したことを記録
+     */
+    markGuestConversed() {
+        console.log('[雪乃ハンドラー] ゲストモードで会話したことを記録');
+        localStorage.setItem('yukinoGuestConversed', 'true');
     },
 
     /**
@@ -47,6 +97,12 @@ const YukinoHandler = {
             needsRegistration: response.needsRegistration,
             yukinoConsultationStarted: sessionStorage.getItem('yukinoConsultationStarted')
         });
+
+        // ゲストモードの場合、会話したことを記録
+        const isGuest = !window.AuthState || !window.AuthState.isRegistered();
+        if (isGuest) {
+            this.markGuestConversed();
+        }
 
         // 個別相談モードのチェック
         const isYukinoConsultation = sessionStorage.getItem('yukinoConsultationStarted') === 'true';
@@ -263,6 +319,10 @@ const YukinoHandler = {
      */
     async handlePostRegistration(historyData) {
         console.log('[雪乃ハンドラー] 登録完了後の処理');
+
+        // ゲストモードで会話したフラグをクリア（登録完了したため）
+        localStorage.removeItem('yukinoGuestConversed');
+        console.log('[雪乃ハンドラー] ゲストモード会話フラグをクリアしました');
 
         // 雪乃の場合は特殊な処理は不要（共通フローで「おかえりなさい」メッセージが表示される）
         return false; // 共通処理を続行
