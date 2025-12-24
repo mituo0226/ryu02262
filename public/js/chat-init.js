@@ -1188,26 +1188,25 @@ const ChatInit = {
                     responseKeys: Object.keys(response)
                 });
                 
-                // 雪乃の個別相談で10通目に達した場合
+                // 雪乃の個別相談で9通目に達した場合（「はい」「いいえ」ボタンを表示）
                 if (isYukinoConsultation && response.needsRegistration) {
                     const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                    console.log('[雪乃個別相談] 10通目に達しました。登録画面へ遷移します:', yukinoCount);
+                    console.log('[雪乃個別相談] 9通目に達しました。登録確認ボタンを表示します:', yukinoCount);
                     
-                    // 【重要】登録画面に遷移する前に、即座にゲスト履歴をpendingGuestHistoryMigrationに保存
-                    // これにより、ユーザー登録時にデータベースに保存できる
+                    // ゲスト履歴を即座に保存（「はい」をクリックした場合に使用）
                     const guestHistory = ChatData.getGuestHistory(character) || [];
                     if (guestHistory.length > 0) {
                         sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
                             character: character,
                             history: guestHistory
                         }));
-                        console.log('[雪乃個別相談] ゲスト履歴を即座に保存（データベース保存用）:', {
+                        console.log('[雪乃個別相談] ゲスト履歴を保存:', {
                             character: character,
                             historyLength: guestHistory.length,
                             userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
                         });
                     } else {
-                        console.warn('[雪乃個別相談] ⚠️ ゲスト履歴が空です！データベースに保存する履歴がありません。');
+                        console.warn('[雪乃個別相談] ⚠️ ゲスト履歴が空です！');
                     }
                     
                     // 入力欄を無効化
@@ -1219,17 +1218,8 @@ const ChatInit = {
                         ChatUI.sendButton.disabled = true;
                     }
                     
-                    // 案内メッセージを表示してから登録画面へ遷移
-                    ChatUI.addMessage(
-                        'error',
-                        'これ以上お話を続けるには、ユーザー登録が必要です。まもなく登録画面へ移動します。',
-                        'システム'
-                    );
-                    
-                    // 3秒後に登録画面へ自動遷移
-                    setTimeout(() => {
-                        this.openRegistrationModal();
-                    }, 3000);
+                    // 「はい」「いいえ」ボタンを表示
+                    ChatUI.showYukinoRegistrationButtons();
                 }
                 // 雪乃の個別相談で8〜9通目の場合、登録を促すメッセージを表示
                 else if (isYukinoConsultation && response.registrationSuggested) {
@@ -1649,6 +1639,62 @@ const ChatInit = {
     },
 
     /**
+     * 雪乃の登録確認処理（9通目専用）
+     * @param {boolean} consent - 登録するかどうか
+     */
+    handleYukinoRegistrationConsent(consent) {
+        const character = ChatData.currentCharacter;
+        const characterName = ChatData.characterInfo[character]?.name || '笹岡雪乃';
+        
+        // ボタンを非表示
+        ChatUI.hideYukinoRegistrationButtons();
+        
+        if (consent) {
+            // 「はい」を押した場合：登録画面へ遷移
+            console.log('[雪乃登録確認] 「はい」が選択されました。登録画面へ遷移します');
+            
+            // ゲスト履歴は既に保存済み（needsRegistrationフラグが立った時点で保存済み）
+            
+            // 登録画面へ遷移
+            setTimeout(() => {
+                this.openRegistrationModal();
+            }, 1000);
+        } else {
+            // 「いいえ」を押した場合：特定のメッセージを表示してmain.htmlへリダイレクト
+            console.log('[雪乃登録確認] 「いいえ」が選択されました。main.htmlへリダイレクトします');
+            
+            // 笹岡のお別れメッセージを表示
+            const farewellMessage = 'わかりました。それではまた何かあったら連絡ください。これまでの会話の中身は私は忘れてしまうと思うので、今度来た時にはゼロから話をしてくださいね。お待ちしています。';
+            ChatUI.addMessage('character', farewellMessage, characterName);
+            
+            // ゲスト履歴をクリア
+            if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                AuthState.clearGuestHistory(character);
+            }
+            const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+            const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+            sessionStorage.removeItem(historyKey);
+            sessionStorage.removeItem('pendingGuestHistoryMigration');
+            ChatData.setGuestMessageCount(character, 0);
+            
+            // 雪乃のタロット関連フラグをクリア
+            sessionStorage.removeItem('yukinoThreeCardsPrepared');
+            sessionStorage.removeItem('yukinoAllThreeCards');
+            sessionStorage.removeItem('yukinoRemainingCards');
+            sessionStorage.removeItem('yukinoTarotCardForExplanation');
+            sessionStorage.removeItem('yukinoSummaryShown');
+            sessionStorage.removeItem('yukinoFirstMessageInSession');
+            sessionStorage.removeItem('yukinoConsultationStarted');
+            sessionStorage.removeItem('yukinoConsultationMessageCount');
+            
+            // 3秒後にmain.htmlへリダイレクト
+            setTimeout(() => {
+                window.location.href = '../main.html';
+            }, 3000);
+        }
+    },
+
+    /**
      * 登録モーダルを開く
      */
     openRegistrationModal() {
@@ -1934,6 +1980,7 @@ window.ChatInit = ChatInit;
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
+window.handleYukinoRegistrationConsent = (consent) => ChatInit.handleYukinoRegistrationConsent(consent);
 
 // postMessage関連の初期化（DOMContentLoadedの外で即座に実行）
 (function initPostMessageCommunication() {

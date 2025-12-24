@@ -654,8 +654,8 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 8. 登録促進フラグの設定 =====
-    // ゲストユーザーで、8-9通目の場合に登録を促す
-    const shouldEncourageRegistration = !user && sanitizedGuestCount >= 8 && sanitizedGuestCount < GUEST_MESSAGE_LIMIT;
+    // ゲストユーザーで、9通目の場合に登録を促す（sanitizedGuestCount === 8 の時、次が9通目）
+    const needsRegistration = !user && characterId === 'yukino' && sanitizedGuestCount === 8;
 
     // ===== 9. 守護神の儀式開始メッセージかどうかを判定 =====
     const isRitualStart =
@@ -668,7 +668,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     const isJustRegistered = user && body.migrateHistory === true;
     
     const systemPrompt = generateSystemPrompt(characterId, {
-      encourageRegistration: shouldEncourageRegistration,
+      needsRegistration: needsRegistration,
       userNickname: user?.nickname,
       hasPreviousConversation: conversationHistory.length > 0,
       conversationHistoryLength: conversationHistory.length,
@@ -683,7 +683,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       userNickname: user?.nickname,
       guardian: user?.guardian,
       userMessageCount,
-      shouldEncourageRegistration,
+      needsRegistration,
       isRitualStart,
     });
 
@@ -817,7 +817,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         characterName,
         isInappropriate: false,
         detectedKeywords: [],
-        registrationSuggested: shouldEncourageRegistration,
+        needsRegistration: needsRegistration,
         guestMode: !user,
         remainingGuestMessages: user
           ? undefined
