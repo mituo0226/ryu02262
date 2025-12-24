@@ -177,6 +177,7 @@ const ChatUI = {
         }
         
         const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
         textDiv.textContent = displayText;
         messageDiv.appendChild(textDiv);
 
