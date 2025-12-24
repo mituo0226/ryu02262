@@ -971,9 +971,9 @@ const ChatInit = {
                 let currentCount;
                 if (isYukinoConsultation) {
                     // 雪乃の個別相談の場合、専用のカウントを使用
-                    // 会話履歴には既に今回送信するメッセージが含まれているため、-1する
+                    // yukinoConsultationMessageCountは既に正確な送信済みメッセージ数を表しているため、そのまま使用
                     currentCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                    messageCountForAPI = Math.max(0, currentCount - 1);
+                    messageCountForAPI = currentCount;
                     console.log('[雪乃個別相談] APIに送信するメッセージカウント:', {
                         現在の個別相談カウント: currentCount,
                         APIに送信する値: messageCountForAPI,
