@@ -180,7 +180,63 @@ const ChatInit = {
                     // KaedeRitualHandlerが読み込まれていない場合のフォールバック（エラー回避）
                     console.warn('[登録完了処理] KaedeRitualHandlerが見つかりません。楓専用の処理をスキップします。');
                 } else {
-                    // カエデ以外の場合はゲスト履歴をクリア
+                    // カエデ以外の場合：ゲスト履歴をデータベースに保存し、クリーンな画面で開始
+                    console.log('[登録完了処理] カエデ以外のキャラクター:', character);
+                    
+                    // ゲスト履歴を取得
+                    const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                    let guestHistory = [];
+                    
+                    if (pendingMigration) {
+                        try {
+                            const migrationData = JSON.parse(pendingMigration);
+                            if (migrationData.character === character && migrationData.history) {
+                                guestHistory = migrationData.history;
+                                console.log('[登録完了処理] ゲスト履歴を取得:', {
+                                    historyLength: guestHistory.length,
+                                    userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                                });
+                            }
+                        } catch (error) {
+                            console.error('[登録完了処理] ゲスト履歴の取得エラー:', error);
+                        }
+                    }
+                    
+                    const info = ChatData.characterInfo[character];
+                    
+                    if (guestHistory.length > 0) {
+                        // ゲスト履歴がある場合：データベースに保存し、「おかえりなさい」メッセージを表示
+                        console.log('[登録完了処理] ゲスト履歴をデータベースに保存します');
+                        
+                        // ゲスト履歴をAPIに送信してデータベースに保存
+                        // 画面には吹き出しを表示せず、「おかえりなさい」メッセージのみ表示
+                        try {
+                            const userToken = localStorage.getItem('userToken');
+                            const response = await ChatAPI.sendMessage(
+                                '（登録完了）', // ダミーメッセージ（APIは保存しない）
+                                character,
+                                guestHistory,
+                                userToken,
+                                true // migrateHistory = true（ゲスト履歴をデータベースに保存）
+                            );
+                            
+                            if (response && response.message) {
+                                // APIからの「おかえりなさい」メッセージを画面に表示
+                                ChatUI.addMessage('character', response.message, info.name);
+                                console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
+                            }
+                        } catch (error) {
+                            console.error('[登録完了処理] APIエラー:', error);
+                            ChatUI.addMessage('error', '登録完了処理中にエラーが発生しました。', 'システム');
+                        }
+                    } else {
+                        // ゲスト履歴がない場合：新規ユーザーとして初回メッセージを表示
+                        console.log('[登録完了処理] ゲスト履歴なし。新規ユーザーとして初回メッセージを表示します');
+                        const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
+                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    }
+                    
+                    // ゲスト履歴とカウントをクリア（データベースに移行済みのため）
                     if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
                         AuthState.clearGuestHistory(character);
                     }
@@ -190,21 +246,19 @@ const ChatInit = {
                     sessionStorage.removeItem('pendingGuestHistoryMigration');
                     ChatData.setGuestMessageCount(character, 0);
                     
-                    // 雪乃の場合、タロット関連のsessionStorageもクリア
+                    // キャラクター固有のフラグをクリア
                     if (character === 'yukino') {
+                        // 雪乃のタロット関連フラグをクリア
                         sessionStorage.removeItem('yukinoThreeCardsPrepared');
                         sessionStorage.removeItem('yukinoAllThreeCards');
                         sessionStorage.removeItem('yukinoRemainingCards');
                         sessionStorage.removeItem('yukinoTarotCardForExplanation');
                         sessionStorage.removeItem('yukinoSummaryShown');
-                        sessionStorage.removeItem('yukinoFirstMessageInSession'); // セッション最初のメッセージもクリア
+                        sessionStorage.removeItem('yukinoFirstMessageInSession');
+                        sessionStorage.removeItem('yukinoConsultationStarted');
+                        sessionStorage.removeItem('yukinoConsultationMessageCount');
                         console.log('[登録完了処理] 雪乃のタロット関連フラグをクリアしました');
                     }
-                    
-                    // 他のキャラクターの場合、通常の初回メッセージを表示
-                    const info = ChatData.characterInfo[character];
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                     
                     // URLパラメータからjustRegisteredを削除
                     urlParams.delete('justRegistered');

@@ -17,13 +17,46 @@ export function generateYukinoPrompt(options = {}) {
     conversationContext,
     guestUserContext,
     userMessageCount,
+    isJustRegistered,
   } = options;
 
   // 雪乃専用の指示を生成
   let yukinoSpecificInstruction = '';
   
-  // 登録済みユーザーの対応
-  if (userNickname && !hasPreviousConversation) {
+  // 登録直後の初回メッセージ（ゲストモードから登録したばかり）
+  if (userNickname && isJustRegistered) {
+    yukinoSpecificInstruction = `
+========================================
+【【最重要・絶対遵守】ユーザー登録直後の初回メッセージ（定型文）】
+========================================
+
+相談者「${userNickname}さん」は、ゲストモードでお話をした後、ユーザー登録を完了したばかりです。
+
+【必須の対応（定型文）】：
+以下の定型文を**そのまま**使用してください：
+
+「おかえりなさい、${userNickname}さん。それでは続きを始めましょうか。」
+
+【重要な注意事項】：
+✅ この定型文を**一字一句変更せず**にそのまま使用すること
+✅ 追加の説明や挨拶は一切不要
+✅ この定型文だけで終わること
+❌ 登録への感謝や他の言葉を追加しないこと
+❌ 過去の会話に言及しないこと
+❌ タロット占いの提案をしないこと
+
+【背景説明（AIの理解のため）】：
+- 相談者は既にゲストモードで9通の会話をしています
+- その会話履歴はデータベースに保存済みです
+- 画面上の吹き出しは表示されていませんが、AIは過去の会話を覚えています
+- 相談者が次に質問をすると、その文脈を理解して回答できます
+
+この指示は最優先で守ってください。
+========================================
+`;
+    console.log('[yukino] 登録直後の初回メッセージ指示を生成（isJustRegistered）:', userNickname);
+  } else if (userNickname && !hasPreviousConversation) {
+    // 完全な新規ユーザー（ゲストとしても会話したことがない）
     // 登録後の初回メッセージ
     yukinoSpecificInstruction = `
 ========================================

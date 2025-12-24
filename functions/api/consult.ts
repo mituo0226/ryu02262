@@ -664,6 +664,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       trimmedMessage === '守護神の儀式を始めてください';
 
     // ===== 10. システムプロンプトの生成 =====
+    // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、ゲストから登録したばかり
+    const isJustRegistered = user && body.migrateHistory === true;
+    
     const systemPrompt = generateSystemPrompt(characterId, {
       encourageRegistration: shouldEncourageRegistration,
       userNickname: user?.nickname,
@@ -672,6 +675,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       userMessageCount: userMessageCount,
       isRitualStart: isRitualStart,
       guardian: user?.guardian || null,
+      isJustRegistered: isJustRegistered,
     });
 
     console.log('[consult] システムプロンプト生成:', {
@@ -736,8 +740,8 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ritualStartフラグがtrueの場合、チャットクリア指示を返す
     const shouldClearChat = body.ritualStart === true;
     
-    // ===== 14. 会話履歴の保存（登録ユーザーの場合、ただし儀式開始時は保存しない）=====
-    if (user && !shouldClearChat) {
+    // ===== 14. 会話履歴の保存（登録ユーザーの場合、ただし儀式開始時・登録直後は保存しない）=====
+    if (user && !shouldClearChat && !isJustRegistered) {
       // 100件制限チェック
       const messageCountResult = await env.DB.prepare<{ count: number }>(
         `SELECT COUNT(*) as count 
