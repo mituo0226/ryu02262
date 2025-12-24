@@ -712,6 +712,11 @@ ${cardNames}
             consultButton.style.opacity = '0.5';
             consultButton.style.cursor = 'not-allowed';
             
+            // 雪乃の個別相談モード開始フラグとカウントを初期化
+            sessionStorage.setItem('yukinoConsultationStarted', 'true');
+            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+            console.log('[タロット占い] 個別相談カウントを初期化: 0通目からスタート（10通制限）');
+            
             // 入力欄を有効化
             enableMessageInput();
             

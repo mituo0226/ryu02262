@@ -722,16 +722,35 @@ const ChatInit = {
         
         // メッセージ送信ボタンを押した時点で、即座にカウントを開始
         if (isGuest && !isTarotExplanationTrigger) {
-            // メッセージ送信前：現在のカウントを取得（10通目以降は強制的に儀式開始へ）
-            const currentCount = ChatData.getGuestMessageCount(character);
+            // 雪乃の個別相談モードのチェック
+            const isYukinoConsultation = character === 'yukino' && sessionStorage.getItem('yukinoConsultationStarted') === 'true';
+            
+            // メッセージ送信前：現在のカウントを取得
+            let currentCount;
+            if (isYukinoConsultation) {
+                // 雪乃の個別相談の場合、専用のカウントを使用
+                currentCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
+                console.log('[雪乃個別相談] 現在のメッセージカウント:', currentCount);
+            } else {
+                // 通常のゲストメッセージカウントを使用
+                currentCount = ChatData.getGuestMessageCount(character);
+            }
+            
             if (currentCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                console.log('[メッセージ制限] 10通目以降のため、守護神の儀式を強制開始します');
-                if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
-                    await window.KaedeRitualHandler.forceStartGuardianRitual(character);
-                } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
-                    await window.KaedeRitualHandler.handleRitualConsent(true);
+                if (isYukinoConsultation) {
+                    console.log('[雪乃個別相談] 10通目に到達したため、登録画面へ遷移します');
+                    // 雪乃の場合は登録画面へ遷移
+                    window.location.href = '/pages/auth/register.html';
+                    return;
+                } else {
+                    console.log('[メッセージ制限] 10通目以降のため、守護神の儀式を強制開始します');
+                    if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
+                        await window.KaedeRitualHandler.forceStartGuardianRitual(character);
+                    } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
+                        await window.KaedeRitualHandler.handleRitualConsent(true);
+                    }
+                    return;
                 }
-                return;
             }
 
             // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
@@ -747,18 +766,38 @@ const ChatInit = {
                 lastMessage: savedHistory.length > 0 ? savedHistory[savedHistory.length - 1] : null
             });
             
-            // 会話履歴に追加した後、最新のカウントを取得（これが送信時のカウント）
-            const messageCount = ChatData.getGuestMessageCount(character);
+            // 雪乃の個別相談の場合、専用のカウントをインクリメント
+            let messageCount;
+            if (isYukinoConsultation) {
+                const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
+                const newYukinoCount = yukinoCount + 1;
+                sessionStorage.setItem('yukinoConsultationMessageCount', String(newYukinoCount));
+                messageCount = newYukinoCount;
+                console.log('[雪乃個別相談] カウントをインクリメント:', {
+                    前のカウント: yukinoCount,
+                    新しいカウント: newYukinoCount,
+                    残り通数: ChatData.GUEST_MESSAGE_LIMIT - newYukinoCount
+                });
+            } else {
+                // 通常のカウントを取得
+                messageCount = ChatData.getGuestMessageCount(character);
+            }
 
-            // 10通目に到達したら、会話を続けず儀式を強制開始
+            // 10通目に到達したら、会話を続けず処理を実行
             if (messageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                console.log('[メッセージ制限] 10通目に到達したため、守護神の儀式を強制開始します');
-                if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
-                    await window.KaedeRitualHandler.forceStartGuardianRitual(character);
-                } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
-                    await window.KaedeRitualHandler.handleRitualConsent(true);
+                if (isYukinoConsultation) {
+                    console.log('[雪乃個別相談] 10通目に到達したため、登録画面へ遷移します');
+                    window.location.href = '/pages/auth/register.html';
+                    return;
+                } else {
+                    console.log('[メッセージ制限] 10通目に到達したため、守護神の儀式を強制開始します');
+                    if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
+                        await window.KaedeRitualHandler.forceStartGuardianRitual(character);
+                    } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
+                        await window.KaedeRitualHandler.handleRitualConsent(true);
+                    }
+                    return;
                 }
-                return;
             }
             
             const isFirstMessage = currentCount === 0;
@@ -932,29 +971,46 @@ const ChatInit = {
             // 内部で +1 して計算するため、ここでは「これまでのメッセージ数」を送信する必要がある
             let messageCountForAPI = 0;
             if (isGuest) {
-                const currentCount = ChatData.getGuestMessageCount(character);
+                // 雪乃の個別相談モードのチェック
+                const isYukinoConsultation = character === 'yukino' && sessionStorage.getItem('yukinoConsultationStarted') === 'true';
                 
-                // 楓専用：会話履歴には既に今回送信するメッセージが含まれているため、-1する
-                // 他の鑑定士：currentCountをそのまま使用
-                if (character === 'kaede') {
-                    // 楓の場合、会話履歴には既に今回送信するメッセージが含まれているため、
-                    // -1 して「これまでのメッセージ数」を計算
+                let currentCount;
+                if (isYukinoConsultation) {
+                    // 雪乃の個別相談の場合、専用のカウントを使用
+                    // 会話履歴には既に今回送信するメッセージが含まれているため、-1する
+                    currentCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
                     messageCountForAPI = Math.max(0, currentCount - 1);
+                    console.log('[雪乃個別相談] APIに送信するメッセージカウント:', {
+                        現在の個別相談カウント: currentCount,
+                        APIに送信する値: messageCountForAPI,
+                        残り通数: ChatData.GUEST_MESSAGE_LIMIT - currentCount
+                    });
                 } else {
-                    // 他の鑑定士（花音、空、雪乃）の場合、currentCountをそのまま使用
-                    // タロット解説トリガーは会話履歴に追加されないため、currentCountが自動的に正しい値になる
-                    messageCountForAPI = currentCount;
+                    // 通常のゲストメッセージカウントを使用
+                    currentCount = ChatData.getGuestMessageCount(character);
+                    
+                    // 楓専用：会話履歴には既に今回送信するメッセージが含まれているため、-1する
+                    // 他の鑑定士：currentCountをそのまま使用
+                    if (character === 'kaede') {
+                        // 楓の場合、会話履歴には既に今回送信するメッセージが含まれているため、
+                        // -1 して「これまでのメッセージ数」を計算
+                        messageCountForAPI = Math.max(0, currentCount - 1);
+                    } else {
+                        // 他の鑑定士（花音、空、雪乃のタロット鑑定中）の場合、currentCountをそのまま使用
+                        // タロット解説トリガーは会話履歴に追加されないため、currentCountが自動的に正しい値になる
+                        messageCountForAPI = currentCount;
+                    }
+                    
+                    console.log('[メッセージ送信] APIに送信するメッセージカウント:', {
+                        鑑定士: character,
+                        送信メッセージ: messageToSend.substring(0, 50),
+                        タロット解説トリガー: isTarotExplanationTrigger,
+                        会話履歴のユーザーメッセージ数: currentCount,
+                        '楓専用_マイナス1適用': character === 'kaede',
+                        APIに送信する値: messageCountForAPI,
+                        API側で計算される最終値: messageCountForAPI + 1
+                    });
                 }
-                
-                console.log('[メッセージ送信] APIに送信するメッセージカウント:', {
-                    鑑定士: character,
-                    送信メッセージ: messageToSend.substring(0, 50),
-                    タロット解説トリガー: isTarotExplanationTrigger,
-                    会話履歴のユーザーメッセージ数: currentCount,
-                    '楓専用_マイナス1適用': character === 'kaede',
-                    APIに送信する値: messageCountForAPI,
-                    API側で計算される最終値: messageCountForAPI + 1
-                });
             } else {
                 // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
                 messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
@@ -1072,14 +1128,33 @@ const ChatInit = {
                 }
                 
                 // ゲストユーザーの場合、registrationSuggestedをチェック
+                // 雪乃の個別相談モードのチェック
+                const isYukinoConsultation = character === 'yukino' && sessionStorage.getItem('yukinoConsultationStarted') === 'true';
+                
                 console.log('[API応答] registrationSuggestedチェック:', {
                     registrationSuggested: response.registrationSuggested,
                     ritualConsentShown: ChatData.ritualConsentShown,
                     character: character,
+                    isYukinoConsultation: isYukinoConsultation,
                     responseKeys: Object.keys(response)
                 });
                 
-                if (response.registrationSuggested && !ChatData.ritualConsentShown && guestMessageCount >= 5 && guestMessageCount < ChatData.GUEST_MESSAGE_LIMIT) {
+                // 雪乃の個別相談で8〜9通目の場合、登録を促すメッセージを表示
+                if (isYukinoConsultation && response.registrationSuggested) {
+                    const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
+                    const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - yukinoCount);
+                    const noticeKey = 'yukinoConsultationPreLimitNoticeShown';
+                    
+                    if (sessionStorage.getItem(noticeKey) !== 'true') {
+                        ChatUI.addMessage(
+                            'error',
+                            `まもなく無料でお話できる回数の上限です。残り${remaining}通です。${ChatData.GUEST_MESSAGE_LIMIT}通目以降はユーザー登録が必要になります。`,
+                            'システム'
+                        );
+                        sessionStorage.setItem(noticeKey, 'true');
+                        console.log('[雪乃個別相談] 上限近づきメッセージを表示しました');
+                    }
+                } else if (response.registrationSuggested && !ChatData.ritualConsentShown && guestMessageCount >= 5 && guestMessageCount < ChatData.GUEST_MESSAGE_LIMIT) {
                     // 楓は「守護神の儀式を始めますか？」の同意ダイアログを8〜9通目で出すと不自然なため、
                     // ここではダイアログは出さず「上限が近い」案内だけ表示する。
                     if (character === 'kaede') {
