@@ -736,14 +736,15 @@ const ChatInit = {
                 currentCount = ChatData.getGuestMessageCount(character);
             }
             
-            if (currentCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+            // 11通目以降のチェック（10通目は送信を許可し、雪乃からのメッセージを表示する）
+            if (currentCount > ChatData.GUEST_MESSAGE_LIMIT) {
                 if (isYukinoConsultation) {
-                    console.log('[雪乃個別相談] 10通目に到達したため、登録画面へ遷移します');
+                    console.log('[雪乃個別相談] 11通目以降のため、登録画面へ遷移します');
                     // 雪乃の場合は登録画面へ遷移
                     window.location.href = '/pages/auth/register.html';
                     return;
                 } else {
-                    console.log('[メッセージ制限] 10通目以降のため、守護神の儀式を強制開始します');
+                    console.log('[メッセージ制限] 11通目以降のため、守護神の儀式を強制開始します');
                     if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
                         await window.KaedeRitualHandler.forceStartGuardianRitual(character);
                     } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
@@ -783,20 +784,13 @@ const ChatInit = {
                 messageCount = ChatData.getGuestMessageCount(character);
             }
 
-            // 10通目に到達したら、会話を続けず処理を実行
-            if (messageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+            // 10通目の場合、雪乃からの登録促進メッセージを表示するため、ここでは遷移しない
+            // APIレスポンスで needsRegistration フラグをチェックして処理する
+            if (messageCount === ChatData.GUEST_MESSAGE_LIMIT) {
                 if (isYukinoConsultation) {
-                    console.log('[雪乃個別相談] 10通目に到達したため、登録画面へ遷移します');
-                    window.location.href = '/pages/auth/register.html';
-                    return;
+                    console.log('[雪乃個別相談] 10通目に到達。APIから登録促進メッセージを受け取ります');
                 } else {
-                    console.log('[メッセージ制限] 10通目に到達したため、守護神の儀式を強制開始します');
-                    if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
-                        await window.KaedeRitualHandler.forceStartGuardianRitual(character);
-                    } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
-                        await window.KaedeRitualHandler.handleRitualConsent(true);
-                    }
-                    return;
+                    console.log('[メッセージ制限] 10通目に到達。APIから登録促進メッセージを受け取ります');
                 }
             }
             
@@ -1139,8 +1133,27 @@ const ChatInit = {
                     responseKeys: Object.keys(response)
                 });
                 
+                // 雪乃の個別相談で10通目に達した場合
+                if (isYukinoConsultation && response.needsRegistration) {
+                    const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
+                    console.log('[雪乃個別相談] 10通目に達しました。登録ボタンを表示します:', yukinoCount);
+                    
+                    // 入力欄を無効化
+                    if (ChatUI.messageInput) {
+                        ChatUI.messageInput.disabled = true;
+                        ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
+                    }
+                    if (ChatUI.sendButton) {
+                        ChatUI.sendButton.disabled = true;
+                    }
+                    
+                    // 登録ボタンを表示
+                    setTimeout(() => {
+                        ChatUI.showRitualConsentButtons();
+                    }, 2000);
+                }
                 // 雪乃の個別相談で8〜9通目の場合、登録を促すメッセージを表示
-                if (isYukinoConsultation && response.registrationSuggested) {
+                else if (isYukinoConsultation && response.registrationSuggested) {
                     const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
                     const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - yukinoCount);
                     const noticeKey = 'yukinoConsultationPreLimitNoticeShown';
