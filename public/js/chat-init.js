@@ -1137,7 +1137,7 @@ const ChatInit = {
                 // 雪乃の個別相談で10通目に達した場合
                 if (isYukinoConsultation && response.needsRegistration) {
                     const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                    console.log('[雪乃個別相談] 10通目に達しました。登録ボタンを表示します:', yukinoCount);
+                    console.log('[雪乃個別相談] 10通目に達しました。登録画面へ遷移します:', yukinoCount);
                     
                     // 入力欄を無効化
                     if (ChatUI.messageInput) {
@@ -1148,10 +1148,17 @@ const ChatInit = {
                         ChatUI.sendButton.disabled = true;
                     }
                     
-                    // 登録ボタンを表示
+                    // 案内メッセージを表示してから登録画面へ遷移
+                    ChatUI.addMessage(
+                        'error',
+                        'これ以上お話を続けるには、ユーザー登録が必要です。まもなく登録画面へ移動します。',
+                        'システム'
+                    );
+                    
+                    // 3秒後に登録画面へ自動遷移
                     setTimeout(() => {
-                        ChatUI.showRitualConsentButtons();
-                    }, 2000);
+                        this.openRegistrationModal();
+                    }, 3000);
                 }
                 // 雪乃の個別相談で8〜9通目の場合、登録を促すメッセージを表示
                 else if (isYukinoConsultation && response.registrationSuggested) {
