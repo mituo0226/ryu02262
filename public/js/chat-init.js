@@ -1539,7 +1539,17 @@ const ChatInit = {
         if (consent) {
             // 「はい」を押した場合
             const characterName = ChatData.characterInfo[character]?.name || '鑑定士';
-            ChatUI.addMessage('character', 'ユーザー登録をすることにより、守護神の儀式を進めます', characterName);
+            
+            // キャラクターに応じてメッセージを変更
+            let consentMessage = 'ユーザー登録をすることにより、守護神の儀式を進めます'; // デフォルト（楓用）
+            
+            if (character === 'yukino') {
+                consentMessage = 'ユーザー登録をすることで、より詳しいタロット鑑定ができるようになります';
+            } else if (character === 'kaede') {
+                consentMessage = 'ユーザー登録をすることにより、守護神の儀式を進めます';
+            }
+            
+            ChatUI.addMessage('character', consentMessage, characterName);
             
             // メッセージを表示した後、少し待ってから登録画面に遷移
             setTimeout(() => {
@@ -1547,7 +1557,16 @@ const ChatInit = {
             }, 2000);
         } else {
             // 「いいえ」を押した場合
-            ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
+            // キャラクターに応じてメッセージを変更
+            let declineMessage = '守護神の儀式をスキップしました。ゲストモードで会話を続けます。'; // デフォルト（楓用）
+            
+            if (character === 'yukino') {
+                declineMessage = 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。';
+            } else if (character === 'kaede') {
+                declineMessage = '守護神の儀式をスキップしました。ゲストモードで会話を続けます。';
+            }
+            
+            ChatUI.addMessage('error', declineMessage, 'システム');
         }
     },
 

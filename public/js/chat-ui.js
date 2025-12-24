@@ -372,10 +372,26 @@ const ChatUI = {
         }
         
         const ritualConsentContainer = document.getElementById('ritualConsentContainer');
+        const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
+        
         if (ritualConsentContainer) {
             // 既に表示されている場合は表示しない
             if (ritualConsentContainer.classList.contains('visible')) {
                 return;
+            }
+            
+            // キャラクターに応じてメッセージを変更
+            if (ritualConsentQuestion) {
+                const currentCharacter = ChatData.currentCharacter;
+                let questionText = '守護神の儀式を始めますか？'; // デフォルト（楓用）
+                
+                if (currentCharacter === 'yukino') {
+                    questionText = 'ユーザー登録を進めますか？';
+                } else if (currentCharacter === 'kaede') {
+                    questionText = '守護神の儀式を始めますか？';
+                }
+                
+                ritualConsentQuestion.textContent = questionText;
             }
             
             ChatData.ritualConsentShown = true;
