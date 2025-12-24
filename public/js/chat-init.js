@@ -1139,6 +1139,23 @@ const ChatInit = {
                     const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
                     console.log('[雪乃個別相談] 10通目に達しました。登録画面へ遷移します:', yukinoCount);
                     
+                    // 【重要】登録画面に遷移する前に、即座にゲスト履歴をpendingGuestHistoryMigrationに保存
+                    // これにより、ユーザー登録時にデータベースに保存できる
+                    const guestHistory = ChatData.getGuestHistory(character) || [];
+                    if (guestHistory.length > 0) {
+                        sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+                            character: character,
+                            history: guestHistory
+                        }));
+                        console.log('[雪乃個別相談] ゲスト履歴を即座に保存（データベース保存用）:', {
+                            character: character,
+                            historyLength: guestHistory.length,
+                            userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                        });
+                    } else {
+                        console.warn('[雪乃個別相談] ⚠️ ゲスト履歴が空です！データベースに保存する履歴がありません。');
+                    }
+                    
                     // 入力欄を無効化
                     if (ChatUI.messageInput) {
                         ChatUI.messageInput.disabled = true;
