@@ -625,7 +625,7 @@ ${cardNames}
             }
             
             // 2. システムメッセージをAPIに送信（チャットには非表示）
-            const systemMessage = '3枚のカードの鑑定は終わりました。これから先は新しい鑑定をゼロから始めてください';
+            const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
             
             const payload = { message: systemMessage, character };
             
