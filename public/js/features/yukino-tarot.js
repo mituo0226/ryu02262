@@ -1017,15 +1017,37 @@ ${cardNames}
         showLoadingOverlay(`カード「${card.name}」の解説を作成中...`);
         
         try {
+            // 会話履歴を取得（ユーザーの相談内容を含む）
+            const character = 'yukino';
+            const conversationHistory = (window.ChatData && typeof window.ChatData.getHistory === 'function') 
+                ? window.ChatData.getHistory(character) || []
+                : [];
+            
+            console.log('[タロット占い] 会話履歴を取得:', conversationHistory.length, '件');
+            
+            // ユーザートークンを取得
+            const userToken = (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) 
+                || localStorage.getItem('userToken');
+            
+            // リクエストペイロードを作成
+            const payload = {
+                message: `[TAROT_SINGLE_CARD:${card.name}]`,
+                character: character,
+                clientHistory: conversationHistory  // 会話履歴を送信
+            };
+            
+            if (userToken) {
+                payload.userToken = userToken;
+            } else {
+                // ゲストモード
+                const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
+                payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+            }
+            
             const response = await fetch('/api/consult', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: `[TAROT_SINGLE_CARD:${card.name}]`,
-                    character: 'yukino',
-                    clientHistory: [],
-                    guestMetadata: { messageCount: 0 }
-                })
+                body: JSON.stringify(payload)
             });
             
             if (!response.ok) {
@@ -1039,6 +1061,12 @@ ${cardNames}
             if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
                 window.ChatUI.addMessage('character', data.message, '笹岡雪乃');
                 window.ChatUI.scrollToLatest();
+            }
+            
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'user', `[TAROT_SINGLE_CARD:${card.name}]`);
+                window.ChatData.addToHistory(character, 'assistant', data.message);
             }
             
             console.log('[タロット占い] 1枚のカード鑑定完了');
@@ -1063,4 +1091,5 @@ ${cardNames}
     
     console.log('[タロット機能] 初期化完了（新規実装）');
 })();
+
 
