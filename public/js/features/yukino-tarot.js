@@ -607,16 +607,117 @@ ${cardNames}
     }
 
     /**
-     * タロット鑑定完了メッセージを送信（定型文とシステムメッセージ）
+     * タロット鑑定完了メッセージを送信（定型文とボタンを表示）
      */
     async function sendCompletionMessages(character, userToken) {
         try {
             // 1. 雪乃の定型文をチャットに表示
             const completionMessage = 'あなたの現在の運勢結果はここまでです。ここからは全く新しい鑑定を始めましょう';
             
-            if (window.ChatUI && window.ChatUI.addMessage) {
-                window.ChatUI.addMessage('character', completionMessage, '笹岡雪乃');
-                window.ChatUI.scrollToLatest();
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message character-message';
+            messageElement.innerHTML = `
+                <div class="avatar">笹岡雪乃</div>
+                <div class="bubble">
+                    <div class="message-text">${completionMessage}</div>
+                </div>
+            `;
+            
+            // ボタンを吹き出し内に追加
+            const bubble = messageElement.querySelector('.bubble');
+            const buttonWrapper = document.createElement('div');
+            buttonWrapper.style.marginTop = '15px';
+            buttonWrapper.style.textAlign = 'center';
+            
+            const consultButton = document.createElement('button');
+            consultButton.textContent = '雪乃に個別相談する';
+            consultButton.style.padding = '12px 32px';
+            consultButton.style.fontSize = '16px';
+            consultButton.style.fontWeight = '600';
+            consultButton.style.color = '#ffffff';
+            consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
+            consultButton.style.border = '2px solid rgba(255, 105, 180, 1)';
+            consultButton.style.borderRadius = '8px';
+            consultButton.style.cursor = 'pointer';
+            consultButton.style.transition = 'all 0.2s ease';
+            consultButton.style.boxShadow = '0 4px 16px rgba(255, 105, 180, 0.4)';
+            
+            consultButton.addEventListener('mouseenter', () => {
+                consultButton.style.backgroundColor = 'rgba(255, 105, 180, 1)';
+                consultButton.style.transform = 'scale(1.05)';
+            });
+            consultButton.addEventListener('mouseleave', () => {
+                consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
+                consultButton.style.transform = 'scale(1)';
+            });
+            
+            consultButton.addEventListener('click', async () => {
+                consultButton.disabled = true;
+                consultButton.textContent = '準備中...';
+                consultButton.style.opacity = '0.5';
+                consultButton.style.cursor = 'not-allowed';
+                
+                console.log('[タロット占い] 個別相談ボタンがクリックされました');
+                
+                try {
+                    // 2. システムメッセージをAPIに送信（チャットには非表示）
+                    const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
+                    
+                    const payload = { message: systemMessage, character };
+                    
+                    if (userToken) {
+                        payload.userToken = userToken;
+                    } else {
+                        const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
+                        payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                    }
+                    
+                    const response = await fetch('/api/consult', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // システムメッセージとAIの返答を会話履歴に追加（チャットには非表示）
+                    if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                        window.ChatData.addToHistory(character, 'user', systemMessage);
+                        window.ChatData.addToHistory(character, 'assistant', data.message);
+                    }
+                    
+                    console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
+                    
+                } catch (error) {
+                    console.error('[タロット完了メッセージ] エラー:', error);
+                }
+                
+                // 3. 個別相談モードを開始
+                sessionStorage.setItem('yukinoConsultationStarted', 'true');
+                sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+                sessionStorage.setItem('yukinoSummaryShown', 'true');
+                
+                // ボタンを削除してメッセージ入力欄を有効化
+                buttonWrapper.remove();
+                enableMessageInput();
+                
+                console.log('[タロット占い] 個別相談モードを開始しました');
+            });
+            
+            buttonWrapper.appendChild(consultButton);
+            bubble.appendChild(buttonWrapper);
+            
+            // メッセージを表示
+            const messagesDiv = document.getElementById('messages') || document.getElementById('chatMessages');
+            if (messagesDiv) {
+                messagesDiv.appendChild(messageElement);
+                if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+                    window.ChatUI.scrollToLatest();
+                }
             }
             
             // 会話履歴に追加
@@ -624,54 +725,9 @@ ${cardNames}
                 window.ChatData.addToHistory(character, 'assistant', completionMessage);
             }
             
-            // 2. システムメッセージをAPIに送信（チャットには非表示）
-            const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
-            
-            const payload = { message: systemMessage, character };
-            
-            if (userToken) {
-                payload.userToken = userToken;
-            } else {
-                const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
-            }
-            
-            const response = await fetch('/api/consult', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // システムメッセージとAIの返答を会話履歴に追加（チャットには非表示）
-            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
-                window.ChatData.addToHistory(character, 'user', systemMessage);
-                window.ChatData.addToHistory(character, 'assistant', data.message);
-            }
-            
-            console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
-            
-            // 3. 個別相談モードを開始
-            sessionStorage.setItem('yukinoConsultationStarted', 'true');
-            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-            sessionStorage.setItem('yukinoSummaryShown', 'true');
-            
-            // メッセージ入力欄を有効化
-            enableMessageInput();
-            
-            console.log('[タロット占い] 個別相談モードを開始しました');
-            
         } catch (error) {
             console.error('[タロット完了メッセージ] エラー:', error);
-            // エラーが発生しても、個別相談モードを開始
-            sessionStorage.setItem('yukinoConsultationStarted', 'true');
-            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-            sessionStorage.setItem('yukinoSummaryShown', 'true');
+            // エラーが発生しても、入力欄を有効化
             enableMessageInput();
         }
     }
