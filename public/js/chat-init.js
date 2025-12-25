@@ -234,6 +234,11 @@ const ChatInit = {
                         
                         // 【重要】先にゲスト履歴を画面に表示
                         guestHistory.forEach((entry) => {
+                            // システムメッセージ（isSystemMessage: true）は画面に表示しない
+                            if (entry.isSystemMessage) {
+                                console.log('[登録完了処理] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                                return;
+                            }
                             const type = entry.role === 'user' ? 'user' : 'character';
                             const sender = entry.role === 'user' ? 'あなた' : info.name;
                             ChatUI.addMessage(type, entry.content, sender);
@@ -421,6 +426,11 @@ const ChatInit = {
                 const info = ChatData.characterInfo[character];
                 
                 guestHistory.forEach((entry) => {
+                    // システムメッセージ（isSystemMessage: true）は画面に表示しない
+                    if (entry.isSystemMessage) {
+                        console.log('[初期化] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                        return;
+                    }
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     ChatUI.addMessage(type, entry.content, sender);
@@ -707,6 +717,11 @@ const ChatInit = {
             
             if (guestHistory.length > 0) {
                 guestHistory.forEach((entry) => {
+                    // システムメッセージ（isSystemMessage: true）は画面に表示しない
+                    if (entry.isSystemMessage) {
+                        console.log('[初期化エラー時] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                        return;
+                    }
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     ChatUI.addMessage(type, entry.content, sender);

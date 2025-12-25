@@ -651,12 +651,62 @@ ${cardNames}
                 consultButton.style.transform = 'scale(1)';
             });
             
-            consultButton.addEventListener('click', () => {
+            consultButton.addEventListener('click', async () => {
                 consultButton.disabled = true;
                 consultButton.style.opacity = '0.5';
                 consultButton.style.cursor = 'not-allowed';
                 
-                console.log('[タロット占い] 個別相談ボタンがクリックされました - アニメーションページへ遷移');
+                console.log('[タロット占い] 個別相談ボタンがクリックされました - APIに通知を送信');
+                
+                try {
+                    // システムメッセージをAPIに送信
+                    const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
+                    
+                    const userToken = localStorage.getItem('userToken');
+                    const payload = { 
+                        message: systemMessage, 
+                        character
+                    };
+                    
+                    if (userToken) {
+                        payload.userToken = userToken;
+                    } else {
+                        const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
+                        payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                    }
+                    
+                    const response = await fetch('/api/consult', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // システムメッセージとAI応答を会話履歴に追加（画面非表示フラグ付き）
+                        const history = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
+                        
+                        history.push({
+                            role: 'user',
+                            content: systemMessage,
+                            isSystemMessage: true
+                        });
+                        
+                        if (data.message) {
+                            history.push({
+                                role: 'assistant',
+                                content: data.message,
+                                isSystemMessage: true
+                            });
+                        }
+                        
+                        sessionStorage.setItem('guestConversationHistory_yukino', JSON.stringify(history));
+                        console.log('[タロット占い] システムメッセージを会話履歴に追加しました（画面非表示）');
+                    }
+                } catch (error) {
+                    console.error('[タロット占い] API通信エラー:', error);
+                }
                 
                 // フェードアウト効果を追加
                 const fadeOverlay = document.createElement('div');

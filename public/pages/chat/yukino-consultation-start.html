@@ -242,8 +242,8 @@
                 // 4. ローディングドットを表示
                 loadingDots.style.display = 'inline-block';
                 
-                // 5. バックエンドに通知（並行処理）
-                const success = await notifyBackend();
+                // 5. 個別相談モードのフラグを設定
+                setConsultationFlags();
                 
                 // 6. 1秒待ってから画面遷移
                 setTimeout(() => {
