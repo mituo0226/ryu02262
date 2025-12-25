@@ -183,17 +183,17 @@
             const messageContainer = document.getElementById('messageContainer');
             const loadingDots = document.getElementById('loadingDots');
             
-            // 1. フェードイン（黒画面から映像へ）
+            // 1. 即座にフェードイン開始（黒画面から映像へ）
             setTimeout(() => {
                 fadeOverlay.style.opacity = '0';
-            }, 100);
+            }, 0);
             
-            // 2. ビデオをフェードイン
+            // 2. ビデオをフェードイン（早めに開始）
             setTimeout(() => {
                 videoContainer.style.opacity = '1';
-            }, 800);
+            }, 400);
             
-            // 2.5秒後にメッセージを表示
+            // 2秒後にメッセージを表示（早めに開始）
             setTimeout(async () => {
                 messageContainer.style.opacity = '1';
                 
@@ -210,7 +210,7 @@
                 setTimeout(() => {
                     returnToChat();
                 }, 1000);
-            }, 2500);
+            }, 2000);
         }
 
         // ページ読み込み時に実行

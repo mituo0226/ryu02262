@@ -2171,15 +2171,15 @@ window.addEventListener('DOMContentLoaded', async () => {
             background: #000;
             z-index: 9999;
             opacity: 1;
-            transition: opacity 1.5s ease;
+            transition: opacity 1.2s ease;
             pointer-events: none;
         `;
         document.body.appendChild(fadeOverlay);
         
-        // フェードアウト開始
+        // 即座にフェードアウト開始
         setTimeout(() => {
             fadeOverlay.style.opacity = '0';
-        }, 100);
+        }, 50);
         
         // フェードアウト完了後にオーバーレイを削除
         setTimeout(() => {

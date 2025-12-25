@@ -658,7 +658,11 @@ ${cardNames}
                 
                 console.log('[タロット占い] 個別相談ボタンがクリックされました');
                 
-                // 即座にフェードアウト効果を開始（ユーザーに即座の反応を見せる）
+                // チャット画面全体にブラーとフェードアウト効果を適用
+                const mainContent = document.querySelector('main') || document.body;
+                mainContent.style.transition = 'filter 1.5s ease, opacity 1.5s ease';
+                
+                // フェードアウト用のオーバーレイ
                 const fadeOverlay = document.createElement('div');
                 fadeOverlay.style.cssText = `
                     position: fixed;
@@ -669,13 +673,15 @@ ${cardNames}
                     background: #000;
                     z-index: 9999;
                     opacity: 0;
-                    transition: opacity 1s ease;
+                    transition: opacity 1.5s ease;
                     pointer-events: none;
                 `;
                 document.body.appendChild(fadeOverlay);
                 
-                // フェードアウト開始
+                // 即座にフェードアウト開始（ブラー + 暗転）
                 setTimeout(() => {
+                    mainContent.style.filter = 'blur(10px)';
+                    mainContent.style.opacity = '0.3';
                     fadeOverlay.style.opacity = '1';
                     fadeOverlay.style.pointerEvents = 'auto';
                 }, 50);
@@ -732,10 +738,11 @@ ${cardNames}
                     console.error('[タロット占い] API通信エラー:', error);
                 }
                 
-                // API呼び出し完了後、最低1秒待ってからアニメーションページに遷移
+                // API呼び出し完了後、フェードアウトが完了するまで待ってから遷移
+                // フェードアウトは1.5秒なので、少し余裕を持って1.6秒待つ
                 setTimeout(() => {
                     window.location.href = 'yukino-consultation-start.html';
-                }, 1000);
+                }, 1600);
             });
             
             buttonWrapper.appendChild(consultButton);
