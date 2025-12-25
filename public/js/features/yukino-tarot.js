@@ -658,33 +658,72 @@ ${cardNames}
                 
                 console.log('[タロット占い] 個別相談ボタンがクリックされました');
                 
-                // チャット画面全体にブラーとフェードアウト効果を適用
+                // チャット画面全体にブラー効果を適用
                 const mainContent = document.querySelector('main') || document.body;
-                mainContent.style.transition = 'filter 1.5s ease, opacity 1.5s ease';
+                mainContent.style.transition = 'filter 1.2s ease, opacity 1.2s ease';
                 
-                // フェードアウト用のオーバーレイ
-                const fadeOverlay = document.createElement('div');
-                fadeOverlay.style.cssText = `
+                // 動画オーバーレイを作成（チャット画面の上に重ねて表示）
+                const videoOverlay = document.createElement('div');
+                videoOverlay.style.cssText = `
                     position: fixed;
                     top: 0;
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: #000;
-                    z-index: 9999;
+                    z-index: 10000;
                     opacity: 0;
-                    transition: opacity 1.5s ease;
-                    pointer-events: none;
+                    transition: opacity 1.2s ease;
                 `;
-                document.body.appendChild(fadeOverlay);
                 
-                // 即座にフェードアウト開始（ブラー + 暗転）
+                // ビデオ要素を作成
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.loop = true;
+                video.muted = true;
+                video.playsInline = true;
+                video.style.cssText = `
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                `;
+                video.innerHTML = '<source src="../../photo/yukino.mp4" type="video/mp4">';
+                videoOverlay.appendChild(video);
+                
+                // メッセージコンテナ
+                const messageContainer = document.createElement('div');
+                messageContainer.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    text-align: center;
+                    opacity: 0;
+                    transition: opacity 1s ease;
+                `;
+                
+                const messageText = document.createElement('div');
+                messageText.style.cssText = `
+                    color: #fff;
+                    font-size: 20px;
+                    line-height: 1.8;
+                    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+                    white-space: pre-wrap;
+                `;
+                messageContainer.appendChild(messageText);
+                videoOverlay.appendChild(messageContainer);
+                
+                document.body.appendChild(videoOverlay);
+                
+                // 即座にブラー開始
                 setTimeout(() => {
-                    mainContent.style.filter = 'blur(10px)';
-                    mainContent.style.opacity = '0.3';
-                    fadeOverlay.style.opacity = '1';
-                    fadeOverlay.style.pointerEvents = 'auto';
+                    mainContent.style.filter = 'blur(15px)';
+                    mainContent.style.opacity = '0.2';
                 }, 50);
+                
+                // 動画オーバーレイをフェードイン
+                setTimeout(() => {
+                    videoOverlay.style.opacity = '1';
+                }, 600);
                 
                 // システムメッセージをAPIに送信（完了を待つ）
                 try {
@@ -738,11 +777,34 @@ ${cardNames}
                     console.error('[タロット占い] API通信エラー:', error);
                 }
                 
-                // API呼び出し完了後、フェードアウトが完了するまで待ってから遷移
-                // フェードアウトは1.5秒なので、少し余裕を持って1.6秒待つ
-                setTimeout(() => {
-                    window.location.href = 'yukino-consultation-start.html';
-                }, 1600);
+                // タイプライター効果でメッセージを表示
+                setTimeout(async () => {
+                    messageContainer.style.opacity = '1';
+                    
+                    const text = 'これから先はあなたの相談を\n入力して相談してくださいね';
+                    let i = 0;
+                    const typeWriter = () => {
+                        if (i < text.length) {
+                            messageText.textContent += text.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, 80);
+                        }
+                    };
+                    typeWriter();
+                    
+                    // 3秒後に個別相談モード設定してページをリロード
+                    setTimeout(() => {
+                        sessionStorage.setItem('yukinoConsultationStarted', 'true');
+                        sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+                        sessionStorage.setItem('yukinoSummaryShown', 'true');
+                        
+                        // フェードアウトしてリロード
+                        videoOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1200);
+                    }, 3000);
+                }, 2000);
             });
             
             buttonWrapper.appendChild(consultButton);
