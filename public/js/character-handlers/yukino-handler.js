@@ -222,6 +222,12 @@ const YukinoHandler = {
         // メッセージコンテナに追加
         if (ChatUI.messagesDiv) {
             ChatUI.messagesDiv.appendChild(container);
+            
+            // visibleクラスを追加してフェードイン
+            setTimeout(() => {
+                container.classList.add('visible');
+            }, 100);
+            
             ChatUI.scrollToLatest();
         }
     },
