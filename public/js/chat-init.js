@@ -749,17 +749,8 @@ const ChatInit = {
             }
         }
 
-        // イベントリスナーを設定
-        ChatUI.messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                window.sendMessage();
-            }
-        });
-        
-        ChatUI.messageInput.addEventListener('input', () => {
-            ChatUI.updateSendButtonVisibility();
-        });
+        // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない
+        // （重複登録を防ぐため。loadイベントでcloneNodeを使って確実に1回だけ登録される）
         
         ChatUI.updateSendButtonVisibility();
     },
