@@ -327,6 +327,16 @@ const YukinoHandler = {
         localStorage.removeItem('yukinoGuestConversed');
         console.log('[雪乃ハンドラー] ゲストモード会話フラグをクリアしました');
 
+        // 【重要】送信ボタンの表示状態を更新
+        // 登録後にページがリロードされた際、イベントリスナーは設定されているが
+        // updateSendButtonVisibility()が呼ばれていない場合があるため、明示的に呼び出す
+        setTimeout(() => {
+            if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
+                window.ChatUI.updateSendButtonVisibility();
+                console.log('[雪乃ハンドラー] 送信ボタンの表示状態を更新しました');
+            }
+        }, 100);
+
         // 雪乃の場合は特殊な処理は不要（共通フローで「おかえりなさい」メッセージが表示される）
         return false; // 共通処理を続行
     }
