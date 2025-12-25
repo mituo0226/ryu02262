@@ -175,24 +175,8 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    // 会話履歴に追加（sessionStorage経由）
-                    const historyKey = `guestConversationHistory_${character}`;
-                    const historyJson = sessionStorage.getItem(historyKey);
-                    let history = [];
-                    
-                    if (historyJson) {
-                        try {
-                            history = JSON.parse(historyJson);
-                        } catch (e) {
-                            console.error('履歴のパースエラー:', e);
-                        }
-                    }
-                    
-                    // システムメッセージとAIの返答を追加
-                    history.push({ role: 'user', content: systemMessage });
-                    history.push({ role: 'assistant', content: data.message });
-                    
-                    sessionStorage.setItem(historyKey, JSON.stringify(history));
+                    // システムメッセージは会話履歴に追加しない（ユーザーに見せない）
+                    // APIのバックエンド側で履歴管理される
                     
                     console.log('[Transition] バックエンドに個別相談開始を通知しました');
                     return true;
