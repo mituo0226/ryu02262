@@ -651,61 +651,39 @@ ${cardNames}
                 consultButton.style.transform = 'scale(1)';
             });
             
-            consultButton.addEventListener('click', async () => {
+            consultButton.addEventListener('click', () => {
                 consultButton.disabled = true;
-                consultButton.textContent = '準備中...';
                 consultButton.style.opacity = '0.5';
                 consultButton.style.cursor = 'not-allowed';
                 
-                console.log('[タロット占い] 個別相談ボタンがクリックされました');
+                console.log('[タロット占い] 個別相談ボタンがクリックされました - アニメーションページへ遷移');
                 
-                try {
-                    // 2. システムメッセージをAPIに送信（チャットには非表示）
-                    const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
-                    
-                    const payload = { message: systemMessage, character };
-                    
-                    if (userToken) {
-                        payload.userToken = userToken;
-                    } else {
-                        const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                        payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
-                    }
-                    
-                    const response = await fetch('/api/consult', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`API error: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // システムメッセージとAIの返答を会話履歴に追加（チャットには非表示）
-                    if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
-                        window.ChatData.addToHistory(character, 'user', systemMessage);
-                        window.ChatData.addToHistory(character, 'assistant', data.message);
-                    }
-                    
-                    console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
-                    
-                } catch (error) {
-                    console.error('[タロット完了メッセージ] エラー:', error);
-                }
+                // フェードアウト効果を追加
+                const fadeOverlay = document.createElement('div');
+                fadeOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: #000;
+                    z-index: 9999;
+                    opacity: 0;
+                    transition: opacity 1s ease;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(fadeOverlay);
                 
-                // 3. 個別相談モードを開始
-                sessionStorage.setItem('yukinoConsultationStarted', 'true');
-                sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-                sessionStorage.setItem('yukinoSummaryShown', 'true');
+                // フェードアウト開始
+                setTimeout(() => {
+                    fadeOverlay.style.opacity = '1';
+                    fadeOverlay.style.pointerEvents = 'auto';
+                }, 50);
                 
-                // ボタンを削除してメッセージ入力欄を有効化
-                buttonWrapper.remove();
-                enableMessageInput();
-                
-                console.log('[タロット占い] 個別相談モードを開始しました');
+                // アニメーションページに遷移
+                setTimeout(() => {
+                    window.location.href = 'yukino-consultation-start.html';
+                }, 1000);
             });
             
             buttonWrapper.appendChild(consultButton);
