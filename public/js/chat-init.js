@@ -468,7 +468,7 @@ const ChatInit = {
                 if (consultationStarted && messageCount === 0) {
                     console.log('[初期化] 雪乃の個別相談モード開始：定型文を表示');
                     const info = ChatData.characterInfo[character];
-                    const welcomeMessage = 'これから先はあなたの相談内容を入力してください。悩みや迷いがあれば、タロットカードで占うこともできますよ。';
+                    const welcomeMessage = 'あなたの運勢はタロットカードによって導かれました。これから先はあなたが私に相談したいことがあれば語りかけてください。どんな相談でもお答えいたします。';
                     ChatUI.addMessage('character', welcomeMessage, info.name);
                 }
             }
