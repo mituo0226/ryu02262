@@ -460,6 +460,19 @@ const ChatInit = {
                 }
             }
             
+            // 雪乃の個別相談モード開始直後の定型文を表示
+            if (character === 'yukino' && isGuestMode) {
+                const consultationStarted = sessionStorage.getItem('yukinoConsultationStarted') === 'true';
+                const messageCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
+                
+                if (consultationStarted && messageCount === 0) {
+                    console.log('[初期化] 雪乃の個別相談モード開始：定型文を表示');
+                    const info = ChatData.characterInfo[character];
+                    const welcomeMessage = 'これから先はあなたの相談内容を入力してください。悩みや迷いがあれば、タロットカードで占うこともできますよ。';
+                    ChatUI.addMessage('character', welcomeMessage, info.name);
+                }
+            }
+            
             // 初回メッセージを表示
             // ただし、守護神の儀式完了直後（guardianMessageShown）の場合は、既に守護神確認メッセージを表示済みなのでスキップ
             // ※guardianMessageShownは上で既に定義済み
