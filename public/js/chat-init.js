@@ -2126,6 +2126,30 @@ window.addEventListener('DOMContentLoaded', async () => {
     const currentSearch = window.location.search;
     const pathParts = currentPath.split('/').filter(part => part !== '');
     
+    // 【重要】ページ読み込み完了後、イベントリスナーを確実に設定
+    window.addEventListener('load', () => {
+        console.log('[DOMContentLoaded] load イベント: イベントリスナーを設定します');
+        if (ChatUI.messageInput && ChatUI.sendButton) {
+            // 既存のリスナーを削除（重複登録を防ぐ）
+            const newInput = ChatUI.messageInput.cloneNode(true);
+            ChatUI.messageInput.parentNode.replaceChild(newInput, ChatUI.messageInput);
+            ChatUI.messageInput = newInput;
+            
+            ChatUI.messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    window.sendMessage();
+                }
+            });
+            
+            ChatUI.messageInput.addEventListener('input', () => {
+                ChatUI.updateSendButtonVisibility();
+            });
+            
+            console.log('[DOMContentLoaded] load イベント: イベントリスナーの設定完了');
+        }
+    });
+    
     if (pathParts.length > 0) {
         const lastPart = pathParts[pathParts.length - 1];
         if (lastPart.includes('.html')) {
