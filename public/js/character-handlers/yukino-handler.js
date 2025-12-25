@@ -98,12 +98,6 @@ const YukinoHandler = {
             yukinoConsultationStarted: sessionStorage.getItem('yukinoConsultationStarted')
         });
 
-        // ゲストモードの場合、会話したことを記録
-        const isGuest = !window.AuthState || !window.AuthState.isRegistered();
-        if (isGuest) {
-            this.markGuestConversed();
-        }
-
         // 個別相談モードのチェック
         const isYukinoConsultation = sessionStorage.getItem('yukinoConsultationStarted') === 'true';
 
@@ -274,6 +268,9 @@ const YukinoHandler = {
             // 笹岡のお別れメッセージを表示
             const farewellMessage = 'わかりました。それではまた何かあったら連絡ください。これまでの会話の中身は私は忘れてしまうと思うので、今度来た時にはゼロから話をしてくださいね。お待ちしています。';
             ChatUI.addMessage('character', farewellMessage, this.characterName);
+
+            // ゲストモードで会話したことを記録（次回再訪問時にリダイレクト用）
+            this.markGuestConversed();
 
             // ゲスト履歴とカウントをクリア
             this.clearGuestHistory();
