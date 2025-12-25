@@ -470,6 +470,19 @@ const ChatInit = {
                     const info = ChatData.characterInfo[character];
                     const welcomeMessage = 'あなたの運勢はタロットカードによって導かれました。これから先はあなたが私に相談したいことがあれば語りかけてください。どんな相談でもお答えいたします。';
                     ChatUI.addMessage('character', welcomeMessage, info.name);
+                    
+                    // メッセージ入力欄を有効化
+                    if (ChatUI.messageInput) {
+                        ChatUI.messageInput.disabled = false;
+                        ChatUI.messageInput.placeholder = 'メッセージを入力...';
+                    }
+                    if (ChatUI.sendButton) {
+                        ChatUI.sendButton.disabled = false;
+                    }
+                    
+                    console.log('[初期化] 個別相談モード：メッセージ入力を有効化しました');
+                    // 初回メッセージ表示をスキップするため、ここで処理を終了
+                    return;
                 }
             }
             
