@@ -651,7 +651,7 @@ ${cardNames}
                 consultButton.style.transform = 'scale(1)';
             });
             
-            consultButton.addEventListener('click', () => {
+            consultButton.addEventListener('click', async () => {
                 consultButton.disabled = true;
                 consultButton.style.opacity = '0.5';
                 consultButton.style.cursor = 'not-allowed';
@@ -680,62 +680,59 @@ ${cardNames}
                     fadeOverlay.style.pointerEvents = 'auto';
                 }, 50);
                 
-                // API呼び出しを並行処理（バックグラウンド）で実行
-                (async () => {
-                    try {
-                        console.log('[タロット占い] APIに通知を送信中（バックグラウンド）');
+                // システムメッセージをAPIに送信（完了を待つ）
+                try {
+                    console.log('[タロット占い] APIに通知を送信中');
+                    
+                    const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
+                    
+                    const userToken = localStorage.getItem('userToken');
+                    const payload = { 
+                        message: systemMessage, 
+                        character
+                    };
+                    
+                    if (userToken) {
+                        payload.userToken = userToken;
+                    } else {
+                        const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
+                        payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                    }
+                    
+                    const response = await fetch('/api/consult', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
                         
-                        // システムメッセージをAPIに送信
-                        const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
+                        // システムメッセージとAI応答を会話履歴に追加（画面非表示フラグ付き）
+                        const history = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
                         
-                        const userToken = localStorage.getItem('userToken');
-                        const payload = { 
-                            message: systemMessage, 
-                            character
-                        };
-                        
-                        if (userToken) {
-                            payload.userToken = userToken;
-                        } else {
-                            const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                            payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
-                        }
-                        
-                        const response = await fetch('/api/consult', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
+                        history.push({
+                            role: 'user',
+                            content: systemMessage,
+                            isSystemMessage: true
                         });
                         
-                        if (response.ok) {
-                            const data = await response.json();
-                            
-                            // システムメッセージとAI応答を会話履歴に追加（画面非表示フラグ付き）
-                            const history = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
-                            
+                        if (data.message) {
                             history.push({
-                                role: 'user',
-                                content: systemMessage,
+                                role: 'assistant',
+                                content: data.message,
                                 isSystemMessage: true
                             });
-                            
-                            if (data.message) {
-                                history.push({
-                                    role: 'assistant',
-                                    content: data.message,
-                                    isSystemMessage: true
-                                });
-                            }
-                            
-                            sessionStorage.setItem('guestConversationHistory_yukino', JSON.stringify(history));
-                            console.log('[タロット占い] システムメッセージを会話履歴に追加しました（画面非表示）');
                         }
-                    } catch (error) {
-                        console.error('[タロット占い] API通信エラー:', error);
+                        
+                        sessionStorage.setItem('guestConversationHistory_yukino', JSON.stringify(history));
+                        console.log('[タロット占い] システムメッセージを会話履歴に追加しました（画面非表示）');
                     }
-                })();
+                } catch (error) {
+                    console.error('[タロット占い] API通信エラー:', error);
+                }
                 
-                // アニメーションページに遷移（API完了を待たない）
+                // API呼び出し完了後、最低1秒待ってからアニメーションページに遷移
                 setTimeout(() => {
                     window.location.href = 'yukino-consultation-start.html';
                 }, 1000);
