@@ -656,25 +656,18 @@ ${cardNames}
             
             console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
             
-            // 3. 個別相談モードに自動移行
-            // ボタンなしで自動的に次のフェーズに移行
+            // 3. 個別相談ボタンを表示
+            // バックエンドAIが3枚のタロット完了を認識するため、ボタンクリックが必要
             sessionStorage.setItem('yukinoSummaryShown', 'true');  // 3枚のタロット完了フラグ
-            sessionStorage.setItem('yukinoConsultationStarted', 'true');
-            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-            console.log('[タロット占い] 個別相談カウントを初期化: 0通目からスタート（10通制限）');
-            console.log('[タロット占い] yukinoSummaryShownフラグを設定: 3枚のタロット完了');
+            showConsultationButton();
             
-            // 入力欄を有効化
-            enableMessageInput();
-            
-            console.log('[タロット占い] 個別相談モードに自動移行しました（ボタンなし）');
+            console.log('[タロット占い] 個別相談ボタンを表示しました');
             
         } catch (error) {
             console.error('[タロット完了メッセージ] エラー:', error);
-            // エラーが発生しても、入力欄を有効化
-            sessionStorage.setItem('yukinoConsultationStarted', 'true');
-            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-            enableMessageInput();
+            // エラーが発生しても、ボタンを表示
+            sessionStorage.setItem('yukinoSummaryShown', 'true');  // 3枚のタロット完了フラグ
+            showConsultationButton();
         }
     }
 
@@ -724,15 +717,34 @@ ${cardNames}
             consultButton.style.opacity = '0.5';
             consultButton.style.cursor = 'not-allowed';
             
-            // 雪乃の個別相談モード開始フラグとカウントを初期化
-            sessionStorage.setItem('yukinoConsultationStarted', 'true');
-            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-            console.log('[タロット占い] 個別相談カウントを初期化: 0通目からスタート（10通制限）');
+            console.log('[タロット占い] 個別相談ボタンがクリックされました - アニメーションページへ遷移');
             
-            // 入力欄を有効化
-            enableMessageInput();
+            // フェードアウト効果を追加
+            const fadeOverlay = document.createElement('div');
+            fadeOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 1s ease;
+                pointer-events: none;
+            `;
+            document.body.appendChild(fadeOverlay);
             
-            console.log('[タロット占い] 個別相談モードに移行しました');
+            // フェードアウト開始
+            setTimeout(() => {
+                fadeOverlay.style.opacity = '1';
+                fadeOverlay.style.pointerEvents = 'auto';
+            }, 50);
+            
+            // アニメーションページに遷移
+            setTimeout(() => {
+                window.location.href = 'yukino-transition.html';
+            }, 1000);
         });
         
         buttonContainer.appendChild(consultButton);
