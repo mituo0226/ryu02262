@@ -102,10 +102,11 @@ export const onRequestGet: PagesFunction = async (context) => {
     // 会話履歴を取得（最新20件）
     // timestampカラムが存在しない場合はcreated_atを使用
     // テーブルにはmessageカラムが存在するため、messageを使用
+    // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
     const historyResults = await env.DB.prepare<ConversationRow>(
       `SELECT role, message, COALESCE(timestamp, created_at) as created_at
        FROM conversations
-       WHERE user_id = ? AND character_id = ?
+       WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
        ORDER BY COALESCE(timestamp, created_at) DESC
        LIMIT 20`
     )

@@ -557,10 +557,11 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     if (user) {
       // 登録ユーザー：データベースから履歴を取得
+      // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
       const historyResults = await env.DB.prepare<ConversationRow>(
         `SELECT role, message, is_guest_message
          FROM conversations
-         WHERE user_id = ? AND character_id = ?
+         WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
          ORDER BY COALESCE(timestamp, created_at) DESC
          LIMIT 20`
       )
@@ -670,16 +671,22 @@ export const onRequestPost: PagesFunction = async (context) => {
     let lastGuestMessage: string | null = null;
     
     if (user && characterId === 'yukino') {
-      // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージを探す
-      const guestUserMessages = conversationHistory
-        .filter((msg) => msg.role === 'user' && msg.isGuestMessage === true)
-        .map((msg) => msg.content);
+      // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージをデータベースから取得
+      // ⚠️ conversationHistoryにはゲストメッセージが含まれないため、別途取得する
+      const guestMessageResult = await env.DB.prepare<ConversationRow>(
+        `SELECT message
+         FROM conversations
+         WHERE user_id = ? AND character_id = ? AND role = 'user' AND is_guest_message = 1
+         ORDER BY COALESCE(timestamp, created_at) DESC
+         LIMIT 1`
+      )
+        .bind(user.id, characterId)
+        .first();
       
-      if (guestUserMessages.length > 0) {
-        lastGuestMessage = guestUserMessages[guestUserMessages.length - 1];
+      if (guestMessageResult) {
+        lastGuestMessage = guestMessageResult.message;
         console.log('[consult] ゲストモード時の最後のメッセージを抽出:', {
           lastGuestMessage: lastGuestMessage?.substring(0, 50) + '...',
-          guestUserMessagesCount: guestUserMessages.length,
         });
       }
     }
