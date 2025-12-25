@@ -656,13 +656,23 @@ ${cardNames}
             
             console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
             
-            // 3. 「雪乃に個別相談する」ボタンを表示
-            showConsultationButton();
+            // 3. 個別相談モードに自動移行
+            // ボタンなしで自動的に次のフェーズに移行
+            sessionStorage.setItem('yukinoConsultationStarted', 'true');
+            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+            console.log('[タロット占い] 個別相談カウントを初期化: 0通目からスタート（10通制限）');
+            
+            // 入力欄を有効化
+            enableMessageInput();
+            
+            console.log('[タロット占い] 個別相談モードに自動移行しました（ボタンなし）');
             
         } catch (error) {
             console.error('[タロット完了メッセージ] エラー:', error);
-            // エラーが発生しても、ボタンは表示する
-            showConsultationButton();
+            // エラーが発生しても、入力欄を有効化
+            sessionStorage.setItem('yukinoConsultationStarted', 'true');
+            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+            enableMessageInput();
         }
     }
 
