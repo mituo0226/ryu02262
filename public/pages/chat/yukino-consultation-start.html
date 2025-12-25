@@ -147,47 +147,13 @@
             });
         }
 
-        // APIにシステムメッセージを送信
-        async function notifyBackend() {
-            try {
-                const character = 'yukino';
-                const userToken = localStorage.getItem('userToken');
-                const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
-                
-                const payload = { 
-                    message: systemMessage, 
-                    character
-                };
-                
-                if (userToken) {
-                    payload.userToken = userToken;
-                } else {
-                    const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                    payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
-                }
-                
-                const response = await fetch('/api/consult', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // システムメッセージは会話履歴に追加しない（ユーザーに見せない）
-                    // APIのバックエンド側で履歴管理される
-                    
-                    console.log('[Transition] バックエンドに個別相談開始を通知しました');
-                    return true;
-                } else {
-                    console.error('[Transition] API通信エラー:', response.status);
-                    return false;
-                }
-            } catch (error) {
-                console.error('[Transition] API通信エラー:', error);
-                return false;
-            }
+        // 個別相談モードのフラグを設定
+        function setConsultationFlags() {
+            sessionStorage.setItem('yukinoConsultationStarted', 'true');
+            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+            sessionStorage.setItem('yukinoSummaryShown', 'true');
+            
+            console.log('[Transition] 個別相談モードフラグを設定しました');
         }
 
         // チャット画面に戻る
@@ -205,11 +171,6 @@
             }, 500);
             
             setTimeout(() => {
-                // 個別相談モードのフラグを設定
-                sessionStorage.setItem('yukinoConsultationStarted', 'true');
-                sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-                sessionStorage.setItem('yukinoSummaryShown', 'true');
-                
                 // チャット画面に戻る
                 window.location.href = 'guest-chat.html?character=yukino&transition=complete';
             }, 1500);
