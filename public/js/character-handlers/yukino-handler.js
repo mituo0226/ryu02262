@@ -101,9 +101,9 @@ const YukinoHandler = {
         // 個別相談モードのチェック
         const isYukinoConsultation = sessionStorage.getItem('yukinoConsultationStarted') === 'true';
 
-        // 9通目に達した場合（登録確認ボタンを表示）
+        // 10通目に達した場合（登録確認ボタンを表示）
         if (isYukinoConsultation && response.needsRegistration) {
-            await this.handleNinthMessageRegistration(character);
+            await this.handleTenthMessageRegistration(character);
             return true; // 処理完了
         }
 
@@ -111,12 +111,12 @@ const YukinoHandler = {
     },
 
     /**
-     * 9通目の登録確認処理
+     * 10通目の登録確認処理
      * @param {string} character - キャラクターID
      */
-    async handleNinthMessageRegistration(character) {
+    async handleTenthMessageRegistration(character) {
         const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-        console.log('[雪乃ハンドラー] 9通目に達しました。登録確認ボタンを表示します:', yukinoCount);
+        console.log('[雪乃ハンドラー] 10通目に達しました。登録確認ボタンを表示します:', yukinoCount);
 
         // ゲスト履歴を即座に保存（「はい」をクリックした場合に使用）
         const guestHistory = ChatData.getGuestHistory(character) || [];
@@ -143,8 +143,11 @@ const YukinoHandler = {
             ChatUI.sendButton.disabled = true;
         }
 
-        // 「はい」「いいえ」ボタンを表示
-        this.showRegistrationButtons();
+        // AIメッセージのアニメーションが完了するまで待ってから「はい」「いいえ」ボタンを表示
+        // タイプライター効果の完了を待つ（1.5秒程度）
+        setTimeout(() => {
+            this.showRegistrationButtons();
+        }, 1500);
     },
 
     /**
@@ -159,21 +162,27 @@ const YukinoHandler = {
             existingContainer.remove();
         }
 
-        // コンテナを作成
+        // コンテナを作成（チャットメッセージの下に表示）
         const container = document.createElement('div');
         container.id = 'yukinoRegistrationContainer';
         container.className = 'ritual-consent-container';
-        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; margin: 20px auto; max-width: 400px; background: rgba(255, 255, 255, 0.95); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);';
+        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; margin: 20px 10px; background: rgba(255, 255, 255, 0.95); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease;';
+
+        // 説明テキスト
+        const explanation = document.createElement('p');
+        explanation.textContent = 'ここから先はユーザー登録が必要となります。';
+        explanation.style.cssText = 'margin: 0 0 10px 0; font-size: 15px; color: #555; text-align: center; line-height: 1.6;';
+        container.appendChild(explanation);
 
         // 質問テキスト
         const question = document.createElement('p');
         question.textContent = 'ユーザー登録をしますか？';
-        question.style.cssText = 'margin: 0; font-size: 16px; font-weight: 600; color: #333; text-align: center;';
+        question.style.cssText = 'margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #333; text-align: center;';
         container.appendChild(question);
 
         // ボタンコンテナ
         const buttonContainer = document.createElement('div');
-        buttonContainer.style.cssText = 'display: flex; gap: 15px;';
+        buttonContainer.style.cssText = 'display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;';
 
         // 「はい」ボタン
         const yesButton = document.createElement('button');
@@ -213,16 +222,20 @@ const YukinoHandler = {
         buttonContainer.appendChild(noButton);
         container.appendChild(buttonContainer);
 
-        // メッセージコンテナに追加
+        // メッセージコンテナに追加（最後のメッセージの直後）
         if (ChatUI.messagesDiv) {
             ChatUI.messagesDiv.appendChild(container);
             
-            // visibleクラスを追加してフェードイン
+            // フェードインアニメーション
             setTimeout(() => {
-                container.classList.add('visible');
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
             }, 100);
             
-            ChatUI.scrollToLatest();
+            // スクロールして表示
+            setTimeout(() => {
+                ChatUI.scrollToLatest();
+            }, 200);
         }
     },
 

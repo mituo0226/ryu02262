@@ -1324,7 +1324,7 @@ const ChatInit = {
                     // 送信ボタンを再有効化はハンドラー側で行う
                     return;
                 }
-                // 雪乃の個別相談で8〜9通目の場合、登録を促すメッセージを表示
+                // 雪乃の個別相談で9通目の場合、登録を促すメッセージを表示（10通目で登録が必要になる前の警告）
                 else if (isYukinoConsultation && response.registrationSuggested) {
                     const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
                     const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - yukinoCount);
