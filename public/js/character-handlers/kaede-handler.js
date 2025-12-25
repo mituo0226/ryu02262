@@ -72,9 +72,10 @@ const KaedeHandler = {
     /**
      * 登録完了後の処理
      * @param {Object} historyData - 会話履歴データ
+     * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData) {
+    async handlePostRegistration(historyData, guestHistory = []) {
         console.log('[楓ハンドラー] 登録完了後の処理');
 
         // 守護神の儀式が必要な場合は handleGuardianRitualCompletion で処理

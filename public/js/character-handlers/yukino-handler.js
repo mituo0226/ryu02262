@@ -318,9 +318,10 @@ const YukinoHandler = {
     /**
      * 登録完了後の処理
      * @param {Object} historyData - 会話履歴データ
+     * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData) {
+    async handlePostRegistration(historyData, guestHistory = []) {
         console.log('[雪乃ハンドラー] 登録完了後の処理');
 
         // ゲストモードで会話したフラグをクリア（登録完了したため）
@@ -337,7 +338,7 @@ const YukinoHandler = {
             }
         }, 100);
 
-        // 雪乃の場合は特殊な処理は不要（共通フローで「おかえりなさい」メッセージが表示される）
+        // 雪乃の場合は共通フローに任せる（履歴表示→定型文表示）
         return false; // 共通処理を続行
     }
 };

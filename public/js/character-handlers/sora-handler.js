@@ -48,9 +48,10 @@ const SoraHandler = {
     /**
      * 登録完了後の処理
      * @param {Object} historyData - 会話履歴データ
+     * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData) {
+    async handlePostRegistration(historyData, guestHistory = []) {
         console.log('[空良ハンドラー] 登録完了後の処理');
 
         // 現在は特殊な処理なし、共通処理を続行

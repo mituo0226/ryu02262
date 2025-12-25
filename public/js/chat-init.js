@@ -198,16 +198,7 @@ const ChatInit = {
                     // カエデ以外の場合：ゲスト履歴をデータベースに保存し、クリーンな画面で開始
                     console.log('[登録完了処理] カエデ以外のキャラクター:', character);
                     
-                    // キャラクター専用ハンドラーの登録完了後処理を呼び出す
-                    if (character === 'yukino' && window.YukinoHandler) {
-                        await window.YukinoHandler.handlePostRegistration(historyData);
-                    } else if (character === 'sora' && window.SoraHandler) {
-                        await window.SoraHandler.handlePostRegistration(historyData);
-                    } else if (character === 'kaon' && window.KaonHandler) {
-                        await window.KaonHandler.handlePostRegistration(historyData);
-                    }
-                    
-                    // ゲスト履歴を取得
+                    // ゲスト履歴を先に取得
                     const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                     let guestHistory = [];
                     
@@ -226,32 +217,73 @@ const ChatInit = {
                         }
                     }
                     
+                    // キャラクター専用ハンドラーの登録完了後処理を呼び出す
+                    if (character === 'yukino' && window.YukinoHandler) {
+                        await window.YukinoHandler.handlePostRegistration(historyData, guestHistory);
+                    } else if (character === 'sora' && window.SoraHandler) {
+                        await window.SoraHandler.handlePostRegistration(historyData, guestHistory);
+                    } else if (character === 'kaon' && window.KaonHandler) {
+                        await window.KaonHandler.handlePostRegistration(historyData, guestHistory);
+                    }
+                    
                     const info = ChatData.characterInfo[character];
                     
                     if (guestHistory.length > 0) {
-                        // ゲスト履歴がある場合：データベースに保存し、「おかえりなさい」メッセージを表示
-                        console.log('[登録完了処理] ゲスト履歴をデータベースに保存します');
+                        // ゲスト履歴がある場合：画面に履歴を表示してから、「おかえりなさい」メッセージを表示
+                        console.log('[登録完了処理] ゲスト履歴を画面に表示します:', guestHistory.length, '件');
                         
-                        // ゲスト履歴をAPIに送信してデータベースに保存
-                        // 画面には吹き出しを表示せず、「おかえりなさい」メッセージのみ表示
+                        // 【重要】先にゲスト履歴を画面に表示
+                        guestHistory.forEach((entry) => {
+                            const type = entry.role === 'user' ? 'user' : 'character';
+                            const sender = entry.role === 'user' ? 'あなた' : info.name;
+                            ChatUI.addMessage(type, entry.content, sender);
+                        });
+                        console.log('[登録完了処理] ゲスト履歴の表示完了');
+                        
+                        // 最後のゲストユーザーメッセージを抽出
+                        let lastGuestUserMessage = '';
+                        for (let i = guestHistory.length - 1; i >= 0; i--) {
+                            if (guestHistory[i].role === 'user') {
+                                lastGuestUserMessage = guestHistory[i].content;
+                                break;
+                            }
+                        }
+                        
+                        // ニックネームを取得
+                        const userNickname = localStorage.getItem('userNickname') || 'あなた';
+                        
+                        // 定型文を生成（キャラクター別）
+                        let welcomeBackMessage = '';
+                        if (character === 'yukino') {
+                            // 雪乃専用の定型文
+                            if (lastGuestUserMessage) {
+                                welcomeBackMessage = `おかえりなさい、${userNickname}さん。${userNickname}さん、というお名前ですね。しっかり覚えました。ユーザー登録してくださり、本当にありがとうございます。\n\nあなたとの会話の最後のメッセージは「${lastGuestUserMessage}」でしたね。この会話の続きをお望みであれば、その意思を伝えてくださいね。`;
+                            } else {
+                                welcomeBackMessage = `おかえりなさい、${userNickname}さん。${userNickname}さん、というお名前ですね。しっかり覚えました。ユーザー登録してくださり、本当にありがとうございます。\n\nどんな話をしましょうか？`;
+                            }
+                        } else {
+                            // 他のキャラクターの場合は汎用メッセージ
+                            welcomeBackMessage = `${userNickname}さん、おかえりなさい。ユーザー登録ありがとうございます。それでは、続きを始めましょうか。`;
+                        }
+                        
+                        // 定型文を画面に表示
+                        ChatUI.addMessage('character', welcomeBackMessage, info.name);
+                        console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
+                        
+                        // バックグラウンドでゲスト履歴をデータベースに保存
                         try {
                             const userToken = localStorage.getItem('userToken');
-                            const response = await ChatAPI.sendMessage(
+                            await ChatAPI.sendMessage(
                                 '（登録完了）', // ダミーメッセージ（APIは保存しない）
                                 character,
                                 guestHistory,
                                 userToken,
                                 true // migrateHistory = true（ゲスト履歴をデータベースに保存）
                             );
-                            
-                            if (response && response.message) {
-                                // APIからの「おかえりなさい」メッセージを画面に表示
-                                ChatUI.addMessage('character', response.message, info.name);
-                                console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
-                            }
+                            console.log('[登録完了処理] ゲスト履歴をデータベースに保存しました（バックグラウンド）');
                         } catch (error) {
-                            console.error('[登録完了処理] APIエラー:', error);
-                            ChatUI.addMessage('error', '登録完了処理中にエラーが発生しました。', 'システム');
+                            console.error('[登録完了処理] データベース保存エラー:', error);
+                            // エラーが出ても画面表示は継続
                         }
                     } else {
                         // ゲスト履歴がない場合：新規ユーザーとして初回メッセージを表示
