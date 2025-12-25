@@ -302,6 +302,28 @@ const ChatInit = {
                     sessionStorage.removeItem('pendingGuestHistoryMigration');
                     ChatData.setGuestMessageCount(character, 0);
                     
+                    // 【重要】登録後のイベントリスナーを設定
+                    console.log('[登録完了処理] イベントリスナーを設定します');
+                    if (ChatUI.messageInput) {
+                        // 既存のリスナーを削除（重複登録を防ぐ）
+                        const newInput = ChatUI.messageInput.cloneNode(true);
+                        ChatUI.messageInput.parentNode.replaceChild(newInput, ChatUI.messageInput);
+                        ChatUI.messageInput = newInput;
+                        
+                        ChatUI.messageInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                window.sendMessage();
+                            }
+                        });
+                        
+                        ChatUI.messageInput.addEventListener('input', () => {
+                            ChatUI.updateSendButtonVisibility();
+                        });
+                        
+                        console.log('[登録完了処理] イベントリスナーの設定完了');
+                    }
+                    
                     // キャラクター固有のフラグをクリア
                     if (character === 'yukino') {
                         // 雪乃のタロット関連フラグをクリア
