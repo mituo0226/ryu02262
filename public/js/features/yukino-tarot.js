@@ -656,105 +656,24 @@ ${cardNames}
             
             console.log('[タロット占い] システムメッセージをAPIに送信しました（非表示）');
             
-            // 3. 個別相談ボタンを表示
-            // バックエンドAIが3枚のタロット完了を認識するため、ボタンクリックが必要
-            sessionStorage.setItem('yukinoSummaryShown', 'true');  // 3枚のタロット完了フラグ
-            showConsultationButton();
+            // 3. 個別相談モードを開始
+            sessionStorage.setItem('yukinoConsultationStarted', 'true');
+            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+            sessionStorage.setItem('yukinoSummaryShown', 'true');
             
-            console.log('[タロット占い] 個別相談ボタンを表示しました');
+            // メッセージ入力欄を有効化
+            enableMessageInput();
+            
+            console.log('[タロット占い] 個別相談モードを開始しました');
             
         } catch (error) {
             console.error('[タロット完了メッセージ] エラー:', error);
-            // エラーが発生しても、ボタンを表示
-            sessionStorage.setItem('yukinoSummaryShown', 'true');  // 3枚のタロット完了フラグ
-            showConsultationButton();
+            // エラーが発生しても、個別相談モードを開始
+            sessionStorage.setItem('yukinoConsultationStarted', 'true');
+            sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+            sessionStorage.setItem('yukinoSummaryShown', 'true');
+            enableMessageInput();
         }
-    }
-
-    /**
-     * 「雪乃に個別相談する」ボタンを表示（まとめ鑑定完了後）
-     */
-    function showConsultationButton() {
-        const messagesDiv = document.getElementById('messages');
-        if (!messagesDiv) {
-            console.error('[タロット占い] メッセージエリアが見つかりません');
-            return;
-        }
-        
-        // ボタンコンテナを作成
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.width = '100%';
-        buttonContainer.style.display = 'flex';
-        buttonContainer.style.justifyContent = 'center';
-        buttonContainer.style.marginTop = '24px';
-        buttonContainer.style.marginBottom = '24px';
-        
-        // 「雪乃に個別相談する」ボタン
-        const consultButton = document.createElement('button');
-        consultButton.textContent = '雪乃に個別相談する';
-        consultButton.style.padding = '12px 32px';
-        consultButton.style.fontSize = '16px';
-        consultButton.style.fontWeight = '600';
-        consultButton.style.color = '#ffffff';
-        consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
-        consultButton.style.border = '2px solid rgba(255, 105, 180, 1)';
-        consultButton.style.borderRadius = '8px';
-        consultButton.style.cursor = 'pointer';
-        consultButton.style.transition = 'all 0.2s ease';
-        consultButton.style.boxShadow = '0 4px 16px rgba(255, 105, 180, 0.4)';
-        
-        consultButton.addEventListener('mouseenter', () => {
-            consultButton.style.backgroundColor = 'rgba(255, 105, 180, 1)';
-            consultButton.style.transform = 'scale(1.05)';
-        });
-        consultButton.addEventListener('mouseleave', () => {
-            consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
-            consultButton.style.transform = 'scale(1)';
-        });
-        
-        consultButton.addEventListener('click', () => {
-            consultButton.disabled = true;
-            consultButton.style.opacity = '0.5';
-            consultButton.style.cursor = 'not-allowed';
-            
-            console.log('[タロット占い] 個別相談ボタンがクリックされました - アニメーションページへ遷移');
-            
-            // フェードアウト効果を追加
-            const fadeOverlay = document.createElement('div');
-            fadeOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: #000;
-                z-index: 9999;
-                opacity: 0;
-                transition: opacity 1s ease;
-                pointer-events: none;
-            `;
-            document.body.appendChild(fadeOverlay);
-            
-            // フェードアウト開始
-            setTimeout(() => {
-                fadeOverlay.style.opacity = '1';
-                fadeOverlay.style.pointerEvents = 'auto';
-            }, 50);
-            
-            // アニメーションページに遷移
-            setTimeout(() => {
-                window.location.href = 'yukino-transition.html';
-            }, 1000);
-        });
-        
-        buttonContainer.appendChild(consultButton);
-        messagesDiv.appendChild(buttonContainer);
-        
-        if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
-            window.ChatUI.scrollToLatest();
-        }
-        
-        console.log('[タロット占い] 「雪乃に個別相談する」ボタンを表示しました');
     }
 
     /**

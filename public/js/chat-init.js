@@ -2112,44 +2112,6 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // DOMContentLoaded時に初期化
 window.addEventListener('DOMContentLoaded', async () => {
-    // アニメーションページからの復帰を検知
-    const urlParams = new URLSearchParams(window.location.search);
-    const isTransitionComplete = urlParams.get('transition') === 'complete';
-    
-    if (isTransitionComplete) {
-        console.log('[初期化] アニメーションページから復帰しました - フェードイン開始');
-        
-        // フェードインオーバーレイを作成
-        const fadeOverlay = document.createElement('div');
-        fadeOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 9999;
-            opacity: 1;
-            transition: opacity 1.5s ease;
-            pointer-events: none;
-        `;
-        document.body.appendChild(fadeOverlay);
-        
-        // フェードアウト開始
-        setTimeout(() => {
-            fadeOverlay.style.opacity = '0';
-        }, 100);
-        
-        // フェードアウト完了後にオーバーレイを削除
-        setTimeout(() => {
-            if (fadeOverlay.parentNode) {
-                fadeOverlay.parentNode.removeChild(fadeOverlay);
-            }
-        }, 1600);
-        
-        // URLパラメータをクリーン
-        window.history.replaceState({}, '', window.location.pathname + '?character=yukino');
-    }
     
     // URLから.htmlを除去
     const currentPath = window.location.pathname;
