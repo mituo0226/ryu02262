@@ -658,9 +658,11 @@ ${cardNames}
             
             // 3. 個別相談モードに自動移行
             // ボタンなしで自動的に次のフェーズに移行
+            sessionStorage.setItem('yukinoSummaryShown', 'true');  // 3枚のタロット完了フラグ
             sessionStorage.setItem('yukinoConsultationStarted', 'true');
             sessionStorage.setItem('yukinoConsultationMessageCount', '0');
             console.log('[タロット占い] 個別相談カウントを初期化: 0通目からスタート（10通制限）');
+            console.log('[タロット占い] yukinoSummaryShownフラグを設定: 3枚のタロット完了');
             
             // 入力欄を有効化
             enableMessageInput();
