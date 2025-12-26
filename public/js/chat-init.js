@@ -2660,3 +2660,158 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
+// ========================================
+// 雪乃の登録ボタン表示関数
+// ========================================
+function showYukinoRegistrationButtons() {
+    console.log('[雪乃登録ボタン] ボタン表示関数が呼ばれました');
+    
+    // 既存のコンテナがあれば削除
+    const existingContainer = document.getElementById('yukinoRegistrationContainer');
+    if (existingContainer) {
+        console.log('[雪乃登録ボタン] 既存のボタンを削除します');
+        existingContainer.remove();
+    }
+    
+    const character = 'yukino';
+    const info = ChatData.characterInfo[character];
+    
+    // ゲスト履歴を保存（「はい」をクリックした場合に使用）
+    const guestHistory = ChatData.getGuestHistory(character) || [];
+    if (guestHistory.length > 0) {
+        sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
+            character: character,
+            history: guestHistory
+        }));
+        console.log('[雪乃登録ボタン] ゲスト履歴を保存:', {
+            character: character,
+            historyLength: guestHistory.length,
+            userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+        });
+    }
+    
+    // コンテナを作成（画面下部に固定表示）
+    const container = document.createElement('div');
+    container.id = 'yukinoRegistrationContainer';
+    container.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        padding: 20px 30px;
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        z-index: 1000;
+        max-width: 90%;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        visibility: visible !important;
+    `;
+    
+    // 説明テキスト
+    const explanation = document.createElement('p');
+    explanation.textContent = 'ここから先はユーザー登録が必要となります。';
+    explanation.style.cssText = 'margin: 0 0 10px 0; font-size: 16px; color: #333; text-align: center; line-height: 1.6; font-weight: 500;';
+    container.appendChild(explanation);
+    
+    // 質問テキスト
+    const question = document.createElement('p');
+    question.textContent = 'ユーザー登録をしますか？';
+    question.style.cssText = 'margin: 0 0 15px 0; font-size: 17px; font-weight: 600; color: #222; text-align: center;';
+    container.appendChild(question);
+    
+    // ボタンコンテナ
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;';
+    
+    // 「はい」ボタン
+    const yesButton = document.createElement('button');
+    yesButton.textContent = 'はい';
+    yesButton.style.cssText = 'padding: 14px 40px; font-size: 16px; font-weight: 600; color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);';
+    yesButton.onclick = () => {
+        console.log('[雪乃登録ボタン] 「はい」がクリックされました');
+        container.remove();
+        // 登録画面へ遷移
+        setTimeout(() => {
+            window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
+        }, 300);
+    };
+    
+    // ホバーエフェクト
+    yesButton.onmouseenter = () => {
+        yesButton.style.transform = 'translateY(-2px)';
+        yesButton.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.5)';
+    };
+    yesButton.onmouseleave = () => {
+        yesButton.style.transform = 'translateY(0)';
+        yesButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+    };
+    
+    // 「いいえ」ボタン
+    const noButton = document.createElement('button');
+    noButton.textContent = 'いいえ';
+    noButton.style.cssText = 'padding: 14px 40px; font-size: 16px; font-weight: 600; color: #666; background: #f5f5f5; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.3s ease;';
+    noButton.onclick = () => {
+        console.log('[雪乃登録ボタン] 「いいえ」がクリックされました');
+        
+        // 笹岡のお別れメッセージを表示
+        const farewellMessage = 'わかりました。それではまた何かあったら連絡ください。これまでの会話の中身は私は忘れてしまうと思うので、今度来た時にはゼロから話をしてくださいね。お待ちしています。';
+        ChatUI.addMessage('character', farewellMessage, info.name);
+        
+        // ゲストモードで会話したことを記録（次回再訪問時にリダイレクト用）
+        localStorage.setItem('yukinoGuestConversed', 'true');
+        
+        // ボタンを削除
+        container.remove();
+        
+        // ゲスト履歴とカウントをクリア
+        sessionStorage.removeItem(`guestConversationHistory_${character}`);
+        sessionStorage.removeItem('pendingGuestHistoryMigration');
+        ChatData.setGuestMessageCount(character, 0);
+        
+        // 雪乃のタロット関連フラグをクリア
+        sessionStorage.removeItem('yukinoThreeCardsPrepared');
+        sessionStorage.removeItem('yukinoAllThreeCards');
+        sessionStorage.removeItem('yukinoRemainingCards');
+        sessionStorage.removeItem('yukinoTarotCardForExplanation');
+        sessionStorage.removeItem('yukinoSummaryShown');
+        sessionStorage.removeItem('yukinoFirstMessageInSession');
+        sessionStorage.removeItem('yukinoConsultationStarted');
+        sessionStorage.removeItem('yukinoConsultationMessageCount');
+        sessionStorage.removeItem('yukinoRegistrationButtonShown');
+        
+        // 3秒後にmain.htmlへリダイレクト
+        setTimeout(() => {
+            window.location.href = '../main.html';
+        }, 3000);
+    };
+    
+    // ホバーエフェクト
+    noButton.onmouseenter = () => {
+        noButton.style.background = '#e8e8e8';
+        noButton.style.borderColor = '#ccc';
+    };
+    noButton.onmouseleave = () => {
+        noButton.style.background = '#f5f5f5';
+        noButton.style.borderColor = '#ddd';
+    };
+    
+    buttonContainer.appendChild(yesButton);
+    buttonContainer.appendChild(noButton);
+    container.appendChild(buttonContainer);
+    
+    // bodyに追加
+    document.body.appendChild(container);
+    
+    // フェードインアニメーション
+    setTimeout(() => {
+        container.style.opacity = '1';
+        console.log('[雪乃登録ボタン] フェードイン完了');
+    }, 100);
+}
+
