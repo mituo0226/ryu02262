@@ -628,23 +628,31 @@ ${cardNames}
      */
     async function sendCompletionMessages(character, userToken) {
         try {
-            // 1. 雪乃の定型文をチャットに表示
+            // 1. 雪乃の定型文を通常の吹き出しで表示
             const completionMessage = 'あなたの現在の運勢結果はここまでです。ここからは全く新しい鑑定を始めましょう';
             
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message character-message';
-            messageElement.innerHTML = `
-                <div class="avatar">笹岡雪乃</div>
-                <div class="bubble">
-                    <div class="message-text">${completionMessage}</div>
-                </div>
-            `;
+            // ChatUI.addMessage() を使って通常のメッセージとして表示
+            if (window.ChatUI && window.ChatUI.addMessage) {
+                window.ChatUI.addMessage('character', completionMessage, '笹岡雪乃');
+            }
             
-            // ボタンを吹き出し内に追加
-            const bubble = messageElement.querySelector('.bubble');
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'assistant', completionMessage);
+            }
+            
+            // 少し待ってからボタンを追加
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // ボタンを独立した要素として追加
+            const messagesDiv = document.getElementById('messages') || document.getElementById('chatMessages');
+            if (!messagesDiv) return;
+            
             const buttonWrapper = document.createElement('div');
-            buttonWrapper.style.marginTop = '15px';
-            buttonWrapper.style.textAlign = 'center';
+            buttonWrapper.style.display = 'flex';
+            buttonWrapper.style.justifyContent = 'center';
+            buttonWrapper.style.marginTop = '10px';
+            buttonWrapper.style.marginBottom = '20px';
             
             const consultButton = document.createElement('button');
             consultButton.textContent = '雪乃に個別相談する';
@@ -825,20 +833,11 @@ ${cardNames}
             });
             
             buttonWrapper.appendChild(consultButton);
-            bubble.appendChild(buttonWrapper);
+            messagesDiv.appendChild(buttonWrapper);
             
-            // メッセージを表示
-            const messagesDiv = document.getElementById('messages') || document.getElementById('chatMessages');
-            if (messagesDiv) {
-                messagesDiv.appendChild(messageElement);
-                if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
-                    window.ChatUI.scrollToLatest();
-                }
-            }
-            
-            // 会話履歴に追加
-            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
-                window.ChatData.addToHistory(character, 'assistant', completionMessage);
+            // スクロールして表示
+            if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+                window.ChatUI.scrollToLatest();
             }
             
         } catch (error) {
