@@ -2735,6 +2735,28 @@ function showYukinoRegistrationButtons() {
     explanation.style.cssText = 'margin: 0 0 10px 0; font-size: 16px; color: #333; text-align: center; line-height: 1.6; font-weight: 500;';
     container.appendChild(explanation);
     
+    // 詳細説明（安心情報）
+    const detailInfo = document.createElement('div');
+    detailInfo.style.cssText = `
+        margin: 0 0 15px 0;
+        padding: 12px 16px;
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 8px;
+        border-left: 3px solid rgba(102, 126, 234, 0.4);
+    `;
+    
+    const detailText1 = document.createElement('p');
+    detailText1.textContent = 'ニックネームと生年月日を登録するだけの作業、それ以外の個人情報の入力はありませんので安心してください。';
+    detailText1.style.cssText = 'margin: 0 0 8px 0; font-size: 13px; color: #555; text-align: left; line-height: 1.7;';
+    detailInfo.appendChild(detailText1);
+    
+    const detailText2 = document.createElement('p');
+    detailText2.textContent = 'ユーザー登録で料金の請求の発生はありません。';
+    detailText2.style.cssText = 'margin: 0; font-size: 13px; color: #555; text-align: left; line-height: 1.7; font-weight: 600;';
+    detailInfo.appendChild(detailText2);
+    
+    container.appendChild(detailInfo);
+    
     // 質問テキスト
     const question = document.createElement('p');
     question.textContent = 'ユーザー登録をしますか？';
