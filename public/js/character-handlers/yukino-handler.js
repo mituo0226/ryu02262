@@ -166,7 +166,7 @@ const YukinoHandler = {
         const container = document.createElement('div');
         container.id = 'yukinoRegistrationContainer';
         container.className = 'ritual-consent-container';
-        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; margin: 20px 10px; background: rgba(255, 255, 255, 0.95); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease;';
+        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; margin: 20px 10px; background: rgba(255, 255, 255, 0.95); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; visibility: visible !important;';
 
         // 説明テキスト
         const explanation = document.createElement('p');
