@@ -2767,12 +2767,35 @@ function showYukinoRegistrationButtons() {
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = 'display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;';
     
+    // 元のイベントを保存する配列
+    const originalEvents = [];
+    
+    // 元の状態を復元する関数
+    const restoreOriginalState = () => {
+        // メッセージ入力欄を元に戻す
+        if (ChatUI.messageInput) {
+            ChatUI.messageInput.disabled = false;
+            ChatUI.messageInput.placeholder = 'メッセージを入力...';
+            console.log('[雪乃登録ボタン] メッセージ入力欄を有効化しました');
+        }
+        
+        // タロットボタンを元に戻す
+        originalEvents.forEach(({ button, originalOnClick }) => {
+            button.onclick = originalOnClick;
+            console.log('[雪乃登録ボタン] タロットカードボタンのイベントを復元しました:', button.textContent);
+        });
+    };
+    
     // 「はい」ボタン
     const yesButton = document.createElement('button');
     yesButton.textContent = 'はい';
     yesButton.style.cssText = 'padding: 14px 40px; font-size: 16px; font-weight: 600; color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);';
     yesButton.onclick = () => {
         console.log('[雪乃登録ボタン] 「はい」がクリックされました');
+        
+        // タロットボタンと入力欄を元に戻す
+        restoreOriginalState();
+        
         container.remove();
         // 登録画面へ遷移
         setTimeout(() => {
@@ -2796,6 +2819,9 @@ function showYukinoRegistrationButtons() {
     noButton.style.cssText = 'padding: 14px 40px; font-size: 16px; font-weight: 600; color: #666; background: #f5f5f5; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.3s ease;';
     noButton.onclick = () => {
         console.log('[雪乃登録ボタン] 「いいえ」がクリックされました');
+        
+        // タロットボタンと入力欄を元に戻す
+        restoreOriginalState();
         
         // 笹岡のお別れメッセージを表示
         const farewellMessage = 'わかりました。それではまた何かあったら連絡ください。これまでの会話の中身は私は忘れてしまうと思うので、今度来た時にはゼロから話をしてくださいね。お待ちしています。';
@@ -2879,6 +2905,7 @@ function showYukinoRegistrationButtons() {
                 button.textContent.includes('雪乃の解説')) {
                 // 元のクリックイベントを保存
                 const originalOnClick = button.onclick;
+                originalEvents.push({ button, originalOnClick });
                 
                 // 新しいクリックイベントを設定
                 button.onclick = (e) => {
