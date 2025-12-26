@@ -695,9 +695,13 @@ ${cardNames}
                     left: 0;
                     width: 100%;
                     height: 100%;
+                    background: #000;
                     z-index: 10000;
                     opacity: 0;
                     transition: opacity 1.2s ease;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                 `;
                 
                 // ビデオ要素を作成
@@ -706,11 +710,16 @@ ${cardNames}
                 video.loop = true;
                 video.muted = true;
                 video.playsInline = true;
+                video.className = 'yukino-consultation-video';
+                
+                // スタイルを設定（PCとスマホで異なる表示）
+                const isMobile = window.innerWidth <= 768;
                 video.style.cssText = `
                     width: 100%;
                     height: 100%;
-                    object-fit: cover;
+                    object-fit: ${isMobile ? 'cover' : 'contain'};
                 `;
+                
                 video.innerHTML = '<source src="../../photo/yukino.mp4" type="video/mp4">';
                 videoOverlay.appendChild(video);
                 
