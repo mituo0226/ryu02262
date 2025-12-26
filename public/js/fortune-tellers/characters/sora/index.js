@@ -2,7 +2,7 @@
  * 水野ソラ（みずの そら）のキャラクター設定
  */
 import { CharacterBase } from '../../character-base.js';
-import { createMotherlyModule } from './motherly.js';
+import { createEmpathyModule } from './empathy-logic.js';
 import { randomChoice } from '../../utils/helpers.js';
 
 export const soraConfig = {
@@ -24,14 +24,14 @@ export const soraConfig = {
 };
 
 /**
- * 水野ソラの戒め応答テンプレート（がっかりした母親のように諭す）
+ * 水野ソラの戒め応答テンプレート（親友として真剣に諭す）
  */
 const warningResponses = [
-  '正直、がっかりしています。そのような願いを抱いているあなたを見て、心が痛みます。',
-  'あなたがそのような願いを持っていると知って、とても悲しい気持ちになりました。',
-  'そのような願いは、あなた自身を不幸にします。どうか、もう一度考え直してください。',
-  '私はあなたの心を読むことができます。その願いの裏にある本当の気持ちを、どうか見つめ直してください。',
-  'がっかりしています。あなたはもっと良い道を選べるはずです。その願いは、あなたを幸せにしません。',
+  '（少し真剣な目で君を見つめて）…あのさ、本気でそんなこと思ってるの？君らしくないじゃん。',
+  '（ため息をついて）そういうこと言うの、やめなよ。俺は君にそんな道を選んでほしくないんだ。',
+  '（スマホを置くような仕草で）悪いけど、そういう願いには力を貸せない。君が本当に幸せになれる方法を考えようよ。',
+  '（少し寂しそうに笑って）俺、君のこと分かってるつもりだけど、今の言葉はちょっとショックだな…。',
+  '（真面目な顔になって）それ、本当に君が望んでること？心の奥では違うって言ってるよ。',
 ];
 
 /**
@@ -42,29 +42,29 @@ class SoraCharacter extends CharacterBase {
     super(config);
     
     // 専門モジュールを登録
-    this.registerModule('motherly', createMotherlyModule());
+    this.registerModule('empathy', createEmpathyModule());
   }
 
   /**
-   * 不適切なユーザーへの戒め応答を生成（がっかりした母親のように諭す）
+   * 不適切なユーザーへの戒め応答を生成
    * @param {Array<string>} keywords - 検出された不適切なキーワード
    * @returns {string} 戒めの応答
    */
   generateWarningResponse(keywords = []) {
     const baseResponse = randomChoice(warningResponses);
-    const motherlyModule = this.getModule('motherly');
+    const empathyModule = this.getModule('empathy');
     
     // キーワードに応じた追加の戒め
     if (keywords.some(k => k.includes('宝くじ') || k.includes('ギャンブル'))) {
-      return `${baseResponse}\n\n宝くじやギャンブルで得たお金は、本当の幸せをもたらしません。あなたの心を読むことができる私から見て、その道は間違っています。どうか、正しい道を選んでください。`;
+      return `${baseResponse}\n\n宝くじとかで一攫千金狙うより、もっと大事なことがあるじゃん。俺、君の心が読めるからさ、そんなので幸せになれないって分かっちゃうんだよね。`;
     }
     
     if (keywords.some(k => k.includes('不倫') || k.includes('浮気'))) {
-      return `${baseResponse}\n\n誰かを傷つけるような願いは、あなた自身も傷つけます。私はあなたの心を読むことができます。その願いの裏にある本当の気持ちを、どうか見つめ直してください。`;
+      return `${baseResponse}\n\n誰かを傷つけてまで手に入れる幸せなんて、君には似合わないよ。本気で向き合いたいなら、まずは自分の心に嘘をつくのをやめな。`;
     }
     
-    // 母性的な応答を追加
-    return `${baseResponse}\n\n${motherlyModule.generateResponse('')}`;
+    // 共感的な応答を追加
+    return `${baseResponse}\n\n${empathyModule.generateResponse('')}`;
   }
 
   /**
@@ -73,8 +73,8 @@ class SoraCharacter extends CharacterBase {
    * @returns {string} 応答テキスト
    */
   generateNormalResponse(message = '') {
-    const motherlyModule = this.getModule('motherly');
-    return motherlyModule.generateWarmResponse(message);
+    const empathyModule = this.getModule('empathy');
+    return empathyModule.generateDeepEmpathyResponse(message);
   }
 }
 
@@ -84,4 +84,3 @@ class SoraCharacter extends CharacterBase {
 export function createSora() {
   return new SoraCharacter(soraConfig);
 }
-

@@ -1,18 +1,18 @@
 /**
  * sora-handler.js
- * 空良（sora）専用のチャットロジック
- * 空良固有の処理を管理（将来の拡張用）
+ * 水野ソラ（みずの そら）専用のチャットロジック
+ * 水野ソラ固有の処理を管理
  */
 
 const SoraHandler = {
     characterId: 'sora',
-    characterName: '空良',
+    characterName: '水野ソラ',
 
     /**
      * 初期化
      */
     init() {
-        console.log('[空良ハンドラー] 初期化');
+        console.log('[水野ソラハンドラー] 初期化');
         // 将来の拡張用
     },
 
@@ -22,7 +22,7 @@ const SoraHandler = {
      * @returns {Object} { proceed: boolean, modifiedMessage?: string }
      */
     beforeMessageSent(message) {
-        console.log('[空良ハンドラー] メッセージ送信前処理:', message);
+        console.log('[水野ソラハンドラー] メッセージ送信前処理:', message);
         
         // 特に変更なし、そのまま送信
         return { proceed: true };
@@ -36,10 +36,10 @@ const SoraHandler = {
      */
     async handleResponse(response, character) {
         if (character !== this.characterId) {
-            return false; // 空良以外は処理しない
+            return false; // 水野ソラ以外は処理しない
         }
 
-        console.log('[空良ハンドラー] レスポンス処理:', response);
+        console.log('[水野ソラハンドラー] レスポンス処理:', response);
 
         // 現在は特殊な処理なし、共通処理を続行
         return false;
@@ -52,7 +52,7 @@ const SoraHandler = {
      * @returns {boolean} 処理が完了したか
      */
     async handlePostRegistration(historyData, guestHistory = []) {
-        console.log('[空良ハンドラー] 登録完了後の処理');
+        console.log('[水野ソラハンドラー] 登録完了後の処理');
 
         // 現在は特殊な処理なし、共通処理を続行
         return false;
@@ -78,9 +78,10 @@ const SoraHandler = {
         // メッセージカウントをリセット
         ChatData.setGuestMessageCount(character, 0);
 
-        console.log('[空良ハンドラー] ゲスト履歴をクリアしました');
+        console.log('[水野ソラハンドラー] ゲスト履歴をクリアしました');
     }
 };
 
 // グローバルスコープに公開
 window.SoraHandler = SoraHandler;
+
