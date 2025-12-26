@@ -944,18 +944,10 @@ const ChatInit = {
                     残り通数: ChatData.GUEST_MESSAGE_LIMIT - newYukinoCount
                 });
                 
-                // 10通目のメッセージを送信した直後に登録ボタンを表示
-                if (newYukinoCount === 10 && !sessionStorage.getItem('yukinoRegistrationButtonShown')) {
-                    console.log('[雪乃個別相談] 10通目送信。登録ボタンを表示します');
-                    
-                    // ボタンが既に表示されている場合はスキップ
-                    if (!document.getElementById('yukinoRegistrationContainer')) {
-                        // 少し遅延させてから表示（メッセージ送信アニメーション後）
-                        setTimeout(() => {
-                            showYukinoRegistrationButtons();
-                            sessionStorage.setItem('yukinoRegistrationButtonShown', 'true');
-                        }, 500);
-                    }
+                // 9通目のメッセージを送信した直後にフラグを立てる
+                if (newYukinoCount === 9) {
+                    console.log('[雪乃個別相談] 9通目送信。次のAPI応答後に登録ボタンを表示します');
+                    sessionStorage.setItem('yukinoShouldShowRegistrationButton', 'true');
                 }
             } else {
                 // 通常のカウントを取得
@@ -1390,6 +1382,19 @@ const ChatInit = {
             } else {
                 // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
                 // 必要に応じて、会話履歴を再読み込み
+            }
+            
+            // 雪乃の登録ボタン表示チェック（API応答が完全に終わった後）
+            if (character === 'yukino' && sessionStorage.getItem('yukinoShouldShowRegistrationButton') === 'true') {
+                if (!document.getElementById('yukinoRegistrationContainer') && !sessionStorage.getItem('yukinoRegistrationButtonShown')) {
+                    console.log('[雪乃個別相談] API応答完了。登録ボタンを表示します');
+                    // メッセージ表示とスクロールが完了するのを待つ
+                    setTimeout(() => {
+                        showYukinoRegistrationButtons();
+                        sessionStorage.setItem('yukinoRegistrationButtonShown', 'true');
+                        sessionStorage.removeItem('yukinoShouldShowRegistrationButton');
+                    }, 800);
+                }
             }
             
             // 送信ボタンを再有効化
