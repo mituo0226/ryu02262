@@ -546,7 +546,24 @@
      * まとめの解説をリクエスト
      */
     async function requestSummary() {
-        showLoadingOverlay('3枚のカードからあなたの運勢をまとめています...');
+        // 最初のメッセージを表示
+        showLoadingOverlay('3枚のカードのまとめを雪乃が鑑定しています');
+        
+        // 2秒後に2番目のメッセージに更新
+        setTimeout(() => {
+            const loadingText = document.getElementById('yukinoTarotLoadingText');
+            if (loadingText) {
+                loadingText.textContent = 'メッセージを入力中です。';
+            }
+        }, 2000);
+        
+        // 4秒後に3番目のメッセージに更新
+        setTimeout(() => {
+            const loadingText = document.getElementById('yukinoTarotLoadingText');
+            if (loadingText) {
+                loadingText.textContent = 'もうすぐメッセージが届きますからお待ちくださいね。';
+            }
+        }, 4000);
         
         try {
             const character = 'yukino';
