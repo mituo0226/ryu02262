@@ -266,6 +266,13 @@ const ChatInit = {
                             } else {
                                 welcomeBackMessage = `おかえりなさい、${userNickname}さん。${userNickname}さん、というお名前ですね。しっかり覚えました。ユーザー登録してくださり、本当にありがとうございます。\n\nどんな話をしましょうか？`;
                             }
+                        } else if (character === 'sora') {
+                            // ソラ専用の定型文
+                            if (lastGuestUserMessage) {
+                                welcomeBackMessage = `（ふっと笑って）おかえり、${userNickname}。名前覚えたよ。登録してくれてありがとな。これでもっと深く君のこと分かるようになったから。\n\nさっき君が言ってた「${lastGuestUserMessage}」、まだ気になってるんじゃない？続きを話したいなら、いつでも言ってよ。`;
+                            } else {
+                                welcomeBackMessage = `（ふっと笑って）おかえり、${userNickname}。名前覚えたよ。登録してくれてありがとな。これでもっと深く君のこと分かるようになったから。\n\n何話したい？俺、君の話、聞くの好きだからさ。`;
+                            }
                         } else {
                             // 他のキャラクターの場合は汎用メッセージ
                             welcomeBackMessage = `${userNickname}さん、おかえりなさい。ユーザー登録ありがとうございます。それでは、続きを始めましょうか。`;
@@ -921,6 +928,13 @@ const ChatInit = {
             // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
             // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
             ChatData.addToGuestHistory(character, 'user', message);
+            
+            // ゲストモードで会話したことを記録（雪乃・ソラのみ）
+            if (character === 'yukino' && window.YukinoHandler && typeof window.YukinoHandler.markGuestConversed === 'function') {
+                window.YukinoHandler.markGuestConversed();
+            } else if (character === 'sora' && window.SoraHandler && typeof window.SoraHandler.markGuestConversed === 'function') {
+                window.SoraHandler.markGuestConversed();
+            }
             
             // 会話履歴が正しく保存されたことを確認
             const savedHistory = ChatData.getGuestHistory(character);
