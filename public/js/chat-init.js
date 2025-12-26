@@ -2862,6 +2862,50 @@ function showYukinoRegistrationButtons() {
                 console.log('[雪乃登録ボタン] スクロール完了');
             }
         }, 200);
+        
+        // メッセージ入力欄を無効化し、ガイダンスを表示
+        if (ChatUI.messageInput) {
+            ChatUI.messageInput.disabled = true;
+            ChatUI.messageInput.placeholder = 'ユーザー登録後にメッセージの送信ができますのでお待ちください';
+            console.log('[雪乃登録ボタン] メッセージ入力欄を無効化しました');
+        }
+        
+        // タロットカードボタンが存在する場合、クリックイベントをオーバーライド
+        const tarotButtons = document.querySelectorAll('button');
+        tarotButtons.forEach(button => {
+            if (button.textContent.includes('タロットカードを引く') || 
+                button.textContent.includes('カードをめくる') ||
+                button.textContent.includes('拡大する') ||
+                button.textContent.includes('雪乃の解説')) {
+                // 元のクリックイベントを保存
+                const originalOnClick = button.onclick;
+                
+                // 新しいクリックイベントを設定
+                button.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // ガイダンスメッセージを表示
+                    ChatUI.addMessage(
+                        'error',
+                        'ユーザー登録案内中のため、タロットカードの表示はできません。ユーザー登録後に再度雪乃さんにタロットカードの鑑定を頼んでください。',
+                        'システム'
+                    );
+                    
+                    console.log('[雪乃登録ボタン] タロットカードボタンがクリックされましたが、登録案内中のため無効化しました');
+                    
+                    // スクロールして表示
+                    setTimeout(() => {
+                        if (ChatUI.scrollToLatest) {
+                            ChatUI.scrollToLatest();
+                        }
+                    }, 100);
+                };
+                
+                console.log('[雪乃登録ボタン] タロットカードボタンのクリックイベントをオーバーライドしました:', button.textContent);
+            }
+        });
+        
     } else {
         console.error('[雪乃登録ボタン] ⚠️ ChatUI.messagesDiv が見つかりません');
     }
