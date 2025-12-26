@@ -943,6 +943,20 @@ const ChatInit = {
                     新しいカウント: newYukinoCount,
                     残り通数: ChatData.GUEST_MESSAGE_LIMIT - newYukinoCount
                 });
+                
+                // 10通目のメッセージを送信した直後に登録ボタンを表示
+                if (newYukinoCount === 10 && !sessionStorage.getItem('yukinoRegistrationButtonShown')) {
+                    console.log('[雪乃個別相談] 10通目送信。登録ボタンを表示します');
+                    
+                    // ボタンが既に表示されている場合はスキップ
+                    if (!document.getElementById('yukinoRegistrationContainer')) {
+                        // 少し遅延させてから表示（メッセージ送信アニメーション後）
+                        setTimeout(() => {
+                            showYukinoRegistrationButtons();
+                            sessionStorage.setItem('yukinoRegistrationButtonShown', 'true');
+                        }, 500);
+                    }
+                }
             } else {
                 // 通常のカウントを取得
                 messageCount = ChatData.getGuestMessageCount(character);
@@ -952,7 +966,7 @@ const ChatInit = {
             // APIレスポンスで needsRegistration フラグをチェックして処理する
             if (messageCount === ChatData.GUEST_MESSAGE_LIMIT) {
                 if (isYukinoConsultation) {
-                    console.log('[雪乃個別相談] 10通目に到達。APIから登録促進メッセージを受け取ります');
+                    console.log('[雪乃個別相談] 10通目に到達。');
                 } else {
                     console.log('[メッセージ制限] 10通目に到達。APIから登録促進メッセージを受け取ります');
                 }
