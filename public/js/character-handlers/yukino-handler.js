@@ -223,19 +223,32 @@ const YukinoHandler = {
         container.appendChild(buttonContainer);
 
         // メッセージコンテナに追加（最後のメッセージの直後）
-        if (ChatUI.messagesDiv) {
+        console.log('[雪乃ハンドラー] ChatUI.messagesDiv 存在チェック:', !!ChatUI.messagesDiv);
+        console.log('[雪乃ハンドラー] ChatUI オブジェクト:', window.ChatUI);
+        
+        if (ChatUI && ChatUI.messagesDiv) {
+            console.log('[雪乃ハンドラー] ボタンコンテナをDOMに追加します');
             ChatUI.messagesDiv.appendChild(container);
+            console.log('[雪乃ハンドラー] ボタンコンテナを追加しました。要素ID:', container.id);
             
             // フェードインアニメーション
             setTimeout(() => {
                 container.style.opacity = '1';
                 container.style.transform = 'translateY(0)';
+                console.log('[雪乃ハンドラー] フェードインアニメーション開始');
             }, 100);
             
             // スクロールして表示
             setTimeout(() => {
-                ChatUI.scrollToLatest();
+                if (ChatUI.scrollToLatest) {
+                    ChatUI.scrollToLatest();
+                    console.log('[雪乃ハンドラー] スクロール完了');
+                }
             }, 200);
+        } else {
+            console.error('[雪乃ハンドラー] ⚠️ ChatUI.messagesDiv が見つかりません！ボタンを表示できません。');
+            console.error('[雪乃ハンドラー] ChatUI:', window.ChatUI);
+            console.error('[雪乃ハンドラー] messagesDiv:', ChatUI?.messagesDiv);
         }
     },
 
