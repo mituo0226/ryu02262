@@ -2704,26 +2704,23 @@ function showYukinoRegistrationButtons() {
         });
     }
     
-    // コンテナを作成（画面下部に固定表示）
+    // コンテナを作成（メッセージコンテナ内に表示）
     const container = document.createElement('div');
     container.id = 'yukinoRegistrationContainer';
     container.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 15px;
-        padding: 20px 30px;
+        padding: 25px 30px;
+        margin: 20px 10px 30px 10px;
         background: rgba(255, 255, 255, 0.98);
         border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        z-index: 1000;
-        max-width: 90%;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        border: 2px solid rgba(102, 126, 234, 0.2);
         opacity: 0;
-        transition: opacity 0.5s ease;
+        transform: translateY(10px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
         visibility: visible !important;
     `;
     
@@ -2819,13 +2816,27 @@ function showYukinoRegistrationButtons() {
     buttonContainer.appendChild(noButton);
     container.appendChild(buttonContainer);
     
-    // bodyに追加
-    document.body.appendChild(container);
-    
-    // フェードインアニメーション
-    setTimeout(() => {
-        container.style.opacity = '1';
-        console.log('[雪乃登録ボタン] フェードイン完了');
-    }, 100);
+    // メッセージコンテナに追加
+    if (ChatUI && ChatUI.messagesDiv) {
+        ChatUI.messagesDiv.appendChild(container);
+        console.log('[雪乃登録ボタン] メッセージコンテナに追加しました');
+        
+        // フェードインアニメーション
+        setTimeout(() => {
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+            console.log('[雪乃登録ボタン] フェードイン完了');
+        }, 100);
+        
+        // スクロールして表示
+        setTimeout(() => {
+            if (ChatUI.scrollToLatest) {
+                ChatUI.scrollToLatest();
+                console.log('[雪乃登録ボタン] スクロール完了');
+            }
+        }, 200);
+    } else {
+        console.error('[雪乃登録ボタン] ⚠️ ChatUI.messagesDiv が見つかりません');
+    }
 }
 
