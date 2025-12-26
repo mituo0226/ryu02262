@@ -549,21 +549,21 @@
         // 最初のメッセージを表示
         showLoadingOverlay('3枚のカードのまとめを雪乃が鑑定しています');
         
-        // 2秒後に2番目のメッセージに更新
+        // 3.5秒後に2番目のメッセージに更新（最初のメッセージを3.5秒表示）
         setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
                 loadingText.textContent = 'メッセージを入力中です。';
             }
-        }, 2000);
+        }, 3500);
         
-        // 4秒後に3番目のメッセージに更新
+        // 8秒後に3番目のメッセージに更新（2番目のメッセージを4.5秒表示）
         setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
                 loadingText.textContent = 'もうすぐメッセージが届きますからお待ちくださいね。';
             }
-        }, 4000);
+        }, 8000);
         
         try {
             const character = 'yukino';
