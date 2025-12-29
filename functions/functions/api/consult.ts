@@ -528,7 +528,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           break;
         case 'sora':
           warningMessage =
-            '正直、がっかりしています。そのような願いを抱いているあなたを見て、心が痛みます。そのような願いは、あなた自身を不幸にします。どうか、もう一度考え直してください。';
+            '（少し困ったように笑って）……あのさ、そういう願い、僕はあんまり応援できないかな。君を不幸にしちゃう気がして、なんだか僕まで胸が痛いんだ。……もう一度、君が本当に幸せになれる方法を一緒に考えさせてくれない？';
           break;
         case 'kaon':
           warningMessage =

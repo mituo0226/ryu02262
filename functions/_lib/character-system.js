@@ -12,7 +12,6 @@ import { generateKaonPrompt } from './characters/kaon.js';
 const inappropriateKeywords = [
   '宝くじ', '当選', '当選番号', '当選確率',
   'ギャンブル', 'パチンコ', 'スロット', '競馬', '競艇',
-  '不倫', '浮気', '裏切り', '悪意',
   '破壊', '傷害', '殺害', '自殺',
 ];
 
