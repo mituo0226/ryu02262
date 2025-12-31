@@ -1,5 +1,5 @@
 // Cloudflare Pages Functions の型定義
-import { isInappropriate, generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
+import { generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
 import { isValidCharacter } from '../_lib/character-loader.js';
 import { verifyUserToken } from '../_lib/token.js';
 
@@ -490,68 +490,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // ===== 4. 不適切な内容のチェック =====
+    // ===== 4. キャラクター名の取得 =====
+    // 注：機械的な危険ワードチェックは廃止しました
+    // AIに文脈理解と共感的対応を委ねます（システムプロンプトに安全ガイドライン追加済み）
     const characterName = getCharacterName(characterId);
-    const inappropriate = isInappropriate(trimmedMessage);
-    const detectedKeywords: string[] = [];
-
-    if (inappropriate) {
-      const keywords = [
-        '宝くじ',
-        '当選',
-        '当選番号',
-        '当選確率',
-        'ギャンブル',
-        'パチンコ',
-        'スロット',
-        '競馬',
-        '競艇',
-        '不倫',
-        '浮気',
-        '裏切り',
-        '悪意',
-      ];
-      const lowerMessage = trimmedMessage.toLowerCase();
-      keywords.forEach((keyword) => {
-        if (lowerMessage.includes(keyword.toLowerCase())) {
-          detectedKeywords.push(keyword);
-        }
-      });
-
-      let warningMessage = '';
-      switch (characterId) {
-        case 'kaede':
-          warningMessage =
-            '私は現世で唯一の龍神の化身として、そのような悪しき願いを聞き入れることはできません。龍神としての私の力は、悪用される危険をはらむものには決して向けられません。そのような願いは、神界の秩序を乱すものです。';
-          break;
-        case 'yukino':
-          warningMessage =
-            '高野山での修行を通じて、私は学びました。そのような願いは、愛の力がない限り、運命は好転しない。これは、宇宙全体の真理であります。修行で培った信念として、そのようなご相談は、宇宙全体の真理に反するものです。';
-          break;
-        case 'sora':
-          warningMessage =
-            '（少し困ったように笑って）……あのさ、そういう願い、僕はあんまり応援できないかな。君を不幸にしちゃう気がして、なんだか僕まで胸が痛いんだ。……もう一度、君が本当に幸せになれる方法を一緒に考えさせてくれない？';
-          break;
-        case 'kaon':
-          warningMessage =
-            '私の未来予知の能力は、あまりにも確実に人の未来を読めるがゆえに、その責任は非常に重いものです。そのような願いは、その責任を軽んじる行為です。第三者の力により未来を変えることは、それが人生において良き方向に向けるためのものであり、そして誰かを不幸にしては決していけないのです。';
-          break;
-        default:
-          warningMessage = 'そのようなご相談にはお答えできません。';
-      }
-
-      return new Response(
-        JSON.stringify({
-          message: warningMessage,
-          character: characterId,
-          characterName,
-          isInappropriate: true,
-          detectedKeywords,
-          guestMode: !user,
-        } as ResponseBody),
-        { status: 200, headers: corsHeaders }
-      );
-    }
 
     // ===== 5. 会話履歴の取得 =====
     const sanitizedHistory = sanitizeClientHistory(body.clientHistory);

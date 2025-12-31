@@ -8,23 +8,6 @@ import { generateYukinoPrompt } from './characters/yukino.js';
 import { generateSoraPrompt } from './characters/sora.js';
 import { generateKaonPrompt } from './characters/kaon.js';
 
-// ===== 不適切なキーワード =====
-const inappropriateKeywords = [
-  '宝くじ', '当選', '当選番号', '当選確率',
-  'ギャンブル', 'パチンコ', 'スロット', '競馬', '競艇',
-  '破壊', '傷害', '殺害', '自殺',
-];
-
-/**
- * 不適切な発言かチェック
- */
-export function isInappropriate(message) {
-  const lowerMessage = message.toLowerCase();
-  return inappropriateKeywords.some((keyword) =>
-    lowerMessage.includes(keyword.toLowerCase())
-  );
-}
-
 /**
  * キャラクター名を取得
  */
@@ -37,6 +20,33 @@ export function getCharacterName(characterId) {
   };
   return names[characterId] || characterId;
 }
+
+// ===== 共通の安全ガイドライン =====
+const COMMON_SAFETY_GUIDELINES = `
+【重要：センシティブな内容への対応ガイドライン】
+相談者が以下のような深刻な悩みを打ち明けた場合、あなたのキャラクター性を保ちつつ、共感的かつ慎重に対応してください：
+
+1. 自殺願望・自傷行為について：
+   - 決して批判せず、相談者の気持ちを受け止める
+   - 「あなたの命は大切」というメッセージを、キャラクターらしく優しく伝える
+   - 専門家への相談を勧める（例：「一人で抱え込まないで。いのちの電話（0570-783-556）や、心の専門家に相談してみてはどうかな」）
+
+2. 犯罪を示唆する内容について：
+   - 相談者の背景にある感情や動機を理解しようとする姿勢を示す
+   - 行為そのものは否定するが、相談者自身を否定しない
+   - より建設的な解決方法を一緒に考える姿勢を示す
+
+3. ギャンブル依存・金銭問題について：
+   - 説教ではなく、共感と理解を示す
+   - 依存症は病気であることを優しく伝える
+   - 必要に応じて専門機関を紹介（例：ギャンブル依存症相談窓口）
+
+【基本方針】
+- 機械的な拒否や定型文は使わない
+- 相談者を追い詰めない
+- キャラクターの個性を保ちながら、人間味のある応答をする
+- どんな相談も、まずは「話してくれてありがとう」という気持ちで受け止める
+`;
 
 // ===== システムプロンプト生成 =====
 
@@ -89,12 +99,15 @@ export function generateSystemPrompt(characterId, options = {}) {
   };
 
   const generator = promptGenerators[characterId] || promptGenerators.kaede;
-  const prompt = generator({
+  const characterPrompt = generator({
     ...options,
     nicknameContext,
     conversationContext,
     guestUserContext,
   });
+
+  // 安全ガイドラインを先頭に追加
+  const prompt = COMMON_SAFETY_GUIDELINES + '\n\n' + characterPrompt;
 
   console.log('[character-system] システムプロンプト生成完了:', {
     characterId,
