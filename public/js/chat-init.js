@@ -4,6 +4,9 @@
  */
 
 const ChatInit = {
+    // キャラクターハンドラーを格納するオブジェクト
+    characterHandlers: {},
+    
     /**
      * ページを初期化
      */
@@ -67,6 +70,15 @@ const ChatInit = {
         if (window.KaonHandler && typeof window.KaonHandler.init === 'function') {
             window.KaonHandler.init();
         }
+        
+        // ハンドラーをChatInit.characterHandlersに登録
+        this.characterHandlers = {
+            'kaede': window.KaedeHandler,
+            'yukino': window.YukinoHandler,
+            'sora': window.SoraHandler,
+            'kaon': window.KaonHandler
+        };
+        console.log('[初期化] characterHandlersを登録しました:', Object.keys(this.characterHandlers));
 
         // フェードインアニメーション
         document.body.style.opacity = '0';
