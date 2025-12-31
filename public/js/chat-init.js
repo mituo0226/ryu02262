@@ -1201,6 +1201,22 @@ const ChatInit = {
                         API側で計算される最終値: messageCountForAPI + 1
                     });
                 }
+                
+                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
+                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
+                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
+                        character, 
+                        guestMessageCount, 
+                        limit: ChatData.GUEST_MESSAGE_LIMIT 
+                    });
+                    const handler = this.characterHandlers[character];
+                    if (handler && typeof handler.handleGuestLimit === 'function') {
+                        handler.handleGuestLimit(guestMessageCount, response);
+                    } else {
+                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
+                    }
+                }
             } else {
                 // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
                 messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
@@ -1354,6 +1370,22 @@ const ChatInit = {
                 if (handlerProcessed) {
                     console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
                     // 送信ボタンを再有効化はハンドラー側で行う
+
+                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
+                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
+                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
+                        character, 
+                        guestMessageCount, 
+                        limit: ChatData.GUEST_MESSAGE_LIMIT 
+                    });
+                    const handler = this.characterHandlers[character];
+                    if (handler && typeof handler.handleGuestLimit === 'function') {
+                        handler.handleGuestLimit(guestMessageCount, response);
+                    } else {
+                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
+                    }
+                }
                     return;
                 }
                 // 雪乃の個別相談で9通目の場合、登録を促すメッセージを表示（10通目で登録が必要になる前の警告）
@@ -1371,6 +1403,38 @@ const ChatInit = {
                         sessionStorage.setItem(noticeKey, 'true');
                         console.log('[雪乃個別相談] 上限近づきメッセージを表示しました');
                     }
+
+                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
+                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
+                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
+                        character, 
+                        guestMessageCount, 
+                        limit: ChatData.GUEST_MESSAGE_LIMIT 
+                    });
+                    const handler = this.characterHandlers[character];
+                    if (handler && typeof handler.handleGuestLimit === 'function') {
+                        handler.handleGuestLimit(guestMessageCount, response);
+                    } else {
+                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
+                    }
+                }
+
+                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
+                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
+                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
+                        character, 
+                        guestMessageCount, 
+                        limit: ChatData.GUEST_MESSAGE_LIMIT 
+                    });
+                    const handler = this.characterHandlers[character];
+                    if (handler && typeof handler.handleGuestLimit === 'function') {
+                        handler.handleGuestLimit(guestMessageCount, response);
+                    } else {
+                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
+                    }
+                }
                 } else if (response.registrationSuggested && !ChatData.ritualConsentShown && guestMessageCount >= 5 && guestMessageCount < ChatData.GUEST_MESSAGE_LIMIT) {
                     // 楓は「守護神の儀式を始めますか？」の同意ダイアログを8〜9通目で出すと不自然なため、
                     // ここではダイアログは出さず「上限が近い」案内だけ表示する。
@@ -1415,6 +1479,22 @@ const ChatInit = {
                         registrationSuggested: response.registrationSuggested,
                         ritualConsentShown: ChatData.ritualConsentShown
                     });
+                }
+                
+                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
+                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
+                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
+                        character, 
+                        guestMessageCount, 
+                        limit: ChatData.GUEST_MESSAGE_LIMIT 
+                    });
+                    const handler = this.characterHandlers[character];
+                    if (handler && typeof handler.handleGuestLimit === 'function') {
+                        handler.handleGuestLimit(guestMessageCount, response);
+                    } else {
+                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
+                    }
                 }
             } else {
                 // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
