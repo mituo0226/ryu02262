@@ -1372,17 +1372,17 @@ const ChatInit = {
                                 'システム'
                             );
 
-                // �y�V�K�ǉ��z10�ʖړ��B��F�b�N�i�L�����N�^�[�n���h���[�ɈϏ��j
+                // 【新規追加】10通目到達チェック（キャラクターハンドラーに委譲）
                 if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10�ʖړ��B �� �L�����N�^�[�n���h���[�ɈϏ�', { character, guestMessageCount });
+                    console.log('[chat-init] 10通目到達 → キャラクターハンドラーに委譲', { character, guestMessageCount });
                     const handler = this.characterHandlers[character];
                     if (handler && typeof handler.handleGuestLimit === 'function') {
                         handler.handleGuestLimit(guestMessageCount, response);
                     } else {
-                        console.warn('[chat-init] �n���h���[��������Ȃ����AhandleGuestLimit���\�b�h������܂���:', character);
+                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
                     }
                 }
-                            sessionStorage.setItem(preLimitNoticeKey, 'true');
+
                         }
                     } else {
                         console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
