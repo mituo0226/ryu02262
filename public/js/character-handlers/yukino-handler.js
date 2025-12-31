@@ -24,6 +24,43 @@ const YukinoHandler = {
     },
 
     /**
+     * ゲスト上限到達時の処理（10通目）
+     * @param {number} guestCount - 現在のゲストメッセージ数
+     * @param {Object} apiData - API応答データ
+     * @returns {boolean} 処理を実行したか
+     */
+    handleGuestLimit(guestCount, apiData) {
+        console.log('[雪乃ハンドラー] ゲスト上限チェック:', { guestCount, limit: ChatData.GUEST_MESSAGE_LIMIT });
+        
+        // 10通目に到達したら登録ボタンを表示
+        if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+            console.log('[雪乃ハンドラー] 10通目到達 → 登録ボタンを表示');
+            
+            // 既に表示済みの場合はスキップ
+            if (ChatData.ritualConsentShown) {
+                console.log('[雪乃ハンドラー] 既に登録ボタン表示済み - スキップ');
+                return false;
+            }
+            
+            // システムメッセージを表示
+            ChatUI.addMessage('error', 'ユーザー登録への同意が検出されました。ボタンが表示されます。', 'システム');
+            
+            // フラグを保存
+            sessionStorage.setItem('acceptedGuardianRitual', 'true');
+            ChatData.ritualConsentShown = true;
+            
+            // 登録ボタンを表示
+            setTimeout(() => {
+                ChatUI.showRitualConsentButtons();
+            }, 2000);
+            
+            return true;
+        }
+        
+        return false;
+    },
+
+    /**
      * ゲストモード再訪問のチェック
      * 一度ゲストで会話した後、再度ゲストで訪問した場合は強制的にユーザー登録画面へ
      */

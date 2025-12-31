@@ -40,6 +40,43 @@ const KaedeHandler = {
     },
 
     /**
+     * ゲスト上限到達時の処理（10通目）
+     * @param {number} guestCount - 現在のゲストメッセージ数
+     * @param {Object} apiData - API応答データ
+     * @returns {boolean} 処理を実行したか
+     */
+    handleGuestLimit(guestCount, apiData) {
+        console.log('[楓ハンドラー] ゲスト上限チェック:', { guestCount, limit: ChatData.GUEST_MESSAGE_LIMIT });
+        
+        // 10通目に到達したら守護神の儀式ボタンを表示
+        if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+            console.log('[楓ハンドラー] 10通目到達 → 守護神の儀式ボタンを表示');
+            
+            // 既に表示済みの場合はスキップ
+            if (ChatData.ritualConsentShown) {
+                console.log('[楓ハンドラー] 既に儀式ボタン表示済み - スキップ');
+                return false;
+            }
+            
+            // システムメッセージを表示
+            ChatUI.addMessage('error', '守護神の儀式への同意が検出されました。ボタンが表示されます。', 'システム');
+            
+            // acceptedGuardianRitualフラグを保存
+            sessionStorage.setItem('acceptedGuardianRitual', 'true');
+            ChatData.ritualConsentShown = true;
+            
+            // 守護神の儀式ボタンを表示
+            setTimeout(() => {
+                ChatUI.showRitualConsentButtons();
+            }, 2000);
+            
+            return true;
+        }
+        
+        return false;
+    },
+
+    /**
      * メッセージ送信前の処理
      * @param {string} message - 送信するメッセージ
      * @returns {Object} { proceed: boolean, modifiedMessage?: string }
