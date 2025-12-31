@@ -1371,6 +1371,17 @@ const ChatInit = {
                                 `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
                                 'システム'
                             );
+
+                // �y�V�K�ǉ��z10�ʖړ��B��F�b�N�i�L�����N�^�[�n���h���[�ɈϏ��j
+                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
+                    console.log('[chat-init] 10�ʖړ��B �� �L�����N�^�[�n���h���[�ɈϏ�', { character, guestMessageCount });
+                    const handler = this.characterHandlers[character];
+                    if (handler && typeof handler.handleGuestLimit === 'function') {
+                        handler.handleGuestLimit(guestMessageCount, response);
+                    } else {
+                        console.warn('[chat-init] �n���h���[��������Ȃ����AhandleGuestLimit���\�b�h������܂���:', character);
+                    }
+                }
                             sessionStorage.setItem(preLimitNoticeKey, 'true');
                         }
                     } else {
