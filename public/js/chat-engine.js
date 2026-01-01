@@ -1,55 +1,21 @@
 /**
- * chat-init.js
- * 初期化とメインロジックを担当
+ * chat-engine.js
+ * チャットエンジン - 完全にキャラクター非依存のチャット機能を提供
  * 
  * 【重要】キャラクター固有の処理は一切含まれません。
  * すべてのキャラクター固有の処理は各ハンドラーファイルに委譲されます。
+ * 
+ * ハンドラーの取得は CharacterRegistry を使用します。
+ * CharacterRegistry は character-registry.js で定義されています。
  */
-
-// ハンドラーレジストリ（キャラクターIDからハンドラーを取得）
-const CharacterHandlerRegistry = {
-    /**
-     * キャラクターIDからハンドラーを取得
-     * @param {string} characterId - キャラクターID
-     * @returns {Object|null} キャラクターハンドラー
-     */
-    getHandler(characterId) {
-        // グローバルスコープからハンドラーを動的に取得
-        // ハンドラーは window.[CharacterName]Handler の形式で公開される
-        const handlerName = this.getHandlerName(characterId);
-        return window[handlerName] || null;
-    },
-
-    /**
-     * キャラクターIDからハンドラー名を生成
-     * @param {string} characterId - キャラクターID（例: 'kaede'）
-     * @returns {string} ハンドラー名（例: 'KaedeHandler'）
-     */
-    getHandlerName(characterId) {
-        if (!characterId) return null;
-        // 最初の文字を大文字にして、'Handler'を付加
-        return characterId.charAt(0).toUpperCase() + characterId.slice(1) + 'Handler';
-    }
-};
 
 const ChatInit = {
     /**
      * ページを初期化
      */
     async initPage() {
-        // ⚠️ 最優先：タロットカード情報を一時保存（初期化処理で消される前に）
-        // sessionStorageではページ遷移時に失われる可能性があるため、localStorageもチェック
-        let tempCardInfo = sessionStorage.getItem('yukinoTarotCardForExplanation');
-        if (!tempCardInfo) {
-            tempCardInfo = localStorage.getItem('_yukinoTarotCardForExplanation_temp');
-            if (tempCardInfo) {
-                // localStorageから取得できた場合は、sessionStorageに復元
-                sessionStorage.setItem('yukinoTarotCardForExplanation', tempCardInfo);
-                // 使用後は即座に削除
-                localStorage.removeItem('_yukinoTarotCardForExplanation_temp');
-                console.log('[初期化] localStorageからカード情報を復元しました');
-            }
-        }
+        // キャラクター固有の初期化処理はハンドラーに委譲
+        // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
         
         // ChatUIを初期化
         if (ChatUI && typeof ChatUI.init === 'function') {
@@ -152,7 +118,7 @@ const ChatInit = {
                 const historyData = await ChatAPI.loadConversationHistory(character);
                 
                 // キャラクター専用ハンドラーの初期化処理を呼び出す
-                const handler = CharacterHandlerRegistry.getHandler(character);
+                const handler = CharacterRegistry.get(character);
                 if (handler && typeof handler.initPage === 'function') {
                     const result = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow);
                     if (result && result.completed) {
@@ -290,7 +256,7 @@ const ChatInit = {
                     }
                     
                     // キャラクター固有のフラグをクリア（ハンドラーに委譲）
-                    const handler = CharacterHandlerRegistry.getHandler(character);
+                    const handler = CharacterRegistry.get(character);
                     if (handler && typeof handler.clearCharacterFlags === 'function') {
                         handler.clearCharacterFlags();
                     }
@@ -816,7 +782,7 @@ const ChatInit = {
         // メッセージ送信ボタンを押した時点で、即座にカウントを開始
         if (isGuest && !isTarotExplanationTrigger) {
             // 個別相談モードのチェック（ハンドラーに委譲）
-            const handler = CharacterHandlerRegistry.getHandler(character);
+            const handler = CharacterRegistry.get(character);
             const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
                 ? handler.isConsultationMode() 
                 : false;
@@ -853,7 +819,7 @@ const ChatInit = {
             ChatData.addToGuestHistory(character, 'user', message);
             
             // ゲストモードで会話したことを記録（ハンドラーに委譲）
-            const handler = CharacterHandlerRegistry.getHandler(character);
+            const handler = CharacterRegistry.get(character);
             if (handler && typeof handler.markGuestConversed === 'function') {
                 handler.markGuestConversed();
             }
@@ -1048,7 +1014,7 @@ const ChatInit = {
             let messageCountForAPI = 0;
             if (isGuest) {
                 // 個別相談モードのチェック（ハンドラーに委譲）
-                const handler = CharacterHandlerRegistry.getHandler(character);
+                const handler = CharacterRegistry.get(character);
                 const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
                     ? handler.isConsultationMode() 
                     : false;
@@ -1069,7 +1035,7 @@ const ChatInit = {
                     currentCount = ChatData.getGuestMessageCount(character);
                     
                     // メッセージカウントを計算（ハンドラーに委譲）
-                    const handler = CharacterHandlerRegistry.getHandler(character);
+                    const handler = CharacterRegistry.get(character);
                     if (handler && typeof handler.calculateMessageCount === 'function') {
                         messageCountForAPI = handler.calculateMessageCount(currentCount);
                     } else {
@@ -1094,7 +1060,7 @@ const ChatInit = {
                 // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
                 // セッション最初のメッセージを記録（ハンドラーに委譲）
                 if (!isTarotExplanationTrigger) {
-                    const handler = CharacterHandlerRegistry.getHandler(character);
+                    const handler = CharacterRegistry.get(character);
                     if (handler && typeof handler.recordFirstMessageInSession === 'function') {
                         handler.recordFirstMessageInSession(messageToSend);
                     }
@@ -1133,7 +1099,7 @@ const ChatInit = {
             // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
             let shouldShowUserMessage = !skipUserMessage;
             if (!skipUserMessage) {
-                const handler = CharacterHandlerRegistry.getHandler(character);
+                const handler = CharacterRegistry.get(character);
                 if (handler && typeof handler.shouldShowUserMessage === 'function') {
                     shouldShowUserMessage = handler.shouldShowUserMessage(responseText, isGuest);
                 }
@@ -1191,7 +1157,7 @@ const ChatInit = {
                 const guestMessageCount = ChatData.getGuestMessageCount(character);
                 
                 // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
-                const handler = CharacterHandlerRegistry.getHandler(character);
+                const handler = CharacterRegistry.get(character);
                 if (handler && typeof handler.handleResponse === 'function') {
                     handlerProcessed = await handler.handleResponse(response, character);
                     
@@ -1335,7 +1301,7 @@ const ChatInit = {
                                 if (!ChatData.ritualConsentShown) {
                                     const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
                                     // メッセージはハンドラーから取得（ハンドラーのgetConsentMessageを使用）
-                                    const handler = CharacterHandlerRegistry.getHandler(ChatData.currentCharacter);
+                                    const handler = CharacterRegistry.get(ChatData.currentCharacter);
                                     const consentMessage = handler && typeof handler.getConsentMessage === 'function'
                                         ? handler.getConsentMessage()
                                         : 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
@@ -1478,7 +1444,7 @@ const ChatInit = {
                                 if (!ChatData.ritualConsentShown) {
                                     const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
                                     // メッセージはハンドラーから取得（ハンドラーのgetConsentMessageを使用）
-                                    const handler = CharacterHandlerRegistry.getHandler(ChatData.currentCharacter);
+                                    const handler = CharacterRegistry.get(ChatData.currentCharacter);
                                     const consentMessage = handler && typeof handler.getConsentMessage === 'function'
                                         ? handler.getConsentMessage()
                                         : 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
@@ -1533,7 +1499,7 @@ const ChatInit = {
         const character = ChatData.currentCharacter;
         
         // キャラクター専用ハンドラーの同意処理を呼び出す
-        const handler = CharacterHandlerRegistry.getHandler(character);
+        const handler = CharacterRegistry.get(character);
         if (handler && typeof handler.handleRitualConsent === 'function') {
             const handled = await handler.handleRitualConsent(consent);
             if (handled) {

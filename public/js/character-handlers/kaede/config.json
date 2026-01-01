@@ -1,0 +1,14 @@
+{
+  "characterId": "kaede",
+  "handlerClassName": "KaedeHandler",
+  "name": "楓",
+  "image": "../../photo/kaede.png",
+  "features": ["guardian-ritual"],
+  "messageLimit": 10,
+  "specialBehaviors": {
+    "guardianRitual": {
+      "enabled": true,
+      "triggerAt": 10
+    }
+  }
+}

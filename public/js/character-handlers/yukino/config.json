@@ -1,0 +1,17 @@
+{
+  "characterId": "yukino",
+  "handlerClassName": "YukinoHandler",
+  "name": "笹岡雪乃",
+  "image": "../../photo/yukino.png",
+  "features": ["tarot", "consultation"],
+  "messageLimit": 10,
+  "specialBehaviors": {
+    "tarot": {
+      "enabled": true
+    },
+    "consultation": {
+      "enabled": true,
+      "messageLimit": 10
+    }
+  }
+}

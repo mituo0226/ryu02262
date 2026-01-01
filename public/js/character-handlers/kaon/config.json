@@ -1,0 +1,9 @@
+{
+  "characterId": "kaon",
+  "handlerClassName": "KaonHandler",
+  "name": "三崎花音",
+  "image": "../../photo/kaon.png",
+  "features": [],
+  "messageLimit": 10,
+  "specialBehaviors": {}
+}

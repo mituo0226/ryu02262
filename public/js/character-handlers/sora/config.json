@@ -1,0 +1,9 @@
+{
+  "characterId": "sora",
+  "handlerClassName": "SoraHandler",
+  "name": "水野ソラ",
+  "image": "../../photo/sora.png",
+  "features": [],
+  "messageLimit": 10,
+  "specialBehaviors": {}
+}

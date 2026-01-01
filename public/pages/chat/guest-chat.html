@@ -769,13 +769,39 @@
           <script src="../../js/chat-ui.js"></script>
           <!-- ゲスト制限管理（共通ロジック） -->
           <script src="../../js/guest-limit-manager.js"></script>
-          <!-- キャラクター専用ハンドラー -->
-          <script src="../../js/character-handlers/kaede-handler.js"></script>
-          <script src="../../js/character-handlers/yukino-handler.js"></script>
-          <script src="../../js/character-handlers/sora-handler.js"></script>
-          <script src="../../js/character-handlers/kaon-handler.js"></script>
-          <!-- 共通チャットロジック -->
-          <script src="../../js/chat-init.js"></script>
+          <!-- プラグインアーキテクチャ -->
+          <script src="../../js/character-registry.js"></script>
+          <script src="../../js/character-loader.js"></script>
+          <!-- チャットエンジン -->
+          <script src="../../js/chat-engine.js"></script>
+          <!-- ハンドラーの動的読み込み -->
+          <script>
+          (async function() {
+              // URLパラメータからキャラクターIDを取得
+              const urlParams = new URLSearchParams(window.location.search);
+              const characterId = urlParams.get('character');
+              
+              if (characterId) {
+                  // 必要なハンドラーのみを読み込む
+                  const success = await CharacterLoader.loadHandler(characterId);
+                  if (success) {
+                      console.log('[初期化] ハンドラーを読み込みました:', characterId);
+                      // ハンドラーの初期化を実行
+                      const handler = CharacterRegistry.get(characterId);
+                      if (handler && typeof handler.init === 'function') {
+                          handler.init();
+                      }
+                  } else {
+                      console.error('[初期化] ハンドラーの読み込みに失敗しました:', characterId);
+                  }
+              }
+              
+              // チャットエンジンを初期化
+              if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                  await window.ChatInit.initPage();
+              }
+          })();
+          </script>
            <!-- iframe内で確実にpostMessage通信を初期化 -->
            <script>
            (function() {
@@ -813,7 +839,7 @@
                }
                
                // REQUEST_CHAT_DATAハンドラーは設定しない
-               // chat-init.js内のハンドラーが確実に実行されるようにするため、
+               // chat-engine.js内のハンドラーが確実に実行されるようにするため、
                // 初期ハンドラーは完全に削除（chat-init.jsに任せる）
                console.log('[iframe] 初期ハンドラー: REQUEST_CHAT_DATAはchat-init.jsに任せます');
                
@@ -1097,7 +1123,7 @@
                    }
                });
                
-               // グローバルにupdateAdminAnalysisPanel関数を公開（chat-init.jsから呼び出せるように）
+               // グローバルにupdateAdminAnalysisPanel関数を公開（chat-engine.jsから呼び出せるように）
                window.updateAdminAnalysisPanel = updateAdminAnalysisPanel;
                
                // 初期化後に分析パネルを更新（DOMContentLoadedを待つ）
