@@ -777,8 +777,25 @@
           <!-- ハンドラーの動的読み込み -->
           <script>
           (async function() {
-              // URLパラメータからキャラクターIDを取得
+              'use strict';
+              
+              // ===== テストモードチェック（最優先で実行） =====
+              // chat-engine.jsが読み込まれる前に実行されるため、ここでもチェックする
               const urlParams = new URLSearchParams(window.location.search);
+              if (urlParams.get('test') === 'true') {
+                  console.log('[chat.html] テストモードが有効です。すべてのゲストフラグをクリアします...');
+                  const characters = ['kaede', 'yukino', 'sora', 'kaon'];
+                  characters.forEach(c => {
+                      const flag = `${c}GuestConversed`;
+                      if (localStorage.getItem(flag)) {
+                          localStorage.removeItem(flag);
+                          console.log(`[chat.html] ✅ ${flag} をクリアしました`);
+                      }
+                  });
+                  console.log('[chat.html] テストモード: すべてのゲストフラグのクリアが完了しました');
+              }
+              
+              // URLパラメータからキャラクターIDを取得
               const characterId = urlParams.get('character');
               
               if (characterId) {
