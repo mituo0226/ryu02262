@@ -258,6 +258,14 @@ const YukinoHandler = {
     },
 
     /**
+     * 個別相談モードかどうかを判定
+     * @returns {boolean} 個別相談モードかどうか
+     */
+    isConsultationMode() {
+        return sessionStorage.getItem('yukinoConsultationStarted') === 'true';
+    },
+
+    /**
      * 個別相談モードのメッセージカウントを取得
      * @returns {number} メッセージカウント
      */
