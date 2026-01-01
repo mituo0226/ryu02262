@@ -1019,16 +1019,26 @@ const ChatInit = {
                     : false;
                 
                 let currentCount;
-                if (isYukinoConsultation) {
-                    // 雪乃の個別相談の場合、専用のカウントを使用
-                    // yukinoConsultationMessageCountは既に正確な送信済みメッセージ数を表しているため、そのまま使用
-                    currentCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                    messageCountForAPI = currentCount;
-                    console.log('[雪乃個別相談] APIに送信するメッセージカウント:', {
-                        現在の個別相談カウント: currentCount,
-                        APIに送信する値: messageCountForAPI,
-                        残り通数: ChatData.GUEST_MESSAGE_LIMIT - currentCount
-                    });
+                if (isConsultationMode) {
+                    // 個別相談モードの場合、ハンドラーから専用のカウントを取得
+                    if (handler && typeof handler.getConsultationMessageCount === 'function') {
+                        currentCount = handler.getConsultationMessageCount();
+                        messageCountForAPI = currentCount;
+                        console.log('[個別相談] APIに送信するメッセージカウント:', {
+                            鑑定士: character,
+                            現在の個別相談カウント: currentCount,
+                            APIに送信する値: messageCountForAPI,
+                            残り通数: ChatData.GUEST_MESSAGE_LIMIT - currentCount
+                        });
+                    } else {
+                        // ハンドラーがgetConsultationMessageCountを実装していない場合は通常のカウントを使用
+                        currentCount = ChatData.getGuestMessageCount(character);
+                        if (handler && typeof handler.calculateMessageCount === 'function') {
+                            messageCountForAPI = handler.calculateMessageCount(currentCount);
+                        } else {
+                            messageCountForAPI = currentCount;
+                        }
+                    }
                 } else {
                     // 通常のゲストメッセージカウントを使用
                     currentCount = ChatData.getGuestMessageCount(character);
