@@ -250,6 +250,39 @@ const SoraHandler = {
         ChatData.setGuestMessageCount(character, 0);
 
         console.log('[水野ソラハンドラー] ゲスト履歴をクリアしました');
+    },
+
+    /**
+     * 登録ボタンを表示（ソラ専用）
+     * システムメッセージ表示後、即座にボタンを表示する（APIの挙動に関係なく）
+     */
+    showRegistrationButtons() {
+        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
+        const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
+        
+        if (ritualConsentContainer) {
+            // 既に表示されている場合はスキップ
+            if (ritualConsentContainer.classList.contains('visible')) {
+                console.log('[水野ソラハンドラー] 登録ボタンは既に表示されています');
+                return;
+            }
+            
+            // 質問文を設定（ソラ用）
+            if (ritualConsentQuestion) {
+                ritualConsentQuestion.textContent = 'ユーザー登録を進めますか？';
+            }
+            
+            // ボタンを即座に表示（APIの挙動に関係なく）
+            ritualConsentContainer.style.display = 'block';
+            requestAnimationFrame(() => {
+                ritualConsentContainer.classList.add('visible');
+                // ボタン表示後にフラグを設定
+                ChatData.ritualConsentShown = true;
+                console.log('[水野ソラハンドラー] 登録ボタンを表示しました');
+            });
+        } else {
+            console.error('[水野ソラハンドラー] ritualConsentContainerが見つかりません');
+        }
     }
 };
 
