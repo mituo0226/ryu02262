@@ -25,7 +25,7 @@ const CharacterLoader = {
      */
     async loadRegistry() {
         try {
-            const response = await fetch('../../js/character-handlers/registry.json');
+            const response = await fetch('/js/character-handlers/registry.json');
             if (!response.ok) {
                 console.warn('[CharacterLoader] registry.jsonの読み込みに失敗しました。フォールバックを使用します。');
                 return this.getFallbackCharacters();
