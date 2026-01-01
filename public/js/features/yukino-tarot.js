@@ -760,21 +760,25 @@ ${cardNames}
                 }, 600);
                 
                 // システムメッセージをAPIに送信（完了を待つ）
+                // ⚠️ 注意: この処理は雪乃専用です。タロット占いは雪乃のみが提供する機能です。
                 try {
-                    console.log('[タロット占い] APIに通知を送信中');
+                    console.log('[タロット占い] APIに通知を送信中（雪乃専用）');
                     
+                    // 雪乃専用のシステムメッセージ（タロット占いは雪乃のみが提供する機能）
                     const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
                     
                     const userToken = localStorage.getItem('userToken');
+                    // 明示的に雪乃を指定（タロット占いは雪乃専用）
                     const payload = { 
                         message: systemMessage, 
-                        character
+                        character: 'yukino'
                     };
                     
                     if (userToken) {
                         payload.userToken = userToken;
                     } else {
-                        const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
+                        // ゲストモードの場合、雪乃専用のメッセージカウントを使用
+                        const guestCount = sessionStorage.getItem('guestMessageCount_yukino');
                         payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
                     }
                     
