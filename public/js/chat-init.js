@@ -1985,7 +1985,7 @@ window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatIn
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // postMessage関連の初期化（DOMContentLoadedの外で即座に実行）
-(function initPostMessageCommunication() {
+(async function initPostMessageCommunication() {
     'use strict';
     
     console.log('[iframe] postMessage通信を初期化しています...', {
