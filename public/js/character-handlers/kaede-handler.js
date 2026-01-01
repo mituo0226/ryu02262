@@ -101,6 +101,16 @@ const KaedeHandler = {
 
         console.log('[楓ハンドラー] レスポンス処理:', response);
 
+        // ゲストモードの場合、10通到達時のチェックを実行
+        if (window.AuthState && !window.AuthState.isRegistered()) {
+            if (window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
+                const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
+                if (limitHandled) {
+                    console.log('[楓ハンドラー] 10通到達時の処理が完了しました');
+                }
+            }
+        }
+
         // 現在は特殊な処理なし、共通処理を続行
         // 守護神の儀式は別の箇所で処理される
         return false;

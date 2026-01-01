@@ -120,7 +120,7 @@ const YukinoHandler = {
     },
 
     /**
-     * API レスポンス受信後の処理（現在は使用していません）
+     * API レスポンス受信後の処理
      * @param {Object} response - API レスポンス
      * @param {string} character - キャラクターID
      * @returns {boolean} 処理が完了したか（true: ハンドラーで処理済み、false: 共通処理を続行）
@@ -130,8 +130,16 @@ const YukinoHandler = {
             return false; // 雪乃以外は処理しない
         }
         
-        // 登録ボタンの表示は chat-init.js でメッセージカウントベースで行うため、
-        // ここでは何もしない
+        // ゲストモードの場合、10通到達時のチェックを実行
+        if (window.AuthState && !window.AuthState.isRegistered()) {
+            if (window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
+                const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
+                if (limitHandled) {
+                    console.log('[雪乃ハンドラー] 10通到達時の処理が完了しました');
+                }
+            }
+        }
+        
         return false; // 共通処理を続行
     },
 

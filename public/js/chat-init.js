@@ -4,9 +4,6 @@
  */
 
 const ChatInit = {
-    // キャラクターハンドラーを格納するオブジェクト
-    characterHandlers: {},
-    
     /**
      * ページを初期化
      */
@@ -56,37 +53,6 @@ const ChatInit = {
             return;
         }
         
-        // キャラクター専用ハンドラーの初期化
-        console.log('[初期化] キャラクター専用ハンドラーを初期化します');
-        if (window.KaedeHandler && typeof window.KaedeHandler.init === 'function') {
-            window.KaedeHandler.init();
-        }
-        if (window.YukinoHandler && typeof window.YukinoHandler.init === 'function') {
-            window.YukinoHandler.init();
-        }
-        if (window.SoraHandler && typeof window.SoraHandler.init === 'function') {
-            window.SoraHandler.init();
-        }
-        if (window.KaonHandler && typeof window.KaonHandler.init === 'function') {
-            window.KaonHandler.init();
-        }
-        
-        // ハンドラーをChatInit.characterHandlersに登録
-        this.characterHandlers = {
-            'kaede': window.KaedeHandler,
-            'yukino': window.YukinoHandler,
-            'sora': window.SoraHandler,
-            'kaon': window.KaonHandler
-        };
-        console.log('[初期化] characterHandlersを登録しました:', Object.keys(this.characterHandlers));
-
-        // フェードインアニメーション
-        document.body.style.opacity = '0';
-        document.body.style.transition = 'opacity 0.5s ease';
-        requestAnimationFrame(() => {
-            document.body.style.opacity = '1';
-        });
-
         // キャラクターを設定
         const character = ChatData.getCharacterFromURL();
         
@@ -1201,22 +1167,6 @@ const ChatInit = {
                         API側で計算される最終値: messageCountForAPI + 1
                     });
                 }
-                
-                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
-                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
-                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
-                        character, 
-                        guestMessageCount, 
-                        limit: ChatData.GUEST_MESSAGE_LIMIT 
-                    });
-                    const handler = this.characterHandlers[character];
-                    if (handler && typeof handler.handleGuestLimit === 'function') {
-                        handler.handleGuestLimit(guestMessageCount, response);
-                    } else {
-                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
-                    }
-                }
             } else {
                 // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
                 messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
@@ -1334,29 +1284,7 @@ const ChatInit = {
                     );
                 }
                 
-                // ゲストユーザーの場合、registrationSuggestedをチェック
-                // 雪乃の個別相談モードのチェック
-                const isYukinoConsultation = character === 'yukino' && sessionStorage.getItem('yukinoConsultationStarted') === 'true';
-                
-                console.log('[API応答] registrationSuggestedチェック:', {
-                    registrationSuggested: response.registrationSuggested,
-                    ritualConsentShown: ChatData.ritualConsentShown,
-                    character: character,
-                    isYukinoConsultation: isYukinoConsultation,
-                    responseKeys: Object.keys(response)
-                });
-                
                 // キャラクター専用ハンドラーでレスポンスを処理
-                let handlerProcessed = false;
-                
-                // 雪乃のハンドラー
-                if (character === 'yukino' && window.YukinoHandler) {
-                    handlerProcessed = await window.YukinoHandler.handleResponse(response, character);
-                }
-                // 楓のハンドラー
-                else if (character === 'kaede' && window.KaedeHandler) {
-                    handlerProcessed = await window.KaedeHandler.handleResponse(response, character);
-                }
                 // 空良のハンドラー
                 else if (character === 'sora' && window.SoraHandler) {
                     handlerProcessed = await window.SoraHandler.handleResponse(response, character);
@@ -1370,131 +1298,23 @@ const ChatInit = {
                 if (handlerProcessed) {
                     console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
                     // 送信ボタンを再有効化はハンドラー側で行う
-
-                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
-                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
-                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
-                        character, 
-                        guestMessageCount, 
-                        limit: ChatData.GUEST_MESSAGE_LIMIT 
-                    });
-                    const handler = this.characterHandlers[character];
-                    if (handler && typeof handler.handleGuestLimit === 'function') {
-                        handler.handleGuestLimit(guestMessageCount, response);
-                    } else {
-                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
-                    }
-                }
                     return;
                 }
-                // 雪乃の個別相談で9通目の場合、登録を促すメッセージを表示（10通目で登録が必要になる前の警告）
-                else if (isYukinoConsultation && response.registrationSuggested) {
-                    const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                    const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - yukinoCount);
-                    const noticeKey = 'yukinoConsultationPreLimitNoticeShown';
-                    
-                    if (sessionStorage.getItem(noticeKey) !== 'true') {
-                        ChatUI.addMessage(
-                            'error',
-                            `まもなく無料でお話できる回数の上限です。残り${remaining}通です。${ChatData.GUEST_MESSAGE_LIMIT}通目以降はユーザー登録が必要になります。`,
-                            'システム'
-                        );
-                        sessionStorage.setItem(noticeKey, 'true');
-                        console.log('[雪乃個別相談] 上限近づきメッセージを表示しました');
-                    }
-
-                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
-                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
-                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
-                        character, 
-                        guestMessageCount, 
-                        limit: ChatData.GUEST_MESSAGE_LIMIT 
-                    });
-                    const handler = this.characterHandlers[character];
-                    if (handler && typeof handler.handleGuestLimit === 'function') {
-                        handler.handleGuestLimit(guestMessageCount, response);
-                    } else {
-                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
-                    }
-                }
-
-                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
-                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
-                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
-                        character, 
-                        guestMessageCount, 
-                        limit: ChatData.GUEST_MESSAGE_LIMIT 
-                    });
-                    const handler = this.characterHandlers[character];
-                    if (handler && typeof handler.handleGuestLimit === 'function') {
-                        handler.handleGuestLimit(guestMessageCount, response);
-                    } else {
-                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
-                    }
-                }
-                } else if (response.registrationSuggested && !ChatData.ritualConsentShown && guestMessageCount >= 5 && guestMessageCount < ChatData.GUEST_MESSAGE_LIMIT) {
-                    // 楓は「守護神の儀式を始めますか？」の同意ダイアログを8〜9通目で出すと不自然なため、
-                    // ここではダイアログは出さず「上限が近い」案内だけ表示する。
-                    if (character === 'kaede') {
-                        const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
-                        if (sessionStorage.getItem(preLimitNoticeKey) !== 'true') {
-                            const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - guestMessageCount);
-                            ChatUI.addMessage(
-                                'error',
-                                `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
-                                'システム'
-                            );
-
-                // 【新規追加】10通目到達チェック（キャラクターハンドラーに委譲）
-                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10通目到達 → キャラクターハンドラーに委譲', { character, guestMessageCount });
-                    const handler = this.characterHandlers[character];
-                    if (handler && typeof handler.handleGuestLimit === 'function') {
-                        handler.handleGuestLimit(guestMessageCount, response);
-                    } else {
-                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
-                    }
-                }
-
-                        }
-                    } else {
-                        console.log('[API応答] registrationSuggestedがtrueです。登録ボタンを表示します。');
-                        const characterNameForButton = ChatData.characterInfo[character]?.name || '鑑定士';
-                        ChatUI.addMessage('error', `${characterNameForButton === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
-                        
-                        // 【重要】守護神の鑑定を受け入れたフラグを保存
-                        // 登録後に守護神の儀式を自動開始するかどうかの判定に使用
-                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                        console.log('[API応答] acceptedGuardianRitualフラグを保存しました');
-                        
-                        setTimeout(() => {
-                            ChatUI.showRitualConsentButtons();
-                        }, 2000);
+                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                // 【共通ロジック】10通到達時の登録ボタン表示チェック
+                // システム的に10通目に到達したとき、登録ボタンを表示
+                // キャラクター固有の処理は各ハンドラーの handleGuestLimit に委譲
+                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                if (window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
+                    const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
+                    if (limitHandled) {
+                        console.log('[ゲスト制限管理] 10通到達時の処理が完了しました:', character);
+                        // 処理が完了した場合は、以降の処理をスキップ
                     }
                 } else {
-                    console.log('[API応答] 登録ボタンを表示しません:', {
-                        registrationSuggested: response.registrationSuggested,
-                        ritualConsentShown: ChatData.ritualConsentShown
-                    });
+                    console.warn('[ゲスト制限管理] GuestLimitManager が見つかりません');
                 }
-                
-                // 【重要】10通目到達チェック（APIのregistrationSuggestedフラグに依存せず、クライアント側で直接判断）
-                // 雪乃と同じ方式：システム的に10通目に到達したとき、登録ボタンを表示
-                if (guestMessageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                    console.log('[chat-init] 10通目到達を検出 → キャラクターハンドラーに委譲', { 
-                        character, 
-                        guestMessageCount, 
-                        limit: ChatData.GUEST_MESSAGE_LIMIT 
                     });
-                    const handler = this.characterHandlers[character];
-                    if (handler && typeof handler.handleGuestLimit === 'function') {
-                        handler.handleGuestLimit(guestMessageCount, response);
-                    } else {
-                        console.warn('[chat-init] ハンドラーが見つからないか、handleGuestLimitメソッドがありません:', character);
-                    }
                 }
             } else {
                 // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
@@ -1610,7 +1430,7 @@ const ChatInit = {
                         if (data.message) {
                             ChatUI.addMessage('error', data.message, 'システム');
                         }
-                        if (data.needsRegistration && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
+                        if (data.needsRegistration) {
                             // 楓は同意ダイアログを出さず、案内のみ表示
                             if (ChatData.currentCharacter === 'kaede') {
                                 ChatUI.addMessage(
@@ -1624,7 +1444,7 @@ const ChatInit = {
                                     ChatUI.showRitualConsentButtons();
                                 }, 3000);
                             }
-                        } else if (data.registrationSuggested && currentGuestCount < ChatData.GUEST_MESSAGE_LIMIT) {
+                        } else if (data.registrationSuggested) {
                             // 楓は同意ダイアログを出さず、案内のみ表示
                             if (ChatData.currentCharacter === 'kaede') {
                                 const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
@@ -1745,7 +1565,7 @@ const ChatInit = {
                                 this.openRegistrationModal();
                             }, 3000);
                         }
-                        else if (data.needsRegistration && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
+                        else if (data.needsRegistration) {
                             // 楓は同意ダイアログを出さず、案内のみ表示
                             if (ChatData.currentCharacter === 'kaede') {
                                 ChatUI.addMessage(
@@ -1762,7 +1582,7 @@ const ChatInit = {
                                     }, 3000);
                                 }
                             }
-                        } else if (data.registrationSuggested && guestCount < ChatData.GUEST_MESSAGE_LIMIT) {
+                        } else if (data.registrationSuggested) {
                             // 楓は同意ダイアログを出さず、案内のみ表示
                             if (ChatData.currentCharacter === 'kaede') {
                                 const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
@@ -3054,4 +2874,3 @@ function showYukinoRegistrationButtons() {
         console.error('[雪乃登録ボタン] ⚠️ ChatUI.messagesDiv が見つかりません');
     }
 }
-
