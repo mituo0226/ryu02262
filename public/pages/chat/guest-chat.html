@@ -840,8 +840,8 @@
                
                // REQUEST_CHAT_DATAハンドラーは設定しない
                // chat-engine.js内のハンドラーが確実に実行されるようにするため、
-               // 初期ハンドラーは完全に削除（chat-init.jsに任せる）
-               console.log('[iframe] 初期ハンドラー: REQUEST_CHAT_DATAはchat-init.jsに任せます');
+               // 初期ハンドラーは完全に削除（chat-engine.jsに任せる）
+               console.log('[iframe] 初期ハンドラー: REQUEST_CHAT_DATAはchat-engine.jsに任せます');
                
                // 即座に通知を送信
                if (document.readyState === 'loading') {
