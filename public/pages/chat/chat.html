@@ -783,14 +783,11 @@
               
               if (characterId) {
                   // 必要なハンドラーのみを読み込む
+                  // 注意: CharacterLoader.loadHandler()内で既にhandler.init()が呼ばれているため、
+                  // ここで再度初期化する必要はありません
                   const success = await CharacterLoader.loadHandler(characterId);
                   if (success) {
                       console.log('[初期化] ハンドラーを読み込みました:', characterId);
-                      // ハンドラーの初期化を実行
-                      const handler = CharacterRegistry.get(characterId);
-                      if (handler && typeof handler.init === 'function') {
-                          handler.init();
-                      }
                   } else {
                       console.error('[初期化] ハンドラーの読み込みに失敗しました:', characterId);
                   }
