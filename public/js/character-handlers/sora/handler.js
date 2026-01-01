@@ -40,14 +40,11 @@ const SoraHandler = {
             // システムメッセージを表示
             ChatUI.addMessage('error', 'ユーザー登録への同意が検出されました。ボタンが表示されます。', 'システム');
             
-            // フラグを保存（showRitualConsentButtons()の後に設定するため、ここでは設定しない）
+            // フラグを保存
             sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            // ChatData.ritualConsentShown = true; // showRitualConsentButtons()内で設定されるため、ここでは設定しない
             
-            // 登録ボタンを表示
-            setTimeout(() => {
-                ChatUI.showRitualConsentButtons();
-            }, 2000);
+            // システムメッセージ表示後、即座にボタンを表示（APIの挙動に関係なく）
+            this.showRegistrationButtons();
             
             return true;
         }
