@@ -7,6 +7,7 @@ import { generateKaedePrompt } from './characters/kaede.js';
 import { generateYukinoPrompt } from './characters/yukino.js';
 import { generateSoraPrompt } from './characters/sora.js';
 import { generateKaonPrompt } from './characters/kaon.js';
+import { generateCapabilityConstraints, getCharacterFeatures } from './character-capabilities.js';
 
 /**
  * キャラクター名を取得
@@ -106,8 +107,13 @@ export function generateSystemPrompt(characterId, options = {}) {
     guestUserContext,
   });
 
-  // 安全ガイドラインを先頭に追加
-  const prompt = COMMON_SAFETY_GUIDELINES + '\n\n' + characterPrompt;
+  // キャラクターの機能制約を生成（ポジティブアプローチ：利用可能な機能のみを明示）
+  // config.jsonから機能情報を取得する代わりに、API側で一元管理された機能情報を使用
+  const availableFeatures = getCharacterFeatures(characterId);
+  const capabilityConstraints = generateCapabilityConstraints(characterId, availableFeatures);
+
+  // 安全ガイドライン → 機能制約 → キャラクター固有プロンプトの順で結合
+  const prompt = COMMON_SAFETY_GUIDELINES + '\n\n' + capabilityConstraints + '\n\n' + characterPrompt;
 
   console.log('[character-system] システムプロンプト生成完了:', {
     characterId,
