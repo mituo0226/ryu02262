@@ -1,7 +1,36 @@
 /**
  * chat-init.js
  * 初期化とメインロジックを担当
+ * 
+ * 【重要】キャラクター固有の処理は一切含まれません。
+ * すべてのキャラクター固有の処理は各ハンドラーファイルに委譲されます。
  */
+
+// ハンドラーレジストリ（キャラクターIDからハンドラーを取得）
+const CharacterHandlerRegistry = {
+    /**
+     * キャラクターIDからハンドラーを取得
+     * @param {string} characterId - キャラクターID
+     * @returns {Object|null} キャラクターハンドラー
+     */
+    getHandler(characterId) {
+        // グローバルスコープからハンドラーを動的に取得
+        // ハンドラーは window.[CharacterName]Handler の形式で公開される
+        const handlerName = this.getHandlerName(characterId);
+        return window[handlerName] || null;
+    },
+
+    /**
+     * キャラクターIDからハンドラー名を生成
+     * @param {string} characterId - キャラクターID（例: 'kaede'）
+     * @returns {string} ハンドラー名（例: 'KaedeHandler'）
+     */
+    getHandlerName(characterId) {
+        if (!characterId) return null;
+        // 最初の文字を大文字にして、'Handler'を付加
+        return characterId.charAt(0).toUpperCase() + characterId.slice(1) + 'Handler';
+    }
+};
 
 const ChatInit = {
     /**
@@ -123,14 +152,7 @@ const ChatInit = {
                 const historyData = await ChatAPI.loadConversationHistory(character);
                 
                 // キャラクター専用ハンドラーの初期化処理を呼び出す
-                const handlerMap = {
-                    'kaede': window.KaedeHandler,
-                    'yukino': window.YukinoHandler,
-                    'sora': window.SoraHandler,
-                    'kaon': window.KaonHandler
-                };
-                
-                const handler = handlerMap[character];
+                const handler = CharacterHandlerRegistry.getHandler(character);
                 if (handler && typeof handler.initPage === 'function') {
                     const result = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow);
                     if (result && result.completed) {
@@ -267,18 +289,10 @@ const ChatInit = {
                         console.log('[登録完了処理] イベントリスナーの設定完了');
                     }
                     
-                    // キャラクター固有のフラグをクリア
-                    if (character === 'yukino') {
-                        // 雪乃のタロット関連フラグをクリア
-                        sessionStorage.removeItem('yukinoThreeCardsPrepared');
-                        sessionStorage.removeItem('yukinoAllThreeCards');
-                        sessionStorage.removeItem('yukinoRemainingCards');
-                        sessionStorage.removeItem('yukinoTarotCardForExplanation');
-                        sessionStorage.removeItem('yukinoSummaryShown');
-                        sessionStorage.removeItem('yukinoFirstMessageInSession');
-                        sessionStorage.removeItem('yukinoConsultationStarted');
-                        sessionStorage.removeItem('yukinoConsultationMessageCount');
-                        console.log('[登録完了処理] 雪乃のタロット関連フラグをクリアしました');
+                    // キャラクター固有のフラグをクリア（ハンドラーに委譲）
+                    const handler = CharacterHandlerRegistry.getHandler(character);
+                    if (handler && typeof handler.clearCharacterFlags === 'function') {
+                        handler.clearCharacterFlags();
                     }
                     
                     // URLパラメータからjustRegisteredを削除
@@ -494,31 +508,8 @@ const ChatInit = {
                     });
                 }
                 
-                // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
-                // 守護神の判定はデータベース（historyData.assignedDeity = guardianカラム）を優先
-                // 会話履歴の有無に関わらず、guardianが未登録であれば儀式を開始（楓専用）
-                if (!isGuestMode && character === 'kaede' && !justRegistered && !shouldTriggerRegistrationFlow) {
-                    // データベースのguardianカラムから取得した値（優先）
-                    const hasAssignedDeity = historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
-                    
-                    // 守護神が未決定（データベースのguardianカラムが未設定）の場合、自動的に儀式を開始
-                    if (!hasAssignedDeity) {
-                        console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神（guardian）が未登録（DB確認）のため、自動的に儀式を開始します。', {
-                            assignedDeityFromDB: historyData.assignedDeity,
-                            hasHistory: historyData.hasHistory,
-                            recentMessagesLength: historyData.recentMessages?.length || 0
-                        });
-                        
-                        // 自動的に守護神の儀式を開始するためのフラグを設定
-                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                        
-                        // 自動的に守護神の儀式を開始
-                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                            await window.ChatInit.startGuardianRitual(character, null);
-                            return; // 儀式開始後は処理を終了
-                        }
-                    }
-                }
+                // 登録済みユーザーの特殊処理（ハンドラーに委譲）
+                // 例: 楓の守護神判定などはハンドラーのinitPageで処理される
                 
                 if (guestHistory.length === 0 && !guardianMessageShown) {
                     // #region agent log
@@ -824,34 +815,35 @@ const ChatInit = {
         
         // メッセージ送信ボタンを押した時点で、即座にカウントを開始
         if (isGuest && !isTarotExplanationTrigger) {
-            // 雪乃の個別相談モードのチェック
-            const isYukinoConsultation = character === 'yukino' && sessionStorage.getItem('yukinoConsultationStarted') === 'true';
+            // 個別相談モードのチェック（ハンドラーに委譲）
+            const handler = CharacterHandlerRegistry.getHandler(character);
+            const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
+                ? handler.isConsultationMode() 
+                : false;
             
-            // メッセージ送信前：現在のカウントを取得
+            // メッセージ送信前：現在のカウントを取得（ハンドラーに委譲）
             let currentCount;
-            if (isYukinoConsultation) {
-                // 雪乃の個別相談の場合、専用のカウントを使用
-                currentCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                console.log('[雪乃個別相談] 現在のメッセージカウント:', currentCount);
+            if (isConsultationMode && handler && typeof handler.getConsultationMessageCount === 'function') {
+                currentCount = handler.getConsultationMessageCount();
             } else {
                 // 通常のゲストメッセージカウントを使用
                 currentCount = ChatData.getGuestMessageCount(character);
             }
             
-            // 11通目以降のチェック（10通目は送信を許可し、雪乃からのメッセージを表示する）
+            // 11通目以降のチェック（10通目は送信を許可し、メッセージを表示する）
             if (currentCount > ChatData.GUEST_MESSAGE_LIMIT) {
-                if (isYukinoConsultation) {
-                    console.log('[雪乃個別相談] 11通目以降のため、登録画面へ遷移します');
-                    // 雪乃の場合は登録画面へ遷移
-                    window.location.href = '/pages/auth/register.html';
+                if (isConsultationMode && handler && typeof handler.handleOverLimit === 'function') {
+                    handler.handleOverLimit();
                     return;
                 } else {
-                    console.log('[メッセージ制限] 11通目以降のため、守護神の儀式を強制開始します');
-                    if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.forceStartGuardianRitual === 'function') {
-                        await window.KaedeRitualHandler.forceStartGuardianRitual(character);
-                    } else if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
-                        await window.KaedeRitualHandler.handleRitualConsent(true);
+                    // ハンドラーの11通目以降の処理を呼び出す
+                    if (handler && typeof handler.handleOverLimit === 'function') {
+                        handler.handleOverLimit();
+                        return;
                     }
+                    // フォールバック: 共通処理
+                    console.log('[メッセージ制限] 11通目以降のため、登録画面へ遷移します');
+                    this.openRegistrationModal();
                     return;
                 }
             }
@@ -861,13 +853,7 @@ const ChatInit = {
             ChatData.addToGuestHistory(character, 'user', message);
             
             // ゲストモードで会話したことを記録（ハンドラーに委譲）
-            const handlerMap = {
-                'kaede': window.KaedeHandler,
-                'yukino': window.YukinoHandler,
-                'sora': window.SoraHandler,
-                'kaon': window.KaonHandler
-            };
-            const handler = handlerMap[character];
+            const handler = CharacterHandlerRegistry.getHandler(character);
             if (handler && typeof handler.markGuestConversed === 'function') {
                 handler.markGuestConversed();
             }
@@ -881,37 +867,13 @@ const ChatInit = {
                 lastMessage: savedHistory.length > 0 ? savedHistory[savedHistory.length - 1] : null
             });
             
-            // 雪乃の個別相談の場合、専用のカウントをインクリメント
+            // メッセージカウントを取得（ハンドラーに委譲）
             let messageCount;
-            if (isYukinoConsultation) {
-                const yukinoCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
-                const newYukinoCount = yukinoCount + 1;
-                sessionStorage.setItem('yukinoConsultationMessageCount', String(newYukinoCount));
-                messageCount = newYukinoCount;
-                console.log('[雪乃個別相談] カウントをインクリメント:', {
-                    前のカウント: yukinoCount,
-                    新しいカウント: newYukinoCount,
-                    残り通数: ChatData.GUEST_MESSAGE_LIMIT - newYukinoCount
-                });
-                
-                // 9通目のメッセージを送信した直後にフラグを立てる
-                if (newYukinoCount === 9) {
-                    console.log('[雪乃個別相談] 9通目送信。次のAPI応答後に登録ボタンを表示します');
-                    sessionStorage.setItem('yukinoShouldShowRegistrationButton', 'true');
-                }
+            if (isConsultationMode && handler && typeof handler.incrementConsultationMessageCount === 'function') {
+                messageCount = handler.incrementConsultationMessageCount();
             } else {
                 // 通常のカウントを取得
                 messageCount = ChatData.getGuestMessageCount(character);
-            }
-
-            // 10通目の場合、雪乃からの登録促進メッセージを表示するため、ここでは遷移しない
-            // APIレスポンスで needsRegistration フラグをチェックして処理する
-            if (messageCount === ChatData.GUEST_MESSAGE_LIMIT) {
-                if (isYukinoConsultation) {
-                    console.log('[雪乃個別相談] 10通目に到達。');
-                } else {
-                    console.log('[メッセージ制限] 10通目に到達。APIから登録促進メッセージを受け取ります');
-                }
             }
             
             const isFirstMessage = currentCount === 0;
@@ -1085,8 +1047,11 @@ const ChatInit = {
             // 内部で +1 して計算するため、ここでは「これまでのメッセージ数」を送信する必要がある
             let messageCountForAPI = 0;
             if (isGuest) {
-                // 雪乃の個別相談モードのチェック
-                const isYukinoConsultation = character === 'yukino' && sessionStorage.getItem('yukinoConsultationStarted') === 'true';
+                // 個別相談モードのチェック（ハンドラーに委譲）
+                const handler = CharacterHandlerRegistry.getHandler(character);
+                const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
+                    ? handler.isConsultationMode() 
+                    : false;
                 
                 let currentCount;
                 if (isYukinoConsultation) {
@@ -1104,13 +1069,7 @@ const ChatInit = {
                     currentCount = ChatData.getGuestMessageCount(character);
                     
                     // メッセージカウントを計算（ハンドラーに委譲）
-                    const handlerMap = {
-                        'kaede': window.KaedeHandler,
-                        'yukino': window.YukinoHandler,
-                        'sora': window.SoraHandler,
-                        'kaon': window.KaonHandler
-                    };
-                    const handler = handlerMap[character];
+                    const handler = CharacterHandlerRegistry.getHandler(character);
                     if (handler && typeof handler.calculateMessageCount === 'function') {
                         messageCountForAPI = handler.calculateMessageCount(currentCount);
                     } else {
@@ -1123,7 +1082,7 @@ const ChatInit = {
                         送信メッセージ: messageToSend.substring(0, 50),
                         タロット解説トリガー: isTarotExplanationTrigger,
                         会話履歴のユーザーメッセージ数: currentCount,
-                        '楓専用_マイナス1適用': character === 'kaede',
+                        'メッセージカウント計算': 'ハンドラーで処理',
                         APIに送信する値: messageCountForAPI,
                         API側で計算される最終値: messageCountForAPI + 1
                     });
@@ -1133,12 +1092,11 @@ const ChatInit = {
                 messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
                 
                 // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
-                // yukinoFirstMessageInSessionがまだ設定されていない場合、そのセッションで最初のメッセージ
-                if (character === 'yukino' && !isTarotExplanationTrigger) {
-                    const existingFirstMessage = sessionStorage.getItem('yukinoFirstMessageInSession');
-                    if (!existingFirstMessage) {
-                        sessionStorage.setItem('yukinoFirstMessageInSession', messageToSend);
-                        console.log('[メッセージ送信] 登録ユーザー（雪乃）のセッション最初のメッセージを記録:', messageToSend.substring(0, 50));
+                // セッション最初のメッセージを記録（ハンドラーに委譲）
+                if (!isTarotExplanationTrigger) {
+                    const handler = CharacterHandlerRegistry.getHandler(character);
+                    if (handler && typeof handler.recordFirstMessageInSession === 'function') {
+                        handler.recordFirstMessageInSession(messageToSend);
                     }
                 }
             }
@@ -1175,13 +1133,7 @@ const ChatInit = {
             // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
             let shouldShowUserMessage = !skipUserMessage;
             if (!skipUserMessage) {
-                const handlerMap = {
-                    'kaede': window.KaedeHandler,
-                    'yukino': window.YukinoHandler,
-                    'sora': window.SoraHandler,
-                    'kaon': window.KaonHandler
-                };
-                const handler = handlerMap[character];
+                const handler = CharacterHandlerRegistry.getHandler(character);
                 if (handler && typeof handler.shouldShowUserMessage === 'function') {
                     shouldShowUserMessage = handler.shouldShowUserMessage(responseText, isGuest);
                 }
@@ -1239,14 +1191,7 @@ const ChatInit = {
                 const guestMessageCount = ChatData.getGuestMessageCount(character);
                 
                 // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
-                const handlerMap = {
-                    'kaede': window.KaedeHandler,
-                    'yukino': window.YukinoHandler,
-                    'sora': window.SoraHandler,
-                    'kaon': window.KaonHandler
-                };
-                
-                const handler = handlerMap[character];
+                const handler = CharacterHandlerRegistry.getHandler(character);
                 if (handler && typeof handler.handleResponse === 'function') {
                     handlerProcessed = await handler.handleResponse(response, character);
                     
@@ -1389,7 +1334,12 @@ const ChatInit = {
                                 // 既にボタンが表示されている場合は表示しない
                                 if (!ChatData.ritualConsentShown) {
                                     const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                                    ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                                    // メッセージはハンドラーから取得（ハンドラーのgetConsentMessageを使用）
+                                    const handler = CharacterHandlerRegistry.getHandler(ChatData.currentCharacter);
+                                    const consentMessage = handler && typeof handler.getConsentMessage === 'function'
+                                        ? handler.getConsentMessage()
+                                        : 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
+                                    ChatUI.addMessage('error', consentMessage, 'システム');
                                     setTimeout(() => {
                                         ChatUI.showRitualConsentButtons();
                                     }, 2000);
@@ -1527,7 +1477,12 @@ const ChatInit = {
                                 // 既にボタンが表示されている場合は表示しない
                                 if (!ChatData.ritualConsentShown) {
                                     const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                                    ChatUI.addMessage('error', `${characterName === '楓' ? '守護神の儀式' : 'ユーザー登録'}への同意が検出されました。ボタンが表示されます。`, 'システム');
+                                    // メッセージはハンドラーから取得（ハンドラーのgetConsentMessageを使用）
+                                    const handler = CharacterHandlerRegistry.getHandler(ChatData.currentCharacter);
+                                    const consentMessage = handler && typeof handler.getConsentMessage === 'function'
+                                        ? handler.getConsentMessage()
+                                        : 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
+                                    ChatUI.addMessage('error', consentMessage, 'システム');
                                     setTimeout(() => {
                                         ChatUI.showRitualConsentButtons();
                                     }, 2000);
@@ -1578,14 +1533,7 @@ const ChatInit = {
         const character = ChatData.currentCharacter;
         
         // キャラクター専用ハンドラーの同意処理を呼び出す
-        const handlerMap = {
-            'kaede': window.KaedeHandler,
-            'yukino': window.YukinoHandler,
-            'sora': window.SoraHandler,
-            'kaon': window.KaonHandler
-        };
-        
-        const handler = handlerMap[character];
+        const handler = CharacterHandlerRegistry.getHandler(character);
         if (handler && typeof handler.handleRitualConsent === 'function') {
             const handled = await handler.handleRitualConsent(consent);
             if (handled) {

@@ -232,6 +232,63 @@ const YukinoHandler = {
     shouldShowUserMessage(responseText, isGuest) {
         // 雪乃の場合は常に表示
         return true;
+    },
+
+    /**
+     * レスポンス表示後の処理（タロットカード解説後のボタン表示など）
+     * @param {string} messageId - メッセージID
+     */
+    handleAfterResponseDisplay(messageId) {
+        // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
+        const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
+        if (cardInfoStr) {
+            try {
+                const cardInfo = JSON.parse(cardInfoStr);
+                const messagesDiv = document.getElementById('messages');
+                if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
+                    // 少し待ってからボタンを表示（AI応答が完全に表示された後）
+                    setTimeout(() => {
+                        window.YukinoTarot.displayNextCardButton(cardInfo.position, messagesDiv);
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('[タロットボタン表示] カード情報の解析エラー:', error);
+            }
+        }
+    },
+
+    /**
+     * 個別相談モードのメッセージカウントを取得
+     * @returns {number} メッセージカウント
+     */
+    getConsultationMessageCount() {
+        return parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
+    },
+
+    /**
+     * 個別相談モードのメッセージカウントをインクリメント
+     * @returns {number} 新しいメッセージカウント
+     */
+    incrementConsultationMessageCount() {
+        const currentCount = this.getConsultationMessageCount();
+        const newCount = currentCount + 1;
+        sessionStorage.setItem('yukinoConsultationMessageCount', String(newCount));
+        
+        // 9通目のメッセージを送信した直後にフラグを立てる
+        if (newCount === 9) {
+            console.log('[雪乃個別相談] 9通目送信。次のAPI応答後に登録ボタンを表示します');
+            sessionStorage.setItem('yukinoShouldShowRegistrationButton', 'true');
+        }
+        
+        return newCount;
+    },
+
+    /**
+     * 11通目以降の処理（登録画面への遷移など）
+     */
+    handleOverLimit() {
+        console.log('[雪乃個別相談] 11通目以降のため、登録画面へ遷移します');
+        window.location.href = '/pages/auth/register.html';
     }
 };
 
