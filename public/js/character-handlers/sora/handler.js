@@ -269,7 +269,22 @@ const SoraHandler = {
             
             // 質問文を設定（ソラ用）
             if (ritualConsentQuestion) {
-                ritualConsentQuestion.textContent = 'ユーザー登録を進めますか？';
+                ritualConsentQuestion.textContent = 'これ以上の会話はユーザー登録が必要です。ニックネームと生年月日を入力してください。料金はかかりません。';
+            }
+            
+            // メッセージ入力欄を無効化
+            if (ChatUI.messageInput) {
+                ChatUI.messageInput.disabled = true;
+                ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
+            }
+            if (ChatUI.sendButton) {
+                ChatUI.sendButton.disabled = true;
+            }
+            
+            // メッセージエリアにマージンを追加（登録ボタンと重ならないように）
+            const messagesDiv = document.querySelector('.messages');
+            if (messagesDiv) {
+                messagesDiv.style.paddingBottom = '220px';
             }
             
             // ボタンを即座に表示（APIの挙動に関係なく）

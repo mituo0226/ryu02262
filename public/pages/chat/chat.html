@@ -578,7 +578,7 @@
         /* 守護神の儀式への同意ボタン */
         .ritual-consent-container {
             position: fixed;
-            bottom: 120px;
+            bottom: 180px; /* メッセージ入力欄（約80px）の上に配置 */
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
@@ -591,7 +591,7 @@
             visibility: hidden;
             transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
             max-width: 90%;
-            width: 400px;
+            width: 500px; /* 質問文が長いため、幅を広げる */
         }
 
         .ritual-consent-container.visible {
@@ -602,10 +602,11 @@
 
         .ritual-consent-question {
             text-align: center;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: #ffffff;
             margin-bottom: 20px;
+            line-height: 1.6;
         }
 
         .ritual-consent-buttons {
@@ -650,11 +651,11 @@
             .ritual-consent-container {
                 width: 90%;
                 padding: 20px;
-                bottom: 100px;
+                bottom: 160px; /* モバイルでも入力欄の上に配置 */
             }
 
             .ritual-consent-question {
-                font-size: 16px;
+                font-size: 14px;
             }
 
             .ritual-consent-button {
