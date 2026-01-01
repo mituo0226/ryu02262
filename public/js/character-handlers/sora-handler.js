@@ -169,6 +169,70 @@ const SoraHandler = {
     },
 
     /**
+     * ページ初期化処理（initPage関数から呼び出される）
+     * @param {URLSearchParams} urlParams - URLパラメータ
+     * @param {Object} historyData - 会話履歴データ
+     * @param {boolean} justRegistered - 登録直後かどうか
+     * @param {boolean} shouldTriggerRegistrationFlow - 登録フローをトリガーするか
+     * @returns {Object|null} 処理結果
+     */
+    async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow) {
+        // ソラの場合は特別な初期化処理なし
+        return null;
+    },
+
+    /**
+     * 登録後の定型文を取得
+     * @param {string} userNickname - ユーザーのニックネーム
+     * @param {string} lastGuestUserMessage - 最後のゲストユーザーメッセージ
+     * @returns {string} 定型文
+     */
+    getWelcomeBackMessage(userNickname, lastGuestUserMessage) {
+        if (lastGuestUserMessage) {
+            return `（ふっと笑って）おかえり、${userNickname}。名前覚えたよ。登録してくれてありがとな。これでもっと深く君のこと分かるようになったから。\n\nさっき君が言ってた「${lastGuestUserMessage}」、まだ気になってるんじゃない？続きを話したいなら、いつでも言ってよ。`;
+        } else {
+            return `（ふっと笑って）おかえり、${userNickname}。名前覚えたよ。登録してくれてありがとな。これでもっと深く君のこと分かるようになったから。\n\n何話したい？俺、君の話、聞くの好きだからさ。`;
+        }
+    },
+
+    /**
+     * 同意メッセージを取得
+     * @returns {string} 同意メッセージ
+     */
+    getConsentMessage() {
+        return 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
+    },
+
+    /**
+     * 拒否メッセージを取得
+     * @returns {string} 拒否メッセージ
+     */
+    getDeclineMessage() {
+        return 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。';
+    },
+
+    /**
+     * メッセージカウントを計算（API送信用）
+     * @param {number} currentCount - 現在のメッセージカウント
+     * @returns {number} APIに送信するメッセージカウント
+     */
+    calculateMessageCount(currentCount) {
+        // ソラの場合はそのまま使用
+        return currentCount;
+    },
+
+    /**
+     * ユーザーメッセージを表示するかどうかを判定
+     * @param {string} responseText - API応答テキスト
+     * @param {boolean} isGuest - ゲストモードかどうか
+     * @returns {boolean} 表示するかどうか
+     */
+    shouldShowUserMessage(responseText, isGuest) {
+        // ソラの場合は常に表示
+        return true;
+    },
+
+    /**
      * ゲスト履歴をクリア
      */
     clearGuestHistory() {

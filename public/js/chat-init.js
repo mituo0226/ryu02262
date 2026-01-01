@@ -118,143 +118,96 @@ const ChatInit = {
         if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
             console.log('[登録完了処理] 開始 - character:', character);
             
-            // 楓専用の処理：守護神の儀式完了チェック（会話履歴読み込み後に処理するため、ここではフラグのみチェック）
-            let guardianMessageShown = false;
-            let shouldSendGuardianConfirmation = false;
-            let guardianConfirmationData = null;
-            
-            // 楓専用の処理を独立したファイルから呼び出す
-            if (character === 'kaede' && window.KaedeRitualHandler) {
-                guardianConfirmationData = window.KaedeRitualHandler.checkGuardianRitualCompletion(character, urlParams);
-                if (guardianConfirmationData) {
-                    shouldSendGuardianConfirmation = true;
-                }
-            }
-            
             try {
                 // 会話履歴を読み込む（登録完了処理で使用するため）
-                // 守護神メッセージ表示後も、その後の会話履歴を読み込んでAPIを通して鑑定を進める
                 const historyData = await ChatAPI.loadConversationHistory(character);
                 
-                    // 【重要】守護神確認メッセージを送信（会話履歴読み込み後）
-                    // 楓専用の処理を独立したファイルから呼び出す
-                    if (shouldSendGuardianConfirmation && guardianConfirmationData) {
-                        if (character === 'kaede' && window.KaedeRitualHandler) {
-                            const completed = await window.KaedeRitualHandler.handleGuardianRitualCompletion(
-                                character,
-                                guardianConfirmationData,
-                                historyData
-                            );
-                            if (completed) {
-                                guardianMessageShown = true;
-                                console.log('[登録完了処理] 守護神の儀式完了メッセージを表示しました。処理を終了します。');
-                                return; // 処理終了
-                            }
-                        }
-                    }
+                // キャラクター専用ハンドラーの初期化処理を呼び出す
+                const handlerMap = {
+                    'kaede': window.KaedeHandler,
+                    'yukino': window.YukinoHandler,
+                    'sora': window.SoraHandler,
+                    'kaon': window.KaonHandler
+                };
                 
-                // 楓専用の処理：守護神の儀式開始処理（独立したファイルから呼び出す）
-                if (character === 'kaede' && window.KaedeRitualHandler) {
-                    const ritualHandled = await window.KaedeRitualHandler.handlePostRegistrationRitualStart(
-                        character,
-                        historyData,
-                        urlParams
-                    );
-                    if (ritualHandled) {
-                        // 儀式準備が完了した、または処理がスキップされた
-                        // 処理は続行しない（returnしない - 他の処理も必要かもしれないため）
-                        // ただし、儀式を開始しない場合はここで終了
-                        const acceptedGuardianRitual = sessionStorage.getItem('acceptedGuardianRitual');
-                        if (acceptedGuardianRitual !== 'true') {
-                            return; // 儀式を開始しない場合は処理終了
+                const handler = handlerMap[character];
+                if (handler && typeof handler.initPage === 'function') {
+                    const result = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow);
+                    if (result && result.completed) {
+                        console.log('[登録完了処理] ハンドラーで処理完了。処理を終了します。');
+                        return; // 処理終了
+                    }
+                    if (result && result.skip) {
+                        console.log('[登録完了処理] ハンドラーで処理スキップ。処理を終了します。');
+                        return; // 処理終了
+                    }
+                }
+                
+                // ゲスト履歴を先に取得
+                const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
+                let guestHistory = [];
+                
+                if (pendingMigration) {
+                    try {
+                        const migrationData = JSON.parse(pendingMigration);
+                        if (migrationData.character === character && migrationData.history) {
+                            guestHistory = migrationData.history;
+                            console.log('[登録完了処理] ゲスト履歴を取得:', {
+                                historyLength: guestHistory.length,
+                                userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
+                            });
+                        }
+                    } catch (error) {
+                        console.error('[登録完了処理] ゲスト履歴の取得エラー:', error);
+                    }
+                }
+                
+                // キャラクター専用ハンドラーの登録完了後処理を呼び出す
+                if (handler && typeof handler.handlePostRegistration === 'function') {
+                    await handler.handlePostRegistration(historyData, guestHistory);
+                }
+                
+                const info = ChatData.characterInfo[character];
+                
+                if (guestHistory.length > 0) {
+                    // ゲスト履歴がある場合：画面に履歴を表示してから、「おかえりなさい」メッセージを表示
+                    console.log('[登録完了処理] ゲスト履歴を画面に表示します:', guestHistory.length, '件');
+                    
+                    // 【重要】先にゲスト履歴を画面に表示
+                    guestHistory.forEach((entry) => {
+                        // システムメッセージ（isSystemMessage: true）は画面に表示しない
+                        if (entry.isSystemMessage) {
+                            console.log('[登録完了処理] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                            return;
+                        }
+                        const type = entry.role === 'user' ? 'user' : 'character';
+                        const sender = entry.role === 'user' ? 'あなた' : info.name;
+                        ChatUI.addMessage(type, entry.content, sender);
+                    });
+                    console.log('[登録完了処理] ゲスト履歴の表示完了');
+                    
+                    // 最後のゲストユーザーメッセージを抽出
+                    let lastGuestUserMessage = '';
+                    for (let i = guestHistory.length - 1; i >= 0; i--) {
+                        if (guestHistory[i].role === 'user') {
+                            lastGuestUserMessage = guestHistory[i].content;
+                            break;
                         }
                     }
-                } else if (character === 'kaede') {
-                    // KaedeRitualHandlerが読み込まれていない場合のフォールバック（エラー回避）
-                    console.warn('[登録完了処理] KaedeRitualHandlerが見つかりません。楓専用の処理をスキップします。');
-                } else {
-                    // カエデ以外の場合：ゲスト履歴をデータベースに保存し、クリーンな画面で開始
-                    console.log('[登録完了処理] カエデ以外のキャラクター:', character);
                     
-                    // ゲスト履歴を先に取得
-                    const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
-                    let guestHistory = [];
+                    // ニックネームを取得
+                    const userNickname = localStorage.getItem('userNickname') || 'あなた';
                     
-                    if (pendingMigration) {
-                        try {
-                            const migrationData = JSON.parse(pendingMigration);
-                            if (migrationData.character === character && migrationData.history) {
-                                guestHistory = migrationData.history;
-                                console.log('[登録完了処理] ゲスト履歴を取得:', {
-                                    historyLength: guestHistory.length,
-                                    userMessages: guestHistory.filter(msg => msg && msg.role === 'user').length
-                                });
-                            }
-                        } catch (error) {
-                            console.error('[登録完了処理] ゲスト履歴の取得エラー:', error);
-                        }
+                    // 定型文を生成（ハンドラーから取得、なければ汎用メッセージ）
+                    let welcomeBackMessage = null;
+                    if (handler && typeof handler.getWelcomeBackMessage === 'function') {
+                        welcomeBackMessage = handler.getWelcomeBackMessage(userNickname, lastGuestUserMessage);
                     }
                     
-                    // キャラクター専用ハンドラーの登録完了後処理を呼び出す
-                    if (character === 'yukino' && window.YukinoHandler) {
-                        await window.YukinoHandler.handlePostRegistration(historyData, guestHistory);
-                    } else if (character === 'sora' && window.SoraHandler) {
-                        await window.SoraHandler.handlePostRegistration(historyData, guestHistory);
-                    } else if (character === 'kaon' && window.KaonHandler) {
-                        await window.KaonHandler.handlePostRegistration(historyData, guestHistory);
+                    if (!welcomeBackMessage) {
+                        // ハンドラーがnullを返した場合、またはメソッドがない場合は汎用メッセージ
+                        welcomeBackMessage = `${userNickname}さん、おかえりなさい。ユーザー登録ありがとうございます。それでは、続きを始めましょうか。`;
                     }
-                    
-                    const info = ChatData.characterInfo[character];
-                    
-                    if (guestHistory.length > 0) {
-                        // ゲスト履歴がある場合：画面に履歴を表示してから、「おかえりなさい」メッセージを表示
-                        console.log('[登録完了処理] ゲスト履歴を画面に表示します:', guestHistory.length, '件');
-                        
-                        // 【重要】先にゲスト履歴を画面に表示
-                        guestHistory.forEach((entry) => {
-                            // システムメッセージ（isSystemMessage: true）は画面に表示しない
-                            if (entry.isSystemMessage) {
-                                console.log('[登録完了処理] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
-                                return;
-                            }
-                            const type = entry.role === 'user' ? 'user' : 'character';
-                            const sender = entry.role === 'user' ? 'あなた' : info.name;
-                            ChatUI.addMessage(type, entry.content, sender);
-                        });
-                        console.log('[登録完了処理] ゲスト履歴の表示完了');
-                        
-                        // 最後のゲストユーザーメッセージを抽出
-                        let lastGuestUserMessage = '';
-                        for (let i = guestHistory.length - 1; i >= 0; i--) {
-                            if (guestHistory[i].role === 'user') {
-                                lastGuestUserMessage = guestHistory[i].content;
-                                break;
-                            }
-                        }
-                        
-                        // ニックネームを取得
-                        const userNickname = localStorage.getItem('userNickname') || 'あなた';
-                        
-                        // 定型文を生成（キャラクター別）
-                        let welcomeBackMessage = '';
-                        if (character === 'yukino') {
-                            // 雪乃専用の定型文
-                            if (lastGuestUserMessage) {
-                                welcomeBackMessage = `おかえりなさい、${userNickname}さん。${userNickname}さん、というお名前ですね。しっかり覚えました。ユーザー登録してくださり、本当にありがとうございます。\n\nあなたとの会話の最後のメッセージは「${lastGuestUserMessage}」でしたね。この会話の続きをお望みであれば、その意思を伝えてくださいね。`;
-                            } else {
-                                welcomeBackMessage = `おかえりなさい、${userNickname}さん。${userNickname}さん、というお名前ですね。しっかり覚えました。ユーザー登録してくださり、本当にありがとうございます。\n\nどんな話をしましょうか？`;
-                            }
-                        } else if (character === 'sora') {
-                            // ソラ専用の定型文
-                            if (lastGuestUserMessage) {
-                                welcomeBackMessage = `（ふっと笑って）おかえり、${userNickname}。名前覚えたよ。登録してくれてありがとな。これでもっと深く君のこと分かるようになったから。\n\nさっき君が言ってた「${lastGuestUserMessage}」、まだ気になってるんじゃない？続きを話したいなら、いつでも言ってよ。`;
-                            } else {
-                                welcomeBackMessage = `（ふっと笑って）おかえり、${userNickname}。名前覚えたよ。登録してくれてありがとな。これでもっと深く君のこと分かるようになったから。\n\n何話したい？俺、君の話、聞くの好きだからさ。`;
-                            }
-                        } else {
-                            // 他のキャラクターの場合は汎用メッセージ
-                            welcomeBackMessage = `${userNickname}さん、おかえりなさい。ユーザー登録ありがとうございます。それでは、続きを始めましょうか。`;
-                        }
                         
                         // 定型文を画面に表示
                         ChatUI.addMessage('character', welcomeBackMessage, info.name);
@@ -907,11 +860,16 @@ const ChatInit = {
             // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
             ChatData.addToGuestHistory(character, 'user', message);
             
-            // ゲストモードで会話したことを記録（雪乃・ソラのみ）
-            if (character === 'yukino' && window.YukinoHandler && typeof window.YukinoHandler.markGuestConversed === 'function') {
-                window.YukinoHandler.markGuestConversed();
-            } else if (character === 'sora' && window.SoraHandler && typeof window.SoraHandler.markGuestConversed === 'function') {
-                window.SoraHandler.markGuestConversed();
+            // ゲストモードで会話したことを記録（ハンドラーに委譲）
+            const handlerMap = {
+                'kaede': window.KaedeHandler,
+                'yukino': window.YukinoHandler,
+                'sora': window.SoraHandler,
+                'kaon': window.KaonHandler
+            };
+            const handler = handlerMap[character];
+            if (handler && typeof handler.markGuestConversed === 'function') {
+                handler.markGuestConversed();
             }
             
             // 会話履歴が正しく保存されたことを確認
@@ -1145,15 +1103,18 @@ const ChatInit = {
                     // 通常のゲストメッセージカウントを使用
                     currentCount = ChatData.getGuestMessageCount(character);
                     
-                    // 楓専用：会話履歴には既に今回送信するメッセージが含まれているため、-1する
-                    // 他の鑑定士：currentCountをそのまま使用
-                    if (character === 'kaede') {
-                        // 楓の場合、会話履歴には既に今回送信するメッセージが含まれているため、
-                        // -1 して「これまでのメッセージ数」を計算
-                        messageCountForAPI = Math.max(0, currentCount - 1);
+                    // メッセージカウントを計算（ハンドラーに委譲）
+                    const handlerMap = {
+                        'kaede': window.KaedeHandler,
+                        'yukino': window.YukinoHandler,
+                        'sora': window.SoraHandler,
+                        'kaon': window.KaonHandler
+                    };
+                    const handler = handlerMap[character];
+                    if (handler && typeof handler.calculateMessageCount === 'function') {
+                        messageCountForAPI = handler.calculateMessageCount(currentCount);
                     } else {
-                        // 他の鑑定士（花音、空、雪乃のタロット鑑定中）の場合、currentCountをそのまま使用
-                        // タロット解説トリガーは会話履歴に追加されないため、currentCountが自動的に正しい値になる
+                        // ハンドラーがない場合はそのまま使用
                         messageCountForAPI = currentCount;
                     }
                     
@@ -1211,16 +1172,18 @@ const ChatInit = {
             const characterName = ChatData.characterInfo[character]?.name || character;
             const responseText = response.message || response.response || '応答を取得できませんでした';
             
-            // 楓専用の処理：「ニックネームと生年月日を入力」が含まれる場合は、ユーザーメッセージを表示しない
-            // それ以外の場合は、ユーザーメッセージを表示する
+            // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
             let shouldShowUserMessage = !skipUserMessage;
-            if (isGuest && character === 'kaede') {
-                const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
-                                             responseText.includes('**ニックネームと生年月日を入力**') ||
-                                             responseText.includes('生年月日を入力');
-                if (hasRegistrationInput) {
-                    shouldShowUserMessage = false;
-                    console.log('[楓専用処理] 「ニックネームと生年月日を入力」を検出。ユーザーメッセージを表示しません。');
+            if (!skipUserMessage) {
+                const handlerMap = {
+                    'kaede': window.KaedeHandler,
+                    'yukino': window.YukinoHandler,
+                    'sora': window.SoraHandler,
+                    'kaon': window.KaonHandler
+                };
+                const handler = handlerMap[character];
+                if (handler && typeof handler.shouldShowUserMessage === 'function') {
+                    shouldShowUserMessage = handler.shouldShowUserMessage(responseText, isGuest);
                 }
             }
             
@@ -1275,63 +1238,28 @@ const ChatInit = {
                 ChatData.addToGuestHistory(character, 'assistant', responseText);
                 const guestMessageCount = ChatData.getGuestMessageCount(character);
                 
-                // 楓専用の処理：守護神の儀式開始ボタンを追加
-                if (character === 'kaede' && window.KaedeRitualHandler) {
-                    window.KaedeRitualHandler.addRitualStartButtonToMessageIfNeeded(
-                        responseText,
-                        messageId,
-                        character
-                    );
-                }
+                // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
+                const handlerMap = {
+                    'kaede': window.KaedeHandler,
+                    'yukino': window.YukinoHandler,
+                    'sora': window.SoraHandler,
+                    'kaon': window.KaonHandler
+                };
                 
-                // キャラクター専用ハンドラーでレスポンスを処理
-                // 空良のハンドラー
-                else if (character === 'sora' && window.SoraHandler) {
-                    handlerProcessed = await window.SoraHandler.handleResponse(response, character);
-                }
-                // 薫音のハンドラー
-                else if (character === 'kaon' && window.KaonHandler) {
-                    handlerProcessed = await window.KaonHandler.handleResponse(response, character);
-                }
-                
-                // ハンドラーで処理された場合は、以降の処理をスキップ
-                if (handlerProcessed) {
-                    console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
-                    // 送信ボタンを再有効化はハンドラー側で行う
-                    return;
-                }
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                // 【共通ロジック】10通到達時の登録ボタン表示チェック
-                // システム的に10通目に到達したとき、登録ボタンを表示
-                // キャラクター固有の処理は各ハンドラーの handleGuestLimit に委譲
-                // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                if (window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
-                    const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
-                    if (limitHandled) {
-                        console.log('[ゲスト制限管理] 10通到達時の処理が完了しました:', character);
-                        // 処理が完了した場合は、以降の処理をスキップ
+                const handler = handlerMap[character];
+                if (handler && typeof handler.handleResponse === 'function') {
+                    handlerProcessed = await handler.handleResponse(response, character);
+                    
+                    // ハンドラーで処理された場合は、以降の処理をスキップ
+                    if (handlerProcessed) {
+                        console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
+                        // 送信ボタンを再有効化はハンドラー側で行う
+                        return;
                     }
-                } else {
-                    console.warn('[ゲスト制限管理] GuestLimitManager が見つかりません');
-                }
-                    });
                 }
             } else {
                 // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
                 // 必要に応じて、会話履歴を再読み込み
-            }
-            
-            // 雪乃の登録ボタン表示チェック（API応答が完全に終わった後）
-            if (character === 'yukino' && sessionStorage.getItem('yukinoShouldShowRegistrationButton') === 'true') {
-                if (!document.getElementById('yukinoRegistrationContainer') && !sessionStorage.getItem('yukinoRegistrationButtonShown')) {
-                    console.log('[雪乃個別相談] API応答完了。登録ボタンを表示します');
-                    // メッセージ表示とスクロールが完了するのを待つ
-                    setTimeout(() => {
-                        showYukinoRegistrationButtons();
-                        sessionStorage.setItem('yukinoRegistrationButtonShown', 'true');
-                        sessionStorage.removeItem('yukinoShouldShowRegistrationButton');
-                    }, 800);
-                }
             }
             
             // 送信ボタンを再有効化
@@ -1649,15 +1577,23 @@ const ChatInit = {
     async handleRitualConsent(consent) {
         const character = ChatData.currentCharacter;
         
-        // 楓専用の処理を独立したファイルから呼び出す
-        if (character === 'kaede' && window.KaedeRitualHandler) {
-            const handled = await window.KaedeRitualHandler.handleRitualConsent(consent);
+        // キャラクター専用ハンドラーの同意処理を呼び出す
+        const handlerMap = {
+            'kaede': window.KaedeHandler,
+            'yukino': window.YukinoHandler,
+            'sora': window.SoraHandler,
+            'kaon': window.KaonHandler
+        };
+        
+        const handler = handlerMap[character];
+        if (handler && typeof handler.handleRitualConsent === 'function') {
+            const handled = await handler.handleRitualConsent(consent);
             if (handled) {
-                return; // 楓専用の処理が完了した
+                return; // ハンドラーで処理完了
             }
         }
         
-        // 楓以外、またはKaedeRitualHandlerが存在しない場合のフォールバック処理
+        // ハンドラーがない場合のフォールバック処理
         ChatUI.hideRitualConsentButtons();
         
         // フラグをリセット（一度処理したので、再度表示されないようにする）
@@ -1667,13 +1603,13 @@ const ChatInit = {
             // 「はい」を押した場合
             const characterName = ChatData.characterInfo[character]?.name || '鑑定士';
             
-            // キャラクターに応じてメッセージを変更
-            let consentMessage = 'ユーザー登録をすることにより、守護神の儀式を進めます'; // デフォルト（楓用）
-            
-            if (character === 'yukino') {
-                consentMessage = 'ユーザー登録をすることで、より詳しいタロット鑑定ができるようになります';
-            } else if (character === 'kaede') {
-                consentMessage = 'ユーザー登録をすることにより、守護神の儀式を進めます';
+            // キャラクターに応じてメッセージを取得（ハンドラーから）
+            let consentMessage = 'ユーザー登録への同意が検出されました。ボタンが表示されます。'; // デフォルト
+            if (handler && typeof handler.getConsentMessage === 'function') {
+                const customMessage = handler.getConsentMessage();
+                if (customMessage) {
+                    consentMessage = customMessage;
+                }
             }
             
             ChatUI.addMessage('character', consentMessage, characterName);
@@ -1684,13 +1620,13 @@ const ChatInit = {
             }, 2000);
         } else {
             // 「いいえ」を押した場合
-            // キャラクターに応じてメッセージを変更
-            let declineMessage = '守護神の儀式をスキップしました。ゲストモードで会話を続けます。'; // デフォルト（楓用）
-            
-            if (character === 'yukino') {
-                declineMessage = 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。';
-            } else if (character === 'kaede') {
-                declineMessage = '守護神の儀式をスキップしました。ゲストモードで会話を続けます。';
+            // キャラクターに応じてメッセージを取得（ハンドラーから）
+            let declineMessage = 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。'; // デフォルト
+            if (handler && typeof handler.getDeclineMessage === 'function') {
+                const customMessage = handler.getDeclineMessage();
+                if (customMessage) {
+                    declineMessage = customMessage;
+                }
             }
             
             ChatUI.addMessage('error', declineMessage, 'システム');

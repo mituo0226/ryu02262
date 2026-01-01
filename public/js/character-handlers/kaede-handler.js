@@ -130,6 +130,110 @@ const KaedeHandler = {
     },
 
     /**
+     * ページ初期化処理（initPage関数から呼び出される）
+     * @param {URLSearchParams} urlParams - URLパラメータ
+     * @param {Object} historyData - 会話履歴データ
+     * @param {boolean} justRegistered - 登録直後かどうか
+     * @param {boolean} shouldTriggerRegistrationFlow - 登録フローをトリガーするか
+     * @returns {Object|null} 処理結果（guardianConfirmationDataなど）
+     */
+    async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow) {
+        // 守護神の儀式完了チェック
+        const guardianConfirmationData = this.checkGuardianRitualCompletion(this.characterId, urlParams);
+        if (guardianConfirmationData && historyData) {
+            const completed = await this.handleGuardianRitualCompletion(
+                this.characterId,
+                guardianConfirmationData,
+                historyData
+            );
+            if (completed) {
+                return { completed: true };
+            }
+        }
+
+        // 守護神の儀式開始処理
+        if (historyData) {
+            const ritualHandled = await this.handlePostRegistrationRitualStart(
+                this.characterId,
+                historyData,
+                urlParams
+            );
+            if (ritualHandled) {
+                const acceptedGuardianRitual = sessionStorage.getItem('acceptedGuardianRitual');
+                if (acceptedGuardianRitual !== 'true') {
+                    return { skip: true }; // 儀式を開始しない場合は処理終了
+                }
+            }
+        }
+
+        // 登録済みユーザーが楓のチャットにアクセスし、守護神が未登録の場合、自動的に儀式を開始
+        if (historyData && !justRegistered && !shouldTriggerRegistrationFlow) {
+            const hasAssignedDeity = historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+            if (!hasAssignedDeity) {
+                console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神が未登録のため、自動的に儀式を開始します。');
+                // 儀式開始処理は handlePostRegistrationRitualStart で処理される
+            }
+        }
+
+        return null;
+    },
+
+    /**
+     * 登録後の定型文を取得
+     * @param {string} userNickname - ユーザーのニックネーム
+     * @param {string} lastGuestUserMessage - 最後のゲストユーザーメッセージ
+     * @returns {string} 定型文
+     */
+    getWelcomeBackMessage(userNickname, lastGuestUserMessage) {
+        // 楓の場合は共通処理を使用（特殊な定型文なし）
+        return null; // 共通処理を使用
+    },
+
+    /**
+     * 同意メッセージを取得
+     * @returns {string} 同意メッセージ
+     */
+    getConsentMessage() {
+        return 'ユーザー登録をすることにより、守護神の儀式を進めます';
+    },
+
+    /**
+     * 拒否メッセージを取得
+     * @returns {string} 拒否メッセージ
+     */
+    getDeclineMessage() {
+        return '守護神の儀式をスキップしました。ゲストモードで会話を続けます。';
+    },
+
+    /**
+     * メッセージカウントを計算（API送信用）
+     * @param {number} currentCount - 現在のメッセージカウント
+     * @returns {number} APIに送信するメッセージカウント
+     */
+    calculateMessageCount(currentCount) {
+        // 楓の場合、会話履歴には既に今回送信するメッセージが含まれているため、-1する
+        return Math.max(0, currentCount - 1);
+    },
+
+    /**
+     * ユーザーメッセージを表示するかどうかを判定
+     * @param {string} responseText - API応答テキスト
+     * @param {boolean} isGuest - ゲストモードかどうか
+     * @returns {boolean} 表示するかどうか
+     */
+    shouldShowUserMessage(responseText, isGuest) {
+        if (!isGuest) {
+            return true; // 登録ユーザーは常に表示
+        }
+        
+        // 「ニックネームと生年月日を入力」が含まれる場合は、ユーザーメッセージを表示しない
+        const hasRegistrationInput = responseText.includes('ニックネームと生年月日を入力') || 
+                                     responseText.includes('**ニックネームと生年月日を入力**') ||
+                                     responseText.includes('生年月日を入力');
+        return !hasRegistrationInput;
+    },
+
+    /**
      * ゲスト履歴をクリア
      */
     clearGuestHistory() {

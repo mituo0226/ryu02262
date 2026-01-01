@@ -106,6 +106,67 @@ const KaonHandler = {
     },
 
     /**
+     * ページ初期化処理（initPage関数から呼び出される）
+     * @param {URLSearchParams} urlParams - URLパラメータ
+     * @param {Object} historyData - 会話履歴データ
+     * @param {boolean} justRegistered - 登録直後かどうか
+     * @param {boolean} shouldTriggerRegistrationFlow - 登録フローをトリガーするか
+     * @returns {Object|null} 処理結果
+     */
+    async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow) {
+        // 薫音の場合は特別な初期化処理なし
+        return null;
+    },
+
+    /**
+     * 登録後の定型文を取得
+     * @param {string} userNickname - ユーザーのニックネーム
+     * @param {string} lastGuestUserMessage - 最後のゲストユーザーメッセージ
+     * @returns {string} 定型文
+     */
+    getWelcomeBackMessage(userNickname, lastGuestUserMessage) {
+        // 薫音の場合は共通処理を使用（特殊な定型文なし）
+        return null; // 共通処理を使用
+    },
+
+    /**
+     * 同意メッセージを取得
+     * @returns {string} 同意メッセージ
+     */
+    getConsentMessage() {
+        return 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
+    },
+
+    /**
+     * 拒否メッセージを取得
+     * @returns {string} 拒否メッセージ
+     */
+    getDeclineMessage() {
+        return 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。';
+    },
+
+    /**
+     * メッセージカウントを計算（API送信用）
+     * @param {number} currentCount - 現在のメッセージカウント
+     * @returns {number} APIに送信するメッセージカウント
+     */
+    calculateMessageCount(currentCount) {
+        // 薫音の場合はそのまま使用
+        return currentCount;
+    },
+
+    /**
+     * ユーザーメッセージを表示するかどうかを判定
+     * @param {string} responseText - API応答テキスト
+     * @param {boolean} isGuest - ゲストモードかどうか
+     * @returns {boolean} 表示するかどうか
+     */
+    shouldShowUserMessage(responseText, isGuest) {
+        // 薫音の場合は常に表示
+        return true;
+    },
+
+    /**
      * ゲスト履歴をクリア
      */
     clearGuestHistory() {
