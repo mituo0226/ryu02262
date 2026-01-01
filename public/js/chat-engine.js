@@ -14,6 +14,21 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
+        // テストモードチェック（URLパラメータに?test=trueがある場合、ゲストフラグをクリア）
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('test') === 'true') {
+            console.log('[ChatInit] テストモードが有効です。ゲストフラグをクリアします...');
+            // すべてのキャラクターのゲストフラグをクリア
+            const characters = ['kaede', 'yukino', 'sora', 'kaon'];
+            characters.forEach(c => {
+                const flag = `${c}GuestConversed`;
+                if (localStorage.getItem(flag)) {
+                    localStorage.removeItem(flag);
+                    console.log(`[ChatInit] ✅ ${flag} をクリアしました`);
+                }
+            });
+        }
+        
         // キャラクター固有の初期化処理はハンドラーに委譲
         // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
         
@@ -1838,6 +1853,103 @@ const ChatInit = {
 
 // グローバルスコープに公開（iframeからアクセスできるようにする）
 window.ChatInit = ChatInit;
+
+// ===== 開発者向けテストユーティリティ =====
+/**
+ * テスト用ユーティリティ関数
+ * コンソールから呼び出して、ゲストモードのフラグをクリアできます
+ * 
+ * 使用例:
+ * - ChatTestUtils.clearGuestFlags() // すべてのキャラクターのゲストフラグをクリア
+ * - ChatTestUtils.clearGuestFlags('sora') // ソラのゲストフラグのみクリア
+ * - ChatTestUtils.clearAllGuestData() // ゲストフラグとsessionStorageの履歴もクリア
+ * - ChatTestUtils.checkGuestFlags() // 現在のゲストフラグの状態を確認
+ */
+window.ChatTestUtils = {
+    /**
+     * ゲストモードで会話したフラグをクリア
+     * @param {string|null} characterId - キャラクターID（指定しない場合はすべてクリア）
+     */
+    clearGuestFlags(characterId = null) {
+        const characters = ['kaede', 'yukino', 'sora', 'kaon'];
+        const flagsToClear = characterId 
+            ? [`${characterId}GuestConversed`]
+            : characters.map(c => `${c}GuestConversed`);
+        
+        flagsToClear.forEach(flag => {
+            if (localStorage.getItem(flag)) {
+                localStorage.removeItem(flag);
+                console.log(`[ChatTestUtils] ✅ ${flag} をクリアしました`);
+            } else {
+                console.log(`[ChatTestUtils] ℹ️ ${flag} は存在しませんでした`);
+            }
+        });
+        
+        console.log('[ChatTestUtils] ゲストフラグのクリアが完了しました。ページをリロードしてください。');
+    },
+    
+    /**
+     * すべてのゲスト関連データをクリア（フラグ + sessionStorageの履歴）
+     * @param {string|null} characterId - キャラクターID（指定しない場合はすべてクリア）
+     */
+    clearAllGuestData(characterId = null) {
+        const characters = ['kaede', 'yukino', 'sora', 'kaon'];
+        const targets = characterId ? [characterId] : characters;
+        
+        // localStorageのフラグをクリア
+        targets.forEach(c => {
+            const flag = `${c}GuestConversed`;
+            if (localStorage.getItem(flag)) {
+                localStorage.removeItem(flag);
+                console.log(`[ChatTestUtils] ✅ ${flag} をクリアしました`);
+            }
+        });
+        
+        // sessionStorageの履歴をクリア
+        targets.forEach(c => {
+            const historyKey = `guestConversationHistory_${c}`;
+            const countKey = `guestMessageCount_${c}`;
+            if (sessionStorage.getItem(historyKey)) {
+                sessionStorage.removeItem(historyKey);
+                console.log(`[ChatTestUtils] ✅ ${historyKey} をクリアしました`);
+            }
+            if (sessionStorage.getItem(countKey)) {
+                sessionStorage.removeItem(countKey);
+                console.log(`[ChatTestUtils] ✅ ${countKey} をクリアしました`);
+            }
+        });
+        
+        // AuthStateの履歴もクリア
+        if (window.AuthState && typeof window.AuthState.resetGuestProgress === 'function') {
+            targets.forEach(c => {
+                window.AuthState.clearGuestHistory(c);
+            });
+            console.log('[ChatTestUtils] ✅ AuthStateのゲスト履歴をクリアしました');
+        }
+        
+        console.log('[ChatTestUtils] すべてのゲストデータのクリアが完了しました。ページをリロードしてください。');
+    },
+    
+    /**
+     * 現在のゲストフラグの状態を確認
+     */
+    checkGuestFlags() {
+        const characters = ['kaede', 'yukino', 'sora', 'kaon'];
+        const status = {};
+        
+        characters.forEach(c => {
+            const flag = `${c}GuestConversed`;
+            status[c] = {
+                flag: localStorage.getItem(flag) || 'なし',
+                history: sessionStorage.getItem(`guestConversationHistory_${c}`) ? 'あり' : 'なし',
+                count: sessionStorage.getItem(`guestMessageCount_${c}`) || '0'
+            };
+        });
+        
+        console.table(status);
+        return status;
+    }
+};
 
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
