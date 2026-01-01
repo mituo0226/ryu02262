@@ -1,5 +1,5 @@
 /**
- * kaede-handler.js
+ * handler.js
  * 楓（kaede）専用のチャットロジック
  * 守護神の儀式、ゲストモード登録フローなど、楓固有の処理を管理
  * 
@@ -403,7 +403,7 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         // 【重要】入力イベントリスナーを常に再設定（守護神の儀式完了後は確実に動作させるため）
         // 注意: 複数のリスナーが追加される可能性があるが、同じ処理を実行するだけなので問題ない
         if (ChatUI.messageInput) {
-            // Enterキーのイベントリスナーを追加（chat-init.jsで既に設定されている可能性があるが、念のため再設定）
+            // Enterキーのイベントリスナーを追加（chat-engine.jsで既に設定されている可能性があるが、念のため再設定）
             ChatUI.messageInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

@@ -1,5 +1,5 @@
 /**
- * kaon-handler.js
+ * handler.js
  * 薫音（kaon）専用のチャットロジック
  * 薫音固有の処理を管理（将来の拡張用）
  */

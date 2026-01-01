@@ -196,81 +196,80 @@ const ChatInit = {
                         // ハンドラーがnullを返した場合、またはメソッドがない場合は汎用メッセージ
                         welcomeBackMessage = `${userNickname}さん、おかえりなさい。ユーザー登録ありがとうございます。それでは、続きを始めましょうか。`;
                     }
-                        
-                        // 定型文を画面に表示
-                        ChatUI.addMessage('character', welcomeBackMessage, info.name);
-                        console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
-                        
-                        // バックグラウンドでゲスト履歴をデータベースに保存
-                        try {
-                            const userToken = localStorage.getItem('userToken');
-                            await ChatAPI.sendMessage(
-                                '（登録完了）', // ダミーメッセージ（APIは保存しない）
-                                character,
-                                guestHistory,
-                                userToken,
-                                true // migrateHistory = true（ゲスト履歴をデータベースに保存）
-                            );
-                            console.log('[登録完了処理] ゲスト履歴をデータベースに保存しました（バックグラウンド）');
-                        } catch (error) {
-                            console.error('[登録完了処理] データベース保存エラー:', error);
-                            // エラーが出ても画面表示は継続
-                        }
-                    } else {
-                        // ゲスト履歴がない場合：新規ユーザーとして初回メッセージを表示
-                        console.log('[登録完了処理] ゲスト履歴なし。新規ユーザーとして初回メッセージを表示します');
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
-                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    
+                    // 定型文を画面に表示
+                    ChatUI.addMessage('character', welcomeBackMessage, info.name);
+                    console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
+                    
+                    // バックグラウンドでゲスト履歴をデータベースに保存
+                    try {
+                        const userToken = localStorage.getItem('userToken');
+                        await ChatAPI.sendMessage(
+                            '（登録完了）', // ダミーメッセージ（APIは保存しない）
+                            character,
+                            guestHistory,
+                            userToken,
+                            true // migrateHistory = true（ゲスト履歴をデータベースに保存）
+                        );
+                        console.log('[登録完了処理] ゲスト履歴をデータベースに保存しました（バックグラウンド）');
+                    } catch (error) {
+                        console.error('[登録完了処理] データベース保存エラー:', error);
+                        // エラーが出ても画面表示は継続
                     }
-                    
-                    // ゲスト履歴とカウントをクリア（データベースに移行済みのため）
-                    if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                        AuthState.clearGuestHistory(character);
-                    }
-                    const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-                    const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-                    sessionStorage.removeItem(historyKey);
-                    sessionStorage.removeItem('pendingGuestHistoryMigration');
-                    ChatData.setGuestMessageCount(character, 0);
-                    
-                    // 【重要】登録後のイベントリスナーを設定
-                    console.log('[登録完了処理] イベントリスナーを設定します');
-                    if (ChatUI.messageInput) {
-                        // 既存のリスナーを削除（重複登録を防ぐ）
-                        const newInput = ChatUI.messageInput.cloneNode(true);
-                        ChatUI.messageInput.parentNode.replaceChild(newInput, ChatUI.messageInput);
-                        ChatUI.messageInput = newInput;
-                        
-                        ChatUI.messageInput.addEventListener('keydown', (e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                window.sendMessage();
-                            }
-                        });
-                        
-                        ChatUI.messageInput.addEventListener('input', () => {
-                            ChatUI.updateSendButtonVisibility();
-                        });
-                        
-                        console.log('[登録完了処理] イベントリスナーの設定完了');
-                    }
-                    
-                    // キャラクター固有のフラグをクリア（ハンドラーに委譲）
-                    const handler = CharacterRegistry.get(character);
-                    if (handler && typeof handler.clearCharacterFlags === 'function') {
-                        handler.clearCharacterFlags();
-                    }
-                    
-                    // URLパラメータからjustRegisteredを削除
-                    urlParams.delete('justRegistered');
-                    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-                    window.history.replaceState({}, '', newUrl);
-                    
-                    // sessionStorageからも登録完了フラグを削除
-                    sessionStorage.removeItem('justRegistered');
-                    
-                    return;
+                } else {
+                    // ゲスト履歴がない場合：新規ユーザーとして初回メッセージを表示
+                    console.log('[登録完了処理] ゲスト履歴なし。新規ユーザーとして初回メッセージを表示します');
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
+                
+                // ゲスト履歴とカウントをクリア（データベースに移行済みのため）
+                if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+                    AuthState.clearGuestHistory(character);
+                }
+                const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+                const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+                sessionStorage.removeItem(historyKey);
+                sessionStorage.removeItem('pendingGuestHistoryMigration');
+                ChatData.setGuestMessageCount(character, 0);
+                
+                // 【重要】登録後のイベントリスナーを設定
+                console.log('[登録完了処理] イベントリスナーを設定します');
+                if (ChatUI.messageInput) {
+                    // 既存のリスナーを削除（重複登録を防ぐ）
+                    const newInput = ChatUI.messageInput.cloneNode(true);
+                    ChatUI.messageInput.parentNode.replaceChild(newInput, ChatUI.messageInput);
+                    ChatUI.messageInput = newInput;
+                    
+                    ChatUI.messageInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            window.sendMessage();
+                        }
+                    });
+                    
+                    ChatUI.messageInput.addEventListener('input', () => {
+                        ChatUI.updateSendButtonVisibility();
+                    });
+                    
+                    console.log('[登録完了処理] イベントリスナーの設定完了');
+                }
+                
+                // キャラクター固有のフラグをクリア（ハンドラーに委譲）
+                // 注意: handlerは121行目で既に宣言されているため、再宣言しない
+                if (handler && typeof handler.clearCharacterFlags === 'function') {
+                    handler.clearCharacterFlags();
+                }
+                
+                // URLパラメータからjustRegisteredを削除
+                urlParams.delete('justRegistered');
+                const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                window.history.replaceState({}, '', newUrl);
+                
+                // sessionStorageからも登録完了フラグを削除
+                sessionStorage.removeItem('justRegistered');
+                
+                return;
             } catch (error) {
                 console.error('[登録完了処理] エラー:', error);
                 ChatUI.addMessage('error', '登録完了処理中にエラーが発生しました。ページを再読み込みしてください。', 'システム');
@@ -1035,7 +1034,7 @@ const ChatInit = {
                     currentCount = ChatData.getGuestMessageCount(character);
                     
                     // メッセージカウントを計算（ハンドラーに委譲）
-                    const handler = CharacterRegistry.get(character);
+                    // 注意: handlerは1017行目で既に宣言されているため、再宣言しない
                     if (handler && typeof handler.calculateMessageCount === 'function') {
                         messageCountForAPI = handler.calculateMessageCount(currentCount);
                     } else {
