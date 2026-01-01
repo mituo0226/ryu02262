@@ -14,20 +14,8 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
-        // テストモードチェック（URLパラメータに?test=trueがある場合、ゲストフラグをクリア）
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('test') === 'true') {
-            console.log('[ChatInit] テストモードが有効です。ゲストフラグをクリアします...');
-            // すべてのキャラクターのゲストフラグをクリア
-            const characters = ['kaede', 'yukino', 'sora', 'kaon'];
-            characters.forEach(c => {
-                const flag = `${c}GuestConversed`;
-                if (localStorage.getItem(flag)) {
-                    localStorage.removeItem(flag);
-                    console.log(`[ChatInit] ✅ ${flag} をクリアしました`);
-                }
-            });
-        }
+        // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
+        // ここでは実行しない（重複を避ける）
         
         // キャラクター固有の初期化処理はハンドラーに委譲
         // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
@@ -1954,6 +1942,25 @@ window.ChatTestUtils = {
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
+
+// ===== テストモードチェック（最優先で実行） =====
+// URLパラメータに?test=trueがある場合、すべてのキャラクターのゲストフラグをクリア
+// これはハンドラーが読み込まれる前に実行される必要があるため、ここで処理する
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('test') === 'true') {
+        console.log('[ChatEngine] テストモードが有効です。すべてのゲストフラグをクリアします...');
+        const characters = ['kaede', 'yukino', 'sora', 'kaon'];
+        characters.forEach(c => {
+            const flag = `${c}GuestConversed`;
+            if (localStorage.getItem(flag)) {
+                localStorage.removeItem(flag);
+                console.log(`[ChatEngine] ✅ ${flag} をクリアしました`);
+            }
+        });
+        console.log('[ChatEngine] テストモード: すべてのゲストフラグのクリアが完了しました');
+    }
+})();
 
 // postMessage関連の初期化（DOMContentLoadedの外で即座に実行）
 (async function initPostMessageCommunication() {

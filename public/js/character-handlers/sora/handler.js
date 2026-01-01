@@ -66,17 +66,6 @@ const SoraHandler = {
             return;
         }
 
-        // テストモードチェック（URLパラメータに?test=trueがある場合、フラグをクリアしてスキップ）
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('test') === 'true') {
-            const flag = 'soraGuestConversed';
-            if (localStorage.getItem(flag)) {
-                localStorage.removeItem(flag);
-                console.log(`[水野ソラハンドラー] テストモード: ${flag} をクリアしました`);
-            }
-            return; // テストモードの場合は再訪問チェックをスキップ
-        }
-
         // ゲストモードで会話したことがあるかをチェック
         const hasConversedAsGuest = localStorage.getItem('soraGuestConversed');
         
