@@ -165,7 +165,11 @@ const CharacterLoader = {
             }
 
             const script = document.createElement('script');
-            script.src = src;
+            // キャッシュバスティング: テストモードの場合はタイムスタンプを追加
+            const urlParams = new URLSearchParams(window.location.search);
+            const isTestMode = urlParams.get('test') === 'true';
+            const scriptSrc = isTestMode ? `${src}?t=${Date.now()}` : src;
+            script.src = scriptSrc;
             script.async = true;
             script.onload = () => resolve();
             script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
