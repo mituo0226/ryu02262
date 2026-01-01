@@ -819,7 +819,7 @@ const ChatInit = {
             ChatData.addToGuestHistory(character, 'user', message);
             
             // ゲストモードで会話したことを記録（ハンドラーに委譲）
-            const handler = CharacterRegistry.get(character);
+            // 注意: handlerは上で既に宣言されているため、再宣言しない
             if (handler && typeof handler.markGuestConversed === 'function') {
                 handler.markGuestConversed();
             }

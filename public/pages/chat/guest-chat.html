@@ -793,10 +793,10 @@
                   }
               }
               
-              // チャットエンジンを初期化
-              if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                  await window.ChatInit.initPage();
-              }
+              // 注意: ChatInit.initPage()はchat-engine.jsのDOMContentLoadedイベントリスナー内で
+              // 自動的に呼ばれるため、ここで呼び出す必要はありません
+              // ここで呼び出すと、chat-engine.jsが読み込まれる前に実行される可能性があり、
+              // window.ChatInitが存在しないため、何も実行されません
           })();
           </script>
            <!-- iframe内で確実にpostMessage通信を初期化 -->
