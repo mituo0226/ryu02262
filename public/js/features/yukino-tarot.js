@@ -408,7 +408,11 @@
             } else {
                 // ゲストモード
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                const guestSessionId = sessionStorage.getItem('guestSessionId');
+                payload.guestMetadata = { 
+                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
+                    sessionId: guestSessionId || undefined
+                };
             }
             
             // API呼び出し
@@ -582,7 +586,11 @@ ${cardNames}
                 payload.userToken = userToken;
             } else {
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                const guestSessionId = sessionStorage.getItem('guestSessionId');
+                payload.guestMetadata = { 
+                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
+                    sessionId: guestSessionId || undefined
+                };
             }
             
             const response = await fetch('/api/consult', {
@@ -779,7 +787,11 @@ ${cardNames}
                     } else {
                         // ゲストモードの場合、雪乃専用のメッセージカウントを使用
                         const guestCount = sessionStorage.getItem('guestMessageCount_yukino');
-                        payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                        const guestSessionId = sessionStorage.getItem('guestSessionId');
+                payload.guestMetadata = { 
+                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
+                    sessionId: guestSessionId || undefined
+                };
                     }
                     
                     const response = await fetch('/api/consult', {
@@ -1183,7 +1195,11 @@ ${cardNames}
             } else {
                 // ゲストモード
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                payload.guestMetadata = { messageCount: guestCount ? parseInt(guestCount, 10) : 0 };
+                const guestSessionId = sessionStorage.getItem('guestSessionId');
+                payload.guestMetadata = { 
+                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
+                    sessionId: guestSessionId || undefined
+                };
             }
             
             const response = await fetch('/api/consult', {

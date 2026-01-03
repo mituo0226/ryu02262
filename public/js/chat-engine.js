@@ -1087,8 +1087,17 @@ const ChatInit = {
             
             // APIリクエストのオプション
             // guestMetadata.messageCount は「これまでのメッセージ数（今回送信するメッセージを含まない）」
+            // guestMetadata.sessionId はゲストセッションID（サーバーから返されたものを再利用）
+            let guestSessionId = null;
+            if (isGuest) {
+                // sessionStorageから既存のセッションIDを取得
+                guestSessionId = sessionStorage.getItem('guestSessionId');
+            }
             const options = {
-                guestMetadata: isGuest ? { messageCount: messageCountForAPI } : undefined
+                guestMetadata: isGuest ? { 
+                    messageCount: messageCountForAPI,
+                    sessionId: guestSessionId || undefined
+                } : undefined
             };
             
             // APIリクエストを送信

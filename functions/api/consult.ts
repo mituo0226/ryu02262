@@ -19,6 +19,7 @@ interface ClientHistoryEntry {
 
 interface GuestMetadata {
   messageCount?: number;
+  sessionId?: string;
 }
 
 interface RequestBody {
@@ -45,6 +46,7 @@ interface ResponseBody {
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai';
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
+  guestSessionId?: string; // ゲストセッションID（クライアントに返す）
 }
 
 interface UserRecord {
@@ -135,6 +137,75 @@ function isServiceBusyError(status: number, errorText: string): boolean {
  * 待機
  */
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ===== ゲストセッション管理 =====
+
+/**
+ * ゲストセッションIDを生成（IPアドレスとUser-Agentから）
+ */
+async function generateGuestSessionId(ipAddress: string | null, userAgent: string | null): Promise<string> {
+  const data = `${ipAddress || 'unknown'}_${userAgent || 'unknown'}_${Date.now()}`;
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.substring(0, 32);
+}
+
+/**
+ * ゲストセッションを取得または作成
+ */
+async function getOrCreateGuestSession(
+  db: D1Database,
+  sessionId: string | null,
+  ipAddress: string | null,
+  userAgent: string | null
+): Promise<number> {
+  if (sessionId) {
+    const existingSession = await db
+      .prepare('SELECT id FROM guest_sessions WHERE session_id = ?')
+      .bind(sessionId)
+      .first<{ id: number }>();
+    
+    if (existingSession) {
+      await db
+        .prepare('UPDATE guest_sessions SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(existingSession.id)
+        .run();
+      return existingSession.id;
+    }
+  }
+
+  const newSessionId = sessionId || await generateGuestSessionId(ipAddress, userAgent);
+  const result = await db
+    .prepare('INSERT INTO guest_sessions (session_id, ip_address, user_agent) VALUES (?, ?, ?)')
+    .bind(newSessionId, ipAddress || null, userAgent || null)
+    .run();
+
+  const guestSessionId = result.meta?.last_row_id;
+  if (!guestSessionId) {
+    throw new Error('Failed to create guest session');
+  }
+  return guestSessionId;
+}
+
+/**
+ * ゲストユーザーの総メッセージ数を取得（全キャラクター合計）
+ */
+async function getTotalGuestMessageCount(
+  db: D1Database,
+  guestSessionId: number
+): Promise<number> {
+  const result = await db
+    .prepare(
+      `SELECT COUNT(*) as count FROM conversations 
+       WHERE user_id = ? AND is_guest_message = 1 AND role = 'user'`
+    )
+    .bind(guestSessionId)
+    .first<{ count: number }>();
+  return result?.count || 0;
+}
 
 // ===== LLM API 呼び出し =====
 
@@ -453,10 +524,49 @@ export const onRequestPost: PagesFunction = async (context) => {
       });
     }
 
-    // ===== 3. ゲストユーザーのメッセージ制限チェック =====
+    // ===== 3. ゲストユーザーのセッション管理 =====
+    const ipAddress = request.headers.get('CF-Connecting-IP');
+    const userAgent = request.headers.get('User-Agent');
+    let guestSessionId: number | null = null;
+    let guestSessionIdStr: string | null = null;
+
+    if (!user) {
+      // ゲストユーザーの場合、セッションを取得または作成
+      const guestMetadata = body.guestMetadata || {};
+      guestSessionIdStr = guestMetadata.sessionId || null;
+      
+      try {
+        guestSessionId = await getOrCreateGuestSession(env.DB, guestSessionIdStr, ipAddress, userAgent);
+        console.log('[consult] ゲストセッション:', {
+          guestSessionId,
+          sessionId: guestSessionIdStr,
+          ipAddress,
+        });
+      } catch (error) {
+        console.error('[consult] ゲストセッション作成エラー:', error);
+        // エラーが発生しても続行（セッション管理はオプショナル）
+      }
+    }
+
+    // ===== 4. ゲストユーザーのメッセージ制限チェック =====
     const guestMetadata = body.guestMetadata || {};
-    const guestMessageCount = Number(guestMetadata.messageCount ?? 0);
-    const sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
+    let guestMessageCount = Number(guestMetadata.messageCount ?? 0);
+    let sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
+
+    // データベースから総メッセージ数を取得（より正確）
+    if (!user && guestSessionId) {
+      try {
+        const totalCount = await getTotalGuestMessageCount(env.DB, guestSessionId);
+        sanitizedGuestCount = totalCount;
+        console.log('[consult] データベースから取得したゲストメッセージ数:', {
+          totalCount,
+          clientCount: guestMessageCount,
+        });
+      } catch (error) {
+        console.error('[consult] ゲストメッセージ数取得エラー:', error);
+        // エラーが発生した場合はクライアントから送られてきた値を使用
+      }
+    }
 
     // ゲストユーザーで10通目に達した場合
     if (!user && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT) {
@@ -485,17 +595,18 @@ export const onRequestPost: PagesFunction = async (context) => {
           guestMode: true,
           remainingGuestMessages: 0,
           registrationSuggested: true,
+          guestSessionId: guestSessionIdStr || undefined,
         } as ResponseBody),
         { status: 200, headers: corsHeaders }
       );
     }
 
-    // ===== 4. キャラクター名の取得 =====
+    // ===== 5. キャラクター名の取得 =====
     // 注：機械的な危険ワードチェックは廃止しました
     // AIに文脈理解と共感的対応を委ねます（システムプロンプトに安全ガイドライン追加済み）
     const characterName = getCharacterName(characterId);
 
-    // ===== 5. 会話履歴の取得 =====
+    // ===== 6. 会話履歴の取得 =====
     const sanitizedHistory = sanitizeClientHistory(body.clientHistory);
     let conversationHistory: ClientHistoryEntry[] = [];
 
@@ -546,8 +657,28 @@ export const onRequestPost: PagesFunction = async (context) => {
         conversationHistory = dbHistory;
       }
     } else {
-      // ゲストユーザー：クライアントから送られてきた履歴を使用
-      conversationHistory = sanitizedHistory;
+      // ゲストユーザー：データベースから履歴を取得
+      if (guestSessionId) {
+        const guestHistoryResults = await env.DB.prepare<ConversationRow>(
+          `SELECT role, message, is_guest_message
+           FROM conversations
+           WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
+           ORDER BY COALESCE(timestamp, created_at) DESC
+           LIMIT 20`
+        )
+          .bind(guestSessionId, characterId)
+          .all();
+
+        conversationHistory =
+          guestHistoryResults.results?.slice().reverse().map((row) => ({
+            role: row.role,
+            content: row.message,
+            isGuestMessage: true,
+          })) ?? [];
+      } else {
+        // セッションIDが取得できない場合はクライアントから送られてきた履歴を使用
+        conversationHistory = sanitizedHistory;
+      }
     }
 
     console.log('[consult] 会話履歴:', conversationHistory.length, '件');
@@ -713,76 +844,148 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ritualStartフラグがtrueの場合、チャットクリア指示を返す
     const shouldClearChat = body.ritualStart === true;
     
-    // ===== 14. 会話履歴の保存（登録ユーザーの場合、ただし儀式開始時・登録直後は保存しない）=====
-    if (user && !shouldClearChat && !isJustRegistered) {
-      // 100件制限チェック
-      const messageCountResult = await env.DB.prepare<{ count: number }>(
-        `SELECT COUNT(*) as count 
-         FROM conversations 
-         WHERE user_id = ? AND character_id = ?`
-      )
-        .bind(user.id, characterId)
-        .first();
+    // ===== 15. 会話履歴の保存 =====
+    if (!shouldClearChat && !isJustRegistered) {
+      if (user) {
+        // 登録ユーザーの場合
+        // 100件制限チェック
+        const messageCountResult = await env.DB.prepare<{ count: number }>(
+          `SELECT COUNT(*) as count 
+           FROM conversations 
+           WHERE user_id = ? AND character_id = ?`
+        )
+          .bind(user.id, characterId)
+          .first();
 
-      const messageCount = messageCountResult?.count || 0;
+        const messageCount = messageCountResult?.count || 0;
 
-      if (messageCount >= 100) {
-        // 古いメッセージを削除（100件を超える分）
-        const deleteCount = messageCount - 100 + 2; // ユーザーとアシスタントの2件を追加するため
-        await env.DB.prepare(
-          `DELETE FROM conversations
-           WHERE user_id = ? AND character_id = ?
-           AND id IN (
-             SELECT id FROM conversations
+        if (messageCount >= 100) {
+          // 古いメッセージを削除（100件を超える分）
+          const deleteCount = messageCount - 100 + 2; // ユーザーとアシスタントの2件を追加するため
+          await env.DB.prepare(
+            `DELETE FROM conversations
              WHERE user_id = ? AND character_id = ?
-             ORDER BY COALESCE(timestamp, created_at) ASC
-             LIMIT ?
-           )`
-        )
-          .bind(user.id, characterId, user.id, characterId, deleteCount)
-          .run();
-      }
+             AND id IN (
+               SELECT id FROM conversations
+               WHERE user_id = ? AND character_id = ?
+               ORDER BY COALESCE(timestamp, created_at) ASC
+               LIMIT ?
+             )`
+          )
+            .bind(user.id, characterId, user.id, characterId, deleteCount)
+            .run();
+        }
 
-      // ユーザーメッセージを保存
-      try {
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, trimmedMessage)
-          .run();
-      } catch {
-        // timestampカラムが存在しない場合はcreated_atのみを使用
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-           VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, trimmedMessage)
-          .run();
-      }
+        // ユーザーメッセージを保存
+        try {
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+             VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+          )
+            .bind(user.id, characterId, trimmedMessage)
+            .run();
+        } catch {
+          // timestampカラムが存在しない場合はcreated_atのみを使用
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+             VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+          )
+            .bind(user.id, characterId, trimmedMessage)
+            .run();
+        }
 
-      // アシスタントメッセージを保存
-      try {
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, responseMessage)
-          .run();
-      } catch {
-        // timestampカラムが存在しない場合はcreated_atのみを使用
-        await env.DB.prepare(
-          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-           VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
-        )
-          .bind(user.id, characterId, responseMessage)
-          .run();
-      }
+        // アシスタントメッセージを保存
+        try {
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+             VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+          )
+            .bind(user.id, characterId, responseMessage)
+            .run();
+        } catch {
+          // timestampカラムが存在しない場合はcreated_atのみを使用
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+             VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
+          )
+            .bind(user.id, characterId, responseMessage)
+            .run();
+        }
 
-      console.log('[consult] 会話履歴を保存しました');
+        console.log('[consult] 登録ユーザーの会話履歴を保存しました');
+      } else if (guestSessionId) {
+        // ゲストユーザーの場合
+        // 100件制限チェックと古いメッセージ削除
+        const messageCountResult = await env.DB.prepare<{ count: number }>(
+          `SELECT COUNT(*) as count 
+           FROM conversations 
+           WHERE user_id = ? AND character_id = ? AND is_guest_message = 1`
+        )
+          .bind(guestSessionId, characterId)
+          .first();
+
+        const messageCount = messageCountResult?.count || 0;
+
+        if (messageCount >= 100) {
+          const deleteCount = messageCount - 100 + 2;
+          await env.DB.prepare(
+            `DELETE FROM conversations
+             WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
+             AND id IN (
+               SELECT id FROM conversations
+               WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
+               ORDER BY COALESCE(timestamp, created_at) ASC
+               LIMIT ?
+             )`
+          )
+            .bind(guestSessionId, characterId, guestSessionId, characterId, deleteCount)
+            .run();
+        }
+
+        // ユーザーメッセージを保存
+        try {
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+             VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+          )
+            .bind(guestSessionId, characterId, trimmedMessage)
+            .run();
+        } catch {
+          // timestampカラムが存在しない場合はcreated_atのみを使用
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+             VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+          )
+            .bind(guestSessionId, characterId, trimmedMessage)
+            .run();
+        }
+
+        // アシスタントメッセージを保存
+        try {
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+             VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+          )
+            .bind(guestSessionId, characterId, responseMessage)
+            .run();
+        } catch {
+          // timestampカラムが存在しない場合はcreated_atのみを使用
+          await env.DB.prepare(
+            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+             VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
+          )
+            .bind(guestSessionId, characterId, responseMessage)
+            .run();
+        }
+
+        console.log('[consult] ゲストユーザーの会話履歴を保存しました:', {
+          guestSessionId,
+          characterId,
+        });
+      }
     }
 
-    // ===== 15. レスポンスを返す =====
+    // ===== 16. レスポンスを返す =====
     return new Response(
       JSON.stringify({
         message: responseMessage,
@@ -798,6 +1001,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
+        guestSessionId: guestSessionIdStr || undefined, // ゲストセッションIDを返す
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );
