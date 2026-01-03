@@ -688,6 +688,22 @@
               </form>
             </div>
 
+            <div style="margin-bottom: 20px; padding: 16px; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px;">
+              <h3 style="margin: 0 0 12px; font-size: 16px; color: #ff6b6b;">一括操作</h3>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button type="button" id="clearAllGuestSessionsBtn" style="padding: 10px 20px; border: none; border-radius: 8px; background: rgba(220, 38, 38, 0.3); border: 1px solid rgba(220, 38, 38, 0.5); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+                  全ゲストセッションを削除
+                </button>
+                <div style="flex: 1; min-width: 200px; display: flex; gap: 8px;">
+                  <input type="text" id="quickDeleteSessionId" placeholder="セッションIDを入力して削除" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.4); color: #fff; font-size: 14px;">
+                  <button type="button" id="quickDeleteSessionBtn" style="padding: 10px 20px; border: none; border-radius: 8px; background: rgba(220, 38, 38, 0.3); border: 1px solid rgba(220, 38, 38, 0.5); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+                    削除
+                  </button>
+                </div>
+              </div>
+              <p class="muted" style="margin: 8px 0 0; font-size: 12px;">⚠️ 削除操作は取り消せません。実行前に確認してください。</p>
+            </div>
+
             <div id="guestSessionList" style="margin-top: 20px;">
               <p class="muted">検索ボタンをクリックするか、「最新20件を表示」をクリックしてください。</p>
             </div>
@@ -1241,10 +1257,16 @@
                   <td style="padding: 12px; font-size: 12px; color: #9da2c6;">${session.created_at ? new Date(session.created_at).toLocaleString('ja-JP') : 'N/A'}</td>
                   <td style="padding: 12px; font-size: 12px; color: #9da2c6;">${session.last_activity_at ? new Date(session.last_activity_at).toLocaleString('ja-JP') : 'N/A'}</td>
                   <td style="padding: 12px;">
-                    <button onclick="event.stopPropagation(); selectGuestSession(${session.id}, '${(session.session_id || '').replace(/'/g, "\\'")}', '${(session.ip_address || '').replace(/'/g, "\\'")}', ${session.message_count || 0})" 
-                            style="padding: 6px 12px; font-size: 12px; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #fff; cursor: pointer;">
-                      詳細
-                    </button>
+                    <div style="display: flex; gap: 6px;">
+                      <button onclick="event.stopPropagation(); selectGuestSession(${session.id}, '${(session.session_id || '').replace(/'/g, "\\'")}', '${(session.ip_address || '').replace(/'/g, "\\'")}', ${session.message_count || 0})" 
+                              style="padding: 6px 12px; font-size: 12px; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #fff; cursor: pointer;">
+                        詳細
+                      </button>
+                      <button onclick="event.stopPropagation(); quickDeleteGuestSession('${(session.session_id || '').replace(/'/g, "\\'")}', ${session.id})" 
+                              style="padding: 6px 12px; font-size: 12px; background: rgba(220, 38, 38, 0.3); border: 1px solid rgba(220, 38, 38, 0.5); border-radius: 6px; color: #fff; cursor: pointer;">
+                        削除
+                      </button>
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -1418,6 +1440,146 @@
         }
       });
     }
+
+    // 一括削除機能
+    const clearAllGuestSessionsBtn = document.getElementById('clearAllGuestSessionsBtn');
+    if (clearAllGuestSessionsBtn) {
+      clearAllGuestSessionsBtn.addEventListener('click', async () => {
+        if (!currentToken) {
+          alert('管理者トークンを入力して接続してください。');
+          return;
+        }
+
+        if (!confirm('⚠️ 警告\n\nすべてのゲストセッションと会話履歴を削除します。\nこの操作は取り消せません。\n\n本当に実行しますか？')) {
+          return;
+        }
+
+        if (!confirm('最後の確認です。\n\n本当にすべてのゲストセッションを削除しますか？')) {
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/admin/clear-guest-sessions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Admin-Token': currentToken,
+            },
+            body: JSON.stringify({
+              clearAll: true,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || '削除に失敗しました');
+
+          alert(`削除しました。\n削除されたセッション: ${data.deletedSessions || 0}件\n削除されたメッセージ: ${data.deletedMessages || 0}件`);
+          
+          // 表示をリセット
+          if (guestSessionDetailCard) guestSessionDetailCard.classList.add('hidden');
+          if (guestConversationsCard) guestConversationsCard.classList.add('hidden');
+          selectedGuestSession = null;
+          
+          // リストを更新
+          await fetchGuestSessions();
+        } catch (error) {
+          console.error(error);
+          alert(`削除に失敗しました: ${error.message}`);
+        }
+      });
+    }
+
+    // クイック削除機能（セッションID入力）
+    const quickDeleteSessionId = document.getElementById('quickDeleteSessionId');
+    const quickDeleteSessionBtn = document.getElementById('quickDeleteSessionBtn');
+    if (quickDeleteSessionBtn) {
+      quickDeleteSessionBtn.addEventListener('click', async () => {
+        if (!currentToken) {
+          alert('管理者トークンを入力して接続してください。');
+          return;
+        }
+
+        const sessionId = quickDeleteSessionId ? quickDeleteSessionId.value.trim() : '';
+        if (!sessionId) {
+          alert('セッションIDを入力してください。');
+          return;
+        }
+
+        if (!confirm(`セッションID: ${sessionId}\n\nこのセッションとすべての会話履歴を削除しますか？\nこの操作は取り消せません。`)) {
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/admin/clear-guest-sessions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Admin-Token': currentToken,
+            },
+            body: JSON.stringify({
+              sessionId: sessionId,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || '削除に失敗しました');
+
+          alert(`削除しました。\n削除されたセッション: ${data.deletedSessions || 0}件\n削除されたメッセージ: ${data.deletedMessages || 0}件`);
+          
+          // 入力欄をクリア
+          if (quickDeleteSessionId) quickDeleteSessionId.value = '';
+          
+          // 表示をリセット
+          if (guestSessionDetailCard) guestSessionDetailCard.classList.add('hidden');
+          if (guestConversationsCard) guestConversationsCard.classList.add('hidden');
+          selectedGuestSession = null;
+          
+          // リストを更新
+          await fetchGuestSessions();
+        } catch (error) {
+          console.error(error);
+          alert(`削除に失敗しました: ${error.message}`);
+        }
+      });
+    }
+
+    // セッションリストからのクイック削除
+    window.quickDeleteGuestSession = async function(sessionId, sessionDbId) {
+      if (!currentToken) {
+        alert('管理者トークンを入力して接続してください。');
+        return;
+      }
+
+      if (!confirm(`セッションID: ${sessionId}\n\nこのセッションとすべての会話履歴を削除しますか？\nこの操作は取り消せません。`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/clear-guest-sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Token': currentToken,
+          },
+          body: JSON.stringify({
+            sessionId: sessionId,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '削除に失敗しました');
+
+        alert(`削除しました。\n削除されたセッション: ${data.deletedSessions || 0}件\n削除されたメッセージ: ${data.deletedMessages || 0}件`);
+        
+        // 表示をリセット
+        if (guestSessionDetailCard) guestSessionDetailCard.classList.add('hidden');
+        if (guestConversationsCard) guestConversationsCard.classList.add('hidden');
+        selectedGuestSession = null;
+        
+        // リストを更新
+        await fetchGuestSessions();
+      } catch (error) {
+        console.error(error);
+        alert(`削除に失敗しました: ${error.message}`);
+      }
+    };
     
   </script>
 </body>
