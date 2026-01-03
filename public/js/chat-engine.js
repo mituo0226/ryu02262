@@ -1119,6 +1119,12 @@ const ChatInit = {
                 return;
             }
             
+            // ゲストセッションIDを保存（サーバーから返された場合）
+            if (isGuest && response.guestSessionId) {
+                sessionStorage.setItem('guestSessionId', response.guestSessionId);
+                console.log('[ChatEngine] ゲストセッションIDを保存しました:', response.guestSessionId);
+            }
+            
             // 応答メッセージを表示
             const characterName = ChatData.characterInfo[character]?.name || character;
             const responseText = response.message || response.response || '応答を取得できませんでした';
