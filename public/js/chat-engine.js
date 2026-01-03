@@ -768,6 +768,12 @@ const ChatInit = {
      * @param {boolean} skipAnimation - アニメーションをスキップするか
      */
     async sendMessage(skipUserMessage = false, skipAnimation = false, messageOverride = null) {
+        // メッセージ入力欄が無効化されている場合は送信をブロック
+        if (ChatUI.messageInput && ChatUI.messageInput.disabled) {
+            console.log('[メッセージ送信] メッセージ入力欄が無効化されているため、送信をブロックします');
+            return;
+        }
+        
         // メッセージの取得：オーバーライドが指定されている場合はそれを使用、そうでなければ入力欄から取得
         const message = messageOverride || ChatUI.messageInput.value.trim();
         const character = ChatData.currentCharacter;

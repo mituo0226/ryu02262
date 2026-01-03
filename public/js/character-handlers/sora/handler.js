@@ -43,6 +43,15 @@ const SoraHandler = {
             // フラグを保存
             sessionStorage.setItem('acceptedGuardianRitual', 'true');
             
+            // メッセージ入力欄を即座に無効化（11通目以降の送信を防ぐ）
+            if (ChatUI.messageInput) {
+                ChatUI.messageInput.disabled = true;
+                ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
+            }
+            if (ChatUI.sendButton) {
+                ChatUI.sendButton.disabled = true;
+            }
+            
             // システムメッセージ表示後、即座にボタンを表示（APIの挙動に関係なく）
             this.showRegistrationButtons();
             

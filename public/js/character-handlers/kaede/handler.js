@@ -61,9 +61,9 @@ const KaedeHandler = {
             // システムメッセージを表示
             ChatUI.addMessage('error', '守護神の儀式への同意が検出されました。ボタンが表示されます。', 'システム');
             
-            // acceptedGuardianRitualフラグを保存
+            // acceptedGuardianRitualフラグを保存（showRitualConsentButtons()の後に設定されるため、ここでは設定しない）
             sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            ChatData.ritualConsentShown = true;
+            // ChatData.ritualConsentShown = true; // showRitualConsentButtons()内で設定されるため、ここでは設定しない
             
             // 守護神の儀式ボタンを表示
             setTimeout(() => {

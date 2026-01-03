@@ -38,9 +38,9 @@ const KaonHandler = {
             // システムメッセージを表示
             ChatUI.addMessage('error', 'ユーザー登録への同意が検出されました。ボタンが表示されます。', 'システム');
             
-            // フラグを保存
+            // フラグを保存（showRitualConsentButtons()の後に設定されるため、ここでは設定しない）
             sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            ChatData.ritualConsentShown = true;
+            // ChatData.ritualConsentShown = true; // showRitualConsentButtons()内で設定されるため、ここでは設定しない
             
             // 登録ボタンを表示
             setTimeout(() => {
