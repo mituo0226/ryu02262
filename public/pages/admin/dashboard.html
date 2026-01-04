@@ -675,6 +675,16 @@
                   <label style="display: block; margin-bottom: 6px; font-size: 13px; color: #9da2c6;">IPアドレス</label>
                   <input type="text" id="searchIpAddress" placeholder="IPアドレスで検索" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.4); color: #fff; font-size: 14px;">
                 </div>
+                <div style="flex: 1; min-width: 200px;">
+                  <label style="display: block; margin-bottom: 6px; font-size: 13px; color: #9da2c6;">鑑定師</label>
+                  <select id="searchCharacterId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.4); color: #fff; font-size: 14px;">
+                    <option value="">すべて</option>
+                    <option value="kaede">楓</option>
+                    <option value="yukino">笹岡雪乃</option>
+                    <option value="sora">水野ソラ</option>
+                    <option value="kaon">三崎花音</option>
+                  </select>
+                </div>
                 <div>
                   <button type="submit" style="padding: 10px 20px; border: none; border-radius: 8px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
                     検索
@@ -1172,6 +1182,7 @@
     const guestSessionSearchForm = document.getElementById('guestSessionSearchForm');
     const searchSessionId = document.getElementById('searchSessionId');
     const searchIpAddress = document.getElementById('searchIpAddress');
+    const searchCharacterId = document.getElementById('searchCharacterId');
     const refreshGuestSessionsBtn = document.getElementById('refreshGuestSessionsBtn');
     const guestSessionList = document.getElementById('guestSessionList');
     const guestSessionDetailCard = document.getElementById('guestSessionDetailCard');
@@ -1191,7 +1202,7 @@
       if (guestSessionList) guestSessionList.innerHTML = '<p class="muted">検索ボタンをクリックするか、「最新20件を表示」をクリックしてください。</p>';
     }
 
-    async function fetchGuestSessions(ipAddress = null, sessionId = null) {
+    async function fetchGuestSessions(ipAddress = null, sessionId = null, characterId = null) {
       if (!currentToken) {
         if (guestSessionList) guestSessionList.innerHTML = '<p class="muted" style="color: #ff6b6b;">管理者トークンを入力して接続してください。</p>';
         return;
@@ -1199,11 +1210,18 @@
 
       try {
         let url = '/api/admin/clear-guest-sessions';
-        if (ipAddress) {
-          url += `?ipAddress=${encodeURIComponent(ipAddress)}`;
-        } else if (sessionId) {
-          // セッションIDで検索する場合は、まずすべてのセッションを取得してフィルタリング
-          url += '?ipAddress=';
+        const params = [];
+        
+        if (sessionId) {
+          params.push(`sessionId=${encodeURIComponent(sessionId)}`);
+        } else if (ipAddress) {
+          params.push(`ipAddress=${encodeURIComponent(ipAddress)}`);
+        } else if (characterId) {
+          params.push(`characterId=${encodeURIComponent(characterId)}`);
+        }
+        
+        if (params.length > 0) {
+          url += '?' + params.join('&');
         }
 
         const res = await fetch(url, {
@@ -1212,13 +1230,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '取得に失敗しました');
 
-        let sessions = data.sessions || [];
-        
-        // セッションIDで検索する場合
-        if (sessionId && !ipAddress) {
-          sessions = sessions.filter(s => s.session_id && s.session_id.includes(sessionId));
-        }
-
+        const sessions = data.sessions || [];
         renderGuestSessionList(sessions);
       } catch (error) {
         console.error(error);
@@ -1257,10 +1269,14 @@
                   <td style="padding: 12px; font-size: 12px; color: #9da2c6;">${session.created_at ? new Date(session.created_at).toLocaleString('ja-JP') : 'N/A'}</td>
                   <td style="padding: 12px; font-size: 12px; color: #9da2c6;">${session.last_activity_at ? new Date(session.last_activity_at).toLocaleString('ja-JP') : 'N/A'}</td>
                   <td style="padding: 12px;">
-                    <div style="display: flex; gap: 6px;">
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                       <button onclick="event.stopPropagation(); selectGuestSession(${session.id}, '${(session.session_id || '').replace(/'/g, "\\'")}', '${(session.ip_address || '').replace(/'/g, "\\'")}', ${session.message_count || 0})" 
                               style="padding: 6px 12px; font-size: 12px; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #fff; cursor: pointer;">
                         詳細
+                      </button>
+                      <button onclick="event.stopPropagation(); viewGuestSessionHistory(${session.id}, '${(session.session_id || '').replace(/'/g, "\\'")}')" 
+                              style="padding: 6px 12px; font-size: 12px; background: rgba(75, 0, 129, 0.3); border: 1px solid rgba(75, 0, 129, 0.5); border-radius: 6px; color: #fff; cursor: pointer;">
+                        履歴
                       </button>
                       <button onclick="event.stopPropagation(); quickDeleteGuestSession('${(session.session_id || '').replace(/'/g, "\\'")}', ${session.id})" 
                               style="padding: 6px 12px; font-size: 12px; background: rgba(220, 38, 38, 0.3); border: 1px solid rgba(220, 38, 38, 0.5); border-radius: 6px; color: #fff; cursor: pointer;">
@@ -1312,13 +1328,14 @@
         e.preventDefault();
         const sessionId = searchSessionId ? searchSessionId.value.trim() : '';
         const ipAddress = searchIpAddress ? searchIpAddress.value.trim() : '';
+        const characterId = searchCharacterId ? searchCharacterId.value.trim() : '';
         
-        if (!sessionId && !ipAddress) {
-          alert('セッションIDまたはIPアドレスを入力してください。');
+        if (!sessionId && !ipAddress && !characterId) {
+          alert('セッションID、IPアドレス、または鑑定師を選択してください。');
           return;
         }
 
-        await fetchGuestSessions(ipAddress || null, sessionId || null);
+        await fetchGuestSessions(ipAddress || null, sessionId || null, characterId || null);
       });
     }
 
@@ -1326,9 +1343,37 @@
       refreshGuestSessionsBtn.addEventListener('click', async () => {
         if (searchSessionId) searchSessionId.value = '';
         if (searchIpAddress) searchIpAddress.value = '';
+        if (searchCharacterId) searchCharacterId.value = '';
         await fetchGuestSessions();
       });
     }
+
+    // ゲストセッションの会話履歴を直接表示する関数
+    window.viewGuestSessionHistory = async function(sessionId, sessionIdStr) {
+      if (!currentToken) {
+        alert('管理者トークンを入力して接続してください。');
+        return;
+      }
+
+      if (!guestConversationsList) return;
+      guestConversationsList.innerHTML = '<p class="muted">読み込み中...</p>';
+      if (guestConversationsCard) guestConversationsCard.classList.remove('hidden');
+      if (guestSessionDetailCard) guestSessionDetailCard.classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/admin/conversations?userId=${sessionId}`, {
+          headers: { 'X-Admin-Token': currentToken },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '会話履歴の取得に失敗しました');
+
+        const conversations = data.conversations || [];
+        renderGuestConversations(conversations, sessionIdStr);
+      } catch (error) {
+        console.error(error);
+        if (guestConversationsList) guestConversationsList.innerHTML = `<p class="muted" style="color: #ff6b6b;">${error.message}</p>`;
+      }
+    };
 
     if (viewGuestConversationsBtn) {
       viewGuestConversationsBtn.addEventListener('click', async () => {
@@ -1355,7 +1400,7 @@
           if (!res.ok) throw new Error(data.error || '会話履歴の取得に失敗しました');
 
           const conversations = data.conversations || [];
-          renderGuestConversations(conversations);
+          renderGuestConversations(conversations, selectedGuestSession.session_id);
         } catch (error) {
           console.error(error);
           if (guestConversationsList) guestConversationsList.innerHTML = `<p class="muted" style="color: #ff6b6b;">${error.message}</p>`;
@@ -1363,7 +1408,7 @@
       });
     }
 
-    function renderGuestConversations(conversations) {
+    function renderGuestConversations(conversations, sessionIdStr = null) {
       if (!guestConversationsList) return;
       
       if (!conversations || conversations.length === 0) {
@@ -1371,18 +1416,35 @@
         return;
       }
 
+      const characterNames = {
+        'kaede': '楓',
+        'yukino': '笹岡雪乃',
+        'sora': '水野ソラ',
+        'kaon': '三崎花音'
+      };
+
       guestConversationsList.innerHTML = `
+        ${sessionIdStr ? `<div style="margin-bottom: 16px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 8px;">
+          <strong style="color: #d6c9ff; font-size: 13px;">セッションID:</strong>
+          <div style="font-family: monospace; color: #e8d5ff; margin-top: 4px; word-break: break-all; font-size: 12px;">${sessionIdStr}</div>
+        </div>` : ''}
         <div style="max-height: 600px; overflow-y: auto;">
           ${conversations.map(conv => {
             const message = (conv.message || conv.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const characterName = characterNames[conv.character_id] || conv.character_id || '';
             return `
             <div style="margin-bottom: 16px; padding: 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; 
-                    background: ${conv.role === 'user' ? 'rgba(138, 43, 226, 0.3)' : 'rgba(75, 0, 129, 0.3)'}; 
-                    color: ${conv.role === 'user' ? '#d6c9ff' : '#b794ff'};">
-                  ${conv.role === 'user' ? 'ユーザー' : 'アシスタント'}
-                </span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; 
+                      background: ${conv.role === 'user' ? 'rgba(138, 43, 226, 0.3)' : 'rgba(75, 0, 129, 0.3)'}; 
+                      color: ${conv.role === 'user' ? '#d6c9ff' : '#b794ff'};">
+                    ${conv.role === 'user' ? 'ユーザー' : 'アシスタント'}
+                  </span>
+                  ${characterName ? `<span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; background: rgba(138, 43, 226, 0.2); color: #b794ff;">
+                    ${characterName}
+                  </span>` : ''}
+                </div>
                 <span style="font-size: 11px; color: #9da2c6;">
                   ${conv.timestamp ? new Date(conv.timestamp).toLocaleString('ja-JP') : 'N/A'}
                 </span>

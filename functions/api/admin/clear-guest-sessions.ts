@@ -141,9 +141,40 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
   try {
     const url = new URL(request.url);
     const ipAddress = url.searchParams.get('ipAddress');
+    const sessionId = url.searchParams.get('sessionId');
+    const characterId = url.searchParams.get('characterId');
 
+    // セッションIDで検索
+    if (sessionId) {
+      const sessions = await env.DB.prepare<GuestSession & { message_count: number }>(
+        `SELECT 
+          gs.id,
+          gs.session_id,
+          gs.ip_address,
+          gs.user_agent,
+          gs.created_at,
+          gs.last_activity_at,
+          COUNT(c.id) as message_count
+        FROM guest_sessions gs
+        LEFT JOIN conversations c ON c.user_id = gs.id AND c.is_guest_message = 1
+        WHERE gs.session_id = ?
+        GROUP BY gs.id, gs.session_id, gs.ip_address, gs.user_agent, gs.created_at, gs.last_activity_at
+        ORDER BY gs.created_at DESC`
+      )
+        .bind(sessionId)
+        .all();
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          sessions: sessions.results || [],
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
+    // IPアドレスで検索
     if (ipAddress) {
-      // 特定のIPアドレスのセッション情報を取得
       const sessions = await env.DB.prepare<GuestSession & { message_count: number }>(
         `SELECT 
           gs.id,
@@ -169,23 +200,38 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         }),
         { status: 200, headers: corsHeaders }
       );
-    } else {
-      // すべてのセッション情報を取得（最新20件）
+    }
+
+    // 鑑定師（character_id）で検索
+    if (characterId) {
+      const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+      if (!validCharacters.includes(characterId)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Invalid character ID',
+          }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
       const sessions = await env.DB.prepare<GuestSession & { message_count: number }>(
-        `SELECT 
+        `SELECT DISTINCT
           gs.id,
           gs.session_id,
           gs.ip_address,
           gs.user_agent,
           gs.created_at,
           gs.last_activity_at,
-          COUNT(c.id) as message_count
+          COUNT(DISTINCT c.id) as message_count
         FROM guest_sessions gs
-        LEFT JOIN conversations c ON c.user_id = gs.id AND c.is_guest_message = 1
+        INNER JOIN conversations c ON c.user_id = gs.id AND c.is_guest_message = 1 AND c.character_id = ?
         GROUP BY gs.id, gs.session_id, gs.ip_address, gs.user_agent, gs.created_at, gs.last_activity_at
         ORDER BY gs.created_at DESC
-        LIMIT 20`
-      ).all();
+        LIMIT 100`
+      )
+        .bind(characterId)
+        .all();
 
       return new Response(
         JSON.stringify({
@@ -195,6 +241,31 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         { status: 200, headers: corsHeaders }
       );
     }
+
+    // すべてのセッション情報を取得（最新20件）
+    const sessions = await env.DB.prepare<GuestSession & { message_count: number }>(
+      `SELECT 
+        gs.id,
+        gs.session_id,
+        gs.ip_address,
+        gs.user_agent,
+        gs.created_at,
+        gs.last_activity_at,
+        COUNT(c.id) as message_count
+      FROM guest_sessions gs
+      LEFT JOIN conversations c ON c.user_id = gs.id AND c.is_guest_message = 1
+      GROUP BY gs.id, gs.session_id, gs.ip_address, gs.user_agent, gs.created_at, gs.last_activity_at
+      ORDER BY gs.created_at DESC
+      LIMIT 20`
+    ).all();
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        sessions: sessions.results || [],
+      }),
+      { status: 200, headers: corsHeaders }
+    );
   } catch (error) {
     console.error('Error in clear-guest-sessions GET:', error);
     return new Response(
