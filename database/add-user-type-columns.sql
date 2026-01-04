@@ -32,7 +32,12 @@ ALTER TABLE users ADD COLUMN session_id TEXT;
 -- ステップ4: last_activity_atカラムを追加
 -- ============================================
 -- 最後のアクティビティ日時を格納
-ALTER TABLE users ADD COLUMN last_activity_at DATETIME DEFAULT CURRENT_TIMESTAMP;
+-- 注意: SQLiteでは非定数デフォルト値（CURRENT_TIMESTAMP）を直接追加できないため、
+-- まずNULLで追加し、既存レコードにはcreated_atまたは現在時刻を設定
+ALTER TABLE users ADD COLUMN last_activity_at DATETIME;
+
+-- 既存のレコードにはcreated_atの値（または現在時刻）を設定
+UPDATE users SET last_activity_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE last_activity_at IS NULL;
 
 -- ============================================
 -- ステップ5: インデックスの作成
