@@ -155,40 +155,41 @@ async function generateGuestSessionId(ipAddress: string | null, userAgent: strin
 }
 
 /**
- * ゲストセッションを取得または作成
+ * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
  */
-async function getOrCreateGuestSession(
+async function getOrCreateGuestUser(
   db: D1Database,
   sessionId: string | null,
   ipAddress: string | null,
   userAgent: string | null
 ): Promise<number> {
   if (sessionId) {
-    const existingSession = await db
-      .prepare('SELECT id FROM guest_sessions WHERE session_id = ?')
-      .bind(sessionId)
+    const existingUser = await db
+      .prepare('SELECT id FROM users WHERE session_id = ? AND user_type = ?')
+      .bind(sessionId, 'guest')
       .first<{ id: number }>();
     
-    if (existingSession) {
+    if (existingUser) {
       await db
-        .prepare('UPDATE guest_sessions SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
-        .bind(existingSession.id)
+        .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(existingUser.id)
         .run();
-      return existingSession.id;
+      return existingUser.id;
     }
   }
 
   const newSessionId = sessionId || await generateGuestSessionId(ipAddress, userAgent);
   const result = await db
-    .prepare('INSERT INTO guest_sessions (session_id, ip_address, user_agent) VALUES (?, ?, ?)')
-    .bind(newSessionId, ipAddress || null, userAgent || null)
+    .prepare('INSERT INTO users (user_type, ip_address, session_id, last_activity_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)')
+    .bind('guest', ipAddress || null, newSessionId)
     .run();
 
-  const guestSessionId = result.meta?.last_row_id;
-  if (!guestSessionId) {
-    throw new Error('Failed to create guest session');
+  const guestUserId = result.meta?.last_row_id;
+  if (!guestUserId || typeof guestUserId !== 'number') {
+    console.error('[getOrCreateGuestUser] last_row_id is invalid:', guestUserId, typeof guestUserId);
+    throw new Error(`Failed to create guest user: last_row_id is ${guestUserId}`);
   }
-  return guestSessionId;
+  return guestUserId;
 }
 
 /**
@@ -196,18 +197,18 @@ async function getOrCreateGuestSession(
  */
 async function getTotalGuestMessageCount(
   db: D1Database,
-  guestSessionId: number
+  guestUserId: number
 ): Promise<number> {
   // 【ポジティブな指定】ゲストユーザーのメッセージ数を取得
-  // guest_sessionsテーブルに存在し、session_idを持つユーザーのみを対象とする
+  // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
   const result = await db
     .prepare(
       `SELECT COUNT(*) as count 
        FROM conversations c
-       INNER JOIN guest_sessions gs ON c.user_id = gs.id
-       WHERE c.user_id = ? AND gs.session_id IS NOT NULL AND c.role = 'user'`
+       INNER JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = ? AND u.user_type = 'guest' AND c.role = 'user'`
     )
-    .bind(guestSessionId)
+    .bind(guestUserId)
     .first<{ count: number }>();
   return result?.count || 0;
 }
@@ -222,11 +223,13 @@ async function getConversationHistory(
   characterId: string
 ): Promise<ClientHistoryEntry[]> {
   if (userType === 'registered') {
+    // 【ポジティブな指定】登録ユーザーの履歴取得
+    // usersテーブルに存在し、user_type = 'registered'かつnicknameを持つユーザーのみを対象とする
     const historyResults = await db.prepare<ConversationRow>(
       `SELECT c.role, c.message as content, c.is_guest_message
        FROM conversations c
        INNER JOIN users u ON c.user_id = u.id
-       WHERE c.user_id = ? AND c.character_id = ? AND u.nickname IS NOT NULL
+       WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'registered' AND u.nickname IS NOT NULL
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
        LIMIT 20`
     )
@@ -239,11 +242,13 @@ async function getConversationHistory(
       isGuestMessage: row.is_guest_message === 1,
     })) ?? [];
   } else {
+    // 【ポジティブな指定】ゲストユーザーの履歴取得
+    // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
     const historyResults = await db.prepare<ConversationRow>(
       `SELECT c.role, c.message as content, c.is_guest_message
        FROM conversations c
-       INNER JOIN guest_sessions gs ON c.user_id = gs.id
-       WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL
+       INNER JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest'
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
        LIMIT 20`
     )
@@ -278,11 +283,13 @@ async function saveConversationHistory(
       .bind(userId, characterId)
       .first();
   } else {
+    // 【ポジティブな指定】ゲストユーザーのメッセージ数を取得
+    // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
     messageCountResult = await db.prepare<{ count: number }>(
       `SELECT COUNT(*) as count 
        FROM conversations c
-       INNER JOIN guest_sessions gs ON c.user_id = gs.id
-       WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL`
+       INNER JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest'`
     )
       .bind(userId, characterId)
       .first();
@@ -306,14 +313,16 @@ async function saveConversationHistory(
         .bind(userId, characterId, userId, characterId, deleteCount)
         .run();
     } else {
+      // 【ポジティブな指定】ゲストユーザーの古いメッセージを削除
+      // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
       await db.prepare(
         `DELETE FROM conversations
          WHERE user_id = ? AND character_id = ?
-         AND user_id IN (SELECT id FROM guest_sessions WHERE id = ? AND session_id IS NOT NULL)
+         AND user_id IN (SELECT id FROM users WHERE id = ? AND user_type = 'guest')
          AND id IN (
            SELECT c.id FROM conversations c
-           INNER JOIN guest_sessions gs ON c.user_id = gs.id
-           WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL
+           INNER JOIN users u ON c.user_id = u.id
+           WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest'
            ORDER BY COALESCE(c.timestamp, c.created_at) ASC
            LIMIT ?
          )`
@@ -664,12 +673,13 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ===== 3. ゲストユーザーのセッション管理 =====
     // 【ポジティブな指定】ゲストユーザーは以下の条件を満たす：
     // 1. userTokenが存在しない、または無効、またはユーザーがデータベースに存在しない
-    // 2. usersテーブルに存在しない（ニックネームを持たない）
+    // 2. usersテーブルに存在するが、user_type = 'guest'である（ニックネームを持たない）
     // 3. IPアドレス（ip_address）とセッションID（session_id）のみで識別される
     // 
-    // 【重要】user_idとsession_idの違い：
-    // - user_id: guest_sessionsテーブルの主キー（データベース内の一意識別子）
-    // - session_id: guest_sessionsテーブルの一意文字列（ブラウザセッション識別子、UUID形式）
+    // 【重要】統一ユーザーテーブル設計により、すべてのユーザーはusersテーブルで管理される：
+    // - user_id: usersテーブルの主キー（データベース内の一意識別子）
+    // - session_id: usersテーブルの一意文字列（ブラウザセッション識別子、UUID形式）
+    // - user_type: 'guest' | 'registered'（ユーザー種別）
     // ゲストユーザーは、session_idで識別され、user_idでデータベースに保存される
     const ipAddress = request.headers.get('CF-Connecting-IP');
     const userAgent = request.headers.get('User-Agent');
@@ -680,14 +690,14 @@ export const onRequestPost: PagesFunction = async (context) => {
       guestSessionIdStr = guestMetadata.sessionId || null;
       
       try {
-        guestSessionId = await getOrCreateGuestSession(env.DB, guestSessionIdStr, ipAddress, userAgent);
-        console.log('[consult] ゲストセッション:', {
-          guestSessionId, // データベース内のuser_id（guest_sessionsテーブルの主キー）
+        guestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
+        console.log('[consult] ゲストユーザー:', {
+          guestUserId: guestSessionId, // データベース内のuser_id（usersテーブルの主キー）
           sessionId: guestSessionIdStr, // ブラウザセッション識別子（UUID形式）
           ipAddress,
         });
       } catch (error) {
-        console.error('[consult] ゲストセッション作成エラー:', error);
+        console.error('[consult] ゲストユーザー作成エラー:', error);
         // エラーが発生しても続行（セッション管理はオプショナル）
       }
     }
@@ -763,12 +773,11 @@ export const onRequestPost: PagesFunction = async (context) => {
         // 【ゲストユーザーが登録ユーザーになる条件】
         // 1. ゲストユーザーが10通のメッセージ制限に達した
         // 2. ユーザー登録フォームでニックネームと生年月日を入力した
-        // 3. usersテーブルに新しいレコードが作成され、user_idが発行された
-        // 4. ゲストユーザーの履歴（guest_sessionsテーブルのuser_id）を登録ユーザーの履歴（usersテーブルのuser_id）に移行する
+        // 3. usersテーブルの既存レコード（user_type = 'guest'）を更新（user_type = 'registered'に変更）
         // 
-        // 【重要】移行時のuser_idの変更：
-        // - 移行前: guest_sessionsテーブルのID（ゲストセッションID）
-        // - 移行後: usersテーブルのID（登録ユーザーID）
+        // 【重要】統一ユーザーテーブル設計により、移行は同一レコードの更新のみ：
+        // - 移行前: usersテーブルのレコード（user_type = 'guest'、nickname = NULL）
+        // - 移行後: usersテーブルの同じレコード（user_type = 'registered'、nickname = 入力値）
         // 移行後は、is_guest_message = 1として保存し、登録ユーザーの履歴として扱う
         if (body.migrateHistory && sanitizedHistory.length > 0) {
           console.log('[consult] ゲスト履歴を登録ユーザーに移行します:', sanitizedHistory.length, '件');
@@ -860,13 +869,15 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (user && characterId === 'yukino') {
       // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージをデータベースから取得
       // 【ポジティブな指定】登録ユーザーが以前ゲストユーザーだった場合の履歴を取得
-      // guest_sessionsテーブルに存在し、session_idを持つユーザーの履歴のみを対象とする
+      // usersテーブルに存在し、user_type = 'guest'のユーザーの履歴のみを対象とする
       // conversationHistoryには登録ユーザーの履歴のみが含まれるため、ゲスト履歴は別途取得する
+      // 注意: このクエリは、登録ユーザーが以前ゲストユーザーだった場合の履歴を取得するため、
+      // 現在のuser.idではなく、is_guest_message = 1のメッセージを検索する
       const guestMessageResult = await env.DB.prepare<ConversationRow>(
         `SELECT c.message as content
          FROM conversations c
-         INNER JOIN guest_sessions gs ON c.user_id = gs.id
-         WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND gs.session_id IS NOT NULL
+         INNER JOIN users u ON c.user_id = u.id
+         WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND u.user_type = 'guest'
          ORDER BY COALESCE(c.timestamp, c.created_at) DESC
          LIMIT 1`
       )

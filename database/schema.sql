@@ -4,21 +4,29 @@
 -- ============================================
 
 -- ============================================
--- 1. ユーザーテーブル（既存・確認用）
+-- 1. ユーザーテーブル（統一設計）
 -- ============================================
--- 注意: 既存のusersテーブルがある場合は、この定義は参考用です
--- 実際のマイグレーション時は既存テーブルを確認してください
+-- 注意: 既存のusersテーブルがある場合は、migrate-to-unified-users.sqlを実行して
+-- 新しいカラムを追加してください
 
 -- CREATE TABLE IF NOT EXISTS users (
 --   id INTEGER PRIMARY KEY AUTOINCREMENT,
---   nickname TEXT NOT NULL,
---   birth_year INTEGER NOT NULL,
---   birth_month INTEGER NOT NULL,
---   birth_day INTEGER NOT NULL,
---   assigned_deity TEXT NOT NULL,
+--   user_type TEXT NOT NULL DEFAULT 'registered', -- 'guest' | 'registered'
+--   ip_address TEXT,  -- ゲストユーザー識別用
+--   session_id TEXT,  -- ゲストユーザー識別用（ブラウザセッション）
+--   nickname TEXT,    -- 登録ユーザーのみ（ゲストはNULL）
+--   birth_year INTEGER,
+--   birth_month INTEGER,
+--   birth_day INTEGER,
+--   assigned_deity TEXT,  -- 登録ユーザーのみ（ゲストはNULL）
 --   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
---   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+--   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+--   last_activity_at DATETIME DEFAULT CURRENT_TIMESTAMP
 -- );
+--
+-- CREATE INDEX IF NOT EXISTS idx_users_type ON users(user_type);
+-- CREATE INDEX IF NOT EXISTS idx_users_session_id ON users(session_id) WHERE session_id IS NOT NULL;
+-- CREATE INDEX IF NOT EXISTS idx_users_ip_address ON users(ip_address) WHERE ip_address IS NOT NULL;
 
 -- ============================================
 -- 2. 会話履歴テーブル（新規設計）
