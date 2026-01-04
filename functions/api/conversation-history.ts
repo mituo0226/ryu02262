@@ -3,7 +3,8 @@ import { verifyUserToken } from '../_lib/token.js';
 
 interface ConversationRow {
   role: 'user' | 'assistant';
-  message: string;
+  message?: string; // 後方互換性のため残す（実際はcontentを使用）
+  content?: string; // 実際のカラム名
   created_at: string;
 }
 
@@ -101,10 +102,10 @@ export const onRequestGet: PagesFunction = async (context) => {
 
     // 会話履歴を取得（最新20件）
     // timestampカラムが存在しない場合はcreated_atを使用
-    // テーブルにはmessageカラムが存在するため、messageを使用
+    // テーブルにはcontentカラムが存在するため、contentを使用
     // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
     const historyResults = await env.DB.prepare<ConversationRow>(
-      `SELECT role, message, COALESCE(timestamp, created_at) as created_at
+      `SELECT role, content, COALESCE(timestamp, created_at) as created_at
        FROM conversations
        WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
        ORDER BY COALESCE(timestamp, created_at) DESC
@@ -145,7 +146,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     // 最近のメッセージを返す（最新10件、created_atも含める）
     const recentMessages = sortedConversations.slice(-10).map((row) => ({
       role: row.role,
-      content: row.message,
+      content: row.content || row.message || '', // contentを優先、後方互換性のためmessageも確認
       created_at: row.created_at,
     }));
 

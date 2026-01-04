@@ -57,7 +57,8 @@ interface UserRecord {
 
 interface ConversationRow {
   role: ConversationRole;
-  message: string;
+  message?: string; // 後方互換性のため残す（実際はcontentを使用）
+  content?: string; // 実際のカラム名
   is_guest_message?: number;
 }
 
@@ -614,7 +615,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       // 登録ユーザー：データベースから履歴を取得
       // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
       const historyResults = await env.DB.prepare<ConversationRow>(
-        `SELECT role, message, is_guest_message
+        `SELECT role, content, is_guest_message
          FROM conversations
          WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
          ORDER BY COALESCE(timestamp, created_at) DESC
@@ -626,7 +627,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       const dbHistory =
         historyResults.results?.slice().reverse().map((row) => ({
           role: row.role,
-          content: row.message,
+          content: row.content || row.message || '', // contentを優先、後方互換性のためmessageも確認
           isGuestMessage: row.is_guest_message === 1,
         })) ?? [];
 
@@ -636,7 +637,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         for (const entry of sanitizedHistory) {
           try {
             await env.DB.prepare(
-              `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+              `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
                VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
             )
               .bind(user.id, characterId, entry.role, entry.content)
@@ -644,7 +645,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           } catch (error) {
             // timestampカラムが存在しない場合はcreated_atのみを使用
             await env.DB.prepare(
-              `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+              `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
                VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
             )
               .bind(user.id, characterId, entry.role, entry.content)
@@ -660,7 +661,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       // ゲストユーザー：データベースから履歴を取得
       if (guestSessionId) {
         const guestHistoryResults = await env.DB.prepare<ConversationRow>(
-          `SELECT role, message, is_guest_message
+          `SELECT role, content, is_guest_message
            FROM conversations
            WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
            ORDER BY COALESCE(timestamp, created_at) DESC
@@ -672,7 +673,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         conversationHistory =
           guestHistoryResults.results?.slice().reverse().map((row) => ({
             role: row.role,
-            content: row.message,
+            content: row.content || row.message || '', // contentを優先、後方互換性のためmessageも確認
             isGuestMessage: true,
           })) ?? [];
       } else {
@@ -879,7 +880,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         // ユーザーメッセージを保存
         try {
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
              VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
           )
             .bind(user.id, characterId, trimmedMessage)
@@ -887,7 +888,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         } catch {
           // timestampカラムが存在しない場合はcreated_atのみを使用
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
              VALUES (?, ?, 'user', ?, 'normal', 0, CURRENT_TIMESTAMP)`
           )
             .bind(user.id, characterId, trimmedMessage)
@@ -897,7 +898,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         // アシスタントメッセージを保存
         try {
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
              VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
           )
             .bind(user.id, characterId, responseMessage)
@@ -905,7 +906,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         } catch {
           // timestampカラムが存在しない場合はcreated_atのみを使用
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
              VALUES (?, ?, 'assistant', ?, 'normal', 0, CURRENT_TIMESTAMP)`
           )
             .bind(user.id, characterId, responseMessage)
@@ -945,7 +946,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         // ユーザーメッセージを保存
         try {
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
              VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
           )
             .bind(guestSessionId, characterId, trimmedMessage)
@@ -953,7 +954,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         } catch {
           // timestampカラムが存在しない場合はcreated_atのみを使用
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
              VALUES (?, ?, 'user', ?, 'normal', 1, CURRENT_TIMESTAMP)`
           )
             .bind(guestSessionId, characterId, trimmedMessage)
@@ -963,7 +964,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         // アシスタントメッセージを保存
         try {
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
              VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
           )
             .bind(guestSessionId, characterId, responseMessage)
@@ -971,7 +972,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         } catch {
           // timestampカラムが存在しない場合はcreated_atのみを使用
           await env.DB.prepare(
-            `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+            `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
              VALUES (?, ?, 'assistant', ?, 'normal', 1, CURRENT_TIMESTAMP)`
           )
             .bind(guestSessionId, characterId, responseMessage)
