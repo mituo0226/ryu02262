@@ -530,6 +530,15 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 3. ゲストユーザーのセッション管理 =====
+    // 【ポジティブな指定】ゲストユーザーは以下の条件を満たす：
+    // 1. userTokenが存在しない（認証されていない）
+    // 2. usersテーブルに存在しない（ニックネームを持たない）
+    // 3. IPアドレス（ip_address）とセッションID（session_id）のみで識別される
+    // 
+    // 【重要】user_idとsession_idの違い：
+    // - user_id: guest_sessionsテーブルの主キー（データベース内の一意識別子）
+    // - session_id: guest_sessionsテーブルの一意文字列（ブラウザセッション識別子、UUID形式）
+    // ゲストユーザーは、session_idで識別され、user_idでデータベースに保存される
     const ipAddress = request.headers.get('CF-Connecting-IP');
     const userAgent = request.headers.get('User-Agent');
     let guestSessionId: number | null = null;
@@ -543,8 +552,8 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         guestSessionId = await getOrCreateGuestSession(env.DB, guestSessionIdStr, ipAddress, userAgent);
         console.log('[consult] ゲストセッション:', {
-          guestSessionId,
-          sessionId: guestSessionIdStr,
+          guestSessionId, // データベース内のuser_id（guest_sessionsテーブルの主キー）
+          sessionId: guestSessionIdStr, // ブラウザセッション識別子（UUID形式）
           ipAddress,
         });
       } catch (error) {
