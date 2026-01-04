@@ -167,9 +167,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     const messageType = body.messageType || 'normal';
     const isGuestMessage = body.isGuestMessage ? 1 : 0;
 
+    // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
     const result = await env.DB.prepare(
       `INSERT INTO conversations 
-       (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+       (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, body.character, body.role, body.content, messageType, isGuestMessage)
