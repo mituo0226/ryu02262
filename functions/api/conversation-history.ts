@@ -104,11 +104,13 @@ export const onRequestGet: PagesFunction = async (context) => {
     // timestampカラムが存在しない場合はcreated_atを使用
     // テーブルにはcontentカラムが存在するため、contentを使用
     // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
+    // ⚠️ user_idがusersテーブルに存在することを確認（古いゲストユーザーの履歴を除外）
     const historyResults = await env.DB.prepare<ConversationRow>(
-      `SELECT role, content, COALESCE(timestamp, created_at) as created_at
-       FROM conversations
-       WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
-       ORDER BY COALESCE(timestamp, created_at) DESC
+      `SELECT c.role, c.content, COALESCE(c.timestamp, c.created_at) as created_at
+       FROM conversations c
+       INNER JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 0
+       ORDER BY COALESCE(c.timestamp, c.created_at) DESC
        LIMIT 20`
     )
       .bind(user.id, characterId)

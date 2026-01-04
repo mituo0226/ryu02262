@@ -198,10 +198,13 @@ async function getTotalGuestMessageCount(
   db: D1Database,
   guestSessionId: number
 ): Promise<number> {
+  // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
   const result = await db
     .prepare(
-      `SELECT COUNT(*) as count FROM conversations 
-       WHERE user_id = ? AND is_guest_message = 1 AND role = 'user'`
+      `SELECT COUNT(*) as count 
+       FROM conversations c
+       INNER JOIN guest_sessions gs ON c.user_id = gs.id
+       WHERE c.user_id = ? AND c.is_guest_message = 1 AND c.role = 'user'`
     )
     .bind(guestSessionId)
     .first<{ count: number }>();
@@ -614,11 +617,13 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (user) {
       // 登録ユーザー：データベースから履歴を取得
       // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
+      // ⚠️ user_idがusersテーブルに存在することを確認（古いゲストユーザーの履歴を除外）
       const historyResults = await env.DB.prepare<ConversationRow>(
-        `SELECT role, content, is_guest_message
-         FROM conversations
-         WHERE user_id = ? AND character_id = ? AND is_guest_message = 0
-         ORDER BY COALESCE(timestamp, created_at) DESC
+        `SELECT c.role, c.content, c.is_guest_message
+         FROM conversations c
+         INNER JOIN users u ON c.user_id = u.id
+         WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 0
+         ORDER BY COALESCE(c.timestamp, c.created_at) DESC
          LIMIT 20`
       )
         .bind(user.id, characterId)
@@ -660,11 +665,13 @@ export const onRequestPost: PagesFunction = async (context) => {
     } else {
       // ゲストユーザー：データベースから履歴を取得
       if (guestSessionId) {
+        // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
         const guestHistoryResults = await env.DB.prepare<ConversationRow>(
-          `SELECT role, content, is_guest_message
-           FROM conversations
-           WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
-           ORDER BY COALESCE(timestamp, created_at) DESC
+          `SELECT c.role, c.content, c.is_guest_message
+           FROM conversations c
+           INNER JOIN guest_sessions gs ON c.user_id = gs.id
+           WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 1
+           ORDER BY COALESCE(c.timestamp, c.created_at) DESC
            LIMIT 20`
         )
           .bind(guestSessionId, characterId)
@@ -749,18 +756,20 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (user && characterId === 'yukino') {
       // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージをデータベースから取得
       // ⚠️ conversationHistoryにはゲストメッセージが含まれないため、別途取得する
+      // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
       const guestMessageResult = await env.DB.prepare<ConversationRow>(
-        `SELECT message
-         FROM conversations
-         WHERE user_id = ? AND character_id = ? AND role = 'user' AND is_guest_message = 1
-         ORDER BY COALESCE(timestamp, created_at) DESC
+        `SELECT c.content
+         FROM conversations c
+         INNER JOIN guest_sessions gs ON c.user_id = gs.id
+         WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND c.is_guest_message = 1
+         ORDER BY COALESCE(c.timestamp, c.created_at) DESC
          LIMIT 1`
       )
         .bind(user.id, characterId)
         .first();
       
       if (guestMessageResult) {
-        lastGuestMessage = guestMessageResult.message;
+        lastGuestMessage = guestMessageResult.content || guestMessageResult.message || null;
         console.log('[consult] ゲストモード時の最後のメッセージを抽出:', {
           lastGuestMessage: lastGuestMessage?.substring(0, 50) + '...',
         });
@@ -917,10 +926,12 @@ export const onRequestPost: PagesFunction = async (context) => {
       } else if (guestSessionId) {
         // ゲストユーザーの場合
         // 100件制限チェックと古いメッセージ削除
+        // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
         const messageCountResult = await env.DB.prepare<{ count: number }>(
           `SELECT COUNT(*) as count 
-           FROM conversations 
-           WHERE user_id = ? AND character_id = ? AND is_guest_message = 1`
+           FROM conversations c
+           INNER JOIN guest_sessions gs ON c.user_id = gs.id
+           WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 1`
         )
           .bind(guestSessionId, characterId)
           .first();
@@ -929,17 +940,20 @@ export const onRequestPost: PagesFunction = async (context) => {
 
         if (messageCount >= 100) {
           const deleteCount = messageCount - 100 + 2;
+          // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
           await env.DB.prepare(
             `DELETE FROM conversations
              WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
+             AND user_id IN (SELECT id FROM guest_sessions WHERE id = ?)
              AND id IN (
-               SELECT id FROM conversations
-               WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
-               ORDER BY COALESCE(timestamp, created_at) ASC
+               SELECT c.id FROM conversations c
+               INNER JOIN guest_sessions gs ON c.user_id = gs.id
+               WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 1
+               ORDER BY COALESCE(c.timestamp, c.created_at) ASC
                LIMIT ?
              )`
           )
-            .bind(guestSessionId, characterId, guestSessionId, characterId, deleteCount)
+            .bind(guestSessionId, characterId, guestSessionId, guestSessionId, characterId, deleteCount)
             .run();
         }
 
