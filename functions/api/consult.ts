@@ -636,7 +636,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       // - session_id: guest_sessionsテーブルの一意識別子（ゲストユーザーの一時的な識別子）
       // 登録ユーザーの履歴は、usersテーブルに存在するuser_idのみを対象とする
       const historyResults = await env.DB.prepare<ConversationRow>(
-        `SELECT c.role, c.content, c.is_guest_message
+        `SELECT c.role, COALESCE(c.content, c.message) as content, c.is_guest_message
          FROM conversations c
          INNER JOIN users u ON c.user_id = u.id
          WHERE c.user_id = ? AND c.character_id = ? AND u.nickname IS NOT NULL
@@ -703,7 +703,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       // ゲストユーザーの履歴は、guest_sessionsテーブルに存在するuser_idのみを対象とする
       if (guestSessionId) {
         const guestHistoryResults = await env.DB.prepare<ConversationRow>(
-          `SELECT c.role, c.content, c.is_guest_message
+          `SELECT c.role, COALESCE(c.content, c.message) as content, c.is_guest_message
            FROM conversations c
            INNER JOIN guest_sessions gs ON c.user_id = gs.id
            WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL
@@ -795,7 +795,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       // guest_sessionsテーブルに存在し、session_idを持つユーザーの履歴のみを対象とする
       // conversationHistoryには登録ユーザーの履歴のみが含まれるため、ゲスト履歴は別途取得する
       const guestMessageResult = await env.DB.prepare<ConversationRow>(
-        `SELECT c.content
+        `SELECT COALESCE(c.content, c.message) as content
          FROM conversations c
          INNER JOIN guest_sessions gs ON c.user_id = gs.id
          WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND gs.session_id IS NOT NULL

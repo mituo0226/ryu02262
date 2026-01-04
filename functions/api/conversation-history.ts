@@ -111,7 +111,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     // - session_id: guest_sessionsテーブルの一意文字列（ゲストユーザーの一時的な識別子）
     // 登録ユーザーの履歴は、usersテーブルに存在し、nicknameを持つuser_idのみを対象とする
     const historyResults = await env.DB.prepare<ConversationRow>(
-      `SELECT c.role, c.content, COALESCE(c.timestamp, c.created_at) as created_at
+      `SELECT c.role, COALESCE(c.content, c.message) as content, COALESCE(c.timestamp, c.created_at) as created_at
        FROM conversations c
        INNER JOIN users u ON c.user_id = u.id
        WHERE c.user_id = ? AND c.character_id = ? AND u.nickname IS NOT NULL
