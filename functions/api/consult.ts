@@ -327,16 +327,17 @@ async function saveConversationHistory(
   const isGuestMessage = userType === 'guest' ? 1 : 0;
 
   // ユーザーメッセージを保存
+  // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
   try {
     await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
        VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, characterId, userMessage, isGuestMessage)
       .run();
   } catch {
     await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
        VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, characterId, userMessage, isGuestMessage)
@@ -344,16 +345,17 @@ async function saveConversationHistory(
   }
 
   // アシスタントメッセージを保存
+  // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
   try {
     await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
        VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, characterId, assistantMessage, isGuestMessage)
       .run();
   } catch {
     await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
        VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, characterId, assistantMessage, isGuestMessage)
@@ -772,7 +774,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         for (const entry of sanitizedHistory) {
           try {
             await env.DB.prepare(
-              `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, timestamp)
+              `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
                VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
             )
               .bind(user.id, characterId, entry.role, entry.content)
@@ -780,7 +782,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           } catch (error) {
             // timestampカラムが存在しない場合はcreated_atのみを使用
             await env.DB.prepare(
-              `INSERT INTO conversations (user_id, character_id, role, content, message_type, is_guest_message, created_at)
+              `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
                VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
             )
               .bind(user.id, characterId, entry.role, entry.content)
