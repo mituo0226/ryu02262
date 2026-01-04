@@ -756,47 +756,59 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     if (userType === 'registered' && user) {
       // ===== 登録ユーザーの履歴取得 =====
-      const dbHistory = await getConversationHistory(env.DB, 'registered', user.id, characterId);
+      try {
+        const dbHistory = await getConversationHistory(env.DB, 'registered', user.id, characterId);
 
-      // ===== ゲストユーザーから登録ユーザーへの移行処理 =====
-      // 【ゲストユーザーが登録ユーザーになる条件】
-      // 1. ゲストユーザーが10通のメッセージ制限に達した
-      // 2. ユーザー登録フォームでニックネームと生年月日を入力した
-      // 3. usersテーブルに新しいレコードが作成され、user_idが発行された
-      // 4. ゲストユーザーの履歴（guest_sessionsテーブルのuser_id）を登録ユーザーの履歴（usersテーブルのuser_id）に移行する
-      // 
-      // 【重要】移行時のuser_idの変更：
-      // - 移行前: guest_sessionsテーブルのID（ゲストセッションID）
-      // - 移行後: usersテーブルのID（登録ユーザーID）
-      // 移行後は、is_guest_message = 1として保存し、登録ユーザーの履歴として扱う
-      if (body.migrateHistory && sanitizedHistory.length > 0) {
-        console.log('[consult] ゲスト履歴を登録ユーザーに移行します:', sanitizedHistory.length, '件');
-        for (const entry of sanitizedHistory) {
-          try {
-            await env.DB.prepare(
-              `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-               VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
-            )
-              .bind(user.id, characterId, entry.role, entry.content)
-              .run();
-          } catch (error) {
-            // timestampカラムが存在しない場合はcreated_atのみを使用
-            await env.DB.prepare(
-              `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-               VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
-            )
-              .bind(user.id, characterId, entry.role, entry.content)
-              .run();
+        // ===== ゲストユーザーから登録ユーザーへの移行処理 =====
+        // 【ゲストユーザーが登録ユーザーになる条件】
+        // 1. ゲストユーザーが10通のメッセージ制限に達した
+        // 2. ユーザー登録フォームでニックネームと生年月日を入力した
+        // 3. usersテーブルに新しいレコードが作成され、user_idが発行された
+        // 4. ゲストユーザーの履歴（guest_sessionsテーブルのuser_id）を登録ユーザーの履歴（usersテーブルのuser_id）に移行する
+        // 
+        // 【重要】移行時のuser_idの変更：
+        // - 移行前: guest_sessionsテーブルのID（ゲストセッションID）
+        // - 移行後: usersテーブルのID（登録ユーザーID）
+        // 移行後は、is_guest_message = 1として保存し、登録ユーザーの履歴として扱う
+        if (body.migrateHistory && sanitizedHistory.length > 0) {
+          console.log('[consult] ゲスト履歴を登録ユーザーに移行します:', sanitizedHistory.length, '件');
+          for (const entry of sanitizedHistory) {
+            try {
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+                 VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, entry.role, entry.content)
+                .run();
+            } catch (error) {
+              // timestampカラムが存在しない場合はcreated_atのみを使用
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+                 VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, entry.role, entry.content)
+                .run();
+            }
           }
+          // 移行した履歴とDB履歴をマージ
+          conversationHistory = [...sanitizedHistory, ...dbHistory];
+        } else {
+          conversationHistory = dbHistory;
         }
-        // 移行した履歴とDB履歴をマージ
-        conversationHistory = [...sanitizedHistory, ...dbHistory];
-      } else {
-        conversationHistory = dbHistory;
+      } catch (error) {
+        console.error('[consult] 登録ユーザーの履歴取得エラー:', error);
+        // エラーが発生した場合はクライアントから送られてきた履歴を使用
+        conversationHistory = sanitizedHistory;
       }
     } else if (userType === 'guest' && guestSessionId) {
       // ===== ゲストユーザーの履歴取得 =====
-      conversationHistory = await getConversationHistory(env.DB, 'guest', guestSessionId, characterId);
+      try {
+        conversationHistory = await getConversationHistory(env.DB, 'guest', guestSessionId, characterId);
+      } catch (error) {
+        console.error('[consult] ゲストユーザーの履歴取得エラー:', error);
+        // エラーが発生した場合はクライアントから送られてきた履歴を使用
+        conversationHistory = sanitizedHistory;
+      }
     } else {
       // セッションIDが取得できない場合はクライアントから送られてきた履歴を使用
       conversationHistory = sanitizedHistory;
@@ -949,15 +961,26 @@ export const onRequestPost: PagesFunction = async (context) => {
     
     // ===== 15. 会話履歴の保存 =====
     if (!shouldClearChat && !isJustRegistered) {
-      if (userType === 'registered' && user) {
-        await saveConversationHistory(env.DB, 'registered', user.id, characterId, trimmedMessage, responseMessage);
-        console.log('[consult] 登録ユーザーの会話履歴を保存しました');
-      } else if (userType === 'guest' && guestSessionId) {
-        await saveConversationHistory(env.DB, 'guest', guestSessionId, characterId, trimmedMessage, responseMessage);
-        console.log('[consult] ゲストユーザーの会話履歴を保存しました:', {
-          guestSessionId,
+      try {
+        if (userType === 'registered' && user) {
+          await saveConversationHistory(env.DB, 'registered', user.id, characterId, trimmedMessage, responseMessage);
+          console.log('[consult] 登録ユーザーの会話履歴を保存しました');
+        } else if (userType === 'guest' && guestSessionId) {
+          await saveConversationHistory(env.DB, 'guest', guestSessionId, characterId, trimmedMessage, responseMessage);
+          console.log('[consult] ゲストユーザーの会話履歴を保存しました:', {
+            guestSessionId,
+            characterId,
+          });
+        }
+      } catch (error) {
+        console.error('[consult] 会話履歴の保存エラー:', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          userType,
+          userId: user?.id || guestSessionId,
           characterId,
         });
+        // エラーが発生してもレスポンスは返す（会話履歴の保存は重要だが、致命的ではない）
       }
     }
 
