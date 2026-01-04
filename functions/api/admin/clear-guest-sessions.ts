@@ -41,13 +41,17 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
     if (clearAll) {
       // すべてのゲストセッションと会話履歴を削除
+      // まず会話履歴を削除（外部キー制約がないため、明示的に先に削除）
       const deleteMessagesResult = await env.DB.prepare(
         'DELETE FROM conversations WHERE is_guest_message = 1'
       ).run();
       deletedMessages = deleteMessagesResult.meta.changes || 0;
+      console.log(`[clear-guest-sessions] 全ゲストメッセージ削除: ${deletedMessages}件`);
 
+      // 次にセッションを削除
       const deleteSessionsResult = await env.DB.prepare('DELETE FROM guest_sessions').run();
       deletedSessions = deleteSessionsResult.meta.changes || 0;
+      console.log(`[clear-guest-sessions] 全ゲストセッション削除: ${deletedSessions}件`);
     } else if (ipAddress) {
       // 特定のIPアドレスのセッションを削除
       const sessions = await env.DB.prepare<{ id: number }>(
