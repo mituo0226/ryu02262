@@ -65,7 +65,8 @@ const COMMON_SAFETY_GUIDELINES = `
  * @returns {string} システムプロンプト
  */
 export function generateSystemPrompt(characterId, options = {}) {
-  // ===== 1. 基本情報の準備 =====
+  // ===== 1. 基本情報の準備（最小限の情報のみ）=====
+  // 【改善】システムプロンプトをシンプルに：各鑑定士の性格設定だけを守らせる
 
   // ニックネームの指示
   const nicknameContext = options.userNickname
@@ -82,16 +83,6 @@ export function generateSystemPrompt(characterId, options = {}) {
     ? '【ゲストユーザーへの対応】\n- ゲストユーザーはまだ正式に登録していないため、親しみやすく接してください\n- 各鑑定士の性格設定（話し方、口調、性格）を守って応答してください'
     : '';
 
-  const guardianRitualCompleted =
-    options.guardian &&
-    typeof options.guardian === 'string' &&
-    options.guardian.trim() !== '';
-
-  console.log('[character-system] 守護神完了チェック:', {
-    guardian: options.guardian,
-    guardianRitualCompleted,
-  });
-
   const promptGenerators = {
     kaede: generateKaedePrompt,
     yukino: generateYukinoPrompt,
@@ -100,15 +91,16 @@ export function generateSystemPrompt(characterId, options = {}) {
   };
 
   const generator = promptGenerators[characterId] || promptGenerators.kaede;
+  // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定だけを守らせる
   const characterPrompt = generator({
-    ...options,
+    userNickname: options.userNickname,
+    hasPreviousConversation: options.hasPreviousConversation,
     nicknameContext,
     conversationContext,
     guestUserContext,
   });
 
   // キャラクターの機能制約を生成（ポジティブアプローチ：利用可能な機能のみを明示）
-  // config.jsonから機能情報を取得する代わりに、API側で一元管理された機能情報を使用
   const availableFeatures = getCharacterFeatures(characterId);
   const capabilityConstraints = generateCapabilityConstraints(characterId, availableFeatures);
 
@@ -118,10 +110,7 @@ export function generateSystemPrompt(characterId, options = {}) {
   console.log('[character-system] システムプロンプト生成完了:', {
     characterId,
     userNickname: options.userNickname,
-    guardian: options.guardian,
-    guardianRitualCompleted,
-    isRitualStart: options.isRitualStart,
-    userMessageCount: options.userMessageCount,
+    hasPreviousConversation: options.hasPreviousConversation,
   });
 
   return prompt;
