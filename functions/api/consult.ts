@@ -198,13 +198,14 @@ async function getTotalGuestMessageCount(
   db: D1Database,
   guestSessionId: number
 ): Promise<number> {
-  // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
+  // 【ポジティブな指定】ゲストユーザーのメッセージ数を取得
+  // guest_sessionsテーブルに存在し、session_idを持つユーザーのみを対象とする
   const result = await db
     .prepare(
       `SELECT COUNT(*) as count 
        FROM conversations c
        INNER JOIN guest_sessions gs ON c.user_id = gs.id
-       WHERE c.user_id = ? AND c.is_guest_message = 1 AND c.role = 'user'`
+       WHERE c.user_id = ? AND gs.session_id IS NOT NULL AND c.role = 'user'`
     )
     .bind(guestSessionId)
     .first<{ count: number }>();
@@ -615,14 +616,21 @@ export const onRequestPost: PagesFunction = async (context) => {
     let conversationHistory: ClientHistoryEntry[] = [];
 
     if (user) {
-      // 登録ユーザー：データベースから履歴を取得
-      // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
-      // ⚠️ user_idがusersテーブルに存在することを確認（古いゲストユーザーの履歴を除外）
+      // ===== 登録ユーザーの履歴取得 =====
+      // 【ポジティブな指定】登録ユーザーは以下の条件を満たす：
+      // 1. usersテーブルに存在するID（user_id）を持つ
+      // 2. ニックネーム（nickname）を所持している
+      // 3. userTokenで認証されている
+      // 
+      // 【重要】user_idとsession_idの違い：
+      // - user_id: usersテーブルの主キー（登録ユーザーの一意識別子）
+      // - session_id: guest_sessionsテーブルの一意識別子（ゲストユーザーの一時的な識別子）
+      // 登録ユーザーの履歴は、usersテーブルに存在するuser_idのみを対象とする
       const historyResults = await env.DB.prepare<ConversationRow>(
         `SELECT c.role, c.content, c.is_guest_message
          FROM conversations c
          INNER JOIN users u ON c.user_id = u.id
-         WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 0
+         WHERE c.user_id = ? AND c.character_id = ? AND u.nickname IS NOT NULL
          ORDER BY COALESCE(c.timestamp, c.created_at) DESC
          LIMIT 20`
       )
@@ -636,9 +644,19 @@ export const onRequestPost: PagesFunction = async (context) => {
           isGuestMessage: row.is_guest_message === 1,
         })) ?? [];
 
-      // ゲスト履歴の移行処理（登録直後の場合）
+      // ===== ゲストユーザーから登録ユーザーへの移行処理 =====
+      // 【ゲストユーザーが登録ユーザーになる条件】
+      // 1. ゲストユーザーが10通のメッセージ制限に達した
+      // 2. ユーザー登録フォームでニックネームと生年月日を入力した
+      // 3. usersテーブルに新しいレコードが作成され、user_idが発行された
+      // 4. ゲストユーザーの履歴（guest_sessionsテーブルのuser_id）を登録ユーザーの履歴（usersテーブルのuser_id）に移行する
+      // 
+      // 【重要】移行時のuser_idの変更：
+      // - 移行前: guest_sessionsテーブルのID（ゲストセッションID）
+      // - 移行後: usersテーブルのID（登録ユーザーID）
+      // 移行後は、is_guest_message = 1として保存し、登録ユーザーの履歴として扱う
       if (body.migrateHistory && sanitizedHistory.length > 0) {
-        console.log('[consult] ゲスト履歴を移行します:', sanitizedHistory.length, '件');
+        console.log('[consult] ゲスト履歴を登録ユーザーに移行します:', sanitizedHistory.length, '件');
         for (const entry of sanitizedHistory) {
           try {
             await env.DB.prepare(
@@ -663,14 +681,23 @@ export const onRequestPost: PagesFunction = async (context) => {
         conversationHistory = dbHistory;
       }
     } else {
-      // ゲストユーザー：データベースから履歴を取得
+      // ===== ゲストユーザーの履歴取得 =====
+      // 【ポジティブな指定】ゲストユーザーは以下の条件を満たす：
+      // 1. guest_sessionsテーブルに存在するID（user_id）を持つ
+      // 2. IPアドレス（ip_address）とセッションID（session_id）のみで構成される
+      // 3. ニックネーム（nickname）を所持していない
+      // 4. userTokenで認証されていない
+      // 
+      // 【重要】user_idとsession_idの違い：
+      // - user_id: guest_sessionsテーブルの主キー（ゲストユーザーの一意識別子）
+      // - session_id: guest_sessionsテーブルの一意文字列（ブラウザセッション識別子）
+      // ゲストユーザーの履歴は、guest_sessionsテーブルに存在するuser_idのみを対象とする
       if (guestSessionId) {
-        // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
         const guestHistoryResults = await env.DB.prepare<ConversationRow>(
           `SELECT c.role, c.content, c.is_guest_message
            FROM conversations c
            INNER JOIN guest_sessions gs ON c.user_id = gs.id
-           WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 1
+           WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL
            ORDER BY COALESCE(c.timestamp, c.created_at) DESC
            LIMIT 20`
         )
@@ -940,15 +967,15 @@ export const onRequestPost: PagesFunction = async (context) => {
 
         if (messageCount >= 100) {
           const deleteCount = messageCount - 100 + 2;
-          // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
+          // 【ポジティブな指定】guest_sessionsテーブルに存在し、session_idを持つユーザーの履歴のみを削除
           await env.DB.prepare(
             `DELETE FROM conversations
-             WHERE user_id = ? AND character_id = ? AND is_guest_message = 1
-             AND user_id IN (SELECT id FROM guest_sessions WHERE id = ?)
+             WHERE user_id = ? AND character_id = ?
+             AND user_id IN (SELECT id FROM guest_sessions WHERE id = ? AND session_id IS NOT NULL)
              AND id IN (
                SELECT c.id FROM conversations c
                INNER JOIN guest_sessions gs ON c.user_id = gs.id
-               WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 1
+               WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL
                ORDER BY COALESCE(c.timestamp, c.created_at) ASC
                LIMIT ?
              )`

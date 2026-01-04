@@ -100,16 +100,21 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // 会話履歴を取得（最新20件）
-    // timestampカラムが存在しない場合はcreated_atを使用
-    // テーブルにはcontentカラムが存在するため、contentを使用
-    // ⚠️ ゲストメッセージ（is_guest_message = 1）は画面に表示しない
-    // ⚠️ user_idがusersテーブルに存在することを確認（古いゲストユーザーの履歴を除外）
+    // ===== 登録ユーザーの会話履歴取得 =====
+    // 【ポジティブな指定】登録ユーザーは以下の条件を満たす：
+    // 1. usersテーブルに存在するID（user_id）を持つ
+    // 2. ニックネーム（nickname）を所持している
+    // 3. userTokenで認証されている
+    // 
+    // 【重要】user_idとsession_idの違い：
+    // - user_id: usersテーブルの主キー（登録ユーザーの一意識別子）
+    // - session_id: guest_sessionsテーブルの一意文字列（ゲストユーザーの一時的な識別子）
+    // 登録ユーザーの履歴は、usersテーブルに存在し、nicknameを持つuser_idのみを対象とする
     const historyResults = await env.DB.prepare<ConversationRow>(
       `SELECT c.role, c.content, COALESCE(c.timestamp, c.created_at) as created_at
        FROM conversations c
        INNER JOIN users u ON c.user_id = u.id
-       WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 0
+       WHERE c.user_id = ? AND c.character_id = ? AND u.nickname IS NOT NULL
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
        LIMIT 20`
     )
