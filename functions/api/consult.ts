@@ -791,13 +791,14 @@ export const onRequestPost: PagesFunction = async (context) => {
     
     if (user && characterId === 'yukino') {
       // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージをデータベースから取得
-      // ⚠️ conversationHistoryにはゲストメッセージが含まれないため、別途取得する
-      // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
+      // 【ポジティブな指定】登録ユーザーが以前ゲストユーザーだった場合の履歴を取得
+      // guest_sessionsテーブルに存在し、session_idを持つユーザーの履歴のみを対象とする
+      // conversationHistoryには登録ユーザーの履歴のみが含まれるため、ゲスト履歴は別途取得する
       const guestMessageResult = await env.DB.prepare<ConversationRow>(
         `SELECT c.content
          FROM conversations c
          INNER JOIN guest_sessions gs ON c.user_id = gs.id
-         WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND c.is_guest_message = 1
+         WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND gs.session_id IS NOT NULL
          ORDER BY COALESCE(c.timestamp, c.created_at) DESC
          LIMIT 1`
       )
