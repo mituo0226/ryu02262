@@ -60,51 +60,53 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   const passphrase = getRandomDeity();
   let userId: number;
 
-  // ゲストユーザーから登録ユーザーへの移行
-  if (sessionId) {
-    // 既存のゲストユーザーを検索
-    const guestUser = await env.DB.prepare<{ id: number }>(
-      'SELECT id FROM users WHERE session_id = ? AND user_type = ?'
-    )
-      .bind(sessionId, 'guest')
-      .first();
-
-    if (guestUser) {
-      // 既存のゲストユーザーを登録ユーザーに更新
-      await env.DB.prepare(
-        `UPDATE users 
-         SET user_type = 'registered',
-             nickname = ?,
-             birth_year = ?,
-             birth_month = ?,
-             birth_day = ?,
-             passphrase = ?,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND user_type = 'guest'`
-      )
-        .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase, guestUser.id)
-        .run();
-      userId = guestUser.id;
-    } else {
-      // ゲストユーザーが見つからない場合は新規作成
-      const insertResult: any = await env.DB.prepare(
-        `INSERT INTO users (user_type, nickname, birth_year, birth_month, birth_day, passphrase)
-         VALUES ('registered', ?, ?, ?, ?, ?)`
-      )
-        .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase)
-        .run();
-      userId = insertResult?.meta?.last_row_id;
-    }
-  } else {
-    // 新規登録ユーザー
-    const insertResult: any = await env.DB.prepare(
-      `INSERT INTO users (user_type, nickname, birth_year, birth_month, birth_day, passphrase)
-       VALUES ('registered', ?, ?, ?, ?, ?)`
-    )
-      .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase)
-      .run();
-    userId = insertResult?.meta?.last_row_id;
+  // 【重要】ゲストユーザーから登録ユーザーへの移行
+  // ゲストユーザーが初めてチャットに参加した時点で既にusersテーブルに保存されているため、
+  // 登録時には必ず既存のゲストユーザーレコードが存在する
+  // したがって、新規作成ではなく既存のゲストユーザーレコードを更新するのみ
+  
+  if (!sessionId) {
+    return new Response(
+      JSON.stringify({ error: 'sessionId is required. ゲストユーザーとしてチャットに参加した後、登録してください。' }),
+      { status: 400, headers }
+    );
   }
+
+  // 既存のゲストユーザーを検索
+  const guestUser = await env.DB.prepare<{ id: number }>(
+    'SELECT id FROM users WHERE session_id = ? AND user_type = ?'
+  )
+    .bind(sessionId, 'guest')
+    .first();
+
+  if (!guestUser) {
+    // ゲストユーザーが見つからない場合はエラー
+    // ゲストユーザーが初めてチャットに参加した時点で既にusersテーブルに保存されているため、
+    // このケースは通常発生しない（データベースエラーやセッションIDの不一致など）
+    return new Response(
+      JSON.stringify({ 
+        error: 'ゲストユーザー情報が見つかりませんでした。チャットに参加してから再度登録してください。' 
+      }),
+      { status: 404, headers }
+    );
+  }
+
+  // 既存のゲストユーザーを登録ユーザーに更新
+  await env.DB.prepare(
+    `UPDATE users 
+     SET user_type = 'registered',
+         nickname = ?,
+         birth_year = ?,
+         birth_month = ?,
+         birth_day = ?,
+         passphrase = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ? AND user_type = 'guest'`
+  )
+    .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase, guestUser.id)
+    .run();
+  
+  userId = guestUser.id;
 
   if (!userId) {
     return new Response(JSON.stringify({ error: 'ユーザー登録に失敗しました。' }), { status: 500, headers });
