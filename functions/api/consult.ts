@@ -863,7 +863,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       // guest_sessionsテーブルに存在し、session_idを持つユーザーの履歴のみを対象とする
       // conversationHistoryには登録ユーザーの履歴のみが含まれるため、ゲスト履歴は別途取得する
       const guestMessageResult = await env.DB.prepare<ConversationRow>(
-        `SELECT COALESCE(c.content, c.message) as content
+        `SELECT c.message as content
          FROM conversations c
          INNER JOIN guest_sessions gs ON c.user_id = gs.id
          WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND gs.session_id IS NOT NULL
