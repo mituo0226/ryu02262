@@ -264,7 +264,143 @@ async function getConversationHistory(
 }
 
 /**
+ * 100件制限チェックと古いメッセージの削除（共通関数）
+ */
+async function checkAndCleanupOldMessages(
+  db: D1Database,
+  userType: 'registered' | 'guest',
+  userId: number,
+  characterId: string
+): Promise<void> {
+  // 100件制限チェック
+  let messageCountResult;
+  if (userType === 'registered') {
+    messageCountResult = await db.prepare<{ count: number }>(
+      `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
+    )
+      .bind(userId, characterId)
+      .first();
+  } else {
+    // 【ポジティブな指定】ゲストユーザーのメッセージ数を取得
+    // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
+    messageCountResult = await db.prepare<{ count: number }>(
+      `SELECT COUNT(*) as count 
+       FROM conversations c
+       INNER JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = ? AND character_id = ? AND u.user_type = 'guest'`
+    )
+      .bind(userId, characterId)
+      .first();
+  }
+
+  const messageCount = messageCountResult?.count || 0;
+
+  if (messageCount >= 100) {
+    const deleteCount = messageCount - 100 + 1; // 1件追加するので、1件削除
+    if (userType === 'registered') {
+      await db.prepare(
+        `DELETE FROM conversations
+         WHERE user_id = ? AND character_id = ?
+         AND id IN (
+           SELECT id FROM conversations
+           WHERE user_id = ? AND character_id = ?
+           ORDER BY COALESCE(timestamp, created_at) ASC
+           LIMIT ?
+         )`
+      )
+        .bind(userId, characterId, userId, characterId, deleteCount)
+        .run();
+    } else {
+      // 【ポジティブな指定】ゲストユーザーの古いメッセージを削除
+      // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
+      await db.prepare(
+        `DELETE FROM conversations
+         WHERE user_id = ? AND character_id = ?
+         AND user_id IN (SELECT id FROM users WHERE id = ? AND user_type = 'guest')
+         AND id IN (
+           SELECT c.id FROM conversations c
+           INNER JOIN users u ON c.user_id = u.id
+           WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest'
+           ORDER BY COALESCE(c.timestamp, c.created_at) ASC
+           LIMIT ?
+         )`
+      )
+        .bind(userId, characterId, userId, userId, characterId, deleteCount)
+        .run();
+    }
+  }
+}
+
+/**
+ * ユーザーメッセージを保存（2段階保存の第1段階）
+ * 会話開始時に即座に保存される
+ */
+async function saveUserMessage(
+  db: D1Database,
+  userType: 'registered' | 'guest',
+  userId: number,
+  characterId: string,
+  userMessage: string
+): Promise<void> {
+  // 100件制限チェックと古いメッセージの削除
+  await checkAndCleanupOldMessages(db, userType, userId, characterId);
+
+  const isGuestMessage = userType === 'guest' ? 1 : 0;
+
+  // ユーザーメッセージを保存
+  // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
+  try {
+    await db.prepare(
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+       VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+    )
+      .bind(userId, characterId, userMessage, isGuestMessage)
+      .run();
+  } catch {
+    await db.prepare(
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+       VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+    )
+      .bind(userId, characterId, userMessage, isGuestMessage)
+      .run();
+  }
+}
+
+/**
+ * アシスタントメッセージを保存（2段階保存の第2段階）
+ * LLM応答後に保存される
+ */
+async function saveAssistantMessage(
+  db: D1Database,
+  userType: 'registered' | 'guest',
+  userId: number,
+  characterId: string,
+  assistantMessage: string
+): Promise<void> {
+  const isGuestMessage = userType === 'guest' ? 1 : 0;
+
+  // アシスタントメッセージを保存
+  // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
+  try {
+    await db.prepare(
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+       VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+    )
+      .bind(userId, characterId, assistantMessage, isGuestMessage)
+      .run();
+  } catch {
+    await db.prepare(
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+       VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+    )
+      .bind(userId, characterId, assistantMessage, isGuestMessage)
+      .run();
+  }
+}
+
+/**
  * 会話履歴を保存（共通関数）
+ * @deprecated 2段階保存（saveUserMessage + saveAssistantMessage）を使用してください
  */
 async function saveConversationHistory(
   db: D1Database,
@@ -899,6 +1035,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       trimmedMessage.includes('守護神の儀式を始めてください') ||
       trimmedMessage.includes('守護神の儀式を始めて') ||
       trimmedMessage === '守護神の儀式を始めてください';
+    
+    // 守護神の儀式開始通知の処理
+    // ritualStartフラグがtrueの場合、チャットクリア指示を返す
+    const shouldClearChat = body.ritualStart === true || isRitualStart;
 
     // ===== 10. ゲストモード時の最後のメッセージを抽出 =====
     let lastGuestMessage: string | null = null;
@@ -969,6 +1109,51 @@ export const onRequestPost: PagesFunction = async (context) => {
       isRitualStart,
     });
 
+    // ===== 10. ユーザーメッセージの保存（2段階保存の第1段階）=====
+    // 会話開始時に即座にユーザーメッセージを保存（LLM応答前）
+    if (!shouldClearChat && !isJustRegistered) {
+      try {
+        if (userType === 'registered' && user) {
+          await saveUserMessage(env.DB, 'registered', user.id, characterId, trimmedMessage);
+          console.log('[consult] 登録ユーザーのメッセージを保存しました');
+        } else if (userType === 'guest') {
+          if (guestSessionId) {
+            await saveUserMessage(env.DB, 'guest', guestSessionId, characterId, trimmedMessage);
+            console.log('[consult] ゲストユーザーのメッセージを保存しました:', {
+              guestSessionId,
+              characterId,
+            });
+          } else {
+            // guestSessionIdが取得できなかった場合でも、最後の試行として再作成を試みる
+            console.warn('[consult] ゲストユーザーIDが取得できませんでした。再作成を試みます...');
+            try {
+              const retryGuestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
+              await saveUserMessage(env.DB, 'guest', retryGuestSessionId, characterId, trimmedMessage);
+              console.log('[consult] ゲストユーザーのメッセージを保存しました（再作成後）:', {
+                guestSessionId: retryGuestSessionId,
+                characterId,
+              });
+            } catch (retryError) {
+              console.error('[consult] ゲストユーザーIDの再作成とメッセージ保存に失敗:', {
+                error: retryError instanceof Error ? retryError.message : String(retryError),
+                stack: retryError instanceof Error ? retryError.stack : undefined,
+              });
+              // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[consult] ユーザーメッセージの保存エラー:', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          userType,
+          userId: user?.id || guestSessionId,
+          characterId,
+        });
+        // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
+      }
+    }
+
     // ===== 11. LLM API の呼び出し =====
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
@@ -1018,20 +1203,17 @@ export const onRequestPost: PagesFunction = async (context) => {
     const showTarotCard =
       characterId === 'yukino' && tarotKeywords.some((keyword) => responseMessage.includes(keyword));
 
-    // ===== 13. 守護神の儀式開始通知の処理 =====
-    // ritualStartフラグがtrueの場合、チャットクリア指示を返す
-    const shouldClearChat = body.ritualStart === true;
-    
-    // ===== 15. 会話履歴の保存 =====
+    // ===== 15. アシスタントメッセージの保存（2段階保存の第2段階）=====
+    // LLM応答後にアシスタントメッセージを保存
     if (!shouldClearChat && !isJustRegistered) {
       try {
         if (userType === 'registered' && user) {
-          await saveConversationHistory(env.DB, 'registered', user.id, characterId, trimmedMessage, responseMessage);
-          console.log('[consult] 登録ユーザーの会話履歴を保存しました');
+          await saveAssistantMessage(env.DB, 'registered', user.id, characterId, responseMessage);
+          console.log('[consult] 登録ユーザーのアシスタントメッセージを保存しました');
         } else if (userType === 'guest') {
           if (guestSessionId) {
-            await saveConversationHistory(env.DB, 'guest', guestSessionId, characterId, trimmedMessage, responseMessage);
-            console.log('[consult] ゲストユーザーの会話履歴を保存しました:', {
+            await saveAssistantMessage(env.DB, 'guest', guestSessionId, characterId, responseMessage);
+            console.log('[consult] ゲストユーザーのアシスタントメッセージを保存しました:', {
               guestSessionId,
               characterId,
             });
@@ -1040,29 +1222,29 @@ export const onRequestPost: PagesFunction = async (context) => {
             console.warn('[consult] ゲストユーザーIDが取得できませんでした。再作成を試みます...');
             try {
               const retryGuestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
-              await saveConversationHistory(env.DB, 'guest', retryGuestSessionId, characterId, trimmedMessage, responseMessage);
-              console.log('[consult] ゲストユーザーの会話履歴を保存しました（再作成後）:', {
+              await saveAssistantMessage(env.DB, 'guest', retryGuestSessionId, characterId, responseMessage);
+              console.log('[consult] ゲストユーザーのアシスタントメッセージを保存しました（再作成後）:', {
                 guestSessionId: retryGuestSessionId,
                 characterId,
               });
             } catch (retryError) {
-              console.error('[consult] ゲストユーザーIDの再作成と履歴保存に失敗:', {
+              console.error('[consult] ゲストユーザーIDの再作成とアシスタントメッセージ保存に失敗:', {
                 error: retryError instanceof Error ? retryError.message : String(retryError),
                 stack: retryError instanceof Error ? retryError.stack : undefined,
               });
-              // エラーが発生してもレスポンスは返す（会話履歴の保存は重要だが、致命的ではない）
+              // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
             }
           }
         }
       } catch (error) {
-        console.error('[consult] 会話履歴の保存エラー:', {
+        console.error('[consult] アシスタントメッセージの保存エラー:', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           userType,
           userId: user?.id || guestSessionId,
           characterId,
         });
-        // エラーが発生してもレスポンスは返す（会話履歴の保存は重要だが、致命的ではない）
+        // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
       }
     }
 
