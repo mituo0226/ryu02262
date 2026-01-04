@@ -1028,12 +1028,31 @@ export const onRequestPost: PagesFunction = async (context) => {
         if (userType === 'registered' && user) {
           await saveConversationHistory(env.DB, 'registered', user.id, characterId, trimmedMessage, responseMessage);
           console.log('[consult] 登録ユーザーの会話履歴を保存しました');
-        } else if (userType === 'guest' && guestSessionId) {
-          await saveConversationHistory(env.DB, 'guest', guestSessionId, characterId, trimmedMessage, responseMessage);
-          console.log('[consult] ゲストユーザーの会話履歴を保存しました:', {
-            guestSessionId,
-            characterId,
-          });
+        } else if (userType === 'guest') {
+          if (guestSessionId) {
+            await saveConversationHistory(env.DB, 'guest', guestSessionId, characterId, trimmedMessage, responseMessage);
+            console.log('[consult] ゲストユーザーの会話履歴を保存しました:', {
+              guestSessionId,
+              characterId,
+            });
+          } else {
+            // guestSessionIdが取得できなかった場合でも、最後の試行として再作成を試みる
+            console.warn('[consult] ゲストユーザーIDが取得できませんでした。再作成を試みます...');
+            try {
+              const retryGuestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
+              await saveConversationHistory(env.DB, 'guest', retryGuestSessionId, characterId, trimmedMessage, responseMessage);
+              console.log('[consult] ゲストユーザーの会話履歴を保存しました（再作成後）:', {
+                guestSessionId: retryGuestSessionId,
+                characterId,
+              });
+            } catch (retryError) {
+              console.error('[consult] ゲストユーザーIDの再作成と履歴保存に失敗:', {
+                error: retryError instanceof Error ? retryError.message : String(retryError),
+                stack: retryError instanceof Error ? retryError.stack : undefined,
+              });
+              // エラーが発生してもレスポンスは返す（会話履歴の保存は重要だが、致命的ではない）
+            }
+          }
         }
       } catch (error) {
         console.error('[consult] 会話履歴の保存エラー:', {
