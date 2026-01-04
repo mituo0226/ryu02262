@@ -961,14 +961,19 @@ export const onRequestPost: PagesFunction = async (context) => {
 
         console.log('[consult] 登録ユーザーの会話履歴を保存しました');
       } else if (guestSessionId) {
-        // ゲストユーザーの場合
+        // ===== ゲストユーザーの会話履歴保存 =====
+        // 【ポジティブな指定】ゲストユーザーの履歴は以下の条件で保存される：
+        // 1. user_idはguest_sessionsテーブルのID（ゲストセッションID）
+        // 2. session_idが存在する（IPアドレスとセッションIDで識別）
+        // 3. ニックネームは存在しない
+        // 4. is_guest_message = 1として保存される
+        // 
         // 100件制限チェックと古いメッセージ削除
-        // ⚠️ user_idがguest_sessionsテーブルに存在することを確認（登録ユーザーの履歴を除外）
         const messageCountResult = await env.DB.prepare<{ count: number }>(
           `SELECT COUNT(*) as count 
            FROM conversations c
            INNER JOIN guest_sessions gs ON c.user_id = gs.id
-           WHERE c.user_id = ? AND c.character_id = ? AND c.is_guest_message = 1`
+           WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL`
         )
           .bind(guestSessionId, characterId)
           .first();
