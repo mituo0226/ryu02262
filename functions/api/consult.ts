@@ -697,8 +697,26 @@ export const onRequestPost: PagesFunction = async (context) => {
           ipAddress,
         });
       } catch (error) {
-        console.error('[consult] ゲストユーザー作成エラー:', error);
-        // エラーが発生しても続行（セッション管理はオプショナル）
+        console.error('[consult] ゲストユーザー作成エラー:', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          sessionId: guestSessionIdStr,
+          ipAddress,
+        });
+        // エラーが発生した場合は、再試行（セッションIDなしで作成を試みる）
+        try {
+          guestSessionId = await getOrCreateGuestUser(env.DB, null, ipAddress, userAgent);
+          console.log('[consult] ゲストユーザー作成（再試行成功）:', {
+            guestUserId: guestSessionId,
+            ipAddress,
+          });
+        } catch (retryError) {
+          console.error('[consult] ゲストユーザー作成（再試行も失敗）:', {
+            error: retryError instanceof Error ? retryError.message : String(retryError),
+            stack: retryError instanceof Error ? retryError.stack : undefined,
+          });
+          // 再試行も失敗した場合は、会話履歴の保存をスキップする（エラーを返さない）
+        }
       }
     }
 
