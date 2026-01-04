@@ -720,6 +720,9 @@ export const onRequestPost: PagesFunction = async (context) => {
         console.error('[consult] ゲストメッセージ数取得エラー:', error);
         // エラーが発生した場合はクライアントから送られてきた値を使用
       }
+    } else if (userType === 'guest' && !guestSessionId) {
+      // guestSessionIdが取得できなかった場合でも、会話は続行できるようにする
+      console.warn('[consult] ゲストユーザーIDが取得できませんでした。クライアントから送られてきたメッセージ数を使用します。');
     }
 
     // ゲストユーザーで10通目に達した場合
