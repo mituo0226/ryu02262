@@ -766,11 +766,13 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ===== 6. 会話履歴の取得 =====
     const sanitizedHistory = sanitizeClientHistory(body.clientHistory);
     let conversationHistory: ClientHistoryEntry[] = [];
+    let dbHistoryOnly: ClientHistoryEntry[] = []; // データベースから取得した履歴のみ（hasPreviousConversation判定用）
 
     if (userType === 'registered' && user) {
       // ===== 登録ユーザーの履歴取得 =====
       try {
         const dbHistory = await getConversationHistory(env.DB, 'registered', user.id, characterId);
+        dbHistoryOnly = dbHistory; // データベース履歴を保存
 
         // ===== ゲストユーザーから登録ユーザーへの移行処理 =====
         // 【ゲストユーザーが登録ユーザーになる条件】
@@ -802,31 +804,45 @@ export const onRequestPost: PagesFunction = async (context) => {
                 .run();
             }
           }
-          // 移行した履歴とDB履歴をマージ
+          // 移行した履歴とDB履歴をマージ（LLMへの入力用）
           conversationHistory = [...sanitizedHistory, ...dbHistory];
+          // 移行後は、データベース履歴に移行した履歴も含まれるため、dbHistoryOnlyも更新
+          dbHistoryOnly = [...sanitizedHistory, ...dbHistory];
         } else {
           conversationHistory = dbHistory;
         }
       } catch (error) {
         console.error('[consult] 登録ユーザーの履歴取得エラー:', error);
-        // エラーが発生した場合はクライアントから送られてきた履歴を使用
+        // エラーが発生した場合はクライアントから送られてきた履歴を使用（LLMへの入力用）
         conversationHistory = sanitizedHistory;
+        // ただし、hasPreviousConversation判定には使用しない（dbHistoryOnlyは空のまま）
+        dbHistoryOnly = [];
       }
     } else if (userType === 'guest' && guestSessionId) {
       // ===== ゲストユーザーの履歴取得 =====
       try {
-        conversationHistory = await getConversationHistory(env.DB, 'guest', guestSessionId, characterId);
+        const dbHistory = await getConversationHistory(env.DB, 'guest', guestSessionId, characterId);
+        conversationHistory = dbHistory;
+        dbHistoryOnly = dbHistory; // データベース履歴を保存
       } catch (error) {
         console.error('[consult] ゲストユーザーの履歴取得エラー:', error);
-        // エラーが発生した場合はクライアントから送られてきた履歴を使用
+        // エラーが発生した場合はクライアントから送られてきた履歴を使用（LLMへの入力用）
         conversationHistory = sanitizedHistory;
+        // ただし、hasPreviousConversation判定には使用しない（dbHistoryOnlyは空のまま）
+        dbHistoryOnly = [];
       }
     } else {
-      // セッションIDが取得できない場合はクライアントから送られてきた履歴を使用
+      // セッションIDが取得できない場合はクライアントから送られてきた履歴を使用（LLMへの入力用）
       conversationHistory = sanitizedHistory;
+      // ただし、hasPreviousConversation判定には使用しない（dbHistoryOnlyは空のまま）
+      dbHistoryOnly = [];
     }
 
-    console.log('[consult] 会話履歴:', conversationHistory.length, '件');
+    console.log('[consult] 会話履歴:', {
+      total: conversationHistory.length,
+      fromDatabase: dbHistoryOnly.length,
+      fromClient: sanitizedHistory.length,
+    });
 
     // ===== 6. 守護神が決定済みの場合、確認メッセージを会話履歴に注入 =====
     // 【改善】守護神の情報は会話履歴に注入するのではなく、システムプロンプトで処理
@@ -900,10 +916,25 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、ゲストから登録したばかり
     const isJustRegistered = userType === 'registered' && body.migrateHistory === true;
     
+    // 【重要】hasPreviousConversationの判定
+    // データベースから取得した履歴のみで判定する（クライアントから送られてきた履歴は無視）
+    // これにより、クライアント側のsessionStorageに履歴が残っていても、
+    // データベースに履歴がなければ「初回訪問」として正しく判定される
+    const hasPreviousConversation = dbHistoryOnly.length > 0;
+    
+    console.log('[consult] 会話履歴判定:', {
+      userType,
+      characterId,
+      conversationHistoryLength: conversationHistory.length,
+      dbHistoryOnlyLength: dbHistoryOnly.length,
+      hasPreviousConversation,
+      guestSessionId,
+    });
+    
     // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定に必要な情報だけ
     const systemPrompt = generateSystemPrompt(characterId, {
       userNickname: user?.nickname,
-      hasPreviousConversation: conversationHistory.length > 0,
+      hasPreviousConversation: hasPreviousConversation,
       // 各キャラクターの性格設定に必要な情報のみ
       guardian: user?.guardian || null,
       isRitualStart: isRitualStart,
