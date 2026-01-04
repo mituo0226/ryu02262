@@ -223,7 +223,7 @@ async function getConversationHistory(
 ): Promise<ClientHistoryEntry[]> {
   if (userType === 'registered') {
     const historyResults = await db.prepare<ConversationRow>(
-      `SELECT c.role, COALESCE(c.content, c.message) as content, c.is_guest_message
+      `SELECT c.role, c.message as content, c.is_guest_message
        FROM conversations c
        INNER JOIN users u ON c.user_id = u.id
        WHERE c.user_id = ? AND c.character_id = ? AND u.nickname IS NOT NULL
@@ -240,7 +240,7 @@ async function getConversationHistory(
     })) ?? [];
   } else {
     const historyResults = await db.prepare<ConversationRow>(
-      `SELECT c.role, COALESCE(c.content, c.message) as content, c.is_guest_message
+      `SELECT c.role, c.message as content, c.is_guest_message
        FROM conversations c
        INNER JOIN guest_sessions gs ON c.user_id = gs.id
        WHERE c.user_id = ? AND c.character_id = ? AND gs.session_id IS NOT NULL
