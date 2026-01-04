@@ -7,6 +7,9 @@ import { verifyUserToken } from '../_lib/token.js';
 const GUEST_MESSAGE_LIMIT = 10;
 const MAX_DEEPSEEK_RETRIES = 3;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
+const MAX_NORMAL_MESSAGES = 10; // 通常保存する最新メッセージ数
+const MAX_SUMMARY_COUNT = 10; // 保持する要約の最大数
+const MAX_TOTAL_MESSAGES = 100; // 全体の最大メッセージ数（通常 + 要約）
 
 // ===== 型定義 =====
 type ConversationRole = 'user' | 'assistant';
