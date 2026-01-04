@@ -1007,11 +1007,17 @@ export const onRequestPost: PagesFunction = async (context) => {
     );
   } catch (error) {
     // エラーハンドリング
-    console.error('[consult] エラーが発生しました:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('[consult] エラーが発生しました:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: error,
+    });
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: errorMessage,
         character: '',
         characterName: '',
         isInappropriate: false,
