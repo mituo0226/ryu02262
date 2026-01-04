@@ -1114,7 +1114,9 @@ const ChatInit = {
             // 応答を処理
             // needsRegistrationが true の場合は、エラーとして扱わない（登録促進メッセージを表示するため）
             if (response.error && !response.needsRegistration) {
-                ChatUI.addMessage('error', `エラーが発生しました: ${response.error}`, 'システム');
+                const errorMessage = response.message || response.error || 'エラーが発生しました';
+                console.error('[ChatEngine] APIエラー:', { error: response.error, message: response.message, fullResponse: response });
+                ChatUI.addMessage('error', `エラーが発生しました: ${errorMessage}`, 'システム');
                 if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
                 return;
             }

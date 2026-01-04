@@ -147,7 +147,10 @@ const ChatAPI = {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                return { error: errorData.error || 'メッセージの送信に失敗しました' };
+                return { 
+                    error: errorData.error || 'メッセージの送信に失敗しました',
+                    message: errorData.message || errorData.error || 'メッセージの送信に失敗しました'
+                };
             }
 
             const data = await response.json();
