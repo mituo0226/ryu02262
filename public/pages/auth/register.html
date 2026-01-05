@@ -360,6 +360,7 @@
               birthMonth: payload.birthMonth,
               birthDay: payload.birthDay,
               gender: '', // 登録画面では性別は未入力
+              sessionId: null, // 新規作成のためsessionIdは送らない
             }),
           });
           
@@ -373,6 +374,31 @@
           const guestData = await createGuestResponse.json();
           sessionId = guestData.sessionId;
           localStorage.setItem('guestSessionId', sessionId);
+        } else {
+          // sessionIdがある場合、二重登録防止のため既存ユーザーをチェック
+          const createGuestResponse = await fetch('/api/auth/create-guest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nickname: payload.nickname,
+              birthYear: payload.birthYear,
+              birthMonth: payload.birthMonth,
+              birthDay: payload.birthDay,
+              gender: '', // 登録画面では性別は未入力
+              sessionId: sessionId, // 既存のsessionIdを送信（二重登録防止）
+            }),
+          });
+          
+          if (!createGuestResponse.ok) {
+            const errorData = await createGuestResponse.json();
+            resultMessage.textContent = errorData.error || 'ゲストユーザーの確認に失敗しました。';
+            resultMessage.classList.add('error');
+            return;
+          }
+          
+          // 既存ユーザーが返された場合でも、sessionIdは更新しない（既存のものを使用）
+          const guestData = await createGuestResponse.json();
+          // sessionIdは既存のものを維持
         }
         
         // 登録APIを呼び出し（sessionIdを含める）

@@ -255,17 +255,19 @@
     populateSelect(daySelect, 1, 31, '日');
 
     function getRedirectTarget() {
-      if (!redirectParam) {
-        return '../welcome-back.html';
+      // redirectパラメータがある場合はそれを使用
+      if (redirectParam) {
+        const decoded = decodeURIComponent(redirectParam);
+        
+        // chat-example.htmlへのリダイレクトを防ぐ（登録済みユーザーはchat.htmlを使用）
+        if (decoded && decoded.includes('chat-example.html')) {
+          return '../main.html';
+        }
+        
+        return decoded;
       }
-      const decoded = decodeURIComponent(redirectParam);
-      
-      // chat-example.htmlへのリダイレクトを防ぐ（登録済みユーザーはchat.htmlを使用）
-      if (decoded && decoded.includes('chat-example.html')) {
-        return '../welcome-back.html';
-      }
-      
-      return decoded || '../welcome-back.html';
+      // デフォルトはmain.html
+      return '../main.html';
     }
 
     registerLink.href = `register.html?redirect=${encodeURIComponent(getRedirectTarget())}`;

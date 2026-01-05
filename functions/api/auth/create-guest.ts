@@ -6,6 +6,7 @@ interface CreateGuestRequestBody {
   birthMonth: number;
   birthDay: number;
   gender?: string; // オプショナル（回答しない含む）
+  sessionId?: string; // クライアント側から送られてきたsession_id（二重登録防止用）
 }
 
 interface CreateGuestResponseBody {
@@ -95,7 +96,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { nickname, birthYear, birthMonth, birthDay, gender } = body;
+  const { nickname, birthYear, birthMonth, birthDay, gender, sessionId: providedSessionId } = body;
 
   // バリデーション
   if (!nickname || typeof nickname !== 'string') {
@@ -125,6 +126,39 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid birth day' }), { status: 400, headers });
   }
 
+  // 【二重登録防止】session_idが提供されている場合、既存ユーザーを検索
+  if (providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()) {
+    const existingUser = await env.DB.prepare<{
+      id: number;
+      nickname: string;
+      session_id: string;
+    }>('SELECT id, nickname, session_id FROM users WHERE session_id = ?')
+      .bind(providedSessionId.trim())
+      .first();
+
+    if (existingUser) {
+      // 既存ユーザーが見つかった場合、新規作成せずに既存ユーザーを返す（200 OK）
+      console.log('[create-guest] 既存のゲストユーザーを返します（二重登録防止）:', {
+        userId: existingUser.id,
+        sessionId: existingUser.session_id,
+        nickname: existingUser.nickname,
+      });
+
+      const responseBody: CreateGuestResponseBody = {
+        sessionId: existingUser.session_id,
+        nickname: existingUser.nickname,
+      };
+
+      return new Response(JSON.stringify(responseBody), {
+        status: 200, // 200 OK（新規作成ではないが、正常なレスポンス）
+        headers: {
+          ...headers,
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+  }
+
   // ニックネームの一意化処理
   const uniqueNickname = await ensureUniqueNickname(env.DB, trimmedNickname);
 
@@ -132,7 +166,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   const passphrase = getRandomDeity();
 
   // session_id（UUID）を生成
-  const sessionId = generateUUID();
+  const sessionId = providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()
+    ? providedSessionId.trim()
+    : generateUUID();
 
   // IPアドレスを取得（オプショナル）
   const ipAddress = request.headers.get('CF-Connecting-IP') || null;
@@ -178,7 +214,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   };
 
   return new Response(JSON.stringify(responseBody), {
-    status: 200,
+    status: 201, // 201 Created（新規作成）
     headers: {
       ...headers,
       'Access-Control-Allow-Origin': '*',
