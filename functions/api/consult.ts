@@ -346,26 +346,65 @@ async function saveUserMessage(
   userMessage: string
 ): Promise<void> {
   // 100件制限チェックと古いメッセージの削除
-  await checkAndCleanupOldMessages(db, userType, userId, characterId);
+  try {
+    await checkAndCleanupOldMessages(db, userType, userId, characterId);
+  } catch (error) {
+    console.error('[saveUserMessage] checkAndCleanupOldMessagesエラー:', {
+      error: error instanceof Error ? error.message : String(error),
+      userType,
+      userId,
+      characterId,
+    });
+    // クリーンアップエラーは無視して続行
+  }
 
   const isGuestMessage = userType === 'guest' ? 1 : 0;
 
   // ユーザーメッセージを保存
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
   try {
-    await db.prepare(
+    const result = await db.prepare(
       `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
        VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, characterId, userMessage, isGuestMessage)
       .run();
-  } catch {
-    await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-       VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
-    )
-      .bind(userId, characterId, userMessage, isGuestMessage)
-      .run();
+    console.log('[saveUserMessage] メッセージを保存しました:', {
+      userType,
+      userId,
+      characterId,
+      messageId: result.meta?.last_row_id,
+    });
+  } catch (error) {
+    console.error('[saveUserMessage] timestampカラムでの保存に失敗、created_atで再試行:', {
+      error: error instanceof Error ? error.message : String(error),
+      userType,
+      userId,
+      characterId,
+    });
+    try {
+      const result = await db.prepare(
+        `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+         VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+      )
+        .bind(userId, characterId, userMessage, isGuestMessage)
+        .run();
+      console.log('[saveUserMessage] created_atカラムでメッセージを保存しました:', {
+        userType,
+        userId,
+        characterId,
+        messageId: result.meta?.last_row_id,
+      });
+    } catch (retryError) {
+      console.error('[saveUserMessage] メッセージ保存に完全に失敗:', {
+        error: retryError instanceof Error ? retryError.message : String(retryError),
+        stack: retryError instanceof Error ? retryError.stack : undefined,
+        userType,
+        userId,
+        characterId,
+      });
+      throw retryError; // エラーを再スローして呼び出し元で処理できるようにする
+    }
   }
 }
 
@@ -382,22 +421,106 @@ async function saveAssistantMessage(
 ): Promise<void> {
   const isGuestMessage = userType === 'guest' ? 1 : 0;
 
+  // アシスタントメッセージの10件制限チェックと古いメッセージの削除
+  let assistantMessageCountResult;
+  if (userType === 'registered') {
+    assistantMessageCountResult = await db.prepare<{ count: number }>(
+      `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND role = 'assistant'`
+    )
+      .bind(userId, characterId)
+      .first();
+  } else {
+    assistantMessageCountResult = await db.prepare<{ count: number }>(
+      `SELECT COUNT(*) as count 
+       FROM conversations c
+       INNER JOIN users u ON c.user_id = u.id
+       WHERE c.user_id = ? AND character_id = ? AND u.user_type = 'guest' AND c.role = 'assistant'`
+    )
+      .bind(userId, characterId)
+      .first();
+  }
+
+  const assistantMessageCount = assistantMessageCountResult?.count || 0;
+  const MAX_ASSISTANT_MESSAGES = 10;
+
+  if (assistantMessageCount >= MAX_ASSISTANT_MESSAGES) {
+    const deleteCount = assistantMessageCount - MAX_ASSISTANT_MESSAGES + 1; // 1件追加するので、1件削除
+    if (userType === 'registered') {
+      await db.prepare(
+        `DELETE FROM conversations
+         WHERE user_id = ? AND character_id = ? AND role = 'assistant'
+         AND id IN (
+           SELECT id FROM conversations
+           WHERE user_id = ? AND character_id = ? AND role = 'assistant'
+           ORDER BY COALESCE(timestamp, created_at) ASC
+           LIMIT ?
+         )`
+      )
+        .bind(userId, characterId, userId, characterId, deleteCount)
+        .run();
+    } else {
+      await db.prepare(
+        `DELETE FROM conversations
+         WHERE user_id = ? AND character_id = ? AND role = 'assistant'
+         AND user_id IN (SELECT id FROM users WHERE id = ? AND user_type = 'guest')
+         AND id IN (
+           SELECT c.id FROM conversations c
+           INNER JOIN users u ON c.user_id = u.id
+           WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest' AND c.role = 'assistant'
+           ORDER BY COALESCE(c.timestamp, c.created_at) ASC
+           LIMIT ?
+         )`
+      )
+        .bind(userId, characterId, userId, userId, characterId, deleteCount)
+        .run();
+    }
+  }
+
   // アシスタントメッセージを保存
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
   try {
-    await db.prepare(
+    const result = await db.prepare(
       `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
        VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
     )
       .bind(userId, characterId, assistantMessage, isGuestMessage)
       .run();
-  } catch {
-    await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-       VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
-    )
-      .bind(userId, characterId, assistantMessage, isGuestMessage)
-      .run();
+    console.log('[saveAssistantMessage] メッセージを保存しました:', {
+      userType,
+      userId,
+      characterId,
+      messageId: result.meta?.last_row_id,
+    });
+  } catch (error) {
+    console.error('[saveAssistantMessage] timestampカラムでの保存に失敗、created_atで再試行:', {
+      error: error instanceof Error ? error.message : String(error),
+      userType,
+      userId,
+      characterId,
+    });
+    try {
+      const result = await db.prepare(
+        `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+         VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+      )
+        .bind(userId, characterId, assistantMessage, isGuestMessage)
+        .run();
+      console.log('[saveAssistantMessage] created_atカラムでメッセージを保存しました:', {
+        userType,
+        userId,
+        characterId,
+        messageId: result.meta?.last_row_id,
+      });
+    } catch (retryError) {
+      console.error('[saveAssistantMessage] メッセージ保存に完全に失敗:', {
+        error: retryError instanceof Error ? retryError.message : String(retryError),
+        stack: retryError instanceof Error ? retryError.stack : undefined,
+        userType,
+        userId,
+        characterId,
+      });
+      throw retryError; // エラーを再スローして呼び出し元で処理できるようにする
+    }
   }
 }
 
