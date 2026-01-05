@@ -116,7 +116,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   const responseBody: RegisterResponseBody = {
     userToken,
-    passphrase,
     nickname: trimmedNickname,
   };
 

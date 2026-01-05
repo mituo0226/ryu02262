@@ -103,71 +103,6 @@
       color: #cfaeff;
       text-decoration: underline;
     }
-    .passphrase-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(5, 1, 12, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-      padding: 20px;
-      z-index: 1000;
-    }
-    .passphrase-overlay.visible {
-      opacity: 1;
-      pointer-events: all;
-    }
-    .passphrase-card {
-      background: rgba(11, 5, 25, 0.95);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55);
-      padding: 32px;
-      width: min(520px, 95%);
-      text-align: center;
-      color: #f8f5ff;
-      animation: floatIn 0.5s ease forwards;
-    }
-    @keyframes floatIn {
-      from {
-        transform: translateY(25px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-    .passphrase-label {
-      font-size: 14px;
-      letter-spacing: 0.1em;
-      color: #cfaeff;
-      margin-bottom: 10px;
-    }
-    .passphrase-text {
-      font-size: 24px;
-      font-weight: 600;
-      color: #ffe8a3;
-      margin-bottom: 12px;
-    }
-    .passphrase-note {
-      font-size: 14px;
-      color: #d8d1ff;
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
-    .passphrase-note a {
-      color: #8acbff;
-      text-decoration: underline;
-    }
-    .passphrase-actions button {
-      width: 100%;
-      margin-top: 4px;
-    }
     @media (max-width: 768px) {
       body {
         padding: 10px;
@@ -212,30 +147,6 @@
         margin-top: 16px;
         font-size: 13px;
       }
-      .passphrase-overlay {
-        padding: 15px;
-      }
-      .passphrase-card {
-        padding: 24px;
-        width: 100%;
-        max-width: 100%;
-      }
-      .passphrase-label {
-        font-size: 13px;
-      }
-      .passphrase-text {
-        font-size: 20px;
-        word-break: break-word;
-      }
-      .passphrase-note {
-        font-size: 13px;
-        line-height: 1.5;
-      }
-      .passphrase-actions button {
-        padding: 16px;
-        font-size: 16px;
-        min-height: 48px;
-      }
     }
   </style>
 </head>
@@ -264,19 +175,6 @@
     </div>
   </div>
 
-  <div id="passphraseOverlay" class="passphrase-overlay" aria-hidden="true">
-    <div class="passphrase-card">
-      <div class="passphrase-label">あなたの合言葉</div>
-      <div id="passphraseText" class="passphrase-text">---</div>
-      <p class="passphrase-note">
-        この合言葉はログインや本人確認で必要になります。メモ帳やスクリーンショットなどで必ず控えてください。<br>
-        もし忘れてしまった場合は、<a href="passphrase-reset.html" target="_blank" rel="noopener">こちらの再設定ページ</a>で新しい合言葉を発行できます。
-      </p>
-      <div class="passphrase-actions">
-        <button id="confirmPassphraseButton" type="button">合言葉を控えたので次へ進む</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     const yearSelect = document.getElementById('birthYear');
@@ -322,9 +220,6 @@
 
     loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
 
-    const passphraseOverlay = document.getElementById('passphraseOverlay');
-    const passphraseText = document.getElementById('passphraseText');
-    const confirmPassphraseButton = document.getElementById('confirmPassphraseButton');
     let redirectTargetCache = null;
 
     form.addEventListener('submit', async (event) => {
@@ -420,20 +315,48 @@
 
         localStorage.setItem('userToken', data.userToken);
         localStorage.setItem('userNickname', data.nickname);
-        // 合言葉（passphrase）を保存（登録時は守護神はまだ未定）
-        localStorage.setItem('userPassphrase', data.passphrase);
         localStorage.setItem('hasAccount', 'true');
         localStorage.setItem('birthYear', String(payload.birthYear));
         localStorage.setItem('birthMonth', String(payload.birthMonth));
         localStorage.setItem('birthDay', String(payload.birthDay));
 
-        resultMessage.textContent = '登録が完了しました。合言葉を必ず控えてください。';
+        resultMessage.textContent = '登録が完了しました。';
         resultMessage.classList.add('success');
 
-        passphraseText.textContent = data.passphrase;
         redirectTargetCache = getRedirectTarget();
-        passphraseOverlay.classList.add('visible');
-        passphraseOverlay.setAttribute('aria-hidden', 'false');
+        
+        // 登録完了後、1秒後にリダイレクト
+        setTimeout(() => {
+          let target = redirectTargetCache || '../main.html';
+          
+          // Kaedeのチャット画面へのリダイレクトの場合、直接guardian-ritual.htmlにリダイレクト
+          if (target.includes('character=kaede') || target.includes('character%3Dkaede')) {
+            sessionStorage.setItem('postRitualChatUrl', target);
+            sessionStorage.setItem('justRegistered', 'true');
+            window.location.href = '../guardian-ritual.html';
+            return;
+          }
+          
+          // その他のチャット画面へのリダイレクトの場合、登録完了フラグを追加
+          if (target.includes('chat.html') || target.includes('chat?character=') || target.includes('/chat/chat') || target.includes('/chat?character=')) {
+            try {
+              let url;
+              if (target.startsWith('http://') || target.startsWith('https://')) {
+                url = new URL(target);
+              } else {
+                url = new URL(target, window.location.href);
+              }
+              url.searchParams.set('justRegistered', 'true');
+              target = url.toString();
+            } catch (error) {
+              const separator = target.includes('?') ? '&' : '?';
+              target = target + separator + 'justRegistered=true';
+            }
+          }
+          
+          sessionStorage.setItem('justRegistered', 'true');
+          window.location.href = target;
+        }, 1000);
       } catch (error) {
         console.error(error);
         resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';
@@ -441,58 +364,7 @@
       }
     });
 
-    confirmPassphraseButton.addEventListener('click', () => {
-      passphraseOverlay.classList.remove('visible');
-      passphraseOverlay.setAttribute('aria-hidden', 'true');
-      let target = redirectTargetCache || '../main.html';
-      
-      // Kaedeのチャット画面へのリダイレクトの場合、直接guardian-ritual.htmlにリダイレクト
-      // character=kaede を含むURLを検出
-      if (target.includes('character=kaede') || target.includes('character%3Dkaede')) {
-        console.log('[登録完了] Kaedeのチャット画面へのリダイレクトを検出、守護神の儀式ページに直接リダイレクト:', target);
-        
-        // 元のチャット画面URLをsessionStorageに保存（儀式完了後に使用）
-        sessionStorage.setItem('postRitualChatUrl', target);
-        sessionStorage.setItem('justRegistered', 'true');
-        
-        // guardian-ritual.htmlに直接リダイレクト
-        window.location.href = '../guardian-ritual.html';
-        return;
-      }
-      
-      // その他のチャット画面へのリダイレクトの場合、登録完了フラグを追加
-      // chat.html または chat?character= を含むURLを検出
-      if (target.includes('chat.html') || target.includes('chat?character=') || target.includes('/chat/chat') || target.includes('/chat?character=')) {
-        console.log('[登録完了] チャット画面へのリダイレクトを検出:', target);
-        
-        // 相対パスを絶対URLに変換
-        try {
-          let url;
-          if (target.startsWith('http://') || target.startsWith('https://')) {
-            url = new URL(target);
-          } else {
-            // 相対パスの場合、現在のページを基準に解決
-            url = new URL(target, window.location.href);
-          }
-          
-          // justRegisteredパラメータを追加
-          url.searchParams.set('justRegistered', 'true');
-          target = url.toString();
-          console.log('[登録完了] リダイレクト先URL:', target);
-        } catch (error) {
-          console.error('[登録完了] URL構築エラー:', error);
-          // フォールバック: シンプルにクエリパラメータを追加
-          const separator = target.includes('?') ? '&' : '?';
-          target = target + separator + 'justRegistered=true';
-        }
-      }
-      
-      // sessionStorageにも登録完了フラグを保存（URLパラメータが失われた場合の代替手段）
-      sessionStorage.setItem('justRegistered', 'true');
-      
-      console.log('[登録完了] 最終リダイレクト先:', target);
-      window.location.href = target;
-    });
+    // 合言葉オーバーレイの処理は削除（登録完了後、自動的にリダイレクト）
   </script>
 </body>
 </html>

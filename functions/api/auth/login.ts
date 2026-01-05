@@ -5,13 +5,11 @@ interface LoginRequestBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  passphrase?: string;
 }
 
 interface LoginResponseBody {
   userToken: string;
   nickname: string;
-  passphrase: string;
   guardian: string | null;
 }
 
@@ -25,7 +23,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { nickname, birthYear, birthMonth, birthDay, passphrase } = body;
+  const { nickname, birthYear, birthMonth, birthDay } = body;
 
   if (!nickname || typeof nickname !== 'string') {
     return new Response(JSON.stringify({ error: 'nickname is required' }), { status: 400, headers });
@@ -33,33 +31,30 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   if (
     typeof birthYear !== 'number' ||
     typeof birthMonth !== 'number' ||
-    typeof birthDay !== 'number' ||
-    !passphrase
+    typeof birthDay !== 'number'
   ) {
-    return new Response(JSON.stringify({ error: '生年月日と合言葉を入力してください。' }), {
+    return new Response(JSON.stringify({ error: '生年月日を入力してください。' }), {
       status: 400,
       headers,
     });
   }
 
   const trimmedNickname = nickname.trim();
-  const trimmedPassphrase = passphrase.trim();
 
   const user = await env.DB.prepare<{
     id: number;
     nickname: string;
-    passphrase: string;
     guardian: string | null;
   }>(
-    `SELECT id, nickname, passphrase, guardian
+    `SELECT id, nickname, guardian
      FROM users
      WHERE nickname = ?
        AND birth_year = ?
        AND birth_month = ?
        AND birth_day = ?
-       AND passphrase = ?`
+       AND user_type = 'registered'`
   )
-    .bind(trimmedNickname, birthYear, birthMonth, birthDay, trimmedPassphrase)
+    .bind(trimmedNickname, birthYear, birthMonth, birthDay)
     .first();
 
   if (!user) {
@@ -74,7 +69,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   const responseBody: LoginResponseBody = {
     userToken,
     nickname: user.nickname,
-    passphrase: user.passphrase,
     guardian: user.guardian,
   };
 
