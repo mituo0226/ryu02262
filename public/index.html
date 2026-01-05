@@ -15,14 +15,6 @@
             <img src="photo/rogo.png" alt="ロゴ" class="logo-fade-in" id="logo">
         </div>
         
-        <div class="text-container">
-            <p class="text-fade-in text-line-1">未来が変わる大きなきっかけになる時</p>
-            <p class="text-fade-in text-line-2">今のままで満足なのか？変化を受け入れたいのか？</p>
-            <p class="text-fade-in text-line-3">その選択によってこれから先の人生が変わります。</p>
-            <p class="text-fade-in text-line-4">人生を変える判断をする時、一歩踏み出すことができるか</p>
-            <p class="text-fade-in text-line-5">後はあなた次第…</p>
-        </div>
-        
         <div class="button-container">
             <a href="pages/welcome-back.html" class="fate-button fade-in-button" id="fateButton">登録済みの方入口</a>
             <div style="margin-top:12px;">
@@ -42,12 +34,6 @@
             }, 300);
         });
 
-        // テキストの順次フェードイン
-        const textLines = document.querySelectorAll('.text-fade-in');
-        textLines.forEach((line, index) => {
-            line.style.animationDelay = `${1.5 + index * 0.8}s`;
-        });
-
         // ボタンのフェードイン
         const button = document.getElementById('fateButton');
         const guestButton = document.getElementById('guestButton');
@@ -62,7 +48,7 @@
                     guestButton.style.transform = 'translateY(0)';
                 }, 200);
             }
-        }, 6000);
+        }, 1500);
 
         // パーティクルエフェクト
         function createParticle() {
