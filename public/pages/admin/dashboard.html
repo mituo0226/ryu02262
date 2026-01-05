@@ -615,6 +615,13 @@
         <section class="card">
           <h2>ユーザー検索</h2>
           <form id="searchForm">
+            <label>ユーザータイプ
+              <select id="searchUserType">
+                <option value="">すべて</option>
+                <option value="registered">登録ユーザーのみ</option>
+                <option value="guest">ゲストユーザーのみ</option>
+              </select>
+            </label>
             <label>ニックネーム
               <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
             </label>
@@ -633,7 +640,7 @@
               <button type="submit">検索する</button>
               <button type="button" id="resetSearchButton">条件をクリア</button>
             </div>
-            <p class="muted">※ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
+            <p class="muted">※ユーザータイプ / ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
           </form>
         </section>
 
@@ -836,6 +843,7 @@
     const formStatus = document.getElementById('formStatus');
     const deleteUserButton = document.getElementById('deleteUserButton');
     const searchForm = document.getElementById('searchForm');
+    const searchUserType = document.getElementById('searchUserType');
     const searchNickname = document.getElementById('searchNickname');
     const searchYear = document.getElementById('searchYear');
     const searchMonth = document.getElementById('searchMonth');
@@ -882,7 +890,6 @@
 
     let currentToken = '';
     let users = [];
-    let guestSessions = [];
     let filteredUsers = [];
     let selectedUserId = null;
     let selectedGuestSessionId = null;
@@ -893,13 +900,21 @@
       conversationList.innerHTML = '<p class="muted">ユーザーを選択すると会話履歴を表示します。</p>';
       selectedUserLabel.textContent = '';
       formStatus.textContent = '';
+      form.style.display = 'block'; // フォームを表示に戻す
       selectedUserId = null;
     }
 
     function showDetailSections(user) {
       detailCard.classList.remove('hidden');
       conversationCard.classList.remove('hidden');
-      selectedUserLabel.textContent = `ID: ${user.id} / ${user.nickname} / ${user.birth_year}年${user.birth_month}月${user.birth_day}日`;
+      if (user.isGuest) {
+        selectedUserLabel.textContent = `ID: ${user.id} / ゲストユーザー / セッションID: ${user.session_id || 'N/A'}`;
+        // ゲストユーザーの場合はフォームを非表示にする
+        form.style.display = 'none';
+      } else {
+        selectedUserLabel.textContent = `ID: ${user.id} / ${user.nickname} / ${user.birth_year}年${user.birth_month}月${user.birth_day}日`;
+        form.style.display = 'block';
+      }
     }
 
     hideDetailSections();
@@ -911,35 +926,37 @@
 
     async function fetchUsers() {
       try {
-        // 登録ユーザーを取得
-        const usersRes = await fetch('/api/admin/users', {
+        // ユーザータイプでフィルタリング（検索フォームの値を使用）
+        const userType = searchUserType ? searchUserType.value : '';
+        let url = '/api/admin/users';
+        if (userType) {
+          url += `?userType=${encodeURIComponent(userType)}`;
+        }
+
+        // 全ユーザー（登録ユーザーとゲストユーザー）を取得
+        const usersRes = await fetch(url, {
           headers: { 'X-Admin-Token': currentToken },
         });
         const usersData = await usersRes.json();
         if (!usersRes.ok) throw new Error(usersData.error || '取得に失敗しました');
-        users = usersData.users || [];
-
-        // ゲストセッションを取得
-        try {
-          const guestRes = await fetch('/api/admin/clear-guest-sessions', {
-            headers: { 'X-Admin-Token': currentToken },
-          });
-          const guestData = await guestRes.json();
-          if (guestRes.ok && guestData.sessions) {
-            guestSessions = guestData.sessions.map(session => ({
-              id: session.id,
-              session_id: session.session_id,
-              ip_address: session.ip_address,
-              message_count: session.message_count || 0,
-              created_at: session.created_at,
-              last_activity_at: session.last_activity_at,
-              isGuest: true
-            }));
-          }
-        } catch (guestError) {
-          console.warn('ゲストセッションの取得に失敗:', guestError);
-          guestSessions = [];
-        }
+        
+        // APIから取得したユーザーを整形
+        users = (usersData.users || []).map(user => ({
+          id: user.id,
+          nickname: user.nickname,
+          birth_year: user.birth_year,
+          birth_month: user.birth_month,
+          birth_day: user.birth_day,
+          passphrase: user.passphrase,
+          guardian: user.guardian,
+          created_at: user.created_at,
+          user_type: user.user_type,
+          ip_address: user.ip_address,
+          session_id: user.session_id,
+          last_activity_at: user.last_activity_at,
+          message_count: user.message_count || 0,
+          isGuest: user.user_type === 'guest'
+        }));
 
         applyFilters();
         renderUsers();
@@ -963,37 +980,31 @@
       const hasMonth = monthValue.length > 0;
       const hasDay = dayValue.length > 0;
 
-      // 登録ユーザーのフィルタリング
-      let filteredRegisteredUsers = users;
-      if (hasNickname || hasYear || hasMonth || hasDay) {
+      // 全ユーザーのフィルタリング
+      filteredUsers = users.filter((user) => {
+        // ニックネーム検索（登録ユーザーはニックネーム、ゲストユーザーはセッションIDやIPアドレスで検索）
+        let nicknameMatch = true;
+        if (hasNickname) {
+          if (user.isGuest) {
+            // ゲストユーザーはセッションIDやIPアドレスで検索
+            nicknameMatch = (user.session_id && user.session_id.includes(nickname)) ||
+                           (user.ip_address && user.ip_address.includes(nickname));
+          } else {
+            // 登録ユーザーはニックネームで検索
+            nicknameMatch = user.nickname && user.nickname.includes(nickname);
+          }
+        }
+
+        // 生年月日検索（登録ユーザーのみ）
         const year = Number(yearValue);
         const month = Number(monthValue);
         const day = Number(dayValue);
+        const yearMatch = hasYear ? (user.birth_year === year) : true;
+        const monthMatch = hasMonth ? (user.birth_month === month) : true;
+        const dayMatch = hasDay ? (user.birth_day === day) : true;
 
-        filteredRegisteredUsers = users.filter((user) => {
-          const nicknameMatch = hasNickname ? user.nickname.includes(nickname) : true;
-          const yearMatch = hasYear ? user.birth_year === year : true;
-          const monthMatch = hasMonth ? user.birth_month === month : true;
-          const dayMatch = hasDay ? user.birth_day === day : true;
-          return nicknameMatch && yearMatch && monthMatch && dayMatch;
-        });
-      }
-
-      // ゲストセッションのフィルタリング（IPアドレスやセッションIDで検索可能）
-      let filteredGuestSessions = guestSessions;
-      if (hasNickname) {
-        // ニックネーム検索はゲストには適用しない（セッションIDやIPアドレスで検索）
-        filteredGuestSessions = guestSessions.filter(session => 
-          (session.session_id && session.session_id.includes(nickname)) ||
-          (session.ip_address && session.ip_address.includes(nickname))
-        );
-      }
-
-      // 登録ユーザーとゲストセッションを結合
-      filteredUsers = [
-        ...filteredRegisteredUsers.map(u => ({ ...u, isGuest: false })),
-        ...filteredGuestSessions
-      ];
+        return nicknameMatch && yearMatch && monthMatch && dayMatch;
+      });
     }
 
     function renderUsers(list = filteredUsers) {
@@ -1019,7 +1030,7 @@
               <td>-</td>
               <td>-</td>
               <td>-</td>
-              <td><button class="button-link" data-guest-session-id="${user.id}" data-session-id="${user.session_id}">詳細</button></td>
+              <td><button class="button-link" data-guest-session-id="${user.id}" data-session-id="${user.session_id || ''}">選択</button></td>
             </tr>
           `;
         } else {
@@ -1028,8 +1039,8 @@
             <tr>
               <td><span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(0, 120, 86, 0.3); color: #7dd3a0;">登録</span></td>
               <td>${user.id}</td>
-              <td>${user.nickname}</td>
-              <td>${user.birth_year}/${user.birth_month}/${user.birth_day}</td>
+              <td>${user.nickname || 'N/A'}</td>
+              <td>${user.birth_year ? `${user.birth_year}/${user.birth_month}/${user.birth_day}` : '-'}</td>
               <td>${user.passphrase || '未設定'}</td>
               <td>${user.guardian || '未決定'}</td>
               <td><button class="button-link" data-user-id="${user.id}">選択</button></td>
@@ -1052,31 +1063,22 @@
           selectedGuestSessionId = null;
         }
       } else if (target.matches('[data-guest-session-id]')) {
-        // ゲストセッションを選択
+        // ゲストユーザーを選択
         const sessionId = target.dataset.sessionId;
         const guestId = Number(target.dataset.guestSessionId);
         selectedGuestSessionId = guestId;
-        selectedUserId = null;
+        selectedUserId = guestId; // ゲストユーザーもselectedUserIdに設定
         
-        // ゲストセッション管理タブに切り替え
-        document.querySelectorAll('.admin-nav-item').forEach(item => item.classList.remove('active'));
-        document.querySelector('[data-tab="guest-sessions"]')?.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        document.getElementById('guest-sessions-tab')?.classList.add('active');
+        // ゲストユーザーの会話履歴を表示
+        fetchConversations(guestId);
         
-        // ゲストセッションを選択状態にする
-        if (window.selectGuestSession) {
-          const guestSession = guestSessions.find(s => s.id === guestId);
-          if (guestSession) {
-            window.selectGuestSession(guestSession.id, guestSession.session_id, guestSession.ip_address || '', guestSession.message_count || 0);
-          }
-        }
-        
-        // ゲストセッションの会話履歴を表示
-        if (viewGuestConversationsBtn) {
-          setTimeout(() => {
-            viewGuestConversationsBtn.click();
-          }, 100);
+        // 詳細情報を表示（ゲストユーザー用）
+        const guestUser = users.find(u => u.id === guestId && u.isGuest);
+        if (guestUser) {
+          detailCard.classList.remove('hidden');
+          conversationCard.classList.remove('hidden');
+          selectedUserLabel.textContent = `ID: ${guestUser.id} / ゲストユーザー / セッションID: ${guestUser.session_id || 'N/A'}`;
+          form.style.display = 'none'; // ゲストユーザーの場合はフォームを非表示
         }
       }
     });
@@ -1139,16 +1141,14 @@
 
     searchForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      applyFilters();
-      renderUsers();
-      hideDetailSections();
+      // ユーザータイプでフィルタリングする場合はAPIから再取得
+      fetchUsers();
     });
 
     resetSearchButton.addEventListener('click', () => {
       searchForm.reset();
-      filteredUsers = [...users];
-      renderUsers();
-      hideDetailSections();
+      // 全ユーザーを再取得
+      fetchUsers();
     });
 
     form.addEventListener('submit', async (event) => {
