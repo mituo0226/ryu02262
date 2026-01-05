@@ -160,27 +160,47 @@ async function generateGuestSessionId(ipAddress: string | null, userAgent: strin
 /**
  * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
  */
+/**
+ * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
+ * 
+ * 【重要】この関数は、session_idで既存ユーザーを検索する際に、user_typeに関係なく検索します。
+ * 既存ユーザーが登録ユーザー（user_type = 'registered'）の場合、エラーを返します。
+ * これは、登録ユーザーはuserTokenで認証されるべきであり、ゲストユーザーとして扱うべきではないためです。
+ * 
+ * @returns ゲストユーザーのuser_id（usersテーブルの主キー）
+ * @throws Error 既存ユーザーが登録ユーザーの場合、または新規作成に失敗した場合
+ */
 async function getOrCreateGuestUser(
   db: D1Database,
   sessionId: string | null,
   ipAddress: string | null,
   userAgent: string | null
 ): Promise<number> {
+  // 【重要】まず、session_idで既存ユーザーを検索（user_typeに関係なく）
   if (sessionId) {
     const existingUser = await db
-      .prepare('SELECT id FROM users WHERE session_id = ? AND user_type = ?')
-      .bind(sessionId, 'guest')
-      .first<{ id: number }>();
+      .prepare('SELECT id, user_type FROM users WHERE session_id = ?')
+      .bind(sessionId)
+      .first<{ id: number; user_type: string }>();
     
     if (existingUser) {
-      await db
-        .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
-        .bind(existingUser.id)
-        .run();
-      return existingUser.id;
+      // 既存ユーザーが見つかった場合、user_typeを確認
+      if (existingUser.user_type === 'registered') {
+        // 登録ユーザーの場合、エラーを返す
+        // 登録ユーザーはuserTokenで認証されるべきであり、ゲストユーザーとして扱うべきではない
+        throw new Error(`既存の登録ユーザーが見つかりました。userTokenを使用して認証してください。user_id: ${existingUser.id}`);
+      } else if (existingUser.user_type === 'guest') {
+        // ゲストユーザーの場合、既存のレコードを再利用
+        await db
+          .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
+          .bind(existingUser.id)
+          .run();
+        return existingUser.id;
+      }
     }
   }
 
+  // 既存ユーザーが見つからなかった場合、新規ゲストユーザーを作成
   const newSessionId = sessionId || await generateGuestSessionId(ipAddress, userAgent);
   const result = await db
     .prepare('INSERT INTO users (user_type, ip_address, session_id, last_activity_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)')
@@ -960,14 +980,31 @@ export const onRequestPost: PagesFunction = async (context) => {
           userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
         });
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('[consult] ❌ ゲストユーザー作成エラー:', {
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage,
           stack: error instanceof Error ? error.stack : undefined,
           sessionId: guestSessionIdStr,
           ipAddress,
           userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
         });
-        // エラーが発生した場合は、再試行（セッションIDなしで作成を試みる）
+        
+        // 既存の登録ユーザーが見つかった場合、エラーを返す
+        if (errorMessage.includes('既存の登録ユーザーが見つかりました')) {
+          return new Response(
+            JSON.stringify({
+              error: 'このセッションは既に登録ユーザーとして登録されています。userTokenを使用してログインしてください。',
+              message: '',
+              character: characterId,
+              characterName: '',
+              isInappropriate: false,
+              detectedKeywords: [],
+            } as ResponseBody),
+            { status: 401, headers: corsHeaders }
+          );
+        }
+        
+        // その他のエラーの場合、再試行（セッションIDなしで作成を試みる）
         try {
           guestSessionId = await getOrCreateGuestUser(env.DB, null, ipAddress, userAgent);
           console.log('[consult] ✅ ゲストユーザー作成（再試行成功）:', {
