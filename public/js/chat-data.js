@@ -9,7 +9,6 @@ const ChatData = {
     conversationHistory: null,
     currentCharacter: 'kaede',
     characterInfo: {},
-    GUEST_MESSAGE_LIMIT: 10,
     ritualConsentShown: false, // 守護神の儀式への同意ボタンが表示されたかどうか
 
     /**

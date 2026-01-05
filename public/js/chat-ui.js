@@ -115,8 +115,7 @@ const ChatUI = {
             this.userStatus.textContent = statusText;
             this.userStatus.className = 'user-status registered';
         } else {
-            const guestCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
-            const statusText = `ゲストモード（${guestCount}/${ChatData.GUEST_MESSAGE_LIMIT}通目）`;
+            const statusText = `ゲストモード`;
             this.userStatus.textContent = statusText;
             this.userStatus.className = 'user-status guest';
         }

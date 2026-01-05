@@ -194,6 +194,132 @@
         }
 
         /* ============================================
+           入口フォーム
+           ============================================ */
+        .entry-form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 20px;
+        }
+
+        .entry-form {
+            background: rgba(75, 0, 130, 0.4);
+            border: 2px solid rgba(139, 61, 255, 0.5);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .entry-form-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .entry-form-group {
+            margin-bottom: 20px;
+        }
+
+        .entry-form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .entry-form-label .required {
+            color: #ff6b6b;
+            margin-left: 4px;
+        }
+
+        .entry-form-input,
+        .entry-form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(139, 61, 255, 0.4);
+            border-radius: 10px;
+            color: var(--text-light);
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .entry-form-input:focus,
+        .entry-form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .entry-form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .entry-form-row .entry-form-group {
+            flex: 1;
+        }
+
+        .entry-form-submit {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: var(--text-on-primary);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .entry-form-submit:hover {
+            background: #7a2fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.4);
+        }
+
+        .entry-form-submit:active {
+            transform: translateY(0);
+        }
+
+        .entry-form-submit:disabled {
+            background: rgba(139, 61, 255, 0.3);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .entry-form-error {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .entry-form-error.show {
+            display: block;
+        }
+
+        .entry-form-hidden {
+            display: none;
+        }
+
+        /* ============================================
            メッセージエリア
            ============================================ */
         .messages {
@@ -675,7 +801,91 @@
     </div>
 
     <main>
-        <div class="chat-container">
+        <!-- 入口フォーム（ゲストユーザー作成用） -->
+        <div class="entry-form-container" id="entryFormContainer">
+            <form class="entry-form" id="entryForm">
+                <h2 class="entry-form-title">鑑定を始める</h2>
+                <div class="entry-form-error" id="entryFormError"></div>
+                
+                <div class="entry-form-group">
+                    <label class="entry-form-label">
+                        ニックネーム<span class="required">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        class="entry-form-input"
+                        id="entryNickname"
+                        name="nickname"
+                        required
+                        maxlength="50"
+                        placeholder="鑑定で使用する名前を入力"
+                    >
+                </div>
+                
+                <div class="entry-form-group">
+                    <label class="entry-form-label">
+                        生年月日<span class="required">*</span>
+                    </label>
+                    <div class="entry-form-row">
+                        <div class="entry-form-group">
+                            <input
+                                type="number"
+                                class="entry-form-input"
+                                id="entryBirthYear"
+                                name="birthYear"
+                                required
+                                min="1900"
+                                max="2100"
+                                placeholder="年"
+                            >
+                        </div>
+                        <div class="entry-form-group">
+                            <input
+                                type="number"
+                                class="entry-form-input"
+                                id="entryBirthMonth"
+                                name="birthMonth"
+                                required
+                                min="1"
+                                max="12"
+                                placeholder="月"
+                            >
+                        </div>
+                        <div class="entry-form-group">
+                            <input
+                                type="number"
+                                class="entry-form-input"
+                                id="entryBirthDay"
+                                name="birthDay"
+                                required
+                                min="1"
+                                max="31"
+                                placeholder="日"
+                            >
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="entry-form-group">
+                    <label class="entry-form-label">
+                        性別
+                    </label>
+                    <select class="entry-form-select" id="entryGender" name="gender">
+                        <option value="">回答しない</option>
+                        <option value="male">男性</option>
+                        <option value="female">女性</option>
+                        <option value="other">その他</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="entry-form-submit" id="entryFormSubmit">
+                    鑑定を始める
+                </button>
+            </form>
+        </div>
+        
+        <!-- チャットコンテナ（初期状態では非表示） -->
+        <div class="chat-container entry-form-hidden" id="chatContainer">
             <!-- PC版キャラクターヘッダー -->
             <div class="character-header" id="characterHeader">
                 <img id="characterHeaderImage" src="" alt="" class="character-header-image">
@@ -755,6 +965,123 @@
     </div>
 
            <script>
+           // ============================================
+           // 入口フォーム処理
+           // ============================================
+           (function() {
+               'use strict';
+               
+               const ENTRY_FORM_KEY = 'guestSessionId';
+               const entryFormContainer = document.getElementById('entryFormContainer');
+               const chatContainer = document.getElementById('chatContainer');
+               const entryForm = document.getElementById('entryForm');
+               const entryFormError = document.getElementById('entryFormError');
+               const entryFormSubmit = document.getElementById('entryFormSubmit');
+               
+               // 登録ユーザーの場合は入口フォームをスキップ
+               if (localStorage.getItem('userToken')) {
+                   entryFormContainer.classList.add('entry-form-hidden');
+                   chatContainer.classList.remove('entry-form-hidden');
+                   return;
+               }
+               
+               // 既にsession_idが保存されている場合は入口フォームをスキップ
+               const existingSessionId = localStorage.getItem(ENTRY_FORM_KEY);
+               if (existingSessionId) {
+                   entryFormContainer.classList.add('entry-form-hidden');
+                   chatContainer.classList.remove('entry-form-hidden');
+                   return;
+               }
+               
+               // 入口フォームの送信処理
+               entryForm.addEventListener('submit', async (e) => {
+                   e.preventDefault();
+                   
+                   const nickname = document.getElementById('entryNickname').value.trim();
+                   const birthYear = parseInt(document.getElementById('entryBirthYear').value, 10);
+                   const birthMonth = parseInt(document.getElementById('entryBirthMonth').value, 10);
+                   const birthDay = parseInt(document.getElementById('entryBirthDay').value, 10);
+                   const gender = document.getElementById('entryGender').value;
+                   
+                   // バリデーション
+                   if (!nickname) {
+                       showError('ニックネームを入力してください。');
+                       return;
+                   }
+                   if (!birthYear || !birthMonth || !birthDay) {
+                       showError('生年月日を入力してください。');
+                       return;
+                   }
+                   if (birthYear < 1900 || birthYear > 2100) {
+                       showError('年は1900年から2100年の間で入力してください。');
+                       return;
+                   }
+                   if (birthMonth < 1 || birthMonth > 12) {
+                       showError('月は1から12の間で入力してください。');
+                       return;
+                   }
+                   if (birthDay < 1 || birthDay > 31) {
+                       showError('日は1から31の間で入力してください。');
+                       return;
+                   }
+                   
+                   // 送信ボタンを無効化
+                   entryFormSubmit.disabled = true;
+                   entryFormSubmit.textContent = '作成中...';
+                   hideError();
+                   
+                   try {
+                       // ゲストユーザー作成APIを呼び出し
+                       const response = await fetch('/api/auth/create-guest', {
+                           method: 'POST',
+                           headers: {
+                               'Content-Type': 'application/json',
+                           },
+                           body: JSON.stringify({
+                               nickname,
+                               birthYear,
+                               birthMonth,
+                               birthDay,
+                               gender: gender || undefined,
+                           }),
+                       });
+                       
+                       if (!response.ok) {
+                           const errorData = await response.json();
+                           throw new Error(errorData.error || 'ゲストユーザーの作成に失敗しました。');
+                       }
+                       
+                       const data = await response.json();
+                       
+                       // session_idをlocalStorageに保存
+                       localStorage.setItem(ENTRY_FORM_KEY, data.sessionId);
+                       
+                       // 入口フォームを非表示にしてチャット画面を表示
+                       entryFormContainer.classList.add('entry-form-hidden');
+                       chatContainer.classList.remove('entry-form-hidden');
+                       
+                       // チャットエンジンの初期化をトリガー（既に読み込まれている場合）
+                       if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                           window.ChatInit.initPage();
+                       }
+                   } catch (error) {
+                       console.error('[entry-form] エラー:', error);
+                       showError(error.message || 'エラーが発生しました。もう一度お試しください。');
+                       entryFormSubmit.disabled = false;
+                       entryFormSubmit.textContent = '鑑定を始める';
+                   }
+               });
+               
+               function showError(message) {
+                   entryFormError.textContent = message;
+                   entryFormError.classList.add('show');
+               }
+               
+               function hideError() {
+                   entryFormError.classList.remove('show');
+               }
+           })();
+           
            // #region agent log
            (function() {
                const urlParams = new URLSearchParams(window.location.search);

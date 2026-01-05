@@ -804,19 +804,7 @@ const ChatInit = {
                 currentCount = ChatData.getGuestMessageCount(character);
             }
             
-            // 11通目以降のチェック（10通目は送信を許可し、メッセージを表示する）
-            if (currentCount > ChatData.GUEST_MESSAGE_LIMIT) {
-                if (isConsultationMode && handler && typeof handler.handleOverLimit === 'function') {
-                    handler.handleOverLimit();
-                    return;
-                } else {
-                    // ハンドラーの11通目以降の処理を呼び出す
-                    if (handler && typeof handler.handleOverLimit === 'function') {
-                        handler.handleOverLimit();
-                        return;
-                    }
-                    // フォールバック: 共通処理
-                    console.log('[メッセージ制限] 11通目以降のため、登録画面へ遷移します');
+            // 【削除】10通制限チェックは削除されました
                     this.openRegistrationModal();
                     return;
                 }
@@ -1037,7 +1025,6 @@ const ChatInit = {
                             鑑定士: character,
                             現在の個別相談カウント: currentCount,
                             APIに送信する値: messageCountForAPI,
-                            残り通数: ChatData.GUEST_MESSAGE_LIMIT - currentCount
                         });
                     } else {
                         // ハンドラーがgetConsultationMessageCountを実装していない場合は通常のカウントを使用
@@ -1087,11 +1074,11 @@ const ChatInit = {
             
             // APIリクエストのオプション
             // guestMetadata.messageCount は「これまでのメッセージ数（今回送信するメッセージを含まない）」
-            // guestMetadata.sessionId はゲストセッションID（サーバーから返されたものを再利用）
+            // guestMetadata.sessionId はゲストセッションID（入口フォームで作成されたものを使用）
             let guestSessionId = null;
             if (isGuest) {
-                // sessionStorageから既存のセッションIDを取得
-                guestSessionId = sessionStorage.getItem('guestSessionId');
+                // localStorageから既存のセッションIDを取得（入口フォームで保存されたもの）
+                guestSessionId = localStorage.getItem('guestSessionId');
             }
             const options = {
                 guestMetadata: isGuest ? { 
@@ -1112,19 +1099,12 @@ const ChatInit = {
             }
             
             // 応答を処理
-            // needsRegistrationが true の場合は、エラーとして扱わない（登録促進メッセージを表示するため）
-            if (response.error && !response.needsRegistration) {
+            if (response.error) {
                 const errorMessage = response.message || response.error || 'エラーが発生しました';
                 console.error('[ChatEngine] APIエラー:', { error: response.error, message: response.message, fullResponse: response });
                 ChatUI.addMessage('error', `エラーが発生しました: ${errorMessage}`, 'システム');
                 if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
                 return;
-            }
-            
-            // ゲストセッションIDを保存（サーバーから返された場合）
-            if (isGuest && response.guestSessionId) {
-                sessionStorage.setItem('guestSessionId', response.guestSessionId);
-                console.log('[ChatEngine] ゲストセッションIDを保存しました:', response.guestSessionId);
             }
             
             // 応答メッセージを表示
@@ -1297,67 +1277,11 @@ const ChatInit = {
             try {
                 const data = JSON.parse(consultResponse);
                 
-                if (data.needsRegistration || (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token')))) {
+                // 【削除】needsRegistration関連の処理は削除されました
+                // エラーハンドリングのみ残す
+                if (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token'))) {
                     const isGuest = !AuthState.isRegistered();
-                    if (isGuest) {
-                        const currentGuestCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
-                        if (data.message) {
-                            ChatUI.addMessage('error', data.message, 'システム');
-                        }
-                        if (data.needsRegistration) {
-                            // 楓は同意ダイアログを出さず、案内のみ表示
-                            if (ChatData.currentCharacter === 'kaede') {
-                                ChatUI.addMessage(
-                                    'error',
-                                    'まもなく無料でお話できる回数の上限です。10通目以降はユーザー登録が必要になります。',
-                                    'システム'
-                                );
-                            } else {
-                                ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
-                                setTimeout(() => {
-                                    ChatUI.showRitualConsentButtons();
-                                }, 3000);
-                            }
-                        } else if (data.registrationSuggested) {
-                            // 楓は同意ダイアログを出さず、案内のみ表示
-                            if (ChatData.currentCharacter === 'kaede') {
-                                const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
-                                if (sessionStorage.getItem(preLimitNoticeKey) !== 'true') {
-                                    const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - currentGuestCount);
-                                    ChatUI.addMessage(
-                                        'error',
-                                        `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
-                                        'システム'
-                                    );
-                                    sessionStorage.setItem(preLimitNoticeKey, 'true');
-                                }
-                            } else {
-                                // 既にボタンが表示されている場合は表示しない
-                                if (!ChatData.ritualConsentShown) {
-                                    const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                                    // メッセージはハンドラーから取得（ハンドラーのgetConsentMessageを使用）
-                                    const handler = CharacterRegistry.get(ChatData.currentCharacter);
-                                    const consentMessage = handler && typeof handler.getConsentMessage === 'function'
-                                        ? handler.getConsentMessage()
-                                        : 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
-                                    ChatUI.addMessage('error', consentMessage, 'システム');
-                                    setTimeout(() => {
-                                        ChatUI.showRitualConsentButtons();
-                                    }, 2000);
-                                }
-                            }
-                        } else if (currentGuestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                            // 10通目（上限）に達している場合は案内を出して強制的に登録・儀式へ
-                            ChatUI.addMessage('error', '会話が10通を超えたため、これより先はユーザー登録が必要です。登録画面へ移動します。', 'システム');
-                            setTimeout(() => {
-                                this.openRegistrationModal();
-                            }, 3000);
-                        } else {
-                            setTimeout(() => {
-                                this.openRegistrationModal();
-                            }, 2000);
-                        }
-                    } else {
+                    if (!isGuest) {
                         if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
                             AuthState.clearAuth();
                         } else {
@@ -1434,62 +1358,8 @@ const ChatInit = {
                             }
                         }
                         
-                        const guestCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
-                        console.log('[応答受信] 最終的なゲストカウント:', guestCount);
+                        // 【削除】10通制限関連の処理は削除されました
                         ChatUI.updateUserStatus(false);
-                        
-                        if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-                            ChatUI.addMessage('error', '会話が10通を超えたため、これより先はユーザー登録が必要です。登録画面へ移動します。', 'システム');
-                            setTimeout(() => {
-                                this.openRegistrationModal();
-                            }, 3000);
-                        }
-                        else if (data.needsRegistration) {
-                            // 楓は同意ダイアログを出さず、案内のみ表示
-                            if (ChatData.currentCharacter === 'kaede') {
-                                ChatUI.addMessage(
-                                    'error',
-                                    'まもなく無料でお話できる回数の上限です。10通目以降はユーザー登録が必要になります。',
-                                    'システム'
-                                );
-                            } else {
-                                // 既にボタンが表示されている場合は表示しない
-                                if (!ChatData.ritualConsentShown) {
-                                    ChatUI.addMessage('error', '登録が必要です。守護神の儀式への同意ボタンが表示されます。', 'システム');
-                                    setTimeout(() => {
-                                        ChatUI.showRitualConsentButtons();
-                                    }, 3000);
-                                }
-                            }
-                        } else if (data.registrationSuggested) {
-                            // 楓は同意ダイアログを出さず、案内のみ表示
-                            if (ChatData.currentCharacter === 'kaede') {
-                                const preLimitNoticeKey = 'kaedeGuestPreLimitNoticeShown';
-                                if (sessionStorage.getItem(preLimitNoticeKey) !== 'true') {
-                                    const remaining = Math.max(0, ChatData.GUEST_MESSAGE_LIMIT - guestCount);
-                                    ChatUI.addMessage(
-                                        'error',
-                                        `まもなく無料でお話できる回数の上限です。残り${remaining}通です。10通目以降はユーザー登録が必要になります。`,
-                                        'システム'
-                                    );
-                                    sessionStorage.setItem(preLimitNoticeKey, 'true');
-                                }
-                            } else {
-                                // 既にボタンが表示されている場合は表示しない
-                                if (!ChatData.ritualConsentShown) {
-                                    const characterName = ChatData.characterInfo[ChatData.currentCharacter]?.name || '鑑定士';
-                                    // メッセージはハンドラーから取得（ハンドラーのgetConsentMessageを使用）
-                                    const handler = CharacterRegistry.get(ChatData.currentCharacter);
-                                    const consentMessage = handler && typeof handler.getConsentMessage === 'function'
-                                        ? handler.getConsentMessage()
-                                        : 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
-                                    ChatUI.addMessage('error', consentMessage, 'システム');
-                                    setTimeout(() => {
-                                        ChatUI.showRitualConsentButtons();
-                                    }, 2000);
-                                }
-                            }
-                        }
                     }
                     
                     if (ChatUI.messageInput) ChatUI.messageInput.blur();

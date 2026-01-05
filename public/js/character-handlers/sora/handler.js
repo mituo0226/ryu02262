@@ -135,7 +135,8 @@ const SoraHandler = {
 
         // ゲストモードの場合、10通到達時のチェックを実行
         if (window.AuthState && !window.AuthState.isRegistered()) {
-            if (window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
+            // 【削除】10通制限チェックは削除されました
+            if (false && window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
                 const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
                 if (limitHandled) {
                     console.log('[水野ソラハンドラー] 10通到達時の処理が完了しました');
