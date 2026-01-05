@@ -40,30 +40,6 @@ const KaedeHandler = {
     },
 
     // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
-            
-            // 既に表示済みの場合はスキップ
-            if (ChatData.ritualConsentShown) {
-                console.log('[楓ハンドラー] 既に儀式ボタン表示済み - スキップ');
-                return false;
-            }
-            
-            // システムメッセージを表示
-            ChatUI.addMessage('error', '守護神の儀式への同意が検出されました。ボタンが表示されます。', 'システム');
-            
-            // acceptedGuardianRitualフラグを保存（showRitualConsentButtons()の後に設定されるため、ここでは設定しない）
-            sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            // ChatData.ritualConsentShown = true; // showRitualConsentButtons()内で設定されるため、ここでは設定しない
-            
-            // 守護神の儀式ボタンを表示
-            setTimeout(() => {
-                ChatUI.showRitualConsentButtons();
-            }, 2000);
-            
-            return true;
-        }
-        
-        return false;
-    },
 
     /**
      * メッセージ送信前の処理
@@ -750,7 +726,7 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
     /**
      * API応答メッセージに守護神の儀式開始ボタンを追加（楓専用）
-     * 5通目以降で表示し、10通目以降は強制開始する
+     * 5通目以降で表示する
      * @param {string} responseText - API応答メッセージ
      * @param {string} messageId - メッセージ要素のID
      * @param {string} character - キャラクターID（'kaede'）
