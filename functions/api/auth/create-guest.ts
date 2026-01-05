@@ -1,0 +1,187 @@
+import { getRandomDeity } from '../../_lib/deities.js';
+
+interface CreateGuestRequestBody {
+  nickname: string;
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+  gender?: string; // オプショナル（回答しない含む）
+}
+
+interface CreateGuestResponseBody {
+  sessionId: string;
+  nickname: string;
+}
+
+/**
+ * ニックネームの一意化処理
+ * 既存のニックネームと競合する場合、末尾に数字を付けて一意化する
+ */
+async function ensureUniqueNickname(
+  db: D1Database,
+  baseNickname: string
+): Promise<string> {
+  // まず、元のニックネームで検索
+  const existing = await db
+    .prepare<{ id: number }>('SELECT id FROM users WHERE nickname = ?')
+    .bind(baseNickname)
+    .first();
+
+  if (!existing) {
+    // 競合しない場合はそのまま返す
+    return baseNickname;
+  }
+
+  // 競合する場合、末尾に数字を付けて一意化
+  let counter = 1;
+  let uniqueNickname = `${baseNickname}${counter}`;
+
+  while (true) {
+    const existingWithNumber = await db
+      .prepare<{ id: number }>('SELECT id FROM users WHERE nickname = ?')
+      .bind(uniqueNickname)
+      .first();
+
+    if (!existingWithNumber) {
+      // 一意なニックネームが見つかった
+      return uniqueNickname;
+    }
+
+    counter++;
+    uniqueNickname = `${baseNickname}${counter}`;
+
+    // 無限ループ防止（1000回まで試行）
+    if (counter > 1000) {
+      // タイムスタンプを付けて強制的に一意化
+      uniqueNickname = `${baseNickname}_${Date.now()}`;
+      break;
+    }
+  }
+
+  return uniqueNickname;
+}
+
+/**
+ * UUIDを生成する関数
+ */
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export const onRequestPost: PagesFunction = async ({ request, env }) => {
+  const headers = { 'Content-Type': 'application/json' };
+
+  // CORS対応
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...headers,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
+  }
+
+  let body: CreateGuestRequestBody;
+  try {
+    body = (await request.json()) as CreateGuestRequestBody;
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
+  }
+
+  const { nickname, birthYear, birthMonth, birthDay, gender } = body;
+
+  // バリデーション
+  if (!nickname || typeof nickname !== 'string') {
+    return new Response(JSON.stringify({ error: 'nickname is required' }), { status: 400, headers });
+  }
+  if (
+    typeof birthYear !== 'number' ||
+    typeof birthMonth !== 'number' ||
+    typeof birthDay !== 'number'
+  ) {
+    return new Response(JSON.stringify({ error: 'birth date is required' }), { status: 400, headers });
+  }
+
+  const trimmedNickname = nickname.trim();
+  if (!trimmedNickname) {
+    return new Response(JSON.stringify({ error: 'nickname cannot be empty' }), { status: 400, headers });
+  }
+
+  // 生年月日の妥当性チェック
+  if (birthYear < 1900 || birthYear > 2100) {
+    return new Response(JSON.stringify({ error: 'Invalid birth year' }), { status: 400, headers });
+  }
+  if (birthMonth < 1 || birthMonth > 12) {
+    return new Response(JSON.stringify({ error: 'Invalid birth month' }), { status: 400, headers });
+  }
+  if (birthDay < 1 || birthDay > 31) {
+    return new Response(JSON.stringify({ error: 'Invalid birth day' }), { status: 400, headers });
+  }
+
+  // ニックネームの一意化処理
+  const uniqueNickname = await ensureUniqueNickname(env.DB, trimmedNickname);
+
+  // passphraseを自動生成（users.passphrase NOT NULL制約のため）
+  const passphrase = getRandomDeity();
+
+  // session_id（UUID）を生成
+  const sessionId = generateUUID();
+
+  // IPアドレスを取得（オプショナル）
+  const ipAddress = request.headers.get('CF-Connecting-IP') || null;
+
+  // ゲストユーザーを作成
+  // 【重要】user_type='guest'として作成し、nickname/birthdate/passphraseも保存する
+  // これにより、後で登録ユーザーに移行する際にUPDATEのみで済む
+  const result = await env.DB.prepare(
+    `INSERT INTO users (
+      user_type,
+      nickname,
+      birth_year,
+      birth_month,
+      birth_day,
+      passphrase,
+      session_id,
+      ip_address,
+      last_activity_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  )
+    .bind('guest', uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, ipAddress)
+    .run();
+
+  const userId = result.meta?.last_row_id;
+  if (!userId || typeof userId !== 'number') {
+    console.error('[create-guest] last_row_id is invalid:', userId, typeof userId);
+    return new Response(JSON.stringify({ error: 'Failed to create guest user' }), { status: 500, headers });
+  }
+
+  console.log('[create-guest] ゲストユーザーを作成しました:', {
+    userId,
+    sessionId,
+    nickname: uniqueNickname,
+    birthYear,
+    birthMonth,
+    birthDay,
+    gender: gender || '未回答',
+  });
+
+  const responseBody: CreateGuestResponseBody = {
+    sessionId,
+    nickname: uniqueNickname,
+  };
+
+  return new Response(JSON.stringify(responseBody), {
+    status: 200,
+    headers: {
+      ...headers,
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
+};

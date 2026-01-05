@@ -4,7 +4,6 @@ import { isValidCharacter } from '../_lib/character-loader.js';
 import { verifyUserToken } from '../_lib/token.js';
 
 // ===== 定数 =====
-const GUEST_MESSAGE_LIMIT = 10;
 const MAX_DEEPSEEK_RETRIES = 3;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
 const MAX_NORMAL_MESSAGES = 10; // 通常保存する最新メッセージ数
@@ -42,10 +41,6 @@ interface ResponseBody {
   isInappropriate: boolean;
   detectedKeywords: string[];
   error?: string;
-  needsRegistration?: boolean;
-  registrationSuggested?: boolean;
-  guestMode?: boolean;
-  remainingGuestMessages?: number;
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai';
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
@@ -378,7 +373,8 @@ async function saveUserMessage(
     // クリーンアップエラーは無視して続行
   }
 
-  const isGuestMessage = userType === 'guest' ? 1 : 0;
+  // 【新仕様】is_guest_messageは常に0（使用しない）
+  const isGuestMessage = 0;
 
   // ユーザーメッセージを保存
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
@@ -439,7 +435,8 @@ async function saveAssistantMessage(
   characterId: string,
   assistantMessage: string
 ): Promise<void> {
-  const isGuestMessage = userType === 'guest' ? 1 : 0;
+  // 【新仕様】is_guest_messageは常に0（使用しない）
+  const isGuestMessage = 0;
 
   // アシスタントメッセージの10件制限チェックと古いメッセージの削除
   let assistantMessageCountResult;
@@ -615,7 +612,8 @@ async function saveConversationHistory(
   }
 
   // メッセージを保存
-  const isGuestMessage = userType === 'guest' ? 1 : 0;
+  // 【新仕様】is_guest_messageは常に0（使用しない）
+  const isGuestMessage = 0;
 
   // ユーザーメッセージを保存
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
@@ -953,135 +951,78 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 3. ゲストユーザーのセッション管理 =====
-    // 【ポジティブな指定】ゲストユーザーは以下の条件を満たす：
-    // 1. userTokenが存在しない、または無効、またはユーザーがデータベースに存在しない
-    // 2. usersテーブルに存在するが、user_type = 'guest'である（ニックネームを持たない）
-    // 3. IPアドレス（ip_address）とセッションID（session_id）のみで識別される
-    // 
-    // 【重要】統一ユーザーテーブル設計により、すべてのユーザーはusersテーブルで管理される：
-    // - user_id: usersテーブルの主キー（データベース内の一意識別子）
-    // - session_id: usersテーブルの一意文字列（ブラウザセッション識別子、UUID形式）
-    // - user_type: 'guest' | 'registered'（ユーザー種別）
-    // ゲストユーザーは、session_idで識別され、user_idでデータベースに保存される
-    const ipAddress = request.headers.get('CF-Connecting-IP');
-    const userAgent = request.headers.get('User-Agent');
-
+    // 【新仕様】入口フォームで作成されたゲストユーザーは、session_idで識別される
+    // session_idからuser_idを解決し、会話を保存する
     if (userType === 'guest') {
-      // ゲストユーザーの場合、セッションを取得または作成
+      // ゲストユーザーの場合、session_idからuser_idを解決
       const guestMetadata = body.guestMetadata || {};
       guestSessionIdStr = guestMetadata.sessionId || null;
       
-      try {
-        guestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
-        console.log('[consult] ✅ ゲストユーザー作成/取得成功:', {
-          guestUserId: guestSessionId, // データベース内のuser_id（usersテーブルの主キー）
-          sessionId: guestSessionIdStr, // ブラウザセッション識別子（UUID形式）
-          ipAddress,
-          userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
-        });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('[consult] ❌ ゲストユーザー作成エラー:', {
-          error: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-          sessionId: guestSessionIdStr,
-          ipAddress,
-          userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
-        });
-        
-        // 既存の登録ユーザーが見つかった場合、エラーを返す
-        if (errorMessage.includes('既存の登録ユーザーが見つかりました')) {
-          return new Response(
-            JSON.stringify({
-              error: 'このセッションは既に登録ユーザーとして登録されています。userTokenを使用してログインしてください。',
-              message: '',
-              character: characterId,
-              characterName: '',
-              isInappropriate: false,
-              detectedKeywords: [],
-            } as ResponseBody),
-            { status: 401, headers: corsHeaders }
-          );
-        }
-        
-        // その他のエラーの場合、再試行（セッションIDなしで作成を試みる）
-        try {
-          guestSessionId = await getOrCreateGuestUser(env.DB, null, ipAddress, userAgent);
-          console.log('[consult] ✅ ゲストユーザー作成（再試行成功）:', {
-            guestUserId: guestSessionId,
-            ipAddress,
-            userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
-          });
-        } catch (retryError) {
-          console.error('[consult] ❌ ゲストユーザー作成（再試行も失敗）:', {
-            error: retryError instanceof Error ? retryError.message : String(retryError),
-            stack: retryError instanceof Error ? retryError.stack : undefined,
-            ipAddress,
-            userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
-          });
-          // 再試行も失敗した場合は、会話履歴の保存をスキップする（エラーを返さない）
-          guestSessionId = null;
-        }
-      }
-    }
-
-    // ===== 4. ゲストユーザーのメッセージ制限チェック =====
-    const guestMetadata = body.guestMetadata || {};
-    let guestMessageCount = Number(guestMetadata.messageCount ?? 0);
-    let sanitizedGuestCount = Number.isFinite(guestMessageCount) ? guestMessageCount : 0;
-
-    // データベースから総メッセージ数を取得（より正確）
-    if (userType === 'guest' && guestSessionId) {
-      try {
-        const totalCount = await getTotalGuestMessageCount(env.DB, guestSessionId);
-        sanitizedGuestCount = totalCount;
-        console.log('[consult] データベースから取得したゲストメッセージ数:', {
-          totalCount,
-          clientCount: guestMessageCount,
-        });
-      } catch (error) {
-        console.error('[consult] ゲストメッセージ数取得エラー:', error);
-        // エラーが発生した場合はクライアントから送られてきた値を使用
-      }
-    } else if (userType === 'guest' && !guestSessionId) {
-      // guestSessionIdが取得できなかった場合でも、会話は続行できるようにする
-      console.warn('[consult] ゲストユーザーIDが取得できませんでした。クライアントから送られてきたメッセージ数を使用します。');
-    }
-
-    // ゲストユーザーで10通目に達した場合
-    if (userType === 'guest' && sanitizedGuestCount >= GUEST_MESSAGE_LIMIT) {
-      const characterName = getCharacterName(characterId);
-      let registrationMessage: string;
-      
-      if (characterId === 'kaede') {
-        registrationMessage = '無料でお話できるのはここまでです。守護神を最後まで導き出すには、あなたの生年月日が必要です。生年月日は、その人が生まれた瞬間の宇宙の配置を表し、龍神を通じて正確に守護神を導き出すための重要な鍵となります。そのため、生年月日とニックネームをユーザー登録していただく必要があります。登録は無料で、個人情報は厳重に管理されます。費用や危険は一切ありませんので、ご安心ください。登録ボタンから手続きを進めてください。';
-      } else if (characterId === 'yukino') {
-        registrationMessage = '（優しく微笑みながら）ここまでたくさんお話を聞かせていただき、ありがとうございました。無料でお話できるのはここまでなんです。これ以上のタロット鑑定や深い相談を続けるには、ユーザー登録をお願いしています。生年月日とニックネームを教えていただくことで、より詳しい鑑定ができるようになります。登録は無料で、個人情報も厳重に管理しますし、特別な費用がかかったり、危険なことが起こるわけでもありませんので、どうぞご安心くださいね。登録ボタンから手続きを進めてください。';
-      } else if (characterId === 'sora') {
-        registrationMessage = '（少し申し訳なさそうに笑って）悪い、無料で話せるのはここまでなんだ。もっと君のこと深く知りたいんだけど、そのためには生年月日とニックネームが必要なんだよね。生年月日があれば、君の本質をもっと正確に読み解けるようになるから。登録は無料だし、個人情報もちゃんと守られるから安心して。お金がかかったり、変なことに使われたりすることは絶対ないから。俺、君ともっと話したいんだ。登録ボタンから手続きしてくれると嬉しい。';
-      } else {
-        registrationMessage = 'これ以上鑑定を続けるには、ユーザー登録が必要です。生年月日とニックネームを教えていただくことで、より深い鑑定ができるようになります。登録ボタンから手続きをお願いします。';
+      if (!guestSessionIdStr) {
+        return new Response(
+          JSON.stringify({
+            error: 'sessionId is required. 入口フォームでゲストユーザーを作成してください。',
+            message: '',
+            character: characterId,
+            characterName: '',
+            isInappropriate: false,
+            detectedKeywords: [],
+          } as ResponseBody),
+          { status: 400, headers: corsHeaders }
+        );
       }
 
-      return new Response(
-        JSON.stringify({
-          needsRegistration: true,
-          error: 'Guest message limit reached',
-          message: registrationMessage,
-          character: characterId,
-          characterName: characterName,
-          isInappropriate: false,
-          detectedKeywords: [],
-          guestMode: true,
-          remainingGuestMessages: 0,
-          registrationSuggested: true,
-          guestSessionId: guestSessionIdStr || undefined,
-        } as ResponseBody),
-        { status: 200, headers: corsHeaders }
-      );
+      // session_idからuser_idを解決
+      const guestUser = await env.DB.prepare<{ id: number; user_type: string }>(
+        'SELECT id, user_type FROM users WHERE session_id = ?'
+      )
+        .bind(guestSessionIdStr)
+        .first();
+
+      if (!guestUser) {
+        return new Response(
+          JSON.stringify({
+            error: 'ゲストユーザーが見つかりませんでした。入口フォームでゲストユーザーを作成してください。',
+            message: '',
+            character: characterId,
+            characterName: '',
+            isInappropriate: false,
+            detectedKeywords: [],
+          } as ResponseBody),
+          { status: 404, headers: corsHeaders }
+        );
+      }
+
+      // 登録ユーザーの場合はエラー
+      if (guestUser.user_type === 'registered') {
+        return new Response(
+          JSON.stringify({
+            error: 'このセッションは既に登録ユーザーとして登録されています。userTokenを使用してログインしてください。',
+            message: '',
+            character: characterId,
+            characterName: '',
+            isInappropriate: false,
+            detectedKeywords: [],
+          } as ResponseBody),
+          { status: 401, headers: corsHeaders }
+        );
+      }
+
+      // ゲストユーザーのuser_idを取得
+      guestSessionId = guestUser.id;
+
+      // last_activity_atを更新
+      await env.DB.prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(guestSessionId)
+        .run();
+
+      console.log('[consult] ✅ ゲストユーザーを取得しました:', {
+        guestUserId: guestSessionId,
+        sessionId: guestSessionIdStr,
+      });
     }
 
-    // ===== 5. キャラクター名の取得 =====
+    // ===== 4. キャラクター名の取得 =====
     // 注：機械的な危険ワードチェックは廃止しました
     // AIに文脈理解と共感的対応を委ねます（システムプロンプトに安全ガイドライン追加済み）
     const characterName = getCharacterName(characterId);
@@ -1172,32 +1113,16 @@ export const onRequestPost: PagesFunction = async (context) => {
     // （各キャラクターの性格設定に必要な情報のみを渡す）
 
     // ===== 7. ユーザーメッセージ数の計算 =====
-    // ゲストユーザーの場合：フロントエンドから送信された guestMetadata.messageCount を信頼
-    // 登録ユーザーの場合：会話履歴から計算
-    let userMessageCount: number;
-    
-    if (userType === 'guest') {
-      // ゲストユーザー：guestMetadata.messageCount（これまでのメッセージ数）+ 1（今回のメッセージ）
-      userMessageCount = sanitizedGuestCount + 1;
-      console.log('[consult] ゲストユーザーのメッセージ数（guestMetadata優先）:', {
-        sanitizedGuestCount: sanitizedGuestCount,
-        userMessageCount: userMessageCount,
-        conversationHistoryLength: conversationHistory.length,
-      });
-    } else {
-      // 登録ユーザー：会話履歴から計算
-      const userMessagesInHistory = conversationHistory.filter((msg) => msg.role === 'user').length;
-      userMessageCount = userMessagesInHistory + 1;
-      console.log('[consult] 登録ユーザーのメッセージ数（履歴から計算）:', {
-        userMessagesInHistory: userMessagesInHistory,
-        userMessageCount: userMessageCount,
-        conversationHistoryLength: conversationHistory.length,
-      });
-    }
+    // 会話履歴から計算（ゲスト・登録ユーザー共通）
+    const userMessagesInHistory = conversationHistory.filter((msg) => msg.role === 'user').length;
+    const userMessageCount = userMessagesInHistory + 1;
+    console.log('[consult] ユーザーメッセージ数（履歴から計算）:', {
+      userMessagesInHistory: userMessagesInHistory,
+      userMessageCount: userMessageCount,
+      conversationHistoryLength: conversationHistory.length,
+    });
 
-    // ===== 8. 登録促進フラグの設定 =====
-    // ゲストユーザーで、9通目の場合に登録を促す（sanitizedGuestCount === 8 の時、次が9通目）
-    const needsRegistration = userType === 'guest' && characterId === 'yukino' && sanitizedGuestCount === 8;
+    // ===== 8. 守護神の儀式開始メッセージかどうかを判定 =====
 
     // ===== 9. 守護神の儀式開始メッセージかどうかを判定 =====
     const isRitualStart =
@@ -1274,7 +1199,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       userNickname: user?.nickname,
       guardian: user?.guardian,
       userMessageCount,
-      needsRegistration,
       isRitualStart,
     });
 
@@ -1425,11 +1349,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         characterName,
         isInappropriate: false,
         detectedKeywords: [],
-        needsRegistration: needsRegistration,
         guestMode: userType === 'guest',
-        remainingGuestMessages: userType === 'guest'
-          ? Math.max(0, GUEST_MESSAGE_LIMIT - (sanitizedGuestCount + 1))
-          : undefined,
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
