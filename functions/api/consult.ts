@@ -223,7 +223,7 @@ async function getOrCreateGuestUser(
   //   console.error('[getOrCreateGuestUser] last_row_id is invalid:', guestUserId, typeof guestUserId);
   //   throw new Error(`Failed to create guest user: last_row_id is ${guestUserId}`);
   // }
-  return guestUserId;
+  // return guestUserId;
 }
 
 /**
