@@ -305,6 +305,18 @@
             sessionId: sessionId,
           }),
         });
+        
+        // レスポンスがJSONかどうかを確認
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          // JSON以外のレスポンス（HTMLエラーページなど）の場合
+          const text = await response.text();
+          console.error('[register] 非JSONレスポンス:', text.substring(0, 200));
+          resultMessage.textContent = `サーバーエラーが発生しました（ステータス: ${response.status}）。時間を置いて再度お試しください。`;
+          resultMessage.classList.add('error');
+          return;
+        }
+        
         const data = await response.json();
 
         if (!response.ok) {
