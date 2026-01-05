@@ -196,17 +196,33 @@ async function getOrCreateGuestUser(
   }
 
   // 既存ユーザーが見つからなかった場合、新規ゲストユーザーを作成
-  const newSessionId = sessionId || await generateGuestSessionId(ipAddress, userAgent);
-  const result = await db
-    .prepare('INSERT INTO users (user_type, ip_address, session_id, last_activity_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)')
-    .bind('guest', ipAddress || null, newSessionId)
-    .run();
-
-  const guestUserId = result.meta?.last_row_id;
-  if (!guestUserId || typeof guestUserId !== 'number') {
-    console.error('[getOrCreateGuestUser] last_row_id is invalid:', guestUserId, typeof guestUserId);
-    throw new Error(`Failed to create guest user: last_row_id is ${guestUserId}`);
-  }
+  // 【重要】新しいフローでは、ゲストユーザーは必ず`create-guest.ts`で作成されるべきです
+  // この処理はフォールバックとして残していますが、NOT NULL制約違反を避けるため、
+  // この処理が実行される場合はエラーを投げます
+  // 
+  // 新しいフロー:
+  // 1. プロフィールページから「相談する」ボタンをクリック
+  // 2. `register.html`で`create-guest.ts`を呼び出してゲストユーザーを作成（nickname, birthdate, genderを含む）
+  // 3. その後、チャット画面で`consult.ts`が呼ばれる
+  // 4. `consult.ts`では、既存のゲストユーザーを検索して見つかるはず
+  
+  throw new Error(
+    'ゲストユーザーが見つかりませんでした。新しいフローでは、ゲストユーザーは必ず`/api/auth/create-guest`で作成される必要があります。' +
+    `sessionId: ${sessionId || 'null'}, ipAddress: ${ipAddress || 'null'}`
+  );
+  
+  // 【旧コード】NOT NULL制約違反のため、この処理は使用しません
+  // const newSessionId = sessionId || await generateGuestSessionId(ipAddress, userAgent);
+  // const result = await db
+  //   .prepare('INSERT INTO users (user_type, ip_address, session_id, last_activity_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)')
+  //   .bind('guest', ipAddress || null, newSessionId)
+  //   .run();
+  //
+  // const guestUserId = result.meta?.last_row_id;
+  // if (!guestUserId || typeof guestUserId !== 'number') {
+  //   console.error('[getOrCreateGuestUser] last_row_id is invalid:', guestUserId, typeof guestUserId);
+  //   throw new Error(`Failed to create guest user: last_row_id is ${guestUserId}`);
+  // }
   return guestUserId;
 }
 
