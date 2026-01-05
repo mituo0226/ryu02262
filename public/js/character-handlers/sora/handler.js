@@ -18,48 +18,7 @@ const SoraHandler = {
         this.checkGuestRevisit();
     },
 
-    /**
-     * ゲスト上限到達時の処理（10通目）
-     * @param {number} guestCount - 現在のゲストメッセージ数
-     * @param {Object} apiData - API応答データ
-     * @returns {boolean} 処理を実行したか
-     */
-    handleGuestLimit(guestCount, apiData) {
-        console.log('[水野ソラハンドラー] ゲスト上限チェック:', { guestCount, limit: ChatData.GUEST_MESSAGE_LIMIT });
-        
-        // 10通目に到達したら登録ボタンを表示
-        if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-            console.log('[水野ソラハンドラー] 10通目到達 → 登録ボタンを表示');
-            
-            // 既に表示済みの場合はスキップ
-            if (ChatData.ritualConsentShown) {
-                console.log('[水野ソラハンドラー] 既に登録ボタン表示済み - スキップ');
-                return false;
-            }
-            
-            // システムメッセージを表示
-            ChatUI.addMessage('error', 'ユーザー登録への同意が検出されました。ボタンが表示されます。', 'システム');
-            
-            // フラグを保存
-            sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            
-            // メッセージ入力欄を即座に無効化（11通目以降の送信を防ぐ）
-            if (ChatUI.messageInput) {
-                ChatUI.messageInput.disabled = true;
-                ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
-            }
-            if (ChatUI.sendButton) {
-                ChatUI.sendButton.disabled = true;
-            }
-            
-            // システムメッセージ表示後、即座にボタンを表示（APIの挙動に関係なく）
-            this.showRegistrationButtons();
-            
-            return true;
-        }
-        
-        return false;
-    },
+    // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
 
     /**
      * ゲストモード再訪問のチェック
@@ -262,53 +221,7 @@ const SoraHandler = {
         console.log('[水野ソラハンドラー] ゲスト履歴をクリアしました');
     },
 
-    /**
-     * 登録ボタンを表示（ソラ専用）
-     * システムメッセージ表示後、即座にボタンを表示する（APIの挙動に関係なく）
-     */
-    showRegistrationButtons() {
-        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
-        const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
-        
-        if (ritualConsentContainer) {
-            // 既に表示されている場合はスキップ
-            if (ritualConsentContainer.classList.contains('visible')) {
-                console.log('[水野ソラハンドラー] 登録ボタンは既に表示されています');
-                return;
-            }
-            
-            // 質問文を設定（ソラ用）
-            if (ritualConsentQuestion) {
-                ritualConsentQuestion.textContent = 'これ以上の会話はユーザー登録が必要です。ニックネームと生年月日を入力してください。料金はかかりません。';
-            }
-            
-            // メッセージ入力欄を無効化
-            if (ChatUI.messageInput) {
-                ChatUI.messageInput.disabled = true;
-                ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
-            }
-            if (ChatUI.sendButton) {
-                ChatUI.sendButton.disabled = true;
-            }
-            
-            // メッセージエリアにマージンを追加（登録ボタンと重ならないように）
-            const messagesDiv = document.querySelector('.messages');
-            if (messagesDiv) {
-                messagesDiv.style.paddingBottom = '220px';
-            }
-            
-            // ボタンを即座に表示（APIの挙動に関係なく）
-            ritualConsentContainer.style.display = 'block';
-            requestAnimationFrame(() => {
-                ritualConsentContainer.classList.add('visible');
-                // ボタン表示後にフラグを設定
-                ChatData.ritualConsentShown = true;
-                console.log('[水野ソラハンドラー] 登録ボタンを表示しました');
-            });
-        } else {
-            console.error('[水野ソラハンドラー] ritualConsentContainerが見つかりません');
-        }
-    }
+    // 【削除】showRegistrationButtons関数は削除されました（10通制限が廃止されたため）
 };
 
 // グローバルスコープに公開

@@ -39,18 +39,7 @@ const KaedeHandler = {
         // 特に初期化処理なし（守護神の儀式は動的に開始）
     },
 
-    /**
-     * ゲスト上限到達時の処理（10通目）
-     * @param {number} guestCount - 現在のゲストメッセージ数
-     * @param {Object} apiData - API応答データ
-     * @returns {boolean} 処理を実行したか
-     */
-    handleGuestLimit(guestCount, apiData) {
-        console.log('[楓ハンドラー] ゲスト上限チェック:', { guestCount, limit: ChatData.GUEST_MESSAGE_LIMIT });
-        
-        // 10通目に到達したら守護神の儀式ボタンを表示
-        if (guestCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-            console.log('[楓ハンドラー] 10通目到達 → 守護神の儀式ボタンを表示');
+    // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
             
             // 既に表示済みの場合はスキップ
             if (ChatData.ritualConsentShown) {
@@ -695,7 +684,8 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         if (character !== 'kaede') {
             return false;
         }
-        console.log('[楓専用処理] 10通目以降のため、守護神の儀式を強制開始します');
+        // 【削除】10通制限チェックは削除されました
+        console.log('[楓専用処理] 守護神の儀式を強制開始します');
         return await this.handleRitualConsent(true);
     },
 
@@ -784,14 +774,7 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
         const messageCount = ChatData.getGuestMessageCount(character);
 
-        // 10通目以降は即座に儀式を強制開始
-        if (messageCount >= ChatData.GUEST_MESSAGE_LIMIT) {
-            console.log('[楓専用処理] 10通目以降のため、守護神の儀式を強制開始します（応答処理）', { messageCount });
-            if (typeof this.forceStartGuardianRitual === 'function') {
-                this.forceStartGuardianRitual(character);
-            }
-            return true;
-        }
+        // 【削除】10通制限チェックは削除されました
 
         // 5通目未満はボタンを表示しない
         if (messageCount < 5) {
