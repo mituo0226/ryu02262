@@ -18,10 +18,8 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
   }
 
   if (request.method === 'GET') {
-    const url = new URL(request.url);
-    const userType = url.searchParams.get('userType'); // 'registered', 'guest', or null (all)
-
-    let query = `
+    // 登録ユーザーのみを取得（user_type = 'registered'）
+    const query = `
       SELECT 
         u.id,
         u.nickname,
@@ -31,23 +29,13 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
         u.passphrase,
         u.guardian,
         u.created_at,
-        u.user_type,
-        u.ip_address,
-        u.session_id,
-        u.last_activity_at,
         COUNT(c.id) as message_count
       FROM users u
       LEFT JOIN conversations c ON c.user_id = u.id
+      WHERE u.user_type = 'registered'
+      GROUP BY u.id, u.nickname, u.birth_year, u.birth_month, u.birth_day, u.passphrase, u.guardian, u.created_at
+      ORDER BY u.created_at DESC
     `;
-
-    const params: any[] = [];
-    if (userType === 'registered' || userType === 'guest') {
-      query += ` WHERE u.user_type = ?`;
-      params.push(userType);
-    }
-
-    query += ` GROUP BY u.id, u.nickname, u.birth_year, u.birth_month, u.birth_day, u.passphrase, u.guardian, u.created_at, u.user_type, u.ip_address, u.session_id, u.last_activity_at
-               ORDER BY u.created_at DESC`;
 
     const users = await env.DB.prepare<{
       id: number;
@@ -58,12 +46,8 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       passphrase: string | null;
       guardian: string | null;
       created_at: string;
-      user_type: string;
-      ip_address: string | null;
-      session_id: string | null;
-      last_activity_at: string | null;
       message_count: number;
-    }>(query).bind(...params).all();
+    }>(query).all();
 
     return new Response(JSON.stringify({ users: users.results ?? [] }), { status: 200, headers: jsonHeaders });
   }
