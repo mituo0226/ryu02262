@@ -953,31 +953,37 @@ export const onRequestPost: PagesFunction = async (context) => {
       
       try {
         guestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
-        console.log('[consult] ゲストユーザー:', {
+        console.log('[consult] ✅ ゲストユーザー作成/取得成功:', {
           guestUserId: guestSessionId, // データベース内のuser_id（usersテーブルの主キー）
           sessionId: guestSessionIdStr, // ブラウザセッション識別子（UUID形式）
           ipAddress,
+          userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
         });
       } catch (error) {
-        console.error('[consult] ゲストユーザー作成エラー:', {
+        console.error('[consult] ❌ ゲストユーザー作成エラー:', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           sessionId: guestSessionIdStr,
           ipAddress,
+          userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
         });
         // エラーが発生した場合は、再試行（セッションIDなしで作成を試みる）
         try {
           guestSessionId = await getOrCreateGuestUser(env.DB, null, ipAddress, userAgent);
-          console.log('[consult] ゲストユーザー作成（再試行成功）:', {
+          console.log('[consult] ✅ ゲストユーザー作成（再試行成功）:', {
             guestUserId: guestSessionId,
             ipAddress,
+            userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
           });
         } catch (retryError) {
-          console.error('[consult] ゲストユーザー作成（再試行も失敗）:', {
+          console.error('[consult] ❌ ゲストユーザー作成（再試行も失敗）:', {
             error: retryError instanceof Error ? retryError.message : String(retryError),
             stack: retryError instanceof Error ? retryError.stack : undefined,
+            ipAddress,
+            userAgent: userAgent ? userAgent.substring(0, 50) + '...' : null,
           });
           // 再試行も失敗した場合は、会話履歴の保存をスキップする（エラーを返さない）
+          guestSessionId = null;
         }
       }
     }
