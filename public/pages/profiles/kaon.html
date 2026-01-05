@@ -84,10 +84,41 @@
         <a href="back.html?character=kaon" class="consult-button">三崎花音に相談</a>
     </div>
 
+    <script src="../../js/auth-state.js"></script>
     <script>
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'kaon.html:75',message:'プロフィールページ読み込み',data:{url:window.location.href,search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
         // #endregion
+        
+        // ログイン状態をチェックして「相談する」ボタンのリンクを設定
+        (function() {
+            'use strict';
+            
+            // AuthStateを初期化
+            if (window.AuthState && typeof window.AuthState.init === 'function') {
+                window.AuthState.init();
+            }
+            
+            const character = 'kaon';
+            const chatUrl = `../chat/chat.html?character=${character}`;
+            const registerUrl = `../auth/register.html?character=${character}&redirect=${encodeURIComponent(chatUrl)}`;
+            
+            // すべての「相談する」ボタンを取得
+            const consultButtons = document.querySelectorAll('a[href*="back.html"], a.consult-button');
+            
+            consultButtons.forEach(button => {
+                // ログイン状態をチェック
+                const isLoggedIn = window.AuthState && window.AuthState.isRegistered ? window.AuthState.isRegistered() : Boolean(localStorage.getItem('userToken'));
+                
+                if (isLoggedIn) {
+                    // ログイン済みの場合は直接チャット画面へ
+                    button.href = chatUrl;
+                } else {
+                    // 未ログインの場合は登録画面へ
+                    button.href = registerUrl;
+                }
+            });
+        })();
         
         // パーティクルエフェクト
         function createFloatingParticle() {

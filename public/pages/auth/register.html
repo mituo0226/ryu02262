@@ -288,6 +288,7 @@
 
     const params = new URLSearchParams(window.location.search);
     const redirectParam = params.get('redirect');
+    const characterParam = params.get('character'); // 鑑定士IDを取得
 
     function populateSelect(select, start, end, suffix) {
       select.innerHTML = '';
@@ -306,11 +307,17 @@
     populateSelect(daySelect, 1, 31, '日');
 
     function getRedirectTarget() {
-      if (!redirectParam) {
-        return '../main.html';
+      // characterパラメータがある場合は、そのcharacterのチャット画面へ
+      if (characterParam) {
+        return `../chat/chat.html?character=${encodeURIComponent(characterParam)}`;
       }
-      const decoded = decodeURIComponent(redirectParam);
-      return decoded || '../main.html';
+      // redirectパラメータがある場合はそれを使用
+      if (redirectParam) {
+        const decoded = decodeURIComponent(redirectParam);
+        return decoded || '../main.html';
+      }
+      // デフォルトはメインページ
+      return '../main.html';
     }
 
     loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
@@ -339,10 +346,43 @@
       }
 
       try {
+        // まず、sessionIdを取得（localStorageから、または新規作成）
+        let sessionId = localStorage.getItem('guestSessionId');
+        
+        // sessionIdがない場合（プロフィールページから直接来た場合）、ゲストユーザーを作成
+        if (!sessionId) {
+          const createGuestResponse = await fetch('/api/auth/create-guest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nickname: payload.nickname,
+              birthYear: payload.birthYear,
+              birthMonth: payload.birthMonth,
+              birthDay: payload.birthDay,
+              gender: '', // 登録画面では性別は未入力
+            }),
+          });
+          
+          if (!createGuestResponse.ok) {
+            const errorData = await createGuestResponse.json();
+            resultMessage.textContent = errorData.error || 'ゲストユーザーの作成に失敗しました。';
+            resultMessage.classList.add('error');
+            return;
+          }
+          
+          const guestData = await createGuestResponse.json();
+          sessionId = guestData.sessionId;
+          localStorage.setItem('guestSessionId', sessionId);
+        }
+        
+        // 登録APIを呼び出し（sessionIdを含める）
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            sessionId: sessionId,
+          }),
         });
         const data = await response.json();
 
