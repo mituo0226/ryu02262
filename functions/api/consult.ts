@@ -20,7 +20,7 @@ interface ClientHistoryEntry {
 
 interface GuestMetadata {
   messageCount?: number;
-  sessionId?: string;
+  // sessionIdは削除
 }
 
 interface RequestBody {
@@ -30,6 +30,10 @@ interface RequestBody {
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;
   ritualStart?: boolean; // 守護神の儀式開始通知フラグ
+  nickname?: string; // ユーザー識別用
+  birthYear?: number; // ユーザー識別用
+  birthMonth?: number; // ユーザー識別用
+  birthDay?: number; // ユーザー識別用
 }
 
 interface ResponseBody {
@@ -42,7 +46,7 @@ interface ResponseBody {
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai';
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
-  guestSessionId?: string; // ゲストセッションID（クライアントに返す）
+  // guestSessionIdは削除
 }
 
 interface UserRecord {
@@ -155,79 +159,16 @@ async function generateGuestSessionId(ipAddress: string | null, userAgent: strin
 /**
  * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
  */
-/**
- * ユーザーを取得または作成（session_idで識別）
- * 
- * 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
- * session_idで既存ユーザーを検索し、見つからなければエラーを返す
- * （新規ユーザーはcreate-guest.tsで作成されるべき）
- * 
- * @returns ユーザーのuser_id（usersテーブルの主キー）
- * @throws Error ユーザーが見つからない場合
- */
-async function getOrCreateGuestUser(
-  db: D1Database,
-  sessionId: string | null,
-  ipAddress: string | null, // 【無効化】使用しない（ip_addressカラムが無効化されたため）
-  userAgent: string | null // 【無効化】使用しない
-): Promise<number> {
-  // 【新仕様】session_idで既存ユーザーを検索
-  if (sessionId) {
-    const existingUser = await db
-      .prepare('SELECT id FROM users WHERE session_id = ?')
-      .bind(sessionId)
-      .first<{ id: number }>();
-    
-    if (existingUser) {
-      // 既存ユーザーが見つかった場合、既存のレコードを再利用
-      await db
-        .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
-        .bind(existingUser.id)
-        .run();
-      return existingUser.id;
-    }
-  }
-
-  // 既存ユーザーが見つからなかった場合、新規ゲストユーザーを作成
-  // 【重要】新しいフローでは、ゲストユーザーは必ず`create-guest.ts`で作成されるべきです
-  // この処理はフォールバックとして残していますが、NOT NULL制約違反を避けるため、
-  // この処理が実行される場合はエラーを投げます
-  // 
-  // 新しいフロー:
-  // 1. プロフィールページから「相談する」ボタンをクリック
-  // 2. `register.html`で`create-guest.ts`を呼び出してゲストユーザーを作成（nickname, birthdate, genderを含む）
-  // 3. その後、チャット画面で`consult.ts`が呼ばれる
-  // 4. `consult.ts`では、既存のゲストユーザーを検索して見つかるはず
-  
-  throw new Error(
-    'ユーザーが見つかりませんでした。新しいフローでは、ユーザーは必ず`/api/auth/create-guest`で作成される必要があります。' +
-    `sessionId: ${sessionId || 'null'}`
-  );
-  
-  // 【旧コード】NOT NULL制約違反のため、この処理は使用しません
-  // const newSessionId = sessionId || await generateGuestSessionId(ipAddress, userAgent);
-  // const result = await db
-  //   .prepare('INSERT INTO users (user_type, ip_address, session_id, last_activity_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)')
-  //   .bind('guest', ipAddress || null, newSessionId)
-  //   .run();
-  //
-  // const guestUserId = result.meta?.last_row_id;
-  // if (!guestUserId || typeof guestUserId !== 'number') {
-  //   console.error('[getOrCreateGuestUser] last_row_id is invalid:', guestUserId, typeof guestUserId);
-  //   throw new Error(`Failed to create guest user: last_row_id is ${guestUserId}`);
-  // }
-  // return guestUserId;
-}
+// getOrCreateGuestUser関数は削除（session_idが削除されたため不要）
 
 /**
  * ユーザーの総メッセージ数を取得（全キャラクター合計）
- * 【無効化】user_typeカラムは使用しないため、すべてのユーザーを対象とする
  */
 async function getTotalGuestMessageCount(
   db: D1Database,
   guestUserId: number
 ): Promise<number> {
-  // 【無効化】user_typeカラムは使用しないため、user_idのみで検索
+  // user_idのみで検索
   const result = await db
     .prepare(
       `SELECT COUNT(*) as count 
@@ -247,7 +188,6 @@ async function getConversationHistory(
   userId: number,
   characterId: string
 ): Promise<ClientHistoryEntry[]> {
-  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   const historyResults = await db.prepare<ConversationRow>(
     `SELECT c.role, c.message as content, c.is_guest_message
      FROM conversations c
@@ -273,7 +213,6 @@ async function checkAndCleanupOldMessages(
   userId: number,
   characterId: string
 ): Promise<void> {
-  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   // 100件制限チェック
   const messageCountResult = await db.prepare<{ count: number }>(
     `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
@@ -310,7 +249,6 @@ async function saveUserMessage(
   characterId: string,
   userMessage: string
 ): Promise<void> {
-  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   // 100件制限チェックと古いメッセージの削除
   try {
     await checkAndCleanupOldMessages(db, userId, characterId);
@@ -380,7 +318,6 @@ async function saveAssistantMessage(
   characterId: string,
   assistantMessage: string
 ): Promise<void> {
-  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   // is_guest_messageは常に0（使用しない）
   const isGuestMessage = 0;
 
@@ -461,11 +398,11 @@ async function saveAssistantMessage(
 /**
  * 会話履歴を保存（共通関数）
  * @deprecated 2段階保存（saveUserMessage + saveAssistantMessage）を使用してください
- * 【無効化】userTypeパラメータは使用しない（user_typeカラムが無効化されたため）
+ * @deprecated 2段階保存（saveUserMessage + saveAssistantMessage）を使用してください
  */
 async function saveConversationHistory(
   db: D1Database,
-  userType: 'registered' | 'guest', // 【無効化】使用しない（user_typeカラムが無効化されたため）
+  userType: 'registered' | 'guest', // 使用しない（互換性のため残す）
   userId: number,
   characterId: string,
   userMessage: string,
@@ -805,19 +742,14 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // ===== 2. ユーザータイプの明確な判定（2択）=====
-    // 【改善】明確な2択判定: userTypeが'registered'または'guest'のどちらかになる
-    // ===== 3. ユーザーの識別（session_idのみ） =====
-    // 【新仕様】userTokenは不要。すべてのユーザーはsession_idで識別される
-    // user_typeの区別も不要（すべて'registered'として扱われる）
-    const userMetadata = body.guestMetadata || {};
-    const sessionIdStr = userMetadata.sessionId || null;
-    const guestSessionIdStr = sessionIdStr; // sessionIdとguestSessionIdは同じ（すべてのユーザーがsession_idで識別される）
+    // ===== 2. ユーザーの識別（nickname + 生年月日） =====
+    // session_idとuser_typeは削除。nicknameと生年月日でユーザーを識別
+    const { nickname, birthYear, birthMonth, birthDay } = body;
     
-    if (!sessionIdStr) {
+    if (!nickname || typeof birthYear !== 'number' || typeof birthMonth !== 'number' || typeof birthDay !== 'number') {
       return new Response(
         JSON.stringify({
-          error: 'sessionId is required. 入口フォームでユーザーを作成してください。',
+          error: 'nickname and birth date are required. 入口フォームでユーザーを作成してください。',
           message: '',
           character: characterId,
           characterName: '',
@@ -828,11 +760,11 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // session_idからuser_idを解決
+    // nickname + 生年月日からuser_idを解決
     const userRecord = await env.DB.prepare<{ id: number; nickname: string | null; guardian: string | null }>(
-      'SELECT id, nickname, guardian FROM users WHERE session_id = ?'
+      'SELECT id, nickname, guardian FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )
-      .bind(sessionIdStr)
+      .bind(nickname.trim(), birthYear, birthMonth, birthDay)
       .first();
 
     if (!userRecord) {
@@ -864,7 +796,6 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     console.log('[consult] ✅ ユーザーを取得しました:', {
       userId,
-      sessionId: sessionIdStr,
       nickname: user.nickname,
     });
 
@@ -879,7 +810,6 @@ export const onRequestPost: PagesFunction = async (context) => {
     let dbHistoryOnly: ClientHistoryEntry[] = []; // データベースから取得した履歴のみ（hasPreviousConversation判定用）
 
     // ===== ユーザーの履歴取得 =====
-    // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
     if (user) {
       try {
         const dbHistory = await getConversationHistory(env.DB, user.id, characterId);
@@ -979,7 +909,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       conversationHistoryLength: conversationHistory.length,
       dbHistoryOnlyLength: dbHistoryOnly.length,
       hasPreviousConversation,
-      guestSessionId: guestSessionIdStr,
     });
     
     // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定に必要な情報だけ
@@ -1014,7 +943,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           });
         } else {
           // ユーザーIDが取得できなかった場合のエラーログ
-          console.error('[consult] ユーザーIDが取得できませんでした。session_idを確認してください。');
+          console.error('[consult] ユーザーIDが取得できませんでした。nicknameと生年月日を確認してください。');
         }
       } catch (error) {
         console.error('[consult] ユーザーメッセージの保存エラー:', {
@@ -1089,7 +1018,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           });
         } else {
           // ユーザーIDが取得できなかった場合のエラーログ
-          console.error('[consult] ユーザーIDが取得できませんでした。session_idを確認してください。');
+          console.error('[consult] ユーザーIDが取得できませんでした。nicknameと生年月日を確認してください。');
         }
       } catch (error) {
         console.error('[consult] アシスタントメッセージの保存エラー:', {
@@ -1114,7 +1043,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
-        guestSessionId: guestSessionIdStr || undefined, // ゲストセッションIDを返す
+        // guestSessionIdは削除
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );
