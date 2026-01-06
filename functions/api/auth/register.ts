@@ -57,6 +57,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     // 既存ユーザーが見つからない場合は、新規ユーザーを作成
     // 【新仕様】passphraseは使用しないが、NOT NULL制約があるため空文字列を設定
     const passphrase = '';
+    // user_type: 'guest' - ニックネーム・生年月日・性別のみを登録したユーザー（デフォルト）
+    const userType = 'guest';
     
     const result = await env.DB.prepare(
       `INSERT INTO users (
@@ -66,10 +68,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
         birth_day,
         passphrase,
         last_activity_at,
-        gender
-      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+        gender,
+        user_type
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)`
     )
-      .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase, gender || null)
+      .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase, gender || null, userType)
       .run();
 
     const userId = result.meta?.last_row_id;

@@ -135,10 +135,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
 
   // ユーザーを作成
-  // 【新仕様】以下のカラムは無効化（使用しない）:
-  // - passphrase: 使用しないが、NOT NULL制約があるため空文字列を設定
-  // userTokenは不要
-  // 二重登録チェック: 現時点では無視（将来的にマジックリンクで対応予定）
+  // user_type: 'guest' - ニックネーム・生年月日・性別のみを登録したユーザー（デフォルト）
+  const userType = 'guest';
   const result = await env.DB.prepare(
     `INSERT INTO users (
       nickname,
@@ -147,10 +145,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       birth_day,
       passphrase,
       last_activity_at,
-      gender
-    ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+      gender,
+      user_type
+    ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)`
   )
-    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, gender || null)
+    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, gender || null, userType)
     .run();
 
   const userId = result.meta?.last_row_id;
@@ -166,6 +165,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     birthMonth,
     birthDay,
     gender: gender || '未回答',
+    userType,
   });
 
   const responseBody: CreateGuestResponseBody = {
