@@ -607,12 +607,23 @@ const ChatInit = {
                 
                 // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
                 const handler = CharacterRegistry.get(character);
+                console.log('[初期化] ハンドラー取得結果:', {
+                    character,
+                    hasHandler: !!handler,
+                    hasInitPage: handler && typeof handler.initPage === 'function',
+                    handlerType: handler ? typeof handler : 'null'
+                });
                 let handlerSkippedFirstMessage = false;
                 if (handler && typeof handler.initPage === 'function') {
+                    console.log('[初期化] ハンドラーのinitPageを呼び出します:', character);
                     const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
                         isGuestMode,
                         guestHistory,
                         guardianMessageShown
+                    });
+                    console.log('[初期化] ハンドラーのinitPage呼び出し完了:', {
+                        character,
+                        result: handlerResult
                     });
                     if (handlerResult && handlerResult.completed) {
                         console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
