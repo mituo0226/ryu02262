@@ -177,52 +177,76 @@
 
 
   <script>
-    const yearSelect = document.getElementById('birthYear');
-    const monthSelect = document.getElementById('birthMonth');
-    const daySelect = document.getElementById('birthDay');
-    const form = document.getElementById('registerForm');
-    const resultMessage = document.getElementById('resultMessage');
-    const loginLink = document.getElementById('loginLink');
+    // DOMContentLoadedイベントで実行（DOMが完全に読み込まれた後に実行）
+    document.addEventListener('DOMContentLoaded', function() {
+      const yearSelect = document.getElementById('birthYear');
+      const monthSelect = document.getElementById('birthMonth');
+      const daySelect = document.getElementById('birthDay');
+      const form = document.getElementById('registerForm');
+      const resultMessage = document.getElementById('resultMessage');
+      const loginLink = document.getElementById('loginLink');
 
-    const params = new URLSearchParams(window.location.search);
-    const redirectParam = params.get('redirect');
-    const characterParam = params.get('character'); // 鑑定士IDを取得
-
-    function populateSelect(select, start, end, suffix) {
-      select.innerHTML = '';
-      for (let value = start; value <= end; value += 1) {
-        const option = document.createElement('option');
-        option.value = String(value);
-        option.textContent = `${value}${suffix}`;
-        select.appendChild(option);
+      if (!yearSelect || !monthSelect || !daySelect) {
+        console.error('[register] 生年月日のselect要素が見つかりません');
+        return;
       }
-    }
 
-    const currentYear = new Date().getFullYear();
-    populateSelect(yearSelect, currentYear - 90, currentYear, '年');
-    yearSelect.value = String(currentYear - 30);
-    populateSelect(monthSelect, 1, 12, '月');
-    populateSelect(daySelect, 1, 31, '日');
+      const params = new URLSearchParams(window.location.search);
+      const redirectParam = params.get('redirect');
+      const characterParam = params.get('character'); // 鑑定士IDを取得
 
-    function getRedirectTarget() {
-      // characterパラメータがある場合は、そのcharacterのチャット画面へ
-      if (characterParam) {
-        return `../chat/chat.html?character=${encodeURIComponent(characterParam)}`;
+      function populateSelect(select, start, end, suffix) {
+        if (!select) {
+          console.error('[register] select要素がnullです');
+          return;
+        }
+        select.innerHTML = '';
+        for (let value = start; value <= end; value += 1) {
+          const option = document.createElement('option');
+          option.value = String(value);
+          option.textContent = `${value}${suffix}`;
+          select.appendChild(option);
+        }
       }
-      // redirectパラメータがある場合はそれを使用
-      if (redirectParam) {
-        const decoded = decodeURIComponent(redirectParam);
-        return decoded || '../main.html';
+
+      const currentYear = new Date().getFullYear();
+      populateSelect(yearSelect, currentYear - 90, currentYear, '年');
+      yearSelect.value = String(currentYear - 30);
+      populateSelect(monthSelect, 1, 12, '月');
+      populateSelect(daySelect, 1, 31, '日');
+      
+      console.log('[register] 生年月日のドロップダウンを初期化しました:', {
+        yearOptions: yearSelect.options.length,
+        monthOptions: monthSelect.options.length,
+        dayOptions: daySelect.options.length
+      });
+
+      function getRedirectTarget() {
+        // characterパラメータがある場合は、そのcharacterのチャット画面へ
+        if (characterParam) {
+          return `../chat/chat.html?character=${encodeURIComponent(characterParam)}`;
+        }
+        // redirectパラメータがある場合はそれを使用
+        if (redirectParam) {
+          const decoded = decodeURIComponent(redirectParam);
+          return decoded || '../main.html';
+        }
+        // デフォルトはメインページ
+        return '../main.html';
       }
-      // デフォルトはメインページ
-      return '../main.html';
-    }
 
-    loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
+      if (loginLink) {
+        loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
+      }
 
-    let redirectTargetCache = null;
+      let redirectTargetCache = null;
 
-    form.addEventListener('submit', async (event) => {
+      if (!form) {
+        console.error('[register] フォーム要素が見つかりません');
+        return;
+      }
+
+      form.addEventListener('submit', async (event) => {
       event.preventDefault();
       resultMessage.textContent = '';
       resultMessage.className = 'result-message';
@@ -431,7 +455,8 @@
         resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';
         resultMessage.classList.add('error');
       }
-    });
+      });
+    }); // DOMContentLoaded終了
 
     // 合言葉オーバーレイの処理は削除（登録完了後、自動的にリダイレクト）
   </script>
