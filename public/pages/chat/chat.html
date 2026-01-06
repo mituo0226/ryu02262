@@ -1034,36 +1034,40 @@
            (function() {
                'use strict';
                
-               const entryFormContainer = document.getElementById('entryFormContainer');
-               const chatContainer = document.getElementById('chatContainer');
-               const entryForm = document.getElementById('entryForm');
-               const entryFormError = document.getElementById('entryFormError');
-               const entryFormSubmit = document.getElementById('entryFormSubmit');
+               // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
+               function initEntryForm() {
+                   const entryFormContainer = document.getElementById('entryFormContainer');
+                   const chatContainer = document.getElementById('chatContainer');
+                   const entryForm = document.getElementById('entryForm');
+                   const entryFormError = document.getElementById('entryFormError');
+                   const entryFormSubmit = document.getElementById('entryFormSubmit');
+                   
+                   if (!entryFormContainer || !chatContainer || !entryForm) {
+                       console.error('[入口フォーム] DOM要素が見つかりません');
+                       return;
+                   }
+                   
+                   // 登録ユーザーの場合は入口フォームをスキップ
+                   // ユーザー情報が存在するかチェック
+                   const hasUserInfo = !!(localStorage.getItem('userNickname') && 
+                                         localStorage.getItem('birthYear') && 
+                                         localStorage.getItem('birthMonth') && 
+                                         localStorage.getItem('birthDay'));
+                   
+                   if (hasUserInfo) {
+                       console.log('[入口フォーム] ユーザー情報が存在するため、チャット画面を表示します');
+                       entryFormContainer.classList.add('entry-form-hidden');
+                       chatContainer.classList.remove('entry-form-hidden');
+                       return;
+                   }
+                   
+                   // ユーザー情報が存在しない場合は入口フォームを表示
+                   console.log('[入口フォーム] ユーザー情報が存在しないため、入口フォームを表示します');
+                   entryFormContainer.classList.remove('entry-form-hidden');
+                   chatContainer.classList.add('entry-form-hidden');
                
-               // 登録ユーザーの場合は入口フォームをスキップ
-               // ユーザー情報が存在するかチェック
-               if (localStorage.getItem('userNickname') && 
-                   localStorage.getItem('birthYear') && 
-                   localStorage.getItem('birthMonth') && 
-                   localStorage.getItem('birthDay')) {
-                   entryFormContainer.classList.add('entry-form-hidden');
-                   chatContainer.classList.remove('entry-form-hidden');
-                   return;
-               }
-               
-               // 既にユーザー情報が保存されている場合は入口フォームをスキップ
-               const hasUserInfo = localStorage.getItem('userNickname') && 
-                                  localStorage.getItem('birthYear') && 
-                                  localStorage.getItem('birthMonth') && 
-                                  localStorage.getItem('birthDay');
-               if (hasUserInfo) {
-                   entryFormContainer.classList.add('entry-form-hidden');
-                   chatContainer.classList.remove('entry-form-hidden');
-                   return;
-               }
-               
-               // 入口フォームの送信処理
-               entryForm.addEventListener('submit', async (e) => {
+                   // 入口フォームの送信処理（ユーザー情報が存在しない場合のみ設定）
+                   entryForm.addEventListener('submit', async (e) => {
                    e.preventDefault();
                    
                    const nickname = document.getElementById('entryNickname').value.trim();
