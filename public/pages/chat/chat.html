@@ -1034,7 +1034,6 @@
            (function() {
                'use strict';
                
-               // ENTRY_FORM_KEYは削除（session_idが不要になったため）
                const entryFormContainer = document.getElementById('entryFormContainer');
                const chatContainer = document.getElementById('chatContainer');
                const entryForm = document.getElementById('entryForm');
@@ -1242,7 +1241,6 @@
                        const message = {
                            type: 'CHAT_IFRAME_READY',
                            character: character,
-                           // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                            messageCount: 0,
                            timestamp: Date.now(),
                            ready: true

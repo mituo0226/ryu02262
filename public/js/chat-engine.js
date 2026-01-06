@@ -921,7 +921,6 @@ const ChatInit = {
                             window.parent.postMessage({
                                 type: 'CHAT_MESSAGE_SENT',
                                 character: character,
-                                // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                                 messageCount: messageCount,
                                 timestamp: Date.now()
                             }, '*');
