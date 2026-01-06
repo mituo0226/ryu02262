@@ -1061,12 +1061,8 @@ export const onRequestPost: PagesFunction = async (context) => {
             characterId,
           });
         } else {
-            // guestSessionIdが取得できなかった場合でも、最後の試行として再作成を試みる
-            console.warn('[consult] ゲストユーザーIDが取得できませんでした。再作成を試みます...');
-            try {
-              const retryGuestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
-              await saveUserMessage(env.DB, 'guest', retryGuestSessionId, characterId, trimmedMessage);
-              console.log('[consult] ゲストユーザーのメッセージを保存しました（再作成後）:', {
+            // ユーザーIDが取得できなかった場合のエラーログ
+            console.error('[consult] ユーザーIDが取得できませんでした。session_idを確認してください。');
                 guestSessionId: retryGuestSessionId,
                 characterId,
               });
