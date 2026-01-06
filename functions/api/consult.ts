@@ -180,18 +180,13 @@ async function getOrCreateGuestUser(
     
     if (existingUser) {
       // 既存ユーザーが見つかった場合、user_typeを確認
-      if (existingUser.user_type === 'registered') {
-        // 登録ユーザーの場合、エラーを返す
-        // 登録ユーザーはuserTokenで認証されるべきであり、ゲストユーザーとして扱うべきではない
-        throw new Error(`既存の登録ユーザーが見つかりました。userTokenを使用して認証してください。user_id: ${existingUser.id}`);
-      } else if (existingUser.user_type === 'guest') {
-        // ゲストユーザーの場合、既存のレコードを再利用
-        await db
-          .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
-          .bind(existingUser.id)
-          .run();
-        return existingUser.id;
-      }
+      // 既存ユーザーが見つかった場合、既存のレコードを再利用
+      // 【新仕様】すべてのユーザーを'registered'として扱う
+      await db
+        .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(existingUser.id)
+        .run();
+      return existingUser.id;
     }
   }
 
@@ -402,58 +397,30 @@ async function saveAssistantMessage(
   const isGuestMessage = 0;
 
   // アシスタントメッセージの10件制限チェックと古いメッセージの削除
-  let assistantMessageCountResult;
-  if (userType === 'registered') {
-    assistantMessageCountResult = await db.prepare<{ count: number }>(
-      `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND role = 'assistant'`
-    )
-      .bind(userId, characterId)
-      .first();
-  } else {
-    assistantMessageCountResult = await db.prepare<{ count: number }>(
-      `SELECT COUNT(*) as count 
-       FROM conversations c
-       INNER JOIN users u ON c.user_id = u.id
-       WHERE c.user_id = ? AND character_id = ? AND u.user_type = 'guest' AND c.role = 'assistant'`
-    )
-      .bind(userId, characterId)
-      .first();
-  }
+  // 【新仕様】すべてのユーザーを'registered'として扱う
+  const assistantMessageCountResult = await db.prepare<{ count: number }>(
+    `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND role = 'assistant'`
+  )
+    .bind(userId, characterId)
+    .first();
 
   const assistantMessageCount = assistantMessageCountResult?.count || 0;
   const MAX_ASSISTANT_MESSAGES = 10;
 
   if (assistantMessageCount >= MAX_ASSISTANT_MESSAGES) {
     const deleteCount = assistantMessageCount - MAX_ASSISTANT_MESSAGES + 1; // 1件追加するので、1件削除
-    if (userType === 'registered') {
-      await db.prepare(
-        `DELETE FROM conversations
+    await db.prepare(
+      `DELETE FROM conversations
+       WHERE user_id = ? AND character_id = ? AND role = 'assistant'
+       AND id IN (
+         SELECT id FROM conversations
          WHERE user_id = ? AND character_id = ? AND role = 'assistant'
-         AND id IN (
-           SELECT id FROM conversations
-           WHERE user_id = ? AND character_id = ? AND role = 'assistant'
-           ORDER BY COALESCE(timestamp, created_at) ASC
-           LIMIT ?
-         )`
-      )
-        .bind(userId, characterId, userId, characterId, deleteCount)
-        .run();
-    } else {
-      await db.prepare(
-        `DELETE FROM conversations
-         WHERE user_id = ? AND character_id = ? AND role = 'assistant'
-         AND user_id IN (SELECT id FROM users WHERE id = ? AND user_type = 'guest')
-         AND id IN (
-           SELECT c.id FROM conversations c
-           INNER JOIN users u ON c.user_id = u.id
-           WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest' AND c.role = 'assistant'
-           ORDER BY COALESCE(c.timestamp, c.created_at) ASC
-           LIMIT ?
-         )`
-      )
-        .bind(userId, characterId, userId, userId, characterId, deleteCount)
-        .run();
-    }
+         ORDER BY COALESCE(timestamp, created_at) ASC
+         LIMIT ?
+       )`
+    )
+      .bind(userId, characterId, userId, characterId, deleteCount)
+      .run();
   }
 
   // アシスタントメッセージを保存
@@ -517,61 +484,29 @@ async function saveConversationHistory(
   assistantMessage: string
 ): Promise<void> {
   // 100件制限チェック
-  let messageCountResult;
-  if (userType === 'registered') {
-    messageCountResult = await db.prepare<{ count: number }>(
-      `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
-    )
-      .bind(userId, characterId)
-      .first();
-  } else {
-    // 【ポジティブな指定】ゲストユーザーのメッセージ数を取得
-    // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
-    messageCountResult = await db.prepare<{ count: number }>(
-      `SELECT COUNT(*) as count 
-       FROM conversations c
-       INNER JOIN users u ON c.user_id = u.id
-       WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest'`
-    )
-      .bind(userId, characterId)
-      .first();
-  }
+  // 【新仕様】すべてのユーザーを'registered'として扱う
+  const messageCountResult = await db.prepare<{ count: number }>(
+    `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
+  )
+    .bind(userId, characterId)
+    .first();
 
   const messageCount = messageCountResult?.count || 0;
 
   if (messageCount >= 100) {
     const deleteCount = messageCount - 100 + 2;
-    if (userType === 'registered') {
-      await db.prepare(
-        `DELETE FROM conversations
+    await db.prepare(
+      `DELETE FROM conversations
+       WHERE user_id = ? AND character_id = ?
+       AND id IN (
+         SELECT id FROM conversations
          WHERE user_id = ? AND character_id = ?
-         AND id IN (
-           SELECT id FROM conversations
-           WHERE user_id = ? AND character_id = ?
-           ORDER BY COALESCE(timestamp, created_at) ASC
-           LIMIT ?
-         )`
-      )
-        .bind(userId, characterId, userId, characterId, deleteCount)
-        .run();
-    } else {
-      // 【ポジティブな指定】ゲストユーザーの古いメッセージを削除
-      // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
-      await db.prepare(
-        `DELETE FROM conversations
-         WHERE user_id = ? AND character_id = ?
-         AND user_id IN (SELECT id FROM users WHERE id = ? AND user_type = 'guest')
-         AND id IN (
-           SELECT c.id FROM conversations c
-           INNER JOIN users u ON c.user_id = u.id
-           WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'guest'
-           ORDER BY COALESCE(c.timestamp, c.created_at) ASC
-           LIMIT ?
-         )`
-      )
-        .bind(userId, characterId, userId, userId, characterId, deleteCount)
-        .run();
-    }
+         ORDER BY COALESCE(timestamp, created_at) ASC
+         LIMIT ?
+       )`
+    )
+      .bind(userId, characterId, userId, characterId, deleteCount)
+      .run();
   }
 
   // メッセージを保存
@@ -1261,7 +1196,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         characterName,
         isInappropriate: false,
         detectedKeywords: [],
-        guestMode: userType === 'guest',
+        guestMode: false, // 【新仕様】すべてのユーザーを登録ユーザーとして扱う
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
