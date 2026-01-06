@@ -1123,8 +1123,13 @@
                        
                        const data = await response.json();
                        
-                       // session_idをlocalStorageに保存
-                       localStorage.setItem(ENTRY_FORM_KEY, data.sessionId);
+                       // ユーザー情報をlocalStorageに保存
+                       if (data.nickname) {
+                           localStorage.setItem('userNickname', data.nickname);
+                       }
+                       localStorage.setItem('birthYear', String(birthYear));
+                       localStorage.setItem('birthMonth', String(birthMonth));
+                       localStorage.setItem('birthDay', String(birthDay));
                        
                        // 入口フォームを非表示にしてチャット画面を表示
                        entryFormContainer.classList.add('entry-form-hidden');

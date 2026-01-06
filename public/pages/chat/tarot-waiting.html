@@ -213,14 +213,9 @@
                     }
 
                     const isFromChatExample = returnUrl.includes('chat-example.html');
-                    // 【新仕様】userTokenは不要。session_idで識別する
-                    const guestSessionId = localStorage.getItem('guestSessionId');
-
                     const decodedMessage = decodeURIComponent(message);
                     const payload = { message: decodedMessage, character };
-
-                    if (guestSessionId && !isFromChatExample) {
-                        payload.guestMetadata = { sessionId: guestSessionId };
+                    // guestMetadataは削除（session_idが不要になったため）
                         const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                         if (pendingMigration) {
                             try {
