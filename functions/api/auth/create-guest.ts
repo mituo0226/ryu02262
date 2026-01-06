@@ -127,27 +127,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid birth day' }), { status: 400, headers });
   }
 
-  // 【二重登録チェック】現時点では無視（将来的にマジックリンクで対応予定）
-  // session_idが提供されている場合、既存ユーザーを検索（情報取得用）
-  // ただし、既存ユーザーが見つかっても新規作成を続行する（二重登録を許可）
-  if (providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()) {
-    const existingUser = await env.DB.prepare<{
-      id: number;
-      nickname: string;
-      session_id: string;
-    }>('SELECT id, nickname, session_id FROM users WHERE session_id = ?')
-      .bind(providedSessionId.trim())
-      .first();
-
-    if (existingUser) {
-      console.log('[create-guest] 既存ユーザーが見つかりましたが、新規作成を続行します（二重登録許可）:', {
-        userId: existingUser.id,
-        sessionId: existingUser.session_id,
-        nickname: existingUser.nickname,
-      });
-      // 既存ユーザーが見つかっても、新規作成を続行する（二重登録を許可）
-    }
-  }
+  // 【無効化】session_idは使用しないため、二重登録チェックも不要
+  // 将来的にマジックリンクで対応予定
 
   // ニックネームの一意化処理
   const uniqueNickname = await ensureUniqueNickname(env.DB, trimmedNickname);
