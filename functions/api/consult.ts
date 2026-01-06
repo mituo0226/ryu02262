@@ -806,6 +806,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     // user_typeの区別も不要（すべて'registered'として扱われる）
     const userMetadata = body.guestMetadata || {};
     const sessionIdStr = userMetadata.sessionId || null;
+    const guestSessionIdStr = sessionIdStr; // sessionIdとguestSessionIdは同じ（すべてのユーザーがsession_idで識別される）
     
     if (!sessionIdStr) {
       return new Response(
@@ -972,7 +973,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       conversationHistoryLength: conversationHistory.length,
       dbHistoryOnlyLength: dbHistoryOnly.length,
       hasPreviousConversation,
-      guestSessionId,
+      guestSessionId: guestSessionIdStr,
     });
     
     // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定に必要な情報だけ
