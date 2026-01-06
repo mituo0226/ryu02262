@@ -14,18 +14,6 @@ const ChatAPI = {
         // 会話履歴はconsult.tsでsession_idから取得されるため、このAPIは使用しない
         // 初回登録時は会話履歴がないため、nullを返す
         return null;
-            
-            // 守護神情報をlocalStorageに同期（データベースから取得した値を保存）
-            if (data && data.assignedDeity) {
-                localStorage.setItem('assignedDeity', data.assignedDeity);
-                console.log('[会話履歴] 守護神情報をlocalStorageに保存:', data.assignedDeity);
-            }
-            
-            return data;
-        } catch (error) {
-            console.error('Failed to load conversation history:', error);
-            return null;
-        }
     },
 
     /**
