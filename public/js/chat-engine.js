@@ -83,18 +83,19 @@ const ChatInit = {
         const justRegisteredSession = sessionStorage.getItem('justRegistered') === 'true';
         const justRegistered = justRegisteredParam || justRegisteredSession;
         
-        // さらに、userTokenがあり、ゲスト履歴がpendingGuestHistoryMigrationに存在する場合も登録完了と判定
-        const hasUserToken = !!localStorage.getItem('userToken');
+        // 【新仕様】userTokenは不要。session_idで識別する
+        // 登録完了時は、session_idが存在するかどうかで判定
+        const hasSessionId = !!localStorage.getItem('guestSessionId');
         const hasPendingMigration = !!sessionStorage.getItem('pendingGuestHistoryMigration');
-        const shouldTriggerRegistrationFlow = justRegistered || (hasUserToken && hasPendingMigration && !AuthState.isRegistered());
+        const shouldTriggerRegistrationFlow = justRegistered || (hasSessionId && hasPendingMigration);
         
-        // justRegisteredがtrueの場合、localStorageから直接userTokenをチェック
+        // justRegisteredがtrueの場合、session_idの存在をチェック
         // （AuthStateの初期化が完了する前でも、登録完了処理を実行できるようにするため）
-        const hasValidToken = justRegistered || shouldTriggerRegistrationFlow ? hasUserToken : AuthState.isRegistered();
-        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasUserToken:', hasUserToken, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'hasValidToken:', hasValidToken, 'isRegistered:', AuthState.isRegistered(), 'character:', character);
+        const hasValidSession = justRegistered || shouldTriggerRegistrationFlow ? hasSessionId : true;
+        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasSessionId:', hasSessionId, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'hasValidSession:', hasValidSession, 'character:', character);
         
         // ユーザーステータスを更新（登録完了時はすぐに表示）
-        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
+        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidSession) {
             const nickname = localStorage.getItem('userNickname') || '鑑定者';
             const deity = localStorage.getItem('assignedDeity') || '未割当';
             const birthYear = localStorage.getItem('birthYear') || null;
@@ -113,12 +114,19 @@ const ChatInit = {
         }
 
         // 登録完了時の処理を先にチェック（会話履歴を読み込む前に実行）
-        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidToken) {
+        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidSession) {
             console.log('[登録完了処理] 開始 - character:', character);
             
             try {
                 // 会話履歴を読み込む（登録完了処理で使用するため）
-                const historyData = await ChatAPI.loadConversationHistory(character);
+                // 【新仕様】userTokenは不要。登録直後は会話履歴がないため、nullを返す
+                let historyData = null;
+                try {
+                    historyData = await ChatAPI.loadConversationHistory(character);
+                } catch (error) {
+                    console.log('[登録完了処理] 会話履歴の読み込みに失敗（初回登録のため正常）:', error);
+                    historyData = null;
+                }
                 
                 // キャラクター専用ハンドラーの初期化処理を呼び出す
                 const handler = CharacterRegistry.get(character);
