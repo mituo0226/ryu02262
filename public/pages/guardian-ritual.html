@@ -831,15 +831,29 @@
         if (isFirstTimeRitual) {
           console.log('[守護神の儀式] 守護神情報をバックグラウンドでデータベースに保存開始:', guardian.id);
           
-          dbSavePromise = fetch('/api/auth/update-deity', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              guardian: guardian.id
+          // ユーザー情報をlocalStorageから取得
+          const nickname = localStorage.getItem('userNickname');
+          const birthYear = localStorage.getItem('birthYear');
+          const birthMonth = localStorage.getItem('birthMonth');
+          const birthDay = localStorage.getItem('birthDay');
+          
+          if (!nickname || !birthYear || !birthMonth || !birthDay) {
+            console.error('[守護神の儀式] ❌ ユーザー情報が不足しています:', { nickname, birthYear, birthMonth, birthDay });
+            dbSavePromise = Promise.resolve(false);
+          } else {
+            dbSavePromise = fetch('/api/auth/update-deity', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                guardian: guardian.id,
+                nickname: nickname,
+                birthYear: Number(birthYear),
+                birthMonth: Number(birthMonth),
+                birthDay: Number(birthDay)
+              })
             })
-          })
           .then(async (response) => {
             if (response.ok) {
               const data = await response.json();
@@ -855,6 +869,7 @@
             console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
             return false;
           });
+          }
         }
 
         // アニメーションを再生
