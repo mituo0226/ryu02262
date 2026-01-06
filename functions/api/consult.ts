@@ -1008,19 +1008,8 @@ export const onRequestPost: PagesFunction = async (context) => {
             characterId,
           });
         } else {
-            // ユーザーIDが取得できなかった場合のエラーログ
-            console.error('[consult] ユーザーIDが取得できませんでした。session_idを確認してください。');
-                guestSessionId: retryGuestSessionId,
-                characterId,
-              });
-            } catch (retryError) {
-              console.error('[consult] ゲストユーザーIDの再作成とメッセージ保存に失敗:', {
-                error: retryError instanceof Error ? retryError.message : String(retryError),
-                stack: retryError instanceof Error ? retryError.stack : undefined,
-              });
-              // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
-            }
-          }
+          // ユーザーIDが取得できなかった場合のエラーログ
+          console.error('[consult] ユーザーIDが取得できませんでした。session_idを確認してください。');
         }
       } catch (error) {
         console.error('[consult] ユーザーメッセージの保存エラー:', {
