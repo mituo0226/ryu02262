@@ -40,8 +40,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response(JSON.stringify({ error: 'nickname cannot be empty' }), { status: 400, headers });
     }
 
-    // 【無効化】session_idは使用しないため、session_idでの検索は不要
-    // ニックネームと生年月日で既存ユーザーを検索
+    // session_idは削除。ニックネームと生年月日で既存ユーザーを検索
     const existingUser = await env.DB.prepare<{ id: number; nickname: string }>(
       'SELECT id, nickname FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )

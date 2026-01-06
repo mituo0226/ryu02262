@@ -1,6 +1,10 @@
 interface UpdateDeityRequestBody {
   guardian: string;
-  sessionId?: string; // 【新仕様】userTokenは不要。session_idで識別する
+  nickname: string; // ユーザー識別用
+  birthYear: number; // ユーザー識別用
+  birthMonth: number; // ユーザー識別用
+  birthDay: number; // ユーザー識別用
+  // sessionIdは削除
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -13,18 +17,17 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { guardian, sessionId } = body;
+  const { guardian, nickname, birthYear, birthMonth, birthDay } = body;
 
-  // 【新仕様】userTokenは不要。session_idで識別する
-  if (!sessionId) {
-    return new Response(JSON.stringify({ error: 'sessionId is required' }), { status: 400, headers });
+  if (!nickname || typeof birthYear !== 'number' || typeof birthMonth !== 'number' || typeof birthDay !== 'number') {
+    return new Response(JSON.stringify({ error: 'nickname and birth date are required' }), { status: 400, headers });
   }
 
-  // session_idからuser_idを解決
+  // nickname + 生年月日からuser_idを解決
   const user = await env.DB.prepare<{ id: number }>(
-    'SELECT id FROM users WHERE session_id = ?'
+    'SELECT id FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
   )
-    .bind(sessionId)
+    .bind(nickname.trim(), birthYear, birthMonth, birthDay)
     .first();
 
   if (!user) {

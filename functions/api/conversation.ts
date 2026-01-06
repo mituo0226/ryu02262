@@ -1,6 +1,6 @@
 // Cloudflare Pages Functions
 // 会話履歴管理API - メッセージ保存・取得・管理
-// 【新仕様】userTokenは不要。session_idで識別する
+// session_idは削除。nickname + 生年月日で識別
 
 const MAX_MESSAGES_PER_CHARACTER = 100;
 
@@ -23,12 +23,16 @@ interface UserRecord {
 }
 
 interface RequestBody {
-  sessionId?: string; // 【新仕様】userTokenは不要。session_idで識別する
+  nickname?: string; // ユーザー識別用
+  birthYear?: number; // ユーザー識別用
+  birthMonth?: number; // ユーザー識別用
+  birthDay?: number; // ユーザー識別用
   character: string;
   role: 'user' | 'assistant';
   content: string;
   messageType?: 'normal' | 'system' | 'warning';
   isGuestMessage?: boolean;
+  // sessionIdは削除
 }
 
 interface ResponseBody {
@@ -88,13 +92,13 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // 【新仕様】userTokenは不要。session_idで識別する
+    // session_idは削除。nickname + 生年月日で識別
     let userId: number | null = null;
-    if (body.sessionId) {
+    if (body.nickname && typeof body.birthYear === 'number' && typeof body.birthMonth === 'number' && typeof body.birthDay === 'number') {
       const user = await env.DB.prepare<{ id: number }>(
-        'SELECT id FROM users WHERE session_id = ?'
+        'SELECT id FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
       )
-        .bind(body.sessionId)
+        .bind(body.nickname.trim(), body.birthYear, body.birthMonth, body.birthDay)
         .first();
       
       if (!user) {
@@ -111,7 +115,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'sessionId is required',
+          error: 'nickname and birth date are required',
         } as ResponseBody),
         { status: 400, headers: corsHeaders }
       );

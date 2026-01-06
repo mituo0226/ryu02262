@@ -7,12 +7,12 @@ interface CreateGuestRequestBody {
   birthMonth: number;
   birthDay: number;
   gender?: string; // オプショナル（回答しない含む）
-  // 【無効化】sessionIdは使用しない
+  // sessionIdは削除
 }
 
 interface CreateGuestResponseBody {
-  sessionId: string; // 【無効化】互換性のため空文字列を返す
   nickname: string;
+  // sessionIdは削除
 }
 
 /**
@@ -98,7 +98,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   }
 
   const { nickname, birthYear, birthMonth, birthDay, gender } = body;
-  // 【無効化】sessionIdは使用しない
+  // sessionIdは削除
 
   // バリデーション
   if (!nickname || typeof nickname !== 'string') {
@@ -128,8 +128,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid birth day' }), { status: 400, headers });
   }
 
-  // 【無効化】session_idは使用しないため、二重登録チェックも不要
-  // 将来的にマジックリンクで対応予定
+  // session_idは削除
 
   // ニックネームの一意化処理
   const uniqueNickname = await ensureUniqueNickname(env.DB, trimmedNickname);
@@ -138,16 +137,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   // 実際の認証には使用されない
   const passphrase = '';
 
-  // 【無効化】session_idは使用しないため、生成しない
-  // const sessionId = providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()
-  //   ? providedSessionId.trim()
-  //   : generateUUID();
+  // session_idは削除
 
   // ユーザーを作成
   // 【新仕様】以下のカラムは無効化（使用しない）:
-  // - user_type: ゲストユーザーが存在しないため不要（INSERT文に含めない）
-  // - ip_address: 使用しない（INSERT文に含めない）
-  // - session_id: 使用しない（INSERT文に含めない）
+  // user_type、ip_address、session_idは削除
   // - passphrase: 使用しないが、NOT NULL制約があるため空文字列を設定
   // userTokenは不要
   // 二重登録チェック: 現時点では無視（将来的にマジックリンクで対応予定）
@@ -180,9 +174,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     gender: gender || '未回答',
   });
 
-  // 【無効化】session_idは使用しないため、レスポンスに含めない
   const responseBody: CreateGuestResponseBody = {
-    sessionId: '', // 空文字列を返す（互換性のため）
     nickname: uniqueNickname,
   };
 
