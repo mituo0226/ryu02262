@@ -981,34 +981,9 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ritualStartフラグがtrueの場合、チャットクリア指示を返す
     const shouldClearChat = body.ritualStart === true || isRitualStart;
 
-    // ===== 10. ゲストモード時の最後のメッセージを抽出 =====
+    // ===== 10. 最後のメッセージを抽出 =====
+    // 【新仕様】すべてのユーザーを'registered'として扱うため、この処理は不要
     let lastGuestMessage: string | null = null;
-    
-    if (user && characterId === 'yukino') {
-      // 雪乃の場合のみ、ゲストモード時の最後のユーザーメッセージをデータベースから取得
-      // 【ポジティブな指定】登録ユーザーが以前ゲストユーザーだった場合の履歴を取得
-      // usersテーブルに存在し、user_type = 'guest'のユーザーの履歴のみを対象とする
-      // conversationHistoryには登録ユーザーの履歴のみが含まれるため、ゲスト履歴は別途取得する
-      // 注意: このクエリは、登録ユーザーが以前ゲストユーザーだった場合の履歴を取得するため、
-      // 現在のuser.idではなく、is_guest_message = 1のメッセージを検索する
-      const guestMessageResult = await env.DB.prepare<ConversationRow>(
-        `SELECT c.message as content
-         FROM conversations c
-         INNER JOIN users u ON c.user_id = u.id
-         WHERE c.user_id = ? AND c.character_id = ? AND c.role = 'user' AND u.user_type = 'guest'
-         ORDER BY COALESCE(c.timestamp, c.created_at) DESC
-         LIMIT 1`
-      )
-        .bind(user.id, characterId)
-        .first();
-      
-      if (guestMessageResult) {
-        lastGuestMessage = guestMessageResult.content || guestMessageResult.message || null;
-        console.log('[consult] ゲストモード時の最後のメッセージを抽出:', {
-          lastGuestMessage: lastGuestMessage?.substring(0, 50) + '...',
-        });
-      }
-    }
 
     // ===== 11. システムプロンプトの生成 =====
     // 【改善】システムプロンプトをシンプルに：各鑑定士の性格設定だけを守らせる
