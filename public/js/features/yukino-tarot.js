@@ -402,7 +402,6 @@
             
             const payload = { message, character };
             
-            // guestMetadataは削除（session_idが不要になったため）
             
             // API呼び出し
             const response = await fetch('/api/consult', {
@@ -570,7 +569,6 @@ ${cardNames}
             
             const payload = { message, character };
             
-            // guestMetadataは削除（session_idが不要になったため）
             
             const response = await fetch('/api/consult', {
                 method: 'POST',
@@ -760,7 +758,6 @@ ${cardNames}
                         character: 'yukino'
                     };
                     
-                    // guestMetadataは削除（session_idが不要になったため）
                     
                     const response = await fetch('/api/consult', {
                         method: 'POST',
@@ -1142,7 +1139,6 @@ ${cardNames}
                 clientHistory: conversationHistory  // 会話履歴を送信
             };
             
-            // guestMetadataは削除（session_idが不要になったため）
             
             const response = await fetch('/api/consult', {
                 method: 'POST',

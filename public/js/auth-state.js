@@ -27,7 +27,10 @@
   }
 
   function isRegistered() {
-    return Boolean(localStorage.getItem('guestSessionId'));
+    return !!(localStorage.getItem('userNickname') && 
+              localStorage.getItem('birthYear') && 
+              localStorage.getItem('birthMonth') && 
+              localStorage.getItem('birthDay'));
   }
 
   function getUserToken() {

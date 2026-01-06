@@ -139,8 +139,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ===== ゲストセッション管理 =====
 
-// 【削除】generateGuestSessionId関数は削除（session_idが不要になったため）
-// 【削除】getOrCreateGuestUser関数は削除（session_idが不要になったため）
 
 /**
  * ユーザーの総メッセージ数を取得（全キャラクター合計）

@@ -215,7 +215,6 @@
                     const isFromChatExample = returnUrl.includes('chat-example.html');
                     const decodedMessage = decodeURIComponent(message);
                     const payload = { message: decodedMessage, character };
-                    // guestMetadataは削除（session_idが不要になったため）
                         const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                         if (pendingMigration) {
                             try {

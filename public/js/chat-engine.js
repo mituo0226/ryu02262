@@ -1336,14 +1336,12 @@ const ChatInit = {
                             
                             console.log('[応答受信] 親ウィンドウに通知:', {
                                 character,
-                                // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                                 messageCount
                             });
                             
                             window.parent.postMessage({
                                 type: 'CHAT_MESSAGE_SENT',
                                 character: character,
-                                // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                                 messageCount: messageCount,
                                 timestamp: Date.now()
                             }, '*');
@@ -1901,7 +1899,6 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
                     character: character,
-                    // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                     messageCount: 0,
                     timestamp: Date.now(),
                     ready: true
@@ -1970,12 +1967,10 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                     type: 'CHAT_DATA_RESPONSE',
                     data: {
                         character: character,
-                        // 【無効化】userType:（user_typeカラムが無効化されたため削除） 'guest',
                         messageCount: 0,
                         conversationHistory: [],
                         currentState: {
                             character: character,
-                            // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                             messageCount: 0,
                             conversationHistoryLength: 0,
                             isRegistered: false
@@ -2106,13 +2101,11 @@ window.addEventListener('DOMContentLoaded', async () => {
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
                     character: character,
-                    // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                     messageCount: messageCount,
                     timestamp: Date.now()
                 }, '*');
                 console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました', {
                     character,
-                    // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                     messageCount,
                     origin: window.location.origin
                 });
@@ -2161,7 +2154,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
                     character: character,
-                    // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                     messageCount: messageCount,
                     timestamp: Date.now(),
                     ready: true
@@ -2169,7 +2161,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                 
                 console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました（最小限の情報）', {
                     character,
-                    // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                     messageCount,
                     hasChatData,
                     hasAuthState
@@ -2454,7 +2445,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                     // 現在の状態を取得
                     const currentState = {
                         character: character,
-                        // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                         messageCount: messageCount,
                         conversationHistoryLength: conversationHistory.length,
                         isRegistered: isRegistered
@@ -2464,7 +2454,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                         type: 'CHAT_DATA_RESPONSE',
                         data: {
                             character: character,
-                            // 【無効化】userType:（user_typeカラムが無効化されたため削除） isRegistered ? 'registered' : 'guest',
                             messageCount: messageCount,
                             conversationHistory: conversationHistory,
                             currentState: currentState,
