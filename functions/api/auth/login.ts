@@ -38,7 +38,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   const trimmedNickname = nickname.trim();
 
-  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
+  // user_typeは削除
   const user = await env.DB.prepare<{
     id: number;
     nickname: string;
@@ -61,7 +61,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     });
   }
 
-  // 【新仕様】userTokenは不要。session_idで識別する
+  // session_idは削除
   const responseBody: LoginResponseBody = {
     nickname: user.nickname,
     guardian: user.guardian,

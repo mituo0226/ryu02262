@@ -3,7 +3,7 @@ interface RegisterRequestBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  sessionId?: string; // session_idで二重登録をチェック
+  // sessionIdは削除
 }
 
 interface RegisterResponseBody {

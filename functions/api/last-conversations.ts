@@ -38,14 +38,17 @@ export const onRequestGet: PagesFunction = async (context) => {
 
   try {
     const url = new URL(request.url);
-    // 【新仕様】userTokenは不要。session_idで識別する
-    const sessionId = url.searchParams.get('sessionId');
+    // session_idは削除。nickname + 生年月日で識別
+    const nickname = url.searchParams.get('nickname');
+    const birthYear = url.searchParams.get('birthYear');
+    const birthMonth = url.searchParams.get('birthMonth');
+    const birthDay = url.searchParams.get('birthDay');
 
-    if (!sessionId) {
+    if (!nickname || !birthYear || !birthMonth || !birthDay) {
       return new Response(
         JSON.stringify({
           lastConversations: {},
-          error: 'sessionId is required',
+          error: 'nickname and birth date are required',
         } as ResponseBody),
         {
           status: 400,
@@ -54,11 +57,11 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // session_idからuser_idを解決
+    // nickname + 生年月日からuser_idを解決
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, guardian FROM users WHERE session_id = ?'
+      'SELECT id, nickname, guardian FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )
-      .bind(sessionId)
+      .bind(nickname.trim(), Number(birthYear), Number(birthMonth), Number(birthDay))
       .first();
 
     if (!user) {

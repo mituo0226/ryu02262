@@ -75,7 +75,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       .bind(newPassphrase, user.id)
       .run();
 
-    // 【新仕様】userTokenは不要。session_idで識別する
+    // session_idは削除
     const responseBody: ResetResponseBody = {
       nickname: trimmedNickname,
       passphrase: newPassphrase,
