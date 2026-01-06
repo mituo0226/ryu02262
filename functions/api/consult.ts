@@ -1053,17 +1053,14 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 会話開始時に即座にユーザーメッセージを保存（LLM応答前）
     if (!shouldClearChat && !isJustRegistered) {
       try {
-        if (userType === 'registered' && user) {
+        // 【新仕様】すべてのユーザーを'registered'として扱う
+        if (user) {
           await saveUserMessage(env.DB, 'registered', user.id, characterId, trimmedMessage);
-          console.log('[consult] 登録ユーザーのメッセージを保存しました');
-        } else if (userType === 'guest') {
-          if (guestSessionId) {
-            await saveUserMessage(env.DB, 'guest', guestSessionId, characterId, trimmedMessage);
-            console.log('[consult] ゲストユーザーのメッセージを保存しました:', {
-              guestSessionId,
-              characterId,
-            });
-          } else {
+          console.log('[consult] ユーザーのメッセージを保存しました:', {
+            userId: user.id,
+            characterId,
+          });
+        } else {
             // guestSessionIdが取得できなかった場合でも、最後の試行として再作成を試みる
             console.warn('[consult] ゲストユーザーIDが取得できませんでした。再作成を試みます...');
             try {
