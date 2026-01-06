@@ -236,9 +236,9 @@ export const onRequestGet: PagesFunction = async (context) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Invalid user token',
+          error: 'User not found',
         }),
-        { status: 401, headers: corsHeaders }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -255,7 +255,7 @@ export const onRequestGet: PagesFunction = async (context) => {
        ORDER BY timestamp ASC
        LIMIT ?`
     )
-      .bind(tokenPayload.userId, character, limit)
+      .bind(user.id, character, limit)
       .all();
 
     return new Response(
