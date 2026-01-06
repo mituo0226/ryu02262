@@ -544,7 +544,7 @@
         <p class="guardian-message" id="guardianMessage"></p>
       </div>
       <!-- 直接アクセスの場合は「カエデとのチャットに戻る」ボタンを表示 -->
-      <a href="../chat/chat.html?character=kaede" class="continue-button" id="continueButton" style="margin-top: 30px; display: none;">カエデとのチャットに戻る</a>
+      <a href="chat/chat.html?character=kaede" class="continue-button" id="continueButton" style="margin-top: 30px; display: none;">カエデとのチャットに戻る</a>
     </div>
   </div>
 
@@ -930,7 +930,7 @@
             const separator = postRitualChatUrl.includes('?') ? '&' : '?';
             const fallbackUrl = postRitualChatUrl.startsWith('/') 
               ? postRitualChatUrl 
-              : '../chat/chat.html?character=kaede';
+              : 'chat/chat.html?character=kaede';
             window.location.href = fallbackUrl + separator + 'justRegistered=true';
           }
           
