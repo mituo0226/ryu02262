@@ -458,9 +458,14 @@ async function saveAssistantMessage(
  * 会話履歴を保存（共通関数）
  * @deprecated 2段階保存（saveUserMessage + saveAssistantMessage）を使用してください
  */
+/**
+ * 会話履歴を保存（共通関数）
+ * @deprecated 2段階保存（saveUserMessage + saveAssistantMessage）を使用してください
+ * 【無効化】userTypeパラメータは使用しない（user_typeカラムが無効化されたため）
+ */
 async function saveConversationHistory(
   db: D1Database,
-  userType: 'registered' | 'guest',
+  userType: 'registered' | 'guest', // 【無効化】使用しない（user_typeカラムが無効化されたため）
   userId: number,
   characterId: string,
   userMessage: string,
