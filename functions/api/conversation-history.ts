@@ -100,20 +100,12 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // ===== 登録ユーザーの会話履歴取得 =====
-    // 【ポジティブな指定】登録ユーザーは以下の条件を満たす：
-    // 1. usersテーブルに存在するID（user_id）を持つ
-    // 2. user_type = 'registered'である
-    // 3. ニックネーム（nickname）を所持している
-    // 4. userTokenで認証されている
-    // 
-    // 【重要】統一ユーザーテーブル設計により、すべてのユーザーはusersテーブルで管理される
-    // 登録ユーザーの履歴は、usersテーブルに存在し、user_type = 'registered'かつnicknameを持つuser_idのみを対象とする
+    // ===== ユーザーの会話履歴取得 =====
+    // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
     const historyResults = await env.DB.prepare<ConversationRow>(
       `SELECT c.role, c.message as content, COALESCE(c.timestamp, c.created_at) as created_at
        FROM conversations c
-       INNER JOIN users u ON c.user_id = u.id
-       WHERE c.user_id = ? AND c.character_id = ? AND u.user_type = 'registered' AND u.nickname IS NOT NULL
+       WHERE c.user_id = ? AND c.character_id = ?
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
        LIMIT 20`
     )

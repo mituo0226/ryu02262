@@ -18,7 +18,7 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
   }
 
   if (request.method === 'GET') {
-    // 登録ユーザーのみを取得（user_type = 'registered'）
+    // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
     const query = `
       SELECT 
         u.id,
@@ -32,7 +32,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
         COUNT(c.id) as message_count
       FROM users u
       LEFT JOIN conversations c ON c.user_id = u.id
-      WHERE u.user_type = 'registered'
       GROUP BY u.id, u.nickname, u.birth_year, u.birth_month, u.birth_day, u.passphrase, u.guardian, u.created_at
       ORDER BY u.created_at DESC
     `;

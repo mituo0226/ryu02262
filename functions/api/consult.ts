@@ -156,14 +156,14 @@ async function generateGuestSessionId(ipAddress: string | null, userAgent: strin
  * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
  */
 /**
- * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
+ * ユーザーを取得または作成（session_idで識別）
  * 
- * 【重要】この関数は、session_idで既存ユーザーを検索する際に、user_typeに関係なく検索します。
- * 既存ユーザーが登録ユーザー（user_type = 'registered'）の場合、エラーを返します。
- * これは、登録ユーザーはuserTokenで認証されるべきであり、ゲストユーザーとして扱うべきではないためです。
+ * 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
+ * session_idで既存ユーザーを検索し、見つからなければエラーを返す
+ * （新規ユーザーはcreate-guest.tsで作成されるべき）
  * 
- * @returns ゲストユーザーのuser_id（usersテーブルの主キー）
- * @throws Error 既存ユーザーが登録ユーザーの場合、または新規作成に失敗した場合
+ * @returns ユーザーのuser_id（usersテーブルの主キー）
+ * @throws Error ユーザーが見つからない場合
  */
 async function getOrCreateGuestUser(
   db: D1Database,
@@ -171,17 +171,15 @@ async function getOrCreateGuestUser(
   ipAddress: string | null,
   userAgent: string | null
 ): Promise<number> {
-  // 【重要】まず、session_idで既存ユーザーを検索（user_typeに関係なく）
+  // 【新仕様】session_idで既存ユーザーを検索
   if (sessionId) {
     const existingUser = await db
-      .prepare('SELECT id, user_type FROM users WHERE session_id = ?')
+      .prepare('SELECT id FROM users WHERE session_id = ?')
       .bind(sessionId)
-      .first<{ id: number; user_type: string }>();
+      .first<{ id: number }>();
     
     if (existingUser) {
-      // 既存ユーザーが見つかった場合、user_typeを確認
       // 既存ユーザーが見つかった場合、既存のレコードを再利用
-      // 【新仕様】すべてのユーザーを'registered'として扱う
       await db
         .prepare('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = ?')
         .bind(existingUser.id)
@@ -247,16 +245,13 @@ async function getTotalGuestMessageCount(
  */
 async function getConversationHistory(
   db: D1Database,
-  userType: 'registered' | 'guest',
   userId: number,
   characterId: string
 ): Promise<ClientHistoryEntry[]> {
-  // 【新仕様】すべてのユーザーを'registered'として扱う
-  // user_typeの区別は不要（すべて'registered'として扱われる）
+  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   const historyResults = await db.prepare<ConversationRow>(
     `SELECT c.role, c.message as content, c.is_guest_message
      FROM conversations c
-     INNER JOIN users u ON c.user_id = u.id
      WHERE c.user_id = ? AND c.character_id = ?
      ORDER BY COALESCE(c.timestamp, c.created_at) DESC
      LIMIT 20`
@@ -267,7 +262,7 @@ async function getConversationHistory(
   return historyResults.results?.slice().reverse().map((row) => ({
     role: row.role,
     content: row.content || row.message || '',
-    isGuestMessage: false, // すべてのユーザーを登録ユーザーとして扱う
+    isGuestMessage: false,
   })) ?? [];
 }
 
@@ -276,11 +271,10 @@ async function getConversationHistory(
  */
 async function checkAndCleanupOldMessages(
   db: D1Database,
-  userType: 'registered' | 'guest',
   userId: number,
   characterId: string
 ): Promise<void> {
-  // 【新仕様】すべてのユーザーを'registered'として扱う
+  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   // 100件制限チェック
   const messageCountResult = await db.prepare<{ count: number }>(
     `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
@@ -313,18 +307,17 @@ async function checkAndCleanupOldMessages(
  */
 async function saveUserMessage(
   db: D1Database,
-  userType: 'registered' | 'guest',
   userId: number,
   characterId: string,
   userMessage: string
 ): Promise<void> {
+  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   // 100件制限チェックと古いメッセージの削除
   try {
-    await checkAndCleanupOldMessages(db, userType, userId, characterId);
+    await checkAndCleanupOldMessages(db, userId, characterId);
   } catch (error) {
     console.error('[saveUserMessage] checkAndCleanupOldMessagesエラー:', {
       error: error instanceof Error ? error.message : String(error),
-      userType,
       userId,
       characterId,
     });
@@ -344,7 +337,6 @@ async function saveUserMessage(
       .bind(userId, characterId, userMessage, isGuestMessage)
       .run();
     console.log('[saveUserMessage] メッセージを保存しました:', {
-      userType,
       userId,
       characterId,
       messageId: result.meta?.last_row_id,
@@ -352,7 +344,6 @@ async function saveUserMessage(
   } catch (error) {
     console.error('[saveUserMessage] timestampカラムでの保存に失敗、created_atで再試行:', {
       error: error instanceof Error ? error.message : String(error),
-      userType,
       userId,
       characterId,
     });
@@ -364,7 +355,6 @@ async function saveUserMessage(
         .bind(userId, characterId, userMessage, isGuestMessage)
         .run();
       console.log('[saveUserMessage] created_atカラムでメッセージを保存しました:', {
-        userType,
         userId,
         characterId,
         messageId: result.meta?.last_row_id,
@@ -373,7 +363,6 @@ async function saveUserMessage(
       console.error('[saveUserMessage] メッセージ保存に完全に失敗:', {
         error: retryError instanceof Error ? retryError.message : String(retryError),
         stack: retryError instanceof Error ? retryError.stack : undefined,
-        userType,
         userId,
         characterId,
       });
@@ -388,16 +377,15 @@ async function saveUserMessage(
  */
 async function saveAssistantMessage(
   db: D1Database,
-  userType: 'registered' | 'guest',
   userId: number,
   characterId: string,
   assistantMessage: string
 ): Promise<void> {
-  // 【新仕様】is_guest_messageは常に0（使用しない）
+  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
+  // is_guest_messageは常に0（使用しない）
   const isGuestMessage = 0;
 
   // アシスタントメッセージの10件制限チェックと古いメッセージの削除
-  // 【新仕様】すべてのユーザーを'registered'として扱う
   const assistantMessageCountResult = await db.prepare<{ count: number }>(
     `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND role = 'assistant'`
   )
@@ -433,7 +421,6 @@ async function saveAssistantMessage(
       .bind(userId, characterId, assistantMessage, isGuestMessage)
       .run();
     console.log('[saveAssistantMessage] メッセージを保存しました:', {
-      userType,
       userId,
       characterId,
       messageId: result.meta?.last_row_id,
@@ -441,7 +428,6 @@ async function saveAssistantMessage(
   } catch (error) {
     console.error('[saveAssistantMessage] timestampカラムでの保存に失敗、created_atで再試行:', {
       error: error instanceof Error ? error.message : String(error),
-      userType,
       userId,
       characterId,
     });
@@ -453,7 +439,6 @@ async function saveAssistantMessage(
         .bind(userId, characterId, assistantMessage, isGuestMessage)
         .run();
       console.log('[saveAssistantMessage] created_atカラムでメッセージを保存しました:', {
-        userType,
         userId,
         characterId,
         messageId: result.meta?.last_row_id,
@@ -462,7 +447,6 @@ async function saveAssistantMessage(
       console.error('[saveAssistantMessage] メッセージ保存に完全に失敗:', {
         error: retryError instanceof Error ? retryError.message : String(retryError),
         stack: retryError instanceof Error ? retryError.stack : undefined,
-        userType,
         userId,
         characterId,
       });
@@ -873,9 +857,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       .bind(userId)
       .run();
 
-    // すべてのユーザーを'registered'として扱う
-    const userType: 'registered' | 'guest' = 'registered';
-
     console.log('[consult] ✅ ユーザーを取得しました:', {
       userId,
       sessionId: sessionIdStr,
@@ -892,21 +873,12 @@ export const onRequestPost: PagesFunction = async (context) => {
     let conversationHistory: ClientHistoryEntry[] = [];
     let dbHistoryOnly: ClientHistoryEntry[] = []; // データベースから取得した履歴のみ（hasPreviousConversation判定用）
 
-    if (userType === 'registered' && user) {
-      // ===== 登録ユーザーの履歴取得 =====
+    // ===== ユーザーの履歴取得 =====
+    // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
+    if (user) {
       try {
-        const dbHistory = await getConversationHistory(env.DB, 'registered', user.id, characterId);
+        const dbHistory = await getConversationHistory(env.DB, user.id, characterId);
         dbHistoryOnly = dbHistory; // データベース履歴を保存
-
-        // ===== ゲストユーザーから登録ユーザーへの移行処理 =====
-        // 【ゲストユーザーが登録ユーザーになる条件】
-        // 1. ゲストユーザーが10通のメッセージ制限に達した
-        // 2. ユーザー登録フォームでニックネームと生年月日を入力した
-        // 3. usersテーブルの既存レコード（user_type = 'guest'）を更新（user_type = 'registered'に変更）
-        // 
-        // 【重要】統一ユーザーテーブル設計により、移行は同一レコードの更新のみ：
-        // - 移行前: usersテーブルのレコード（user_type = 'guest'、nickname = NULL）
-        // - 移行後: usersテーブルの同じレコード（user_type = 'registered'、nickname = 入力値）
         // 移行後は、is_guest_message = 1として保存し、登録ユーザーの履歴として扱う
         if (body.migrateHistory && sanitizedHistory.length > 0) {
           console.log('[consult] ゲスト履歴を登録ユーザーに移行します:', sanitizedHistory.length, '件');
@@ -998,7 +970,6 @@ export const onRequestPost: PagesFunction = async (context) => {
     const hasPreviousConversation = dbHistoryOnly.length > 0;
     
     console.log('[consult] 会話履歴判定:', {
-      userType,
       characterId,
       conversationHistoryLength: conversationHistory.length,
       dbHistoryOnlyLength: dbHistoryOnly.length,
@@ -1031,7 +1002,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         // 【新仕様】すべてのユーザーを'registered'として扱う
         if (user) {
-          await saveUserMessage(env.DB, 'registered', user.id, characterId, trimmedMessage);
+          await saveUserMessage(env.DB, user.id, characterId, trimmedMessage);
           console.log('[consult] ユーザーのメッセージを保存しました:', {
             userId: user.id,
             characterId,
@@ -1055,8 +1026,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         console.error('[consult] ユーザーメッセージの保存エラー:', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
-          userType,
-          userId: user?.id || guestSessionId,
+          userId: user?.id,
           characterId,
         });
         // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
@@ -1118,7 +1088,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         // 【新仕様】すべてのユーザーを'registered'として扱う
         if (user) {
-          await saveAssistantMessage(env.DB, 'registered', user.id, characterId, responseMessage);
+          await saveAssistantMessage(env.DB, user.id, characterId, responseMessage);
           console.log('[consult] アシスタントメッセージを保存しました:', {
             userId: user.id,
             characterId,
@@ -1131,8 +1101,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         console.error('[consult] アシスタントメッセージの保存エラー:', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
-          userType,
-          userId: user?.id || guestSessionId,
+          userId: user?.id,
           characterId,
         });
         // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）

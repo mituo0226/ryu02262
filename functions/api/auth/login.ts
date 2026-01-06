@@ -41,6 +41,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   const trimmedNickname = nickname.trim();
 
+  // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
   const user = await env.DB.prepare<{
     id: number;
     nickname: string;
@@ -51,8 +52,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
      WHERE nickname = ?
        AND birth_year = ?
        AND birth_month = ?
-       AND birth_day = ?
-       AND user_type = 'registered'`
+       AND birth_day = ?`
   )
     .bind(trimmedNickname, birthYear, birthMonth, birthDay)
     .first();

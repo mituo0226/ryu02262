@@ -49,8 +49,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     }
 
     // 既存ユーザーを検索（session_idで）
-    const existingUser = await env.DB.prepare<{ id: number; user_type: string }>(
-      'SELECT id, user_type FROM users WHERE session_id = ?'
+    const existingUser = await env.DB.prepare<{ id: number }>(
+      'SELECT id FROM users WHERE session_id = ?'
     )
       .bind(sessionId)
       .first();

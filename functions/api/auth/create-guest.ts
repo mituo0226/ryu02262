@@ -174,11 +174,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   const ipAddress = request.headers.get('CF-Connecting-IP') || null;
 
   // ユーザーを作成
-  // 【重要】user_type='registered'として作成（すべてのユーザーが登録済みとして扱われる）
+  // 【新仕様】user_typeカラムは不要（すべてのユーザーが同じ扱い）
   // session_idで識別し、userTokenは不要
+  // 注意: データベースにuser_typeカラムが存在する場合は、デフォルト値として'registered'が設定される
   const result = await env.DB.prepare(
     `INSERT INTO users (
-      user_type,
       nickname,
       birth_year,
       birth_month,
@@ -188,9 +188,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       ip_address,
       last_activity_at,
       gender
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
   )
-    .bind('registered', uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, ipAddress, gender || null)
+    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, ipAddress, gender || null)
     .run();
 
   const userId = result.meta?.last_row_id;
