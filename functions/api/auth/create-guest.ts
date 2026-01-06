@@ -1,4 +1,5 @@
-import { getRandomDeity } from '../../_lib/deities.js';
+// 【新仕様】passphraseは使用しないため、getRandomDeityのインポートは不要
+// import { getRandomDeity } from '../../_lib/deities.js';
 
 interface CreateGuestRequestBody {
   nickname: string;
@@ -162,8 +163,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   // ニックネームの一意化処理
   const uniqueNickname = await ensureUniqueNickname(env.DB, trimmedNickname);
 
-  // passphraseを自動生成（users.passphrase NOT NULL制約のため）
-  const passphrase = getRandomDeity();
+  // 【新仕様】passphraseは使用しないが、NOT NULL制約があるため空文字列を設定
+  // 実際の認証には使用されない
+  const passphrase = '';
 
   // session_id（UUID）を生成
   const sessionId = providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()
@@ -175,8 +177,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   // ユーザーを作成
   // 【新仕様】user_typeカラムは不要（すべてのユーザーが同じ扱い）
+  // user_typeカラムはINSERT文に含めない（データベースのデフォルト値に任せる）
   // session_idで識別し、userTokenは不要
-  // 注意: データベースにuser_typeカラムが存在する場合は、デフォルト値として'registered'が設定される
   const result = await env.DB.prepare(
     `INSERT INTO users (
       nickname,
