@@ -325,8 +325,8 @@
           return;
         }
 
-        localStorage.setItem('userToken', data.userToken);
-        localStorage.setItem('userNickname', data.nickname);
+        // userTokenは不要（session_idで識別）
+        localStorage.setItem('userNickname', data.nickname || payload.nickname);
         localStorage.setItem('hasAccount', 'true');
         localStorage.setItem('birthYear', String(payload.birthYear));
         localStorage.setItem('birthMonth', String(payload.birthMonth));

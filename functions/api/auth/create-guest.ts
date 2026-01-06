@@ -173,9 +173,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   // IPアドレスを取得（オプショナル）
   const ipAddress = request.headers.get('CF-Connecting-IP') || null;
 
-  // ゲストユーザーを作成
-  // 【重要】user_type='guest'として作成し、nickname/birthdate/passphrase/genderも保存する
-  // これにより、後で登録ユーザーに移行する際にUPDATEのみで済む
+  // ユーザーを作成
+  // 【重要】user_type='registered'として作成（すべてのユーザーが登録済みとして扱われる）
+  // session_idで識別し、userTokenは不要
   const result = await env.DB.prepare(
     `INSERT INTO users (
       user_type,
@@ -190,7 +190,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       gender
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
   )
-    .bind('guest', uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, ipAddress, gender || null)
+    .bind('registered', uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, ipAddress, gender || null)
     .run();
 
   const userId = result.meta?.last_row_id;
