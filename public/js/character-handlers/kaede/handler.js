@@ -107,6 +107,15 @@ const KaedeHandler = {
     async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, options = {}) {
         const { isGuestMode = false, guestHistory = [], guardianMessageShown = false } = options;
         
+        console.log('[楓専用処理] initPage呼び出し:', {
+            hasHistoryData: !!historyData,
+            justRegistered,
+            shouldTriggerRegistrationFlow,
+            isGuestMode,
+            guestHistoryLength: guestHistory.length,
+            guardianMessageShown
+        });
+        
         // 守護神の儀式完了チェック
         const guardianConfirmationData = this.checkGuardianRitualCompletion(this.characterId, urlParams);
         if (guardianConfirmationData && historyData) {
@@ -136,18 +145,36 @@ const KaedeHandler = {
         }
 
         // 守護神が未登録かどうかを確認（ゲストユーザー・登録済みユーザー共通）
+        console.log('[楓専用処理] 守護神の確認を開始:', {
+            hasHistoryData: !!historyData,
+            historyDataAssignedDeity: historyData?.assignedDeity,
+            isGuestMode,
+            guestHistoryLength: guestHistory.length,
+            guardianMessageShown
+        });
+        
         let hasAssignedDeity = false;
         
         // 1. historyDataから守護神を確認
         if (historyData && historyData.assignedDeity) {
             hasAssignedDeity = historyData.assignedDeity.trim() !== '';
+            console.log('[楓専用処理] historyDataから守護神を確認:', {
+                assignedDeity: historyData.assignedDeity,
+                hasAssignedDeity
+            });
         }
         
         // 2. historyDataが取得できなかった場合、会話履歴を再取得して確認
         if (!hasAssignedDeity && !historyData && !isGuestMode) {
             try {
+                console.log('[楓専用処理] 会話履歴を再取得して守護神を確認します');
                 const recheckHistoryData = await ChatAPI.loadConversationHistory(this.characterId);
                 hasAssignedDeity = recheckHistoryData && recheckHistoryData.assignedDeity && recheckHistoryData.assignedDeity.trim() !== '';
+                console.log('[楓専用処理] 再取得結果:', {
+                    hasRecheckData: !!recheckHistoryData,
+                    assignedDeity: recheckHistoryData?.assignedDeity,
+                    hasAssignedDeity
+                });
             } catch (error) {
                 console.error('[楓専用処理] 会話履歴の再取得に失敗:', error);
                 // エラー時は処理を続行
@@ -158,7 +185,18 @@ const KaedeHandler = {
         if (!hasAssignedDeity) {
             const localStorageDeity = localStorage.getItem('assignedDeity');
             hasAssignedDeity = !!(localStorageDeity && localStorageDeity.trim() !== '');
+            console.log('[楓専用処理] localStorageから守護神を確認:', {
+                localStorageDeity,
+                hasAssignedDeity
+            });
         }
+        
+        console.log('[楓専用処理] 守護神確認結果:', {
+            hasAssignedDeity,
+            guestHistoryLength: guestHistory.length,
+            guardianMessageShown,
+            shouldStartRitual: !hasAssignedDeity && guestHistory.length === 0 && !guardianMessageShown
+        });
         
         // 守護神が未登録の場合、挨拶メッセージを表示し、自動的に儀式を開始
         if (!hasAssignedDeity && guestHistory.length === 0 && !guardianMessageShown) {
