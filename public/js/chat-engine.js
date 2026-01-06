@@ -69,7 +69,6 @@ const ChatInit = {
         ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
         
         // ユーザー情報を設定
-        // 【新仕様】userTokenは不要。session_idで識別する
         if (AuthState.isRegistered()) {
             ChatData.userNickname = localStorage.getItem('userNickname') || null;
         } else {
@@ -84,16 +83,18 @@ const ChatInit = {
         const justRegisteredSession = sessionStorage.getItem('justRegistered') === 'true';
         const justRegistered = justRegisteredParam || justRegisteredSession;
         
-        // 【新仕様】userTokenは不要。session_idで識別する
-        // 登録完了時は、session_idが存在するかどうかで判定
-        const hasSessionId = !!localStorage.getItem('guestSessionId');
+        // 登録完了時は、ユーザー情報が存在するかどうかで判定
+        const hasUserInfo = !!(localStorage.getItem('userNickname') && 
+                              localStorage.getItem('birthYear') && 
+                              localStorage.getItem('birthMonth') && 
+                              localStorage.getItem('birthDay'));
         const hasPendingMigration = !!sessionStorage.getItem('pendingGuestHistoryMigration');
-        const shouldTriggerRegistrationFlow = justRegistered || (hasSessionId && hasPendingMigration);
+        const shouldTriggerRegistrationFlow = justRegistered || (hasUserInfo && hasPendingMigration);
         
-        // justRegisteredがtrueの場合、session_idの存在をチェック
+        // justRegisteredがtrueの場合、ユーザー情報の存在をチェック
         // （AuthStateの初期化が完了する前でも、登録完了処理を実行できるようにするため）
-        const hasValidSession = justRegistered || shouldTriggerRegistrationFlow ? hasSessionId : true;
-        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasSessionId:', hasSessionId, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'hasValidSession:', hasValidSession, 'character:', character);
+        const hasValidSession = justRegistered || shouldTriggerRegistrationFlow ? hasUserInfo : true;
+        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasUserInfo:', hasUserInfo, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'hasValidSession:', hasValidSession, 'character:', character);
         
         // ユーザーステータスを更新（登録完了時はすぐに表示）
         if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidSession) {
@@ -248,7 +249,6 @@ const ChatInit = {
                     console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
                     
                     // バックグラウンドでゲスト履歴をデータベースに保存
-                    // 【新仕様】userTokenは不要。session_idで識別する
                     try {
                         await ChatAPI.sendMessage(
                             '（登録完了）', // ダミーメッセージ（APIは保存しない）
@@ -1116,26 +1116,7 @@ const ChatInit = {
             }
             
             // APIリクエストのオプション
-            // 【新仕様】すべてのユーザーはsession_idで識別される（登録済みユーザーも含む）
-            // guestMetadata.messageCount は「これまでのメッセージ数（今回送信するメッセージを含まない）」
-            // guestMetadata.sessionId はセッションID（入口フォームで作成されたものを使用）
-            // localStorageからセッションIDを取得（入口フォームで保存されたもの）
-            const sessionId = localStorage.getItem('guestSessionId');
-            
-            const options = {
-                guestMetadata: sessionId ? { 
-                    messageCount: isGuest ? messageCountForAPI : undefined,
-                    sessionId: sessionId
-                } : undefined
-            };
-            
-            // sessionIdが存在しない場合はエラー
-            if (!sessionId) {
-                console.error('[メッセージ送信] sessionIdが見つかりません。入口フォームでユーザーを作成してください。');
-                ChatUI.addMessage('error', 'セッションIDが見つかりません。ページを再読み込みしてください。', 'システム');
-                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
-                return;
-            }
+            const options = {};
             
             // APIリクエストを送信
             const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
@@ -2358,7 +2339,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                 
             case 'ADMIN_SIMULATE_REGISTRATION':
                 // テスト用ユーザー登録をシミュレート
-                // 【新仕様】userTokenは不要。session_idで識別する
                 if (window.AuthState) {
                     window.AuthState.setAuth(null, nickname, assignedDeity);
                     if (nickname) localStorage.setItem('userNickname', nickname);
