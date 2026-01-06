@@ -17,6 +17,13 @@ const ChatInit = {
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
         // ここでは実行しない（重複を避ける）
         
+        // 待機画面を非表示にする（初期化開始時）
+        const waitingOverlay = document.getElementById('waitingOverlay');
+        if (waitingOverlay) {
+            waitingOverlay.classList.add('hidden');
+            console.log('[初期化] 待機画面を非表示にしました（初期化開始時）');
+        }
+        
         // キャラクター固有の初期化処理はハンドラーに委譲
         // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
         
@@ -736,6 +743,12 @@ const ChatInit = {
 
         // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない
         // （重複登録を防ぐため。loadイベントでcloneNodeを使って確実に1回だけ登録される）
+        
+        // 待機画面を非表示にする（通常の初期化フロー）
+        if (waitingOverlay) {
+            waitingOverlay.classList.add('hidden');
+            console.log('[初期化] 待機画面を非表示にしました');
+        }
         
         ChatUI.updateSendButtonVisibility();
     },

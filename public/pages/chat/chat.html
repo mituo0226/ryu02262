@@ -1054,6 +1054,13 @@
                                          localStorage.getItem('birthMonth') && 
                                          localStorage.getItem('birthDay'));
                    
+                   // 待機画面を非表示にする
+                   const waitingOverlay = document.getElementById('waitingOverlay');
+                   if (waitingOverlay) {
+                       waitingOverlay.classList.add('hidden');
+                       console.log('[入口フォーム] 待機画面を非表示にしました');
+                   }
+                   
                    if (hasUserInfo) {
                        console.log('[入口フォーム] ユーザー情報が存在するため、チャット画面を表示します');
                        entryFormContainer.classList.add('entry-form-hidden');
