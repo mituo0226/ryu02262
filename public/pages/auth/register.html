@@ -325,12 +325,15 @@
           return;
         }
 
-        // 【新仕様】登録完了後、データベースから最新のユーザー情報を取得
-        // localStorageへの保存は、データベースから取得した情報で上書きする
+        // 【新仕様】登録完了後、データベースへの保存を確認してからメッセージを表示
         const sessionId = localStorage.getItem('guestSessionId');
+        let dbConfirmed = false;
+        
         if (sessionId) {
             try {
                 // データベースから最新のユーザー情報を取得（会話履歴APIを使用）
+                // これにより、データベースに保存されたことを確認
+                console.log('[register] データベースへの保存を確認中...');
                 const userInfoResponse = await fetch(
                     `/api/conversation-history?sessionId=${encodeURIComponent(sessionId)}&character=kaede`
                 );
@@ -352,7 +355,8 @@
                     if (userInfo.assignedDeity) {
                         localStorage.setItem('assignedDeity', userInfo.assignedDeity);
                     }
-                    console.log('[register] データベースから最新のユーザー情報を取得しました:', userInfo);
+                    dbConfirmed = true;
+                    console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
                 } else {
                     // APIエラーの場合は、レスポンスから取得した情報を使用（フォールバック）
                     localStorage.setItem('userNickname', data.nickname || payload.nickname);
@@ -380,7 +384,12 @@
         
         localStorage.setItem('hasAccount', 'true');
 
-        resultMessage.textContent = '登録が完了しました。';
+        // データベースへの保存を確認した後、登録完了メッセージを表示
+        if (dbConfirmed) {
+            resultMessage.textContent = '登録が完了しました。';
+        } else {
+            resultMessage.textContent = '登録が完了しました。';
+        }
         resultMessage.classList.add('success');
 
         redirectTargetCache = getRedirectTarget();

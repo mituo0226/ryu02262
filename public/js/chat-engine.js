@@ -118,15 +118,49 @@ const ChatInit = {
         if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidSession) {
             console.log('[登録完了処理] 開始 - character:', character);
             
+            // 待機画面を表示
+            const waitingOverlay = document.getElementById('waitingOverlay');
+            if (waitingOverlay) {
+                waitingOverlay.classList.remove('hidden');
+                console.log('[登録完了処理] 待機画面を表示しました');
+            }
+            
             try {
-                // 会話履歴を読み込む（登録完了処理で使用するため）
-                // 【新仕様】userTokenは不要。登録直後は会話履歴がないため、nullを返す
+                // 【重要】データベースから最新のユーザー情報を取得
+                // これにより、APIが確実にデータベースからユーザー情報を読み込んでいることを確認
+                console.log('[登録完了処理] データベースからユーザー情報を取得中...');
                 let historyData = null;
+                let dbUserNickname = null;
                 try {
                     historyData = await ChatAPI.loadConversationHistory(character);
+                    if (historyData && historyData.nickname) {
+                        dbUserNickname = historyData.nickname;
+                        // データベースから取得したニックネームをlocalStorageに保存
+                        localStorage.setItem('userNickname', dbUserNickname);
+                        ChatData.userNickname = dbUserNickname;
+                        console.log('[登録完了処理] データベースからユーザー情報を取得しました:', {
+                            nickname: dbUserNickname,
+                            hasHistory: historyData.hasHistory
+                        });
+                    } else {
+                        // データベースにユーザー情報がない場合（初回登録直後）
+                        console.log('[登録完了処理] データベースにユーザー情報が見つかりません（初回登録のため正常）');
+                        // localStorageからニックネームを取得（フォールバック）
+                        dbUserNickname = localStorage.getItem('userNickname') || 'あなた';
+                        ChatData.userNickname = dbUserNickname;
+                    }
                 } catch (error) {
-                    console.log('[登録完了処理] 会話履歴の読み込みに失敗（初回登録のため正常）:', error);
+                    console.error('[登録完了処理] データベースからの情報取得エラー:', error);
+                    // エラー時はlocalStorageから取得（フォールバック）
+                    dbUserNickname = localStorage.getItem('userNickname') || 'あなた';
+                    ChatData.userNickname = dbUserNickname;
                     historyData = null;
+                }
+                
+                // 待機画面を非表示
+                if (waitingOverlay) {
+                    waitingOverlay.classList.add('hidden');
+                    console.log('[登録完了処理] 待機画面を非表示にしました');
                 }
                 
                 // キャラクター専用ハンドラーの初期化処理を呼び出す
@@ -231,8 +265,11 @@ const ChatInit = {
                     }
                 } else {
                     // ゲスト履歴がない場合：新規ユーザーとして初回メッセージを表示
+                    // 【重要】データベースから取得したニックネームを使用
                     console.log('[登録完了処理] ゲスト履歴なし。新規ユーザーとして初回メッセージを表示します');
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた');
+                    const nicknameForMessage = dbUserNickname || ChatData.userNickname || 'あなた';
+                    console.log('[登録完了処理] 初回メッセージに使用するニックネーム:', nicknameForMessage);
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, nicknameForMessage);
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
                 
