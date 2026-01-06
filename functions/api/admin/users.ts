@@ -18,7 +18,7 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
   }
 
   if (request.method === 'GET') {
-    // 【新仕様】user_typeの区別は不要（すべてのユーザーが同じ扱い）
+    // user_typeは削除
     const query = `
       SELECT 
         u.id,

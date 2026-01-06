@@ -10,18 +10,20 @@ const ChatAPI = {
      * @returns {Promise<Object|null>} 会話履歴データ
      */
     async loadConversationHistory(characterId) {
-        // 【新仕様】userTokenは不要。session_idで識別する
         // データベースから最新のユーザー情報と会話履歴を取得
-        const sessionId = localStorage.getItem('guestSessionId');
+        const nickname = localStorage.getItem('userNickname');
+        const birthYear = localStorage.getItem('birthYear');
+        const birthMonth = localStorage.getItem('birthMonth');
+        const birthDay = localStorage.getItem('birthDay');
         
-        if (!sessionId) {
-            console.log('[loadConversationHistory] sessionIdが見つかりません');
+        if (!nickname || !birthYear || !birthMonth || !birthDay) {
+            console.log('[loadConversationHistory] ユーザー情報が見つかりません');
             return null;
         }
         
         try {
             const response = await fetch(
-                `/api/conversation-history?sessionId=${encodeURIComponent(sessionId)}&character=${encodeURIComponent(characterId)}`
+                `/api/conversation-history?nickname=${encodeURIComponent(nickname)}&birthYear=${encodeURIComponent(birthYear)}&birthMonth=${encodeURIComponent(birthMonth)}&birthDay=${encodeURIComponent(birthDay)}&character=${encodeURIComponent(characterId)}`
             );
             
             const responseText = await response.text();
@@ -87,12 +89,10 @@ const ChatAPI = {
      * @param {Array} conversationHistory - 会話履歴
      * @param {Object} options - オプション
      * @param {string} options.forceProvider - プロバイダーを強制指定（オプション: 'deepseek' | 'openai'）
-     * @param {Object} options.guestMetadata - ゲストメタデータ（session_idなど）
+     * @param {Object} options - オプション
      * @returns {Promise<Object>} APIレスポンス
      */
     async sendMessage(message, characterId, conversationHistory = [], options = {}) {
-        // 【新仕様】userTokenは不要。session_idで識別する
-        
         // 会話履歴の形式を変換（{role, content}形式に統一）
         const clientHistory = conversationHistory.map(entry => {
             if (typeof entry === 'string') {
@@ -104,10 +104,20 @@ const ChatAPI = {
             };
         });
         
+        // ユーザー情報を取得
+        const nickname = localStorage.getItem('userNickname');
+        const birthYear = localStorage.getItem('birthYear');
+        const birthMonth = localStorage.getItem('birthMonth');
+        const birthDay = localStorage.getItem('birthDay');
+        
         const payload = {
             message: message,
             character: characterId,
-            clientHistory: clientHistory
+            clientHistory: clientHistory,
+            nickname: nickname || undefined,
+            birthYear: birthYear ? Number(birthYear) : undefined,
+            birthMonth: birthMonth ? Number(birthMonth) : undefined,
+            birthDay: birthDay ? Number(birthDay) : undefined
         };
         
         // オプション設定
@@ -115,14 +125,10 @@ const ChatAPI = {
             payload.forceProvider = options.forceProvider;
         }
         
-        if (options.guestMetadata) {
-            payload.guestMetadata = options.guestMetadata;
-        }
-        
         if (options.migrateHistory) {
             payload.migrateHistory = true;
         }
-        
+
         // 儀式開始フラグ（守護神の儀式の開催を通知）
         if (options.ritualStart) {
             payload.ritualStart = true;

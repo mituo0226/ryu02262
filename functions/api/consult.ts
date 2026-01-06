@@ -20,7 +20,6 @@ interface ClientHistoryEntry {
 
 interface GuestMetadata {
   messageCount?: number;
-  // sessionIdは削除
 }
 
 interface RequestBody {
@@ -141,25 +140,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ===== ゲストセッション管理 =====
 
-/**
- * ゲストセッションIDを生成（IPアドレスとUser-Agentから）
- * 【無効化】ip_addressカラムが無効化されたため、この関数は使用されていない
- * @deprecated この関数は使用されていません。create-guest.tsでUUIDを生成します。
- */
-async function generateGuestSessionId(ipAddress: string | null, userAgent: string | null): Promise<string> {
-  const data = `${ipAddress || 'unknown'}_${userAgent || 'unknown'}_${Date.now()}`;
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.substring(0, 32);
-}
-
-/**
- * ゲストユーザーを取得または作成（統一ユーザーテーブル設計）
- */
-// getOrCreateGuestUser関数は削除（session_idが削除されたため不要）
+// 【削除】generateGuestSessionId関数は削除（session_idが不要になったため）
+// 【削除】getOrCreateGuestUser関数は削除（session_idが不要になったため）
 
 /**
  * ユーザーの総メッセージ数を取得（全キャラクター合計）
@@ -402,7 +384,6 @@ async function saveAssistantMessage(
  */
 async function saveConversationHistory(
   db: D1Database,
-  userType: 'registered' | 'guest', // 使用しない（互換性のため残す）
   userId: number,
   characterId: string,
   userMessage: string,
@@ -743,7 +724,6 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 2. ユーザーの識別（nickname + 生年月日） =====
-    // session_idとuser_typeは削除。nicknameと生年月日でユーザーを識別
     const { nickname, birthYear, birthMonth, birthDay } = body;
     
     if (!nickname || typeof birthYear !== 'number' || typeof birthMonth !== 'number' || typeof birthDay !== 'number') {
@@ -1043,7 +1023,6 @@ export const onRequestPost: PagesFunction = async (context) => {
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
-        // guestSessionIdは削除
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

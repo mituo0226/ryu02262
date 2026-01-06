@@ -26,7 +26,6 @@
     }
   }
 
-  // 【新仕様】userTokenは不要。session_idで識別する
   function isRegistered() {
     // session_idが存在すれば登録済みとみなす
     return Boolean(localStorage.getItem('guestSessionId'));
@@ -38,7 +37,7 @@
   }
 
   function setAuth(token, nickname, deity) {
-    // 【新仕様】userTokenは不要。session_idで識別するため、tokenは無視
+    // tokenは無視（使用しない）
     if (nickname) {
       localStorage.setItem('userNickname', nickname);
     }
@@ -50,7 +49,7 @@
   }
 
   function clearAuth() {
-    // 【新仕様】userTokenは不要。session_idは保持（再訪問時に使用）
+    // ユーザー情報をクリア
     localStorage.removeItem('userNickname');
     localStorage.removeItem('assignedDeity');
     localStorage.removeItem('hasAccount');
