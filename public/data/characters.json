@@ -5,7 +5,9 @@
     "roomHint": "静寂に包まれた霊視交信ルーム",
     "image": "../../photo/kaede.png",
     "profileUrl": "../profiles/kaede.html",
-    "messages": {}
+    "messages": {
+      "firstTimeGuest": "{nickname}さん、訪問していただいてありがとうございます。まずは、{nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。"
+    }
   },
   "yukino": {
     "name": "笹岡雪乃",
