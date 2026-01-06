@@ -1231,7 +1231,7 @@
                        const message = {
                            type: 'CHAT_IFRAME_READY',
                            character: character,
-                           userType: 'guest',
+                           // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                            messageCount: 0,
                            timestamp: Date.now(),
                            ready: true

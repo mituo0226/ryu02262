@@ -921,7 +921,7 @@ const ChatInit = {
                             window.parent.postMessage({
                                 type: 'CHAT_MESSAGE_SENT',
                                 character: character,
-                                userType: 'guest',
+                                // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                                 messageCount: messageCount,
                                 timestamp: Date.now()
                             }, '*');
@@ -1921,7 +1921,7 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
                     character: character,
-                    userType: 'guest', // 初期状態ではゲストとして扱う
+                    // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                     messageCount: 0,
                     timestamp: Date.now(),
                     ready: true
@@ -1995,7 +1995,7 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                         conversationHistory: [],
                         currentState: {
                             character: character,
-                            userType: 'guest',
+                            // 【無効化】userTypeは使用しない（user_typeカラムが無効化されたため）
                             messageCount: 0,
                             conversationHistoryLength: 0,
                             isRegistered: false

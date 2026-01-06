@@ -139,6 +139,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * ゲストセッションIDを生成（IPアドレスとUser-Agentから）
+ * 【無効化】ip_addressカラムが無効化されたため、この関数は使用されていない
+ * @deprecated この関数は使用されていません。create-guest.tsでUUIDを生成します。
  */
 async function generateGuestSessionId(ipAddress: string | null, userAgent: string | null): Promise<string> {
   const data = `${ipAddress || 'unknown'}_${userAgent || 'unknown'}_${Date.now()}`;
@@ -166,8 +168,8 @@ async function generateGuestSessionId(ipAddress: string | null, userAgent: strin
 async function getOrCreateGuestUser(
   db: D1Database,
   sessionId: string | null,
-  ipAddress: string | null,
-  userAgent: string | null
+  ipAddress: string | null, // 【無効化】使用しない（ip_addressカラムが無効化されたため）
+  userAgent: string | null // 【無効化】使用しない
 ): Promise<number> {
   // 【新仕様】session_idで既存ユーザーを検索
   if (sessionId) {
@@ -198,8 +200,8 @@ async function getOrCreateGuestUser(
   // 4. `consult.ts`では、既存のゲストユーザーを検索して見つかるはず
   
   throw new Error(
-    'ゲストユーザーが見つかりませんでした。新しいフローでは、ゲストユーザーは必ず`/api/auth/create-guest`で作成される必要があります。' +
-    `sessionId: ${sessionId || 'null'}, ipAddress: ${ipAddress || 'null'}`
+    'ユーザーが見つかりませんでした。新しいフローでは、ユーザーは必ず`/api/auth/create-guest`で作成される必要があります。' +
+    `sessionId: ${sessionId || 'null'}`
   );
   
   // 【旧コード】NOT NULL制約違反のため、この処理は使用しません
@@ -218,20 +220,19 @@ async function getOrCreateGuestUser(
 }
 
 /**
- * ゲストユーザーの総メッセージ数を取得（全キャラクター合計）
+ * ユーザーの総メッセージ数を取得（全キャラクター合計）
+ * 【無効化】user_typeカラムは使用しないため、すべてのユーザーを対象とする
  */
 async function getTotalGuestMessageCount(
   db: D1Database,
   guestUserId: number
 ): Promise<number> {
-  // 【ポジティブな指定】ゲストユーザーのメッセージ数を取得
-  // usersテーブルに存在し、user_type = 'guest'のユーザーのみを対象とする
+  // 【無効化】user_typeカラムは使用しないため、user_idのみで検索
   const result = await db
     .prepare(
       `SELECT COUNT(*) as count 
        FROM conversations c
-       INNER JOIN users u ON c.user_id = u.id
-       WHERE c.user_id = ? AND u.user_type = 'guest' AND c.role = 'user'`
+       WHERE c.user_id = ? AND c.role = 'user'`
     )
     .bind(guestUserId)
     .first<{ count: number }>();

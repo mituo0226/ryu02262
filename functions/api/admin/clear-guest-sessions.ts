@@ -8,18 +8,18 @@ const corsHeaders = {
 };
 
 interface ClearRequest {
-  ipAddress?: string;
   sessionId?: string;
   clearAll?: boolean;
+  // 【無効化】ipAddressは使用しない（ip_addressカラムが無効化されたため）
 }
 
 interface GuestUser {
   id: number;
   session_id: string | null;
-  ip_address: string | null;
   created_at: string;
   last_activity_at: string;
   message_count?: number;
+  // 【無効化】ip_addressは使用しない
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -33,60 +33,32 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   try {
     const body: ClearRequest = await request.json();
-    const { ipAddress, sessionId, clearAll } = body;
+    const { sessionId, clearAll } = body;
 
     let deletedSessions = 0;
     let deletedMessages = 0;
 
     if (clearAll) {
-      // すべてのゲストユーザーと会話履歴を削除
+      // すべてのユーザーと会話履歴を削除
+      // 【無効化】user_typeカラムは使用しないため、すべてのユーザーを対象とする
       // まず会話履歴を削除（外部キー制約がないため、明示的に先に削除）
       const deleteMessagesResult = await env.DB.prepare(
-        `DELETE FROM conversations 
-         WHERE user_id IN (SELECT id FROM users WHERE user_type = 'guest')`
+        `DELETE FROM conversations`
       ).run();
       deletedMessages = deleteMessagesResult.meta.changes || 0;
-      console.log(`[clear-guest-sessions] 全ゲストメッセージ削除: ${deletedMessages}件`);
+      console.log(`[clear-guest-sessions] 全会話履歴削除: ${deletedMessages}件`);
 
-      // 次にゲストユーザーを削除
+      // 次にユーザーを削除
       const deleteUsersResult = await env.DB.prepare(
-        `DELETE FROM users WHERE user_type = 'guest'`
+        `DELETE FROM users`
       ).run();
       deletedSessions = deleteUsersResult.meta.changes || 0;
-      console.log(`[clear-guest-sessions] 全ゲストユーザー削除: ${deletedSessions}件`);
-    } else if (ipAddress) {
-      // 特定のIPアドレスのゲストユーザーを削除
-      const users = await env.DB.prepare<{ id: number }>(
-        `SELECT id FROM users WHERE ip_address = ? AND user_type = 'guest'`
-      )
-        .bind(ipAddress)
-        .all();
-
-      if (users.results && users.results.length > 0) {
-        const userIds = users.results.map((u) => u.id);
-
-        // 会話履歴を削除
-        for (const uid of userIds) {
-          const deleteResult = await env.DB.prepare(
-            'DELETE FROM conversations WHERE user_id = ? AND is_guest_message = 1'
-          )
-            .bind(uid)
-            .run();
-          deletedMessages += deleteResult.meta.changes || 0;
-        }
-
-        // ゲストユーザーを削除
-        const deleteUsersResult = await env.DB.prepare(
-          `DELETE FROM users WHERE ip_address = ? AND user_type = 'guest'`
-        )
-          .bind(ipAddress)
-          .run();
-        deletedSessions = deleteUsersResult.meta.changes || 0;
-      }
+      console.log(`[clear-guest-sessions] 全ユーザー削除: ${deletedSessions}件`);
     } else if (sessionId) {
-      // 特定のセッションIDのゲストユーザーを削除
+      // 特定のセッションIDのユーザーを削除
+      // 【無効化】user_typeカラムは使用しないため、session_idのみで検索
       const user = await env.DB.prepare<{ id: number }>(
-        `SELECT id FROM users WHERE session_id = ? AND user_type = 'guest'`
+        `SELECT id FROM users WHERE session_id = ?`
       )
         .bind(sessionId)
         .first();
@@ -94,15 +66,15 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       if (user) {
         // 会話履歴を削除
         const deleteMessagesResult = await env.DB.prepare(
-          'DELETE FROM conversations WHERE user_id = ? AND is_guest_message = 1'
+          'DELETE FROM conversations WHERE user_id = ?'
         )
           .bind(user.id)
           .run();
         deletedMessages = deleteMessagesResult.meta.changes || 0;
 
-        // ゲストユーザーを削除
+        // ユーザーを削除
         const deleteUsersResult = await env.DB.prepare(
-          `DELETE FROM users WHERE session_id = ? AND user_type = 'guest'`
+          `DELETE FROM users WHERE session_id = ?`
         )
           .bind(sessionId)
           .run();
@@ -110,7 +82,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       }
     } else {
       return new Response(
-        JSON.stringify({ success: false, error: 'ipAddress, sessionId, or clearAll is required' }),
+        JSON.stringify({ success: false, error: 'sessionId or clearAll is required' }),
         { status: 400, headers: corsHeaders }
       );
     }
@@ -146,7 +118,6 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
 
   try {
     const url = new URL(request.url);
-    const ipAddress = url.searchParams.get('ipAddress');
     const sessionId = url.searchParams.get('sessionId');
     const characterId = url.searchParams.get('characterId');
 
@@ -156,45 +127,16 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         `SELECT 
           u.id,
           u.session_id,
-          u.ip_address,
           u.created_at,
           u.last_activity_at,
           COUNT(c.id) as message_count
         FROM users u
-        LEFT JOIN conversations c ON c.user_id = u.id AND c.is_guest_message = 1
-        WHERE u.session_id = ? AND u.user_type = 'guest'
-        GROUP BY u.id, u.session_id, u.ip_address, u.created_at, u.last_activity_at
+        LEFT JOIN conversations c ON c.user_id = u.id
+        WHERE u.session_id = ?
+        GROUP BY u.id, u.session_id, u.created_at, u.last_activity_at
         ORDER BY u.created_at DESC`
       )
         .bind(sessionId)
-        .all();
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          sessions: users.results || [],
-        }),
-        { status: 200, headers: corsHeaders }
-      );
-    }
-
-    // IPアドレスで検索
-    if (ipAddress) {
-      const users = await env.DB.prepare<GuestUser & { message_count: number }>(
-        `SELECT 
-          u.id,
-          u.session_id,
-          u.ip_address,
-          u.created_at,
-          u.last_activity_at,
-          COUNT(c.id) as message_count
-        FROM users u
-        LEFT JOIN conversations c ON c.user_id = u.id AND c.is_guest_message = 1
-        WHERE u.ip_address = ? AND u.user_type = 'guest'
-        GROUP BY u.id, u.session_id, u.ip_address, u.created_at, u.last_activity_at
-        ORDER BY u.created_at DESC`
-      )
-        .bind(ipAddress)
         .all();
 
       return new Response(
@@ -223,14 +165,12 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
         `SELECT DISTINCT
           u.id,
           u.session_id,
-          u.ip_address,
           u.created_at,
           u.last_activity_at,
           COUNT(DISTINCT c.id) as message_count
         FROM users u
-        INNER JOIN conversations c ON c.user_id = u.id AND c.is_guest_message = 1 AND c.character_id = ?
-        WHERE u.user_type = 'guest'
-        GROUP BY u.id, u.session_id, u.ip_address, u.created_at, u.last_activity_at
+        INNER JOIN conversations c ON c.user_id = u.id AND c.character_id = ?
+        GROUP BY u.id, u.session_id, u.created_at, u.last_activity_at
         ORDER BY u.created_at DESC
         LIMIT 100`
       )
@@ -246,19 +186,18 @@ export const onRequestGet: PagesFunction = async ({ request, env }) => {
       );
     }
 
-    // すべてのゲストユーザー情報を取得（最新20件）
+    // すべてのユーザー情報を取得（最新20件）
+    // 【無効化】user_typeカラムは使用しないため、すべてのユーザーを対象とする
     const users = await env.DB.prepare<GuestUser & { message_count: number }>(
       `SELECT 
         u.id,
         u.session_id,
-        u.ip_address,
         u.created_at,
         u.last_activity_at,
         COUNT(c.id) as message_count
       FROM users u
-      LEFT JOIN conversations c ON c.user_id = u.id AND c.is_guest_message = 1
-      WHERE u.user_type = 'guest'
-      GROUP BY u.id, u.session_id, u.ip_address, u.created_at, u.last_activity_at
+      LEFT JOIN conversations c ON c.user_id = u.id
+      GROUP BY u.id, u.session_id, u.created_at, u.last_activity_at
       ORDER BY u.created_at DESC
       LIMIT 20`
     ).all();
