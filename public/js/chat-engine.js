@@ -1079,19 +1079,26 @@ const ChatInit = {
             }
             
             // APIリクエストのオプション
+            // 【新仕様】すべてのユーザーはsession_idで識別される（登録済みユーザーも含む）
             // guestMetadata.messageCount は「これまでのメッセージ数（今回送信するメッセージを含まない）」
-            // guestMetadata.sessionId はゲストセッションID（入口フォームで作成されたものを使用）
-            let guestSessionId = null;
-            if (isGuest) {
-                // localStorageから既存のセッションIDを取得（入口フォームで保存されたもの）
-                guestSessionId = localStorage.getItem('guestSessionId');
-            }
+            // guestMetadata.sessionId はセッションID（入口フォームで作成されたものを使用）
+            // localStorageからセッションIDを取得（入口フォームで保存されたもの）
+            const sessionId = localStorage.getItem('guestSessionId');
+            
             const options = {
-                guestMetadata: isGuest ? { 
-                    messageCount: messageCountForAPI,
-                    sessionId: guestSessionId || undefined
+                guestMetadata: sessionId ? { 
+                    messageCount: isGuest ? messageCountForAPI : undefined,
+                    sessionId: sessionId
                 } : undefined
             };
+            
+            // sessionIdが存在しない場合はエラー
+            if (!sessionId) {
+                console.error('[メッセージ送信] sessionIdが見つかりません。入口フォームでユーザーを作成してください。');
+                ChatUI.addMessage('error', 'セッションIDが見つかりません。ページを再読み込みしてください。', 'システム');
+                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+                return;
+            }
             
             // APIリクエストを送信
             const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
