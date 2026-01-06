@@ -3,7 +3,6 @@ interface RegisterRequestBody {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
-  // sessionIdは削除
 }
 
 interface RegisterResponseBody {
@@ -40,7 +39,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response(JSON.stringify({ error: 'nickname cannot be empty' }), { status: 400, headers });
     }
 
-    // session_idは削除。ニックネームと生年月日で既存ユーザーを検索
     const existingUser = await env.DB.prepare<{ id: number; nickname: string }>(
       'SELECT id, nickname FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )

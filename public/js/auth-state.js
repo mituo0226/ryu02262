@@ -27,7 +27,6 @@
   }
 
   function isRegistered() {
-    // session_idが存在すれば登録済みとみなす
     return Boolean(localStorage.getItem('guestSessionId'));
   }
 

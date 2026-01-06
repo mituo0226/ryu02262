@@ -75,7 +75,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       .bind(newPassphrase, user.id)
       .run();
 
-    // session_idは削除
     const responseBody: ResetResponseBody = {
       nickname: trimmedNickname,
       passphrase: newPassphrase,

@@ -8,9 +8,8 @@ const corsHeaders = {
 };
 
 interface ClearRequest {
-  userId?: number; // sessionIdの代わりにuserIdを使用
+  userId?: number;
   clearAll?: boolean;
-  // sessionId、ipAddressは削除
 }
 
 interface GuestUser {
@@ -18,7 +17,6 @@ interface GuestUser {
   created_at: string;
   last_activity_at: string;
   message_count?: number;
-  // session_id、ip_addressは削除
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {

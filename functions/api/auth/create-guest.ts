@@ -7,12 +7,10 @@ interface CreateGuestRequestBody {
   birthMonth: number;
   birthDay: number;
   gender?: string; // オプショナル（回答しない含む）
-  // sessionIdは削除
 }
 
 interface CreateGuestResponseBody {
   nickname: string;
-  // sessionIdは削除
 }
 
 /**
@@ -98,7 +96,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   }
 
   const { nickname, birthYear, birthMonth, birthDay, gender } = body;
-  // sessionIdは削除
 
   // バリデーション
   if (!nickname || typeof nickname !== 'string') {
@@ -128,7 +125,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid birth day' }), { status: 400, headers });
   }
 
-  // session_idは削除
 
   // ニックネームの一意化処理
   const uniqueNickname = await ensureUniqueNickname(env.DB, trimmedNickname);
@@ -137,11 +133,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   // 実際の認証には使用されない
   const passphrase = '';
 
-  // session_idは削除
 
   // ユーザーを作成
   // 【新仕様】以下のカラムは無効化（使用しない）:
-  // user_type、ip_address、session_idは削除
   // - passphrase: 使用しないが、NOT NULL制約があるため空文字列を設定
   // userTokenは不要
   // 二重登録チェック: 現時点では無視（将来的にマジックリンクで対応予定）

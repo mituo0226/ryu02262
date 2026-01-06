@@ -31,7 +31,6 @@ interface RequestBody {
   content: string;
   messageType?: 'normal' | 'system' | 'warning';
   isGuestMessage?: boolean;
-  // sessionIdは削除
 }
 
 interface ResponseBody {
@@ -91,7 +90,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // session_idは削除。nickname + 生年月日で識別
     let userId: number | null = null;
     if (body.nickname && typeof body.birthYear === 'number' && typeof body.birthMonth === 'number' && typeof body.birthDay === 'number') {
       const user = await env.DB.prepare<{ id: number }>(
@@ -213,7 +211,6 @@ export const onRequestGet: PagesFunction = async (context) => {
 
   try {
     const url = new URL(request.url);
-    // session_idは削除。nickname + 生年月日で識別
     const nickname = url.searchParams.get('nickname');
     const birthYear = url.searchParams.get('birthYear');
     const birthMonth = url.searchParams.get('birthMonth');

@@ -4,7 +4,6 @@ interface UpdateDeityRequestBody {
   birthYear: number; // ユーザー識別用
   birthMonth: number; // ユーザー識別用
   birthDay: number; // ユーザー識別用
-  // sessionIdは削除
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {

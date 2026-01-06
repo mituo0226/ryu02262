@@ -38,7 +38,6 @@ export const onRequestGet: PagesFunction = async (context) => {
 
   try {
     const url = new URL(request.url);
-    // session_idは削除。nickname + 生年月日で識別
     const nickname = url.searchParams.get('nickname');
     const birthYear = url.searchParams.get('birthYear');
     const birthMonth = url.searchParams.get('birthMonth');

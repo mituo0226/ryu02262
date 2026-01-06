@@ -38,7 +38,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
   const trimmedNickname = nickname.trim();
 
-  // user_typeは削除
   const user = await env.DB.prepare<{
     id: number;
     nickname: string;
@@ -61,7 +60,6 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     });
   }
 
-  // session_idは削除
   const responseBody: LoginResponseBody = {
     nickname: user.nickname,
     guardian: user.guardian,

@@ -18,7 +18,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
   }
 
   if (request.method === 'GET') {
-    // user_typeは削除
     const query = `
       SELECT 
         u.id,
