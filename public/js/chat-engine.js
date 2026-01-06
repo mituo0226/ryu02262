@@ -533,7 +533,26 @@ const ChatInit = {
                 // 登録済みユーザーの特殊処理（ハンドラーに委譲）
                 // 例: 楓の守護神判定などはハンドラーのinitPageで処理される
                 
-                if (guestHistory.length === 0 && !guardianMessageShown) {
+                // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
+                const handler = CharacterRegistry.get(character);
+                let handlerSkippedFirstMessage = false;
+                if (handler && typeof handler.initPage === 'function') {
+                    const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
+                        isGuestMode,
+                        guestHistory,
+                        guardianMessageShown
+                    });
+                    if (handlerResult && handlerResult.completed) {
+                        console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        return; // 処理終了
+                    }
+                    if (handlerResult && handlerResult.skip) {
+                        console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
+                        handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
+                    }
+                }
+                
+                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
                     // #region agent log
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:369',message:'初回メッセージ表示判定開始',data:{guestHistoryLength:guestHistory.length,guardianMessageShown,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
@@ -556,35 +575,20 @@ const ChatInit = {
                         // #endregion
                         ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                     } else {
-                        // 楓の初回訪問時の特別処理
-                        if (character === 'kaede' && isGuestMode) {
-                            console.log('[楓専用処理] 初回訪問：挨拶メッセージを表示し、自動的に守護神の儀式を開始します');
-                            const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
-                            const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
-                            ChatUI.addMessage('welcome', greetingMessage, ChatData.characterInfo[character].name);
-                            
-                            // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-                            setTimeout(async () => {
-                                if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                                    await window.ChatInit.startGuardianRitual(character, null);
-                                }
-                            }, 2000); // 2秒後に儀式を開始
-                        } else {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:406',message:'分岐1-2: firstTimeGuestメッセージ生成開始',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                            // #endregion
-                            // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
-                            console.log('[初期化] firstTimeGuestメッセージを生成します');
-                            const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                                character, 
-                                ChatData.userNickname || 'あなた'
-                            );
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐1-2: メッセージ生成完了→addMessage呼び出し',data:{character,messageLength:firstTimeMessage.length,messagePreview:firstTimeMessage.substring(0,200),containsOldMessage:firstTimeMessage.includes('あなたさん、初めまして')||firstTimeMessage.includes('システムからお聞き'),containsNewMessage:firstTimeMessage.includes('はじめまして、笹岡雪乃です')},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                            // #endregion
-                            console.log('[初期化] 生成されたメッセージ:', firstTimeMessage.substring(0, 100) + '...');
-                            ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
-                        }
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:406',message:'分岐1-2: firstTimeGuestメッセージ生成開始',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                        // #endregion
+                        // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
+                        console.log('[初期化] firstTimeGuestメッセージを生成します');
+                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                            character, 
+                            ChatData.userNickname || 'あなた'
+                        );
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐1-2: メッセージ生成完了→addMessage呼び出し',data:{character,messageLength:firstTimeMessage.length,messagePreview:firstTimeMessage.substring(0,200),containsOldMessage:firstTimeMessage.includes('あなたさん、初めまして')||firstTimeMessage.includes('システムからお聞き'),containsNewMessage:firstTimeMessage.includes('はじめまして、笹岡雪乃です')},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                        // #endregion
+                        console.log('[初期化] 生成されたメッセージ:', firstTimeMessage.substring(0, 100) + '...');
+                        ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
                     }
                     } else {
                         // #region agent log
@@ -601,124 +605,79 @@ const ChatInit = {
                 // #endregion
                 ChatData.userNickname = historyData.nickname;
                 
-                // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
-                // 守護神の判定はデータベース（historyData.assignedDeity = guardianカラム）を優先
-                // 会話履歴の有無に関わらず、guardianが未登録であれば儀式を開始（楓専用）
-                if (!isGuestMode && character === 'kaede' && !justRegistered && !shouldTriggerRegistrationFlow) {
-                    // データベースのguardianカラムから取得した値（優先）
-                    const hasAssignedDeity = historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
-                    
-                    // 守護神が未決定（データベースのguardianカラムが未設定）の場合、自動的に儀式を開始
-                    if (!hasAssignedDeity) {
-                        console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神（guardian）が未登録（DB確認）のため、自動的に儀式を開始します。', {
-                            assignedDeityFromDB: historyData.assignedDeity,
-                            nickname: historyData.nickname
-                        });
-                        
-                        // 自動的に守護神の儀式を開始するためのフラグを設定
-                        sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                        
-                        // 自動的に守護神の儀式を開始
-                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                            await window.ChatInit.startGuardianRitual(character, null);
-                            return; // 儀式開始後は処理を終了
-                        }
+                // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
+                const handler = CharacterRegistry.get(character);
+                let handlerSkippedFirstMessage = false;
+                if (handler && typeof handler.initPage === 'function') {
+                    const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
+                        isGuestMode,
+                        guestHistory,
+                        guardianMessageShown
+                    });
+                    if (handlerResult && handlerResult.completed) {
+                        console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        return; // 処理終了
+                    }
+                    if (handlerResult && handlerResult.skip) {
+                        console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
+                        handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 }
                 
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0 && !guardianMessageShown) {
-                    // 楓の初回訪問時の特別処理（登録済みユーザーでも会話履歴がない場合）
-                    if (character === 'kaede' && isGuestMode) {
-                        console.log('[楓専用処理] 初回訪問：挨拶メッセージを表示し、自動的に守護神の儀式を開始します');
-                        const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
-                        const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
-                        ChatUI.addMessage('welcome', greetingMessage, info.name);
-                        
-                        // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-                        setTimeout(async () => {
-                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                                await window.ChatInit.startGuardianRitual(character, null);
-                            }
-                        }, 2000); // 2秒後に儀式を開始
-                    } else {
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                        // #endregion
-                        // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                            character, 
-                            ChatData.userNickname || 'あなた'
-                        );
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                        // #endregion
-                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    }
+                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
+                    // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                        character, 
+                        ChatData.userNickname || 'あなた'
+                    );
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                    // #endregion
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
             } else {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐3: historyDataなしまたはnicknameなし',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,isGuestMode},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
-                // 【重要】登録済みユーザーが楓のチャットにアクセスし、守護神（guardian）が未登録の場合、自動的に儀式を開始
-                // この分岐ではhistoryDataが取得できなかった場合のため、会話履歴を再取得してデータベースのguardianカラムを確認
-                // 会話履歴の有無に関わらず、guardianが未登録であれば儀式を開始（楓専用）
-                if (!isGuestMode && character === 'kaede' && !justRegistered && !shouldTriggerRegistrationFlow) {
-                    // 会話履歴を再取得してデータベースのguardianカラムを確認
-                    try {
-                        const recheckHistoryData = await ChatAPI.loadConversationHistory(character);
-                        const hasAssignedDeity = recheckHistoryData && recheckHistoryData.assignedDeity && recheckHistoryData.assignedDeity.trim() !== '';
-                        
-                        // 守護神が未決定（データベースのguardianカラムが未設定）の場合、自動的に儀式を開始
-                        if (!hasAssignedDeity) {
-                            console.log('[楓専用処理] 登録済みユーザーが楓にアクセス。守護神（guardian）が未登録（DB再確認）のため、自動的に儀式を開始します。', {
-                                assignedDeityFromDB: recheckHistoryData?.assignedDeity
-                            });
-                            
-                            // 自動的に守護神の儀式を開始するためのフラグを設定
-                            sessionStorage.setItem('acceptedGuardianRitual', 'true');
-                            
-                            // 自動的に守護神の儀式を開始
-                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                                await window.ChatInit.startGuardianRitual(character, null);
-                                return; // 儀式開始後は処理を終了
-                            }
-                        }
-                    } catch (error) {
-                        console.error('[楓専用処理] 会話履歴の再取得に失敗:', error);
-                        // エラー時は処理を続行（通常の初回メッセージを表示）
+                
+                // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
+                const handler = CharacterRegistry.get(character);
+                let handlerSkippedFirstMessage = false;
+                if (handler && typeof handler.initPage === 'function') {
+                    // historyDataが取得できなかった場合でも、ハンドラーにnullを渡して処理を委譲
+                    const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
+                        isGuestMode,
+                        guestHistory,
+                        guardianMessageShown
+                    });
+                    if (handlerResult && handlerResult.completed) {
+                        console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        return; // 処理終了
+                    }
+                    if (handlerResult && handlerResult.skip) {
+                        console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
+                        handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 }
                 
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0 && !guardianMessageShown) {
-                    // 楓の初回訪問時の特別処理
-                    if (character === 'kaede' && isGuestMode) {
-                        console.log('[楓専用処理] 初回訪問：挨拶メッセージを表示し、自動的に守護神の儀式を開始します');
-                        const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
-                        const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
-                        ChatUI.addMessage('welcome', greetingMessage, info.name);
-                        
-                        // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-                        setTimeout(async () => {
-                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                                await window.ChatInit.startGuardianRitual(character, null);
-                            }
-                        }, 2000); // 2秒後に儀式を開始
-                    } else {
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                        // #endregion
-                        // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                            character, 
-                            ChatData.userNickname || 'あなた'
-                        );
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                        // #endregion
-                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    }
+                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
+                    // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                        character, 
+                        ChatData.userNickname || 'あなた'
+                    );
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                    // #endregion
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
             }
             
@@ -771,20 +730,27 @@ const ChatInit = {
                     }
                 }
             } else {
-                // 楓の初回訪問時の特別処理（エラー分岐）
-                if (character === 'kaede' && isGuestMode) {
-                    console.log('[楓専用処理] 初回訪問（エラー分岐）：挨拶メッセージを表示し、自動的に守護神の儀式を開始します');
-                    const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
-                    const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
-                    ChatUI.addMessage('welcome', greetingMessage, info.name);
-                    
-                    // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-                    setTimeout(async () => {
-                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                            await window.ChatInit.startGuardianRitual(character, null);
-                        }
-                    }, 2000); // 2秒後に儀式を開始
-                } else {
+                // ハンドラーのinitPageを呼び出す（エラー分岐）
+                const handler = CharacterRegistry.get(character);
+                let handlerSkippedFirstMessage = false;
+                if (handler && typeof handler.initPage === 'function') {
+                    // エラー分岐でもハンドラーに処理を委譲
+                    const handlerResult = await handler.initPage(urlParams, null, justRegistered, shouldTriggerRegistrationFlow, {
+                        isGuestMode,
+                        guestHistory,
+                        guardianMessageShown
+                    });
+                    if (handlerResult && handlerResult.completed) {
+                        console.log('[初期化] ハンドラーで処理完了（エラー分岐）。処理を終了します。');
+                        return; // 処理終了
+                    }
+                    if (handlerResult && handlerResult.skip) {
+                        console.log('[初期化] ハンドラーで処理スキップ（エラー分岐）。共通処理をスキップします。');
+                        handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
+                    }
+                }
+                
+                if (!handlerSkippedFirstMessage) {
                     // #region agent log
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:520',message:'エラー分岐: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
