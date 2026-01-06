@@ -1140,34 +1140,16 @@ export const onRequestPost: PagesFunction = async (context) => {
     // LLM応答後にアシスタントメッセージを保存
     if (!shouldClearChat && !isJustRegistered) {
       try {
-        if (userType === 'registered' && user) {
+        // 【新仕様】すべてのユーザーを'registered'として扱う
+        if (user) {
           await saveAssistantMessage(env.DB, 'registered', user.id, characterId, responseMessage);
-          console.log('[consult] 登録ユーザーのアシスタントメッセージを保存しました');
-        } else if (userType === 'guest') {
-          if (guestSessionId) {
-            await saveAssistantMessage(env.DB, 'guest', guestSessionId, characterId, responseMessage);
-            console.log('[consult] ゲストユーザーのアシスタントメッセージを保存しました:', {
-              guestSessionId,
-              characterId,
-            });
-          } else {
-            // guestSessionIdが取得できなかった場合でも、最後の試行として再作成を試みる
-            console.warn('[consult] ゲストユーザーIDが取得できませんでした。再作成を試みます...');
-            try {
-              const retryGuestSessionId = await getOrCreateGuestUser(env.DB, guestSessionIdStr, ipAddress, userAgent);
-              await saveAssistantMessage(env.DB, 'guest', retryGuestSessionId, characterId, responseMessage);
-              console.log('[consult] ゲストユーザーのアシスタントメッセージを保存しました（再作成後）:', {
-                guestSessionId: retryGuestSessionId,
-                characterId,
-              });
-            } catch (retryError) {
-              console.error('[consult] ゲストユーザーIDの再作成とアシスタントメッセージ保存に失敗:', {
-                error: retryError instanceof Error ? retryError.message : String(retryError),
-                stack: retryError instanceof Error ? retryError.stack : undefined,
-              });
-              // エラーが発生してもレスポンスは返す（メッセージの保存は重要だが、致命的ではない）
-            }
-          }
+          console.log('[consult] アシスタントメッセージを保存しました:', {
+            userId: user.id,
+            characterId,
+          });
+        } else {
+          // ユーザーIDが取得できなかった場合のエラーログ
+          console.error('[consult] ユーザーIDが取得できませんでした。session_idを確認してください。');
         }
       } catch (error) {
         console.error('[consult] アシスタントメッセージの保存エラー:', {
