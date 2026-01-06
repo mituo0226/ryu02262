@@ -2083,6 +2083,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     ChatUI.init();
     
     // ページを初期化
+    // 入口フォームが表示されている場合は初期化をスキップ
+    const entryFormContainer = document.getElementById('entryFormContainer');
+    const chatContainer = document.getElementById('chatContainer');
+    const isEntryFormVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
+    
+    if (isEntryFormVisible) {
+        console.log('[chat-engine] 入口フォームが表示されているため、初期化をスキップします');
+        return;
+    }
+    
     await ChatInit.initPage();
     
     // アニメーション画面から戻ってきた時の処理

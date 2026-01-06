@@ -1148,15 +1148,24 @@
                        entryFormSubmit.disabled = false;
                        entryFormSubmit.textContent = '鑑定を始める';
                    }
-               });
-               
-               function showError(message) {
-                   entryFormError.textContent = message;
-                   entryFormError.classList.add('show');
+                   });
+                   
+                   function showError(message) {
+                       entryFormError.textContent = message;
+                       entryFormError.classList.add('show');
+                   }
+                   
+                   function hideError() {
+                       entryFormError.classList.remove('show');
+                   }
                }
                
-               function hideError() {
-                   entryFormError.classList.remove('show');
+               // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', initEntryForm);
+               } else {
+                   // 既にDOMが読み込まれている場合は即座に実行
+                   initEntryForm();
                }
            })();
            
