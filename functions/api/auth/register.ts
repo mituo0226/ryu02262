@@ -49,30 +49,32 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     }
 
     // 既存ユーザーを検索（session_idで）
-    const existingUser = await env.DB.prepare<{ id: number }>(
-      'SELECT id FROM users WHERE session_id = ?'
+    // 【新仕様】create-guest.tsで既にユーザーが作成されているため、
+    // register.tsは既存ユーザーを確認し、存在すれば成功レスポンスを返す
+    const existingUser = await env.DB.prepare<{ id: number; nickname: string }>(
+      'SELECT id, nickname FROM users WHERE session_id = ?'
     )
       .bind(sessionId)
       .first();
 
-    if (existingUser) {
-      // 既に登録済みの場合はエラー
+    if (!existingUser) {
+      // ユーザーが見つからない場合はエラー（create-guest.tsで先に作成されるべき）
       return new Response(
-        JSON.stringify({ error: '登録済みです。' }),
-        { status: 409, headers }
+        JSON.stringify({ 
+          error: 'ユーザー情報が見つかりませんでした。入口フォームでユーザーを作成してください。' 
+        }),
+        { status: 404, headers }
       );
     }
 
-    // ユーザーが見つからない場合はエラー（create-guest.tsで先に作成されるべき）
-    return new Response(
-      JSON.stringify({ 
-        error: 'ユーザー情報が見つかりませんでした。入口フォームでユーザーを作成してください。' 
-      }),
-      { status: 404, headers }
-    );
+    // 既存ユーザーが見つかった場合、成功レスポンスを返す
+    // create-guest.tsで既にユーザーが作成されているため、追加の処理は不要
+    const responseBody: RegisterResponseBody = {
+      nickname: existingUser.nickname,
+      message: '登録が完了しました。',
+    };
 
-    // このコードは到達しない（上記でreturnされる）
-    // ただし、将来的に登録処理を追加する場合はここに記述
+    return new Response(JSON.stringify(responseBody), { status: 200, headers });
   } catch (error) {
     console.error('[register] 予期しないエラー:', error);
     return new Response(
