@@ -172,13 +172,13 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     ? providedSessionId.trim()
     : generateUUID();
 
-  // IPアドレスを取得（オプショナル）
-  const ipAddress = request.headers.get('CF-Connecting-IP') || null;
-
   // ユーザーを作成
-  // 【新仕様】user_typeカラムは不要（すべてのユーザーが同じ扱い）
-  // user_typeカラムはINSERT文に含めない（データベースのデフォルト値に任せる）
+  // 【新仕様】以下のカラムは無効化（使用しない）:
+  // - user_type: ゲストユーザーが存在しないため不要
+  // - ip_address: 使用しない
+  // - passphrase: 使用しないが、NOT NULL制約があるため空文字列を設定
   // session_idで識別し、userTokenは不要
+  // 二重登録チェック: 現時点では無視（将来的にマジックリンクで対応予定）
   const result = await env.DB.prepare(
     `INSERT INTO users (
       nickname,
@@ -187,12 +187,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       birth_day,
       passphrase,
       session_id,
-      ip_address,
       last_activity_at,
       gender
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
   )
-    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, ipAddress, gender || null)
+    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, gender || null)
     .run();
 
   const userId = result.meta?.last_row_id;
