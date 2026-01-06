@@ -136,12 +136,8 @@ const KaedeHandler = {
                 historyData,
                 urlParams
             );
-            if (ritualHandled) {
-                const acceptedGuardianRitual = sessionStorage.getItem('acceptedGuardianRitual');
-                if (acceptedGuardianRitual !== 'true') {
-                    return { skip: true }; // 儀式を開始しない場合は処理終了
-                }
-            }
+            // handlePostRegistrationRitualStartがtrueを返した場合でも、守護神の確認は続行する
+            // （儀式を開始しない場合でも、守護神が未登録なら儀式を開始する必要があるため）
         }
 
         // 守護神が未登録かどうかを確認（ゲストユーザー・登録済みユーザー共通）
