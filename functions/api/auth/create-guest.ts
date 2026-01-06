@@ -7,11 +7,11 @@ interface CreateGuestRequestBody {
   birthMonth: number;
   birthDay: number;
   gender?: string; // オプショナル（回答しない含む）
-  sessionId?: string; // クライアント側から送られてきたsession_id（二重登録防止用）
+  // 【無効化】sessionIdは使用しない
 }
 
 interface CreateGuestResponseBody {
-  sessionId: string;
+  sessionId: string; // 【無効化】互換性のため空文字列を返す
   nickname: string;
 }
 
@@ -97,7 +97,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { nickname, birthYear, birthMonth, birthDay, gender, sessionId: providedSessionId } = body;
+  const { nickname, birthYear, birthMonth, birthDay, gender } = body;
+  // 【無効化】sessionIdは使用しない
 
   // バリデーション
   if (!nickname || typeof nickname !== 'string') {
