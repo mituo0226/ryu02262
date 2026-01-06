@@ -156,17 +156,18 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   // 実際の認証には使用されない
   const passphrase = '';
 
-  // session_id（UUID）を生成
-  const sessionId = providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()
-    ? providedSessionId.trim()
-    : generateUUID();
+  // 【無効化】session_idは使用しないため、生成しない
+  // const sessionId = providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()
+  //   ? providedSessionId.trim()
+  //   : generateUUID();
 
   // ユーザーを作成
   // 【新仕様】以下のカラムは無効化（使用しない）:
-  // - user_type: ゲストユーザーが存在しないため不要
-  // - ip_address: 使用しない
+  // - user_type: ゲストユーザーが存在しないため不要（INSERT文に含めない）
+  // - ip_address: 使用しない（INSERT文に含めない）
+  // - session_id: 使用しない（INSERT文に含めない）
   // - passphrase: 使用しないが、NOT NULL制約があるため空文字列を設定
-  // session_idで識別し、userTokenは不要
+  // userTokenは不要
   // 二重登録チェック: 現時点では無視（将来的にマジックリンクで対応予定）
   const result = await env.DB.prepare(
     `INSERT INTO users (
@@ -175,12 +176,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       birth_month,
       birth_day,
       passphrase,
-      session_id,
       last_activity_at,
       gender
-    ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+    ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
   )
-    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, sessionId, gender || null)
+    .bind(uniqueNickname, birthYear, birthMonth, birthDay, passphrase, gender || null)
     .run();
 
   const userId = result.meta?.last_row_id;
@@ -189,9 +189,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Failed to create guest user' }), { status: 500, headers });
   }
 
-  console.log('[create-guest] ゲストユーザーを作成しました:', {
+  console.log('[create-guest] ユーザーを作成しました:', {
     userId,
-    sessionId,
     nickname: uniqueNickname,
     birthYear,
     birthMonth,
@@ -199,8 +198,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     gender: gender || '未回答',
   });
 
+  // 【無効化】session_idは使用しないため、レスポンスに含めない
   const responseBody: CreateGuestResponseBody = {
-    sessionId,
+    sessionId: '', // 空文字列を返す（互換性のため）
     nickname: uniqueNickname,
   };
 

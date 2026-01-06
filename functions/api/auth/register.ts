@@ -22,7 +22,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
     }
 
-    const { nickname, birthYear, birthMonth, birthDay, sessionId } = body;
+    const { nickname, birthYear, birthMonth, birthDay, gender } = body;
 
     if (!nickname || typeof nickname !== 'string') {
       return new Response(JSON.stringify({ error: 'nickname is required' }), { status: 400, headers });
@@ -40,41 +40,55 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response(JSON.stringify({ error: 'nickname cannot be empty' }), { status: 400, headers });
     }
 
-    // session_idで二重登録をチェック
-    if (!sessionId) {
-      return new Response(
-        JSON.stringify({ error: 'sessionId is required.' }),
-        { status: 400, headers }
-      );
-    }
-
-    // 既存ユーザーを検索（session_idで）
-    // 【新仕様】create-guest.tsで既にユーザーが作成されているため、
-    // register.tsは既存ユーザーを確認し、存在すれば成功レスポンスを返す
+    // 【無効化】session_idは使用しないため、session_idでの検索は不要
+    // ニックネームと生年月日で既存ユーザーを検索
     const existingUser = await env.DB.prepare<{ id: number; nickname: string }>(
-      'SELECT id, nickname FROM users WHERE session_id = ?'
+      'SELECT id, nickname FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )
-      .bind(sessionId)
+      .bind(trimmedNickname, birthYear, birthMonth, birthDay)
       .first();
 
-    if (!existingUser) {
-      // ユーザーが見つからない場合はエラー（create-guest.tsで先に作成されるべき）
+    if (existingUser) {
+      // 既存ユーザーが見つかった場合、成功レスポンスを返す
+      const responseBody: RegisterResponseBody = {
+        nickname: existingUser.nickname,
+        message: '登録が完了しました。',
+      };
+      return new Response(JSON.stringify(responseBody), { status: 200, headers });
+    }
+
+    // 既存ユーザーが見つからない場合は、新規ユーザーを作成
+    // 【新仕様】passphraseは使用しないが、NOT NULL制約があるため空文字列を設定
+    const passphrase = '';
+    
+    const result = await env.DB.prepare(
+      `INSERT INTO users (
+        nickname,
+        birth_year,
+        birth_month,
+        birth_day,
+        passphrase,
+        last_activity_at,
+        gender
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`
+    )
+      .bind(trimmedNickname, birthYear, birthMonth, birthDay, passphrase, gender || null)
+      .run();
+
+    const userId = result.meta?.last_row_id;
+    if (!userId || typeof userId !== 'number') {
       return new Response(
-        JSON.stringify({ 
-          error: 'ユーザー情報が見つかりませんでした。入口フォームでユーザーを作成してください。' 
-        }),
-        { status: 404, headers }
+        JSON.stringify({ error: 'ユーザー登録に失敗しました。' }),
+        { status: 500, headers }
       );
     }
 
-    // 既存ユーザーが見つかった場合、成功レスポンスを返す
-    // create-guest.tsで既にユーザーが作成されているため、追加の処理は不要
     const responseBody: RegisterResponseBody = {
-      nickname: existingUser.nickname,
+      nickname: trimmedNickname,
       message: '登録が完了しました。',
     };
 
-    return new Response(JSON.stringify(responseBody), { status: 200, headers });
+    return new Response(JSON.stringify(responseBody), { status: 201, headers });
   } catch (error) {
     console.error('[register] 予期しないエラー:', error);
     return new Response(
