@@ -814,11 +814,7 @@ const ChatInit = {
                 currentCount = ChatData.getGuestMessageCount(character);
             }
             
-            // 【削除】10通制限チェックは削除されました
-                    this.openRegistrationModal();
-                    return;
-                }
-            }
+            // 【削除】10通制限チェックは削除されました（入口フォームで登録済みのため不要）
 
             // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
             // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
