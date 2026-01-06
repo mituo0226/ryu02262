@@ -127,7 +127,9 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid birth day' }), { status: 400, headers });
   }
 
-  // 【二重登録防止】session_idが提供されている場合、既存ユーザーを検索
+  // 【二重登録チェック】現時点では無視（将来的にマジックリンクで対応予定）
+  // session_idが提供されている場合、既存ユーザーを検索（情報取得用）
+  // ただし、既存ユーザーが見つかっても新規作成を続行する（二重登録を許可）
   if (providedSessionId && typeof providedSessionId === 'string' && providedSessionId.trim()) {
     const existingUser = await env.DB.prepare<{
       id: number;
@@ -138,25 +140,12 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       .first();
 
     if (existingUser) {
-      // 既存ユーザーが見つかった場合、新規作成せずに既存ユーザーを返す（200 OK）
-      console.log('[create-guest] 既存のゲストユーザーを返します（二重登録防止）:', {
+      console.log('[create-guest] 既存ユーザーが見つかりましたが、新規作成を続行します（二重登録許可）:', {
         userId: existingUser.id,
         sessionId: existingUser.session_id,
         nickname: existingUser.nickname,
       });
-
-      const responseBody: CreateGuestResponseBody = {
-        sessionId: existingUser.session_id,
-        nickname: existingUser.nickname,
-      };
-
-      return new Response(JSON.stringify(responseBody), {
-        status: 200, // 200 OK（新規作成ではないが、正常なレスポンス）
-        headers: {
-          ...headers,
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
+      // 既存ユーザーが見つかっても、新規作成を続行する（二重登録を許可）
     }
   }
 
