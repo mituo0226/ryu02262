@@ -325,12 +325,60 @@
           return;
         }
 
-        // userTokenは不要（session_idで識別）
-        localStorage.setItem('userNickname', data.nickname || payload.nickname);
+        // 【新仕様】登録完了後、データベースから最新のユーザー情報を取得
+        // localStorageへの保存は、データベースから取得した情報で上書きする
+        const sessionId = localStorage.getItem('guestSessionId');
+        if (sessionId) {
+            try {
+                // データベースから最新のユーザー情報を取得（会話履歴APIを使用）
+                const userInfoResponse = await fetch(
+                    `/api/conversation-history?sessionId=${encodeURIComponent(sessionId)}&character=kaede`
+                );
+                if (userInfoResponse.ok) {
+                    const userInfo = await userInfoResponse.json();
+                    // データベースから取得した最新情報をlocalStorageに保存
+                    if (userInfo.nickname) {
+                        localStorage.setItem('userNickname', userInfo.nickname);
+                    }
+                    if (userInfo.birthYear) {
+                        localStorage.setItem('birthYear', String(userInfo.birthYear));
+                    }
+                    if (userInfo.birthMonth) {
+                        localStorage.setItem('birthMonth', String(userInfo.birthMonth));
+                    }
+                    if (userInfo.birthDay) {
+                        localStorage.setItem('birthDay', String(userInfo.birthDay));
+                    }
+                    if (userInfo.assignedDeity) {
+                        localStorage.setItem('assignedDeity', userInfo.assignedDeity);
+                    }
+                    console.log('[register] データベースから最新のユーザー情報を取得しました:', userInfo);
+                } else {
+                    // APIエラーの場合は、レスポンスから取得した情報を使用（フォールバック）
+                    localStorage.setItem('userNickname', data.nickname || payload.nickname);
+                    localStorage.setItem('birthYear', String(payload.birthYear));
+                    localStorage.setItem('birthMonth', String(payload.birthMonth));
+                    localStorage.setItem('birthDay', String(payload.birthDay));
+                    console.warn('[register] データベースからの情報取得に失敗。レスポンス情報を使用します');
+                }
+            } catch (error) {
+                // エラーの場合は、レスポンスから取得した情報を使用（フォールバック）
+                localStorage.setItem('userNickname', data.nickname || payload.nickname);
+                localStorage.setItem('birthYear', String(payload.birthYear));
+                localStorage.setItem('birthMonth', String(payload.birthMonth));
+                localStorage.setItem('birthDay', String(payload.birthDay));
+                console.error('[register] データベースからの情報取得エラー:', error);
+            }
+        } else {
+            // sessionIdがない場合は、レスポンスから取得した情報を使用（フォールバック）
+            localStorage.setItem('userNickname', data.nickname || payload.nickname);
+            localStorage.setItem('birthYear', String(payload.birthYear));
+            localStorage.setItem('birthMonth', String(payload.birthMonth));
+            localStorage.setItem('birthDay', String(payload.birthDay));
+            console.warn('[register] sessionIdが見つかりません。レスポンス情報を使用します');
+        }
+        
         localStorage.setItem('hasAccount', 'true');
-        localStorage.setItem('birthYear', String(payload.birthYear));
-        localStorage.setItem('birthMonth', String(payload.birthMonth));
-        localStorage.setItem('birthDay', String(payload.birthDay));
 
         resultMessage.textContent = '登録が完了しました。';
         resultMessage.classList.add('success');
