@@ -1012,8 +1012,9 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // ===== 11. システムプロンプトの生成 =====
     // 【改善】システムプロンプトをシンプルに：各鑑定士の性格設定だけを守らせる
-    // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、ゲストから登録したばかり
-    const isJustRegistered = userType === 'registered' && body.migrateHistory === true;
+    // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、登録したばかり
+    // 【新仕様】すべてのユーザーを'registered'として扱う
+    const isJustRegistered = body.migrateHistory === true;
     
     // 【重要】hasPreviousConversationの判定
     // データベースから取得した履歴のみで判定する（クライアントから送られてきた履歴は無視）
