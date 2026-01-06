@@ -391,7 +391,7 @@
             }
             
             const character = 'yukino';
-            const userToken = (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) || localStorage.getItem('userToken');
+            // 【新仕様】userTokenは不要。session_idで識別する
             
             // メッセージを作成
             const message = `以下のタロットカードについて、詳しく解説してください。
@@ -403,8 +403,10 @@
             
             const payload = { message, character };
             
-            if (userToken) {
-                payload.userToken = userToken;
+            // ゲストメタデータを追加（session_idを含める）
+            const guestSessionId = localStorage.getItem('guestSessionId');
+            if (guestSessionId) {
+                payload.guestMetadata = { sessionId: guestSessionId };
             } else {
                 // ゲストモード
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
@@ -585,8 +587,9 @@ ${cardNames}
             if (userToken) {
                 payload.userToken = userToken;
             } else {
+                // ゲストモード（session_idがlocalStorageにない場合）
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                const guestSessionId = sessionStorage.getItem('guestSessionId');
+                const guestSessionId = localStorage.getItem('guestSessionId') || sessionStorage.getItem('guestSessionId');
                 payload.guestMetadata = { 
                     messageCount: guestCount ? parseInt(guestCount, 10) : 0,
                     sessionId: guestSessionId || undefined
@@ -619,7 +622,7 @@ ${cardNames}
             
             // タロット占い完了 - 定型文とシステムメッセージを送信
             console.log('[タロット占い] 完了しました');
-            await sendCompletionMessages(character, userToken);
+            await sendCompletionMessages(character);
             
         } catch (error) {
             console.error('[タロットまとめ] エラー:', error);
@@ -634,7 +637,7 @@ ${cardNames}
     /**
      * タロット鑑定完了メッセージを送信（定型文とボタンを表示）
      */
-    async function sendCompletionMessages(character, userToken) {
+    async function sendCompletionMessages(character) {
         try {
             // 1. 雪乃の定型文を通常の吹き出しで表示
             const completionMessage = 'あなたの現在の運勢結果はここまでです。ここからは全く新しい鑑定を始めましょう';
@@ -775,19 +778,21 @@ ${cardNames}
                     // 雪乃専用のシステムメッセージ（タロット占いは雪乃のみが提供する機能）
                     const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
                     
-                    const userToken = localStorage.getItem('userToken');
+                    // 【新仕様】userTokenは不要。session_idで識別する
                     // 明示的に雪乃を指定（タロット占いは雪乃専用）
                     const payload = { 
                         message: systemMessage, 
                         character: 'yukino'
                     };
                     
-                    if (userToken) {
-                        payload.userToken = userToken;
+                    // ゲストメタデータを追加（session_idを含める）
+                    const guestSessionId = localStorage.getItem('guestSessionId');
+                    if (guestSessionId) {
+                        payload.guestMetadata = { sessionId: guestSessionId };
                     } else {
                         // ゲストモードの場合、雪乃専用のメッセージカウントを使用
                         const guestCount = sessionStorage.getItem('guestMessageCount_yukino');
-                        const guestSessionId = sessionStorage.getItem('guestSessionId');
+                        const guestSessionId = localStorage.getItem('guestSessionId') || sessionStorage.getItem('guestSessionId');
                 payload.guestMetadata = { 
                     messageCount: guestCount ? parseInt(guestCount, 10) : 0,
                     sessionId: guestSessionId || undefined
@@ -1164,24 +1169,9 @@ ${cardNames}
             // 会話履歴を取得（ユーザーの相談内容を含む）
             const character = 'yukino';
             
-            // ユーザートークンを取得
-            const userToken = (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) 
-                || localStorage.getItem('userToken');
-            
-            // 会話履歴を取得
-            // - 登録ユーザー: API側でデータベースから取得するため、空の配列でOK
-            // - ゲストユーザー: sessionStorageから取得した履歴を送信
+            // 【新仕様】userTokenは不要。session_idで識別する
+            // 会話履歴を取得（API側でデータベースから取得するため、空の配列でOK）
             let conversationHistory = [];
-            if (!userToken) {
-                // ゲストモード: sessionStorageから履歴を取得
-                conversationHistory = (window.ChatData && typeof window.ChatData.getGuestHistory === 'function') 
-                    ? window.ChatData.getGuestHistory(character) || []
-                    : [];
-                console.log('[タロット占い] ゲスト会話履歴を取得:', conversationHistory.length, '件');
-            } else {
-                // 登録ユーザー: API側でデータベースから取得するため空でOK
-                console.log('[タロット占い] 登録ユーザー: API側でデータベースから履歴を取得');
-            }
             
             // リクエストペイロードを作成
             const payload = {
@@ -1190,8 +1180,10 @@ ${cardNames}
                 clientHistory: conversationHistory  // 会話履歴を送信
             };
             
-            if (userToken) {
-                payload.userToken = userToken;
+            // ゲストメタデータを追加（session_idを含める）
+            const guestSessionId = localStorage.getItem('guestSessionId');
+            if (guestSessionId) {
+                payload.guestMetadata = { sessionId: guestSessionId };
             } else {
                 // ゲストモード
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);

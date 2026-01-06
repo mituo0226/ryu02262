@@ -1,7 +1,6 @@
 // Cloudflare Pages Functions
 // 会話履歴管理API - メッセージ保存・取得・管理
-
-import { verifyUserToken } from '../_lib/token.js';
+// 【新仕様】userTokenは不要。session_idで識別する
 
 const MAX_MESSAGES_PER_CHARACTER = 100;
 
@@ -24,7 +23,7 @@ interface UserRecord {
 }
 
 interface RequestBody {
-  userToken?: string;
+  sessionId?: string; // 【新仕様】userTokenは不要。session_idで識別する
   character: string;
   role: 'user' | 'assistant';
   content: string;
@@ -89,27 +88,32 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // ユーザー認証
+    // 【新仕様】userTokenは不要。session_idで識別する
     let userId: number | null = null;
-    if (body.userToken) {
-      const tokenPayload = await verifyUserToken(body.userToken, env.AUTH_SECRET);
-      if (!tokenPayload) {
+    if (body.sessionId) {
+      const user = await env.DB.prepare<{ id: number }>(
+        'SELECT id FROM users WHERE session_id = ?'
+      )
+        .bind(body.sessionId)
+        .first();
+      
+      if (!user) {
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Invalid user token',
+            error: 'User not found',
           } as ResponseBody),
-          { status: 401, headers: corsHeaders }
+          { status: 404, headers: corsHeaders }
         );
       }
-      userId = tokenPayload.userId;
+      userId = user.id;
     } else if (!body.isGuestMessage) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'userToken is required for registered users',
+          error: 'sessionId is required',
         } as ResponseBody),
-        { status: 401, headers: corsHeaders }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -206,22 +210,29 @@ export const onRequestGet: PagesFunction = async (context) => {
 
   try {
     const url = new URL(request.url);
-    const userToken = url.searchParams.get('userToken');
+    // 【新仕様】userTokenは不要。session_idで識別する
+    const sessionId = url.searchParams.get('sessionId');
     const character = url.searchParams.get('character') || 'kaede';
     const limit = parseInt(url.searchParams.get('limit') || '100', 10);
 
-    if (!userToken) {
+    if (!sessionId) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'userToken is required',
+          error: 'sessionId is required',
         }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    const tokenPayload = await verifyUserToken(userToken, env.AUTH_SECRET);
-    if (!tokenPayload) {
+    // session_idからuser_idを解決
+    const user = await env.DB.prepare<UserRecord>(
+      'SELECT id, nickname, guardian FROM users WHERE session_id = ?'
+    )
+      .bind(sessionId)
+      .first();
+
+    if (!user) {
       return new Response(
         JSON.stringify({
           success: false,

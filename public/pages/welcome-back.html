@@ -108,10 +108,10 @@
                 }
 
                 // ユーザー情報を取得
-                const userToken = localStorage.getItem('userToken');
+                // 【新仕様】userTokenは不要。session_idで識別する
                 const nickname = localStorage.getItem('userNickname');
 
-                if (userToken && nickname) {
+                if (nickname) {
                     // ニックネームを表示
                     const welcomeMessage = document.getElementById('welcomeMessage');
                     welcomeMessage.textContent = `おかえりなさい、${nickname}さん`;

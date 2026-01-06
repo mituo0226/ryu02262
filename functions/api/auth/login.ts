@@ -1,5 +1,3 @@
-import { generateUserToken } from '../../_lib/token.js';
-
 interface LoginRequestBody {
   nickname?: string;
   birthYear?: number;
@@ -8,7 +6,6 @@ interface LoginRequestBody {
 }
 
 interface LoginResponseBody {
-  userToken: string;
   nickname: string;
   guardian: string | null;
 }
@@ -64,10 +61,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     });
   }
 
-  const userToken = await generateUserToken(user.id, env.AUTH_SECRET);
-
+  // 【新仕様】userTokenは不要。session_idで識別する
   const responseBody: LoginResponseBody = {
-    userToken,
     nickname: user.nickname,
     guardian: user.guardian,
   };

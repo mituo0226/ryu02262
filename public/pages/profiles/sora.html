@@ -88,7 +88,8 @@
             
             consultButtons.forEach(button => {
                 // ログイン状態をチェック
-                const isLoggedIn = window.AuthState && window.AuthState.isRegistered ? window.AuthState.isRegistered() : Boolean(localStorage.getItem('userToken'));
+                // 【新仕様】userTokenは不要。session_idで識別する
+                const isLoggedIn = window.AuthState && window.AuthState.isRegistered ? window.AuthState.isRegistered() : Boolean(localStorage.getItem('guestSessionId'));
                 
                 if (isLoggedIn) {
                     // ログイン済みの場合は直接チャット画面へ

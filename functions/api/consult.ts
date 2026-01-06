@@ -1,7 +1,6 @@
 // Cloudflare Pages Functions の型定義
 import { generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
 import { isValidCharacter } from '../_lib/character-loader.js';
-import { verifyUserToken } from '../_lib/token.js';
 
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
@@ -27,7 +26,6 @@ interface GuestMetadata {
 interface RequestBody {
   message: string;
   character?: string;
-  userToken?: string;
   clientHistory?: ClientHistoryEntry[];
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;

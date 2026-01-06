@@ -1,5 +1,4 @@
 import { getRandomDeity } from '../../_lib/deities.js';
-import { generateUserToken } from '../../_lib/token.js';
 
 interface ResetRequestBody {
   nickname?: string;
@@ -9,7 +8,6 @@ interface ResetRequestBody {
 }
 
 interface ResetResponseBody {
-  userToken: string;
   nickname: string;
   passphrase: string;
 }
@@ -77,10 +75,8 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       .bind(newPassphrase, user.id)
       .run();
 
-    const userToken = await generateUserToken(user.id, env.AUTH_SECRET);
-
+    // 【新仕様】userTokenは不要。session_idで識別する
     const responseBody: ResetResponseBody = {
-      userToken,
       nickname: trimmedNickname,
       passphrase: newPassphrase,
     };

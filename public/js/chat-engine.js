@@ -69,7 +69,8 @@ const ChatInit = {
         ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
         
         // ユーザー情報を設定
-        if (AuthState.isRegistered() && AuthState.getUserToken()) {
+        // 【新仕様】userTokenは不要。session_idで識別する
+        if (AuthState.isRegistered()) {
             ChatData.userNickname = localStorage.getItem('userNickname') || null;
         } else {
             ChatData.userNickname = null;
@@ -213,14 +214,15 @@ const ChatInit = {
                     console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
                     
                     // バックグラウンドでゲスト履歴をデータベースに保存
+                    // 【新仕様】userTokenは不要。session_idで識別する
                     try {
-                        const userToken = localStorage.getItem('userToken');
                         await ChatAPI.sendMessage(
                             '（登録完了）', // ダミーメッセージ（APIは保存しない）
                             character,
                             guestHistory,
-                            userToken,
-                            true // migrateHistory = true（ゲスト履歴をデータベースに保存）
+                            {
+                                migrateHistory: true // ゲスト履歴をデータベースに保存
+                            }
                         );
                         console.log('[登録完了処理] ゲスト履歴をデータベースに保存しました（バックグラウンド）');
                     } catch (error) {
@@ -1285,20 +1287,15 @@ const ChatInit = {
             try {
                 const data = JSON.parse(consultResponse);
                 
-                // 【削除】needsRegistration関連の処理は削除されました
-                // エラーハンドリングのみ残す
-                if (data.error && (data.error.includes('user not found') || data.error.includes('invalid user token'))) {
-                    const isGuest = !AuthState.isRegistered();
-                    if (!isGuest) {
-                        if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
-                            AuthState.clearAuth();
-                        } else {
-                            localStorage.removeItem('userToken');
-                            localStorage.removeItem('userNickname');
-                            localStorage.removeItem('assignedDeity');
-                        }
-                        window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+                // 【新仕様】userTokenは不要。エラーハンドリングを簡素化
+                if (data.error && (data.error.includes('user not found') || data.error.includes('session'))) {
+                    if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
+                        AuthState.clearAuth();
+                    } else {
+                        localStorage.removeItem('userNickname');
+                        localStorage.removeItem('assignedDeity');
                     }
+                    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                     if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
                     return;
                 }
@@ -2321,9 +2318,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                 
             case 'ADMIN_SIMULATE_REGISTRATION':
                 // テスト用ユーザー登録をシミュレート
-                if (token && window.AuthState) {
-                    window.AuthState.setAuth(token, nickname, assignedDeity);
-                    localStorage.setItem('userToken', token);
+                // 【新仕様】userTokenは不要。session_idで識別する
+                if (window.AuthState) {
+                    window.AuthState.setAuth(null, nickname, assignedDeity);
                     if (nickname) localStorage.setItem('userNickname', nickname);
                     if (assignedDeity) localStorage.setItem('assignedDeity', assignedDeity);
                     localStorage.setItem('hasAccount', 'true');
@@ -2337,7 +2334,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                     window.AuthState.clearAuth();
                     window.AuthState.resetGuestProgress({ keepHistory: false });
                 }
-                localStorage.removeItem('userToken');
                 localStorage.removeItem('userNickname');
                 localStorage.removeItem('assignedDeity');
                 localStorage.removeItem('hasAccount');

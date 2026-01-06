@@ -213,15 +213,14 @@
                     }
 
                     const isFromChatExample = returnUrl.includes('chat-example.html');
-                    const userToken = isFromChatExample ? null :
-                        (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) ||
-                        localStorage.getItem('userToken');
+                    // 【新仕様】userTokenは不要。session_idで識別する
+                    const guestSessionId = localStorage.getItem('guestSessionId');
 
                     const decodedMessage = decodeURIComponent(message);
                     const payload = { message: decodedMessage, character };
 
-                    if (userToken && !isFromChatExample) {
-                        payload.userToken = userToken;
+                    if (guestSessionId && !isFromChatExample) {
+                        payload.guestMetadata = { sessionId: guestSessionId };
                         const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
                         if (pendingMigration) {
                             try {

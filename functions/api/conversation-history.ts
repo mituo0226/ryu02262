@@ -1,5 +1,4 @@
 // Cloudflare Pages Functions の型定義
-import { verifyUserToken } from '../_lib/token.js';
 
 interface ConversationRow {
   role: 'user' | 'assistant';
@@ -57,14 +56,15 @@ export const onRequestGet: PagesFunction = async (context) => {
 
   try {
     const url = new URL(request.url);
-    const userToken = url.searchParams.get('userToken');
+    // 【新仕様】userTokenは不要。session_idで識別する
+    const sessionId = url.searchParams.get('sessionId');
     const characterId = url.searchParams.get('character') || 'kaede';
 
-    if (!userToken) {
+    if (!sessionId) {
       return new Response(
         JSON.stringify({
           hasHistory: false,
-          error: 'userToken is required',
+          error: 'sessionId is required',
         } as ResponseBody),
         {
           status: 400,
@@ -73,21 +73,11 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    const tokenPayload = await verifyUserToken(userToken, env.AUTH_SECRET);
-    if (!tokenPayload) {
-      return new Response(
-        JSON.stringify({
-          hasHistory: false,
-          error: 'invalid user token',
-        } as ResponseBody),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
+    // session_idからuser_idを解決
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE id = ?'
+      'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE session_id = ?'
     )
-      .bind(tokenPayload.userId)
+      .bind(sessionId)
       .first();
 
     if (!user) {

@@ -26,16 +26,19 @@
     }
   }
 
+  // 【新仕様】userTokenは不要。session_idで識別する
   function isRegistered() {
-    return Boolean(localStorage.getItem('userToken'));
+    // session_idが存在すれば登録済みとみなす
+    return Boolean(localStorage.getItem('guestSessionId'));
   }
 
   function getUserToken() {
-    return localStorage.getItem('userToken');
+    // 【新仕様】userTokenは不要。常にnullを返す
+    return null;
   }
 
   function setAuth(token, nickname, deity) {
-    localStorage.setItem('userToken', token);
+    // 【新仕様】userTokenは不要。session_idで識別するため、tokenは無視
     if (nickname) {
       localStorage.setItem('userNickname', nickname);
     }
@@ -47,9 +50,10 @@
   }
 
   function clearAuth() {
-    localStorage.removeItem('userToken');
+    // 【新仕様】userTokenは不要。session_idは保持（再訪問時に使用）
     localStorage.removeItem('userNickname');
     localStorage.removeItem('assignedDeity');
+    localStorage.removeItem('hasAccount');
   }
 
   function getGuestMessageCount() {

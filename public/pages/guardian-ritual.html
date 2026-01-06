@@ -819,8 +819,9 @@
         // 初回登録後かどうかをチェック
         const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
         const justRegistered = sessionStorage.getItem('justRegistered');
-        const userToken = localStorage.getItem('userToken');
-        const isFirstTimeRitual = postRitualChatUrl && justRegistered === 'true' && userToken;
+        // 【新仕様】userTokenは不要。session_idで識別する
+        const sessionId = localStorage.getItem('guestSessionId');
+        const isFirstTimeRitual = postRitualChatUrl && justRegistered === 'true' && sessionId;
 
         // 【重要】守護神が決定した時点ですぐにAPIに送信（バックグラウンド）
         let dbSavePromise = null;
@@ -830,8 +831,7 @@
           dbSavePromise = fetch('/api/auth/update-deity', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${userToken}`
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               guardian: guardian.id

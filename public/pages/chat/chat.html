@@ -979,7 +979,8 @@
                const entryFormSubmit = document.getElementById('entryFormSubmit');
                
                // 登録ユーザーの場合は入口フォームをスキップ
-               if (localStorage.getItem('userToken')) {
+               // 【新仕様】userTokenは不要。session_idで識別する
+               if (localStorage.getItem('guestSessionId')) {
                    entryFormContainer.classList.add('entry-form-hidden');
                    chatContainer.classList.remove('entry-form-hidden');
                    return;
