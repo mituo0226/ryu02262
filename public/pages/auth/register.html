@@ -276,68 +276,32 @@
       }
 
       try {
-        // まず、sessionIdを取得（localStorageから、または新規作成）
-        let sessionId = localStorage.getItem('guestSessionId');
+        // ユーザーを作成
+        const createGuestResponse = await fetch('/api/auth/create-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nickname: payload.nickname,
+            birthYear: payload.birthYear,
+            birthMonth: payload.birthMonth,
+            birthDay: payload.birthDay,
+            gender: payload.gender || '',
+          }),
+        });
         
-        // sessionIdがない場合（プロフィールページから直接来た場合）、ゲストユーザーを作成
-        if (!sessionId) {
-          const createGuestResponse = await fetch('/api/auth/create-guest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              nickname: payload.nickname,
-              birthYear: payload.birthYear,
-              birthMonth: payload.birthMonth,
-              birthDay: payload.birthDay,
-              gender: payload.gender || '',
-              sessionId: null, // 新規作成のためsessionIdは送らない
-            }),
-          });
-          
-          if (!createGuestResponse.ok) {
-            const errorData = await createGuestResponse.json();
-            resultMessage.textContent = errorData.error || 'ゲストユーザーの作成に失敗しました。';
-            resultMessage.classList.add('error');
-            return;
-          }
-          
-          const guestData = await createGuestResponse.json();
-          sessionId = guestData.sessionId;
-          localStorage.setItem('guestSessionId', sessionId);
-        } else {
-          // sessionIdがある場合、二重登録防止のため既存ユーザーをチェック
-          const createGuestResponse = await fetch('/api/auth/create-guest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              nickname: payload.nickname,
-              birthYear: payload.birthYear,
-              birthMonth: payload.birthMonth,
-              birthDay: payload.birthDay,
-              gender: payload.gender || '',
-              sessionId: sessionId, // 既存のsessionIdを送信（二重登録防止）
-            }),
-          });
-          
-          if (!createGuestResponse.ok) {
-            const errorData = await createGuestResponse.json();
-            resultMessage.textContent = errorData.error || 'ゲストユーザーの確認に失敗しました。';
-            resultMessage.classList.add('error');
-            return;
-          }
-          
-          // 既存ユーザーが返された場合でも、sessionIdは更新しない（既存のものを使用）
-          const guestData = await createGuestResponse.json();
-          // sessionIdは既存のものを維持
+        if (!createGuestResponse.ok) {
+          const errorData = await createGuestResponse.json();
+          resultMessage.textContent = errorData.error || 'ユーザーの作成に失敗しました。';
+          resultMessage.classList.add('error');
+          return;
         }
         
-        // 登録APIを呼び出し（sessionIdを含める）
+        // 登録APIを呼び出し
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...payload,
-            sessionId: sessionId,
           }),
         });
         
@@ -360,61 +324,51 @@
           return;
         }
 
-        // 【新仕様】登録完了後、データベースへの保存を確認してからメッセージを表示
-        // sessionIdは既に269行目で宣言されているため、再宣言しない
+        // 登録完了後、データベースへの保存を確認してからメッセージを表示
         let dbConfirmed = false;
         
-        if (sessionId) {
-            try {
-                // データベースから最新のユーザー情報を取得（会話履歴APIを使用）
-                // これにより、データベースに保存されたことを確認
-                console.log('[register] データベースへの保存を確認中...');
-                const userInfoResponse = await fetch(
-                    `/api/conversation-history?sessionId=${encodeURIComponent(sessionId)}&character=kaede`
-                );
-                if (userInfoResponse.ok) {
-                    const userInfo = await userInfoResponse.json();
-                    // データベースから取得した最新情報をlocalStorageに保存
-                    if (userInfo.nickname) {
-                        localStorage.setItem('userNickname', userInfo.nickname);
-                    }
-                    if (userInfo.birthYear) {
-                        localStorage.setItem('birthYear', String(userInfo.birthYear));
-                    }
-                    if (userInfo.birthMonth) {
-                        localStorage.setItem('birthMonth', String(userInfo.birthMonth));
-                    }
-                    if (userInfo.birthDay) {
-                        localStorage.setItem('birthDay', String(userInfo.birthDay));
-                    }
-                    if (userInfo.assignedDeity) {
-                        localStorage.setItem('assignedDeity', userInfo.assignedDeity);
-                    }
-                    dbConfirmed = true;
-                    console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
-                } else {
-                    // APIエラーの場合は、レスポンスから取得した情報を使用（フォールバック）
-                    localStorage.setItem('userNickname', data.nickname || payload.nickname);
-                    localStorage.setItem('birthYear', String(payload.birthYear));
-                    localStorage.setItem('birthMonth', String(payload.birthMonth));
-                    localStorage.setItem('birthDay', String(payload.birthDay));
-                    console.warn('[register] データベースからの情報取得に失敗。レスポンス情報を使用します');
+        try {
+            // データベースから最新のユーザー情報を取得（会話履歴APIを使用）
+            // これにより、データベースに保存されたことを確認
+            console.log('[register] データベースへの保存を確認中...');
+            const userInfoResponse = await fetch(
+                `/api/conversation-history?nickname=${encodeURIComponent(payload.nickname)}&birthYear=${encodeURIComponent(payload.birthYear)}&birthMonth=${encodeURIComponent(payload.birthMonth)}&birthDay=${encodeURIComponent(payload.birthDay)}&character=kaede`
+            );
+            if (userInfoResponse.ok) {
+                const userInfo = await userInfoResponse.json();
+                // データベースから取得した最新情報をlocalStorageに保存
+                if (userInfo.nickname) {
+                    localStorage.setItem('userNickname', userInfo.nickname);
                 }
-            } catch (error) {
-                // エラーの場合は、レスポンスから取得した情報を使用（フォールバック）
+                if (userInfo.birthYear) {
+                    localStorage.setItem('birthYear', String(userInfo.birthYear));
+                }
+                if (userInfo.birthMonth) {
+                    localStorage.setItem('birthMonth', String(userInfo.birthMonth));
+                }
+                if (userInfo.birthDay) {
+                    localStorage.setItem('birthDay', String(userInfo.birthDay));
+                }
+                if (userInfo.assignedDeity) {
+                    localStorage.setItem('assignedDeity', userInfo.assignedDeity);
+                }
+                dbConfirmed = true;
+                console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
+            } else {
+                // APIエラーの場合は、レスポンスから取得した情報を使用（フォールバック）
                 localStorage.setItem('userNickname', data.nickname || payload.nickname);
                 localStorage.setItem('birthYear', String(payload.birthYear));
                 localStorage.setItem('birthMonth', String(payload.birthMonth));
                 localStorage.setItem('birthDay', String(payload.birthDay));
-                console.error('[register] データベースからの情報取得エラー:', error);
+                console.warn('[register] データベースからの情報取得に失敗。レスポンス情報を使用します');
             }
-        } else {
-            // sessionIdがない場合は、レスポンスから取得した情報を使用（フォールバック）
+        } catch (error) {
+            // エラーの場合は、レスポンスから取得した情報を使用（フォールバック）
             localStorage.setItem('userNickname', data.nickname || payload.nickname);
             localStorage.setItem('birthYear', String(payload.birthYear));
             localStorage.setItem('birthMonth', String(payload.birthMonth));
             localStorage.setItem('birthDay', String(payload.birthDay));
-            console.warn('[register] sessionIdが見つかりません。レスポンス情報を使用します');
+            console.error('[register] データベースからの情報取得エラー:', error);
         }
         
         localStorage.setItem('hasAccount', 'true');

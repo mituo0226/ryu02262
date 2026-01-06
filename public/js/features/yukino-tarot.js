@@ -391,7 +391,6 @@
             }
             
             const character = 'yukino';
-            // 【新仕様】userTokenは不要。session_idで識別する
             
             // メッセージを作成
             const message = `以下のタロットカードについて、詳しく解説してください。
@@ -403,19 +402,7 @@
             
             const payload = { message, character };
             
-            // ゲストメタデータを追加（session_idを含める）
-            const guestSessionId = localStorage.getItem('guestSessionId');
-            if (guestSessionId) {
-                payload.guestMetadata = { sessionId: guestSessionId };
-            } else {
-                // ゲストモード
-                const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                const guestSessionId = sessionStorage.getItem('guestSessionId');
-                payload.guestMetadata = { 
-                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
-                    sessionId: guestSessionId || undefined
-                };
-            }
+            // guestMetadataは削除（session_idが不要になったため）
             
             // API呼び出し
             const response = await fetch('/api/consult', {
@@ -573,7 +560,6 @@
         
         try {
             const character = 'yukino';
-            // 【新仕様】userTokenは不要。session_idで識別する
             
             const cardNames = currentState.cards.map(c => `${c.position}：${c.name}`).join('\n');
             const message = `これまでに見た3枚のタロットカードを総合的に解釈して、まとめの鑑定をお願いします。
@@ -584,18 +570,7 @@ ${cardNames}
             
             const payload = { message, character };
             
-            // ゲストメタデータを追加（session_idを含める）
-            const guestSessionId = localStorage.getItem('guestSessionId') || sessionStorage.getItem('guestSessionId');
-            if (guestSessionId) {
-                payload.guestMetadata = { sessionId: guestSessionId };
-            } else {
-                // ゲストモード（session_idがlocalStorageにない場合）
-                const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                payload.guestMetadata = { 
-                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
-                    sessionId: undefined
-                };
-            }
+            // guestMetadataは削除（session_idが不要になったため）
             
             const response = await fetch('/api/consult', {
                 method: 'POST',
@@ -779,26 +754,13 @@ ${cardNames}
                     // 雪乃専用のシステムメッセージ（タロット占いは雪乃のみが提供する機能）
                     const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
                     
-                    // 【新仕様】userTokenは不要。session_idで識別する
                     // 明示的に雪乃を指定（タロット占いは雪乃専用）
                     const payload = { 
                         message: systemMessage, 
                         character: 'yukino'
                     };
                     
-                    // ゲストメタデータを追加（session_idを含める）
-                    const guestSessionId = localStorage.getItem('guestSessionId');
-                    if (guestSessionId) {
-                        payload.guestMetadata = { sessionId: guestSessionId };
-                    } else {
-                        // ゲストモードの場合、雪乃専用のメッセージカウントを使用
-                        const guestCount = sessionStorage.getItem('guestMessageCount_yukino');
-                        const guestSessionId = localStorage.getItem('guestSessionId') || sessionStorage.getItem('guestSessionId');
-                payload.guestMetadata = { 
-                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
-                    sessionId: guestSessionId || undefined
-                };
-                    }
+                    // guestMetadataは削除（session_idが不要になったため）
                     
                     const response = await fetch('/api/consult', {
                         method: 'POST',
@@ -1170,7 +1132,6 @@ ${cardNames}
             // 会話履歴を取得（ユーザーの相談内容を含む）
             const character = 'yukino';
             
-            // 【新仕様】userTokenは不要。session_idで識別する
             // 会話履歴を取得（API側でデータベースから取得するため、空の配列でOK）
             let conversationHistory = [];
             
@@ -1181,19 +1142,7 @@ ${cardNames}
                 clientHistory: conversationHistory  // 会話履歴を送信
             };
             
-            // ゲストメタデータを追加（session_idを含める）
-            const guestSessionId = localStorage.getItem('guestSessionId');
-            if (guestSessionId) {
-                payload.guestMetadata = { sessionId: guestSessionId };
-            } else {
-                // ゲストモード
-                const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                const guestSessionId = sessionStorage.getItem('guestSessionId');
-                payload.guestMetadata = { 
-                    messageCount: guestCount ? parseInt(guestCount, 10) : 0,
-                    sessionId: guestSessionId || undefined
-                };
-            }
+            // guestMetadataは削除（session_idが不要になったため）
             
             const response = await fetch('/api/consult', {
                 method: 'POST',
