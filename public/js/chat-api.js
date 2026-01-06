@@ -138,10 +138,29 @@ const ChatAPI = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
+                let errorData = {};
+                try {
+                    const responseText = await response.text();
+                    if (responseText) {
+                        errorData = JSON.parse(responseText);
+                    }
+                } catch (e) {
+                    console.error('[ChatAPI] エラーレスポンスの解析に失敗:', e);
+                    errorData = { error: `HTTP ${response.status} エラー` };
+                }
+                
+                const errorMessage = errorData.message || errorData.error || `メッセージの送信に失敗しました (HTTP ${response.status})`;
+                console.error('[ChatAPI] APIエラー詳細:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorData.error,
+                    message: errorData.message,
+                    fullErrorData: errorData
+                });
+                
                 return { 
                     error: errorData.error || 'メッセージの送信に失敗しました',
-                    message: errorData.message || errorData.error || 'メッセージの送信に失敗しました'
+                    message: errorMessage
                 };
             }
 

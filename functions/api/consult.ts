@@ -844,7 +844,7 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // ユーザー情報を取得
     const userId = userRecord.id;
-    user = {
+    const user: { id: number; nickname: string; guardian: string | null } = {
       id: userRecord.id,
       nickname: userRecord.nickname || '',
       guardian: userRecord.guardian,
