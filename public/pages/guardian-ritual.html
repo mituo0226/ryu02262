@@ -907,13 +907,31 @@
           await fadeToChatOverlay();
           console.log('[守護神の儀式] チャット画面にリダイレクト:', postRitualChatUrl);
           try {
-            const url = new URL(postRitualChatUrl, window.location.href);
+            // 相対パスの場合と絶対パスの場合を考慮
+            let targetUrl = postRitualChatUrl;
+            
+            // 相対パスの場合は現在のURLを基準に解決
+            if (!postRitualChatUrl.startsWith('http://') && !postRitualChatUrl.startsWith('https://')) {
+              // 相対パスの場合、現在のディレクトリを基準に解決
+              const baseUrl = new URL(window.location.href);
+              const pathParts = baseUrl.pathname.split('/').slice(0, -1); // 現在のファイル名を除く
+              const targetPath = postRitualChatUrl.startsWith('/') 
+                ? postRitualChatUrl 
+                : pathParts.join('/') + '/' + postRitualChatUrl;
+              targetUrl = new URL(targetPath, baseUrl.origin).toString();
+            }
+            
+            const url = new URL(targetUrl);
             url.searchParams.set('justRegistered', 'true');
             window.location.href = url.toString();
           } catch (error) {
             console.error('[守護神の儀式] URL構築エラー:', error);
+            // フォールバック: シンプルな文字列結合
             const separator = postRitualChatUrl.includes('?') ? '&' : '?';
-            window.location.href = postRitualChatUrl + separator + 'justRegistered=true';
+            const fallbackUrl = postRitualChatUrl.startsWith('/') 
+              ? postRitualChatUrl 
+              : '../chat/chat.html?character=kaede';
+            window.location.href = fallbackUrl + separator + 'justRegistered=true';
           }
           
           // sessionStorageをクリア

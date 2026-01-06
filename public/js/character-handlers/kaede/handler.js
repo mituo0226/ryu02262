@@ -168,18 +168,25 @@ const KaedeHandler = {
 
         // 初回訪問時の処理（ゲストユーザーで会話履歴が空の場合）
         if (isGuestMode && guestHistory.length === 0 && !guardianMessageShown) {
-            console.log('[楓専用処理] 初回訪問：挨拶メッセージを表示し、自動的に守護神の儀式を開始します');
+            console.log('[楓専用処理] 初回訪問：挨拶メッセージを表示し、守護神の儀式への同意ボタンを表示します');
             const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
             const info = ChatData.characterInfo[this.characterId];
             const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
             ChatUI.addMessage('welcome', greetingMessage, info.name);
             
-            // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-            setTimeout(async () => {
-                if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                    await window.ChatInit.startGuardianRitual(this.characterId, null);
+            // メッセージ表示後、少し待ってから同意ボタンを表示
+            setTimeout(() => {
+                const consentContainer = document.getElementById('ritualConsentContainer');
+                const consentQuestion = document.getElementById('ritualConsentQuestion');
+                if (consentContainer && consentQuestion) {
+                    consentQuestion.textContent = '守護神の儀式を始めますか？';
+                    consentContainer.style.display = 'block';
+                    consentContainer.classList.add('visible');
+                    console.log('[楓専用処理] 守護神の儀式への同意ボタンを表示しました');
+                } else {
+                    console.error('[楓専用処理] 同意ボタンの要素が見つかりません');
                 }
-            }, 2000); // 2秒後に儀式を開始
+            }, 2000); // 2秒後に同意ボタンを表示
             
             return { skip: true }; // 初回メッセージは表示済みなので、共通処理をスキップ
         }
