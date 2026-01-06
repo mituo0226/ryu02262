@@ -350,7 +350,7 @@
         }
 
         // 【新仕様】登録完了後、データベースへの保存を確認してからメッセージを表示
-        const sessionId = localStorage.getItem('guestSessionId');
+        // sessionIdは既に269行目で宣言されているため、再宣言しない
         let dbConfirmed = false;
         
         if (sessionId) {
