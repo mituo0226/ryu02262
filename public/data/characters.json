@@ -5,11 +5,7 @@
     "roomHint": "静寂に包まれた霊視交信ルーム",
     "image": "../../photo/kaede.png",
     "profileUrl": "../profiles/kaede.html",
-    "messages": {
-      "returning": "{nickname}さん 再度私の鑑定を受けてくれてありがとうございます。{lastDate}\n\n{conversationContent}\n\nその後、{nickname}さんのことを考えて、また再訪してくれることをとても望んでいましたので、こうして来てくれてこんなに嬉しいことはありません。\n\nこれから先も私との交流を深めてくれることを心より望んでおります。\n\nどのような話でも構いませんので、あなたの今の素直な気持ちを聞かせてください。",
-      "returningLastDateFormat": "前回は{date}でしたね。",
-      "returningConversationFormat": "その時の相談内容は、{content}というものでした。"
-    }
+    "messages": {}
   },
   "yukino": {
     "name": "笹岡雪乃",
