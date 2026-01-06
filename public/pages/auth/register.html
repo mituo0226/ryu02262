@@ -260,11 +260,13 @@
       resultMessage.textContent = '';
       resultMessage.className = 'result-message';
 
+      const genderSelect = document.getElementById('gender');
       const payload = {
         nickname: document.getElementById('nickname').value.trim(),
         birthYear: Number(yearSelect.value),
         birthMonth: Number(monthSelect.value),
         birthDay: Number(daySelect.value),
+        gender: genderSelect ? genderSelect.value : '',
       };
 
       if (!payload.nickname) {
@@ -287,7 +289,7 @@
               birthYear: payload.birthYear,
               birthMonth: payload.birthMonth,
               birthDay: payload.birthDay,
-              gender: '', // 登録画面では性別は未入力
+              gender: payload.gender || '',
               sessionId: null, // 新規作成のためsessionIdは送らない
             }),
           });
@@ -312,7 +314,7 @@
               birthYear: payload.birthYear,
               birthMonth: payload.birthMonth,
               birthDay: payload.birthDay,
-              gender: '', // 登録画面では性別は未入力
+              gender: payload.gender || '',
               sessionId: sessionId, // 既存のsessionIdを送信（二重登録防止）
             }),
           });
