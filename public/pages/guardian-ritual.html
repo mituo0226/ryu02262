@@ -819,9 +819,12 @@
         // 初回登録後かどうかをチェック
         const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
         const justRegistered = sessionStorage.getItem('justRegistered');
-        // 【新仕様】userTokenは不要。session_idで識別する
-        const sessionId = localStorage.getItem('guestSessionId');
-        const isFirstTimeRitual = postRitualChatUrl && justRegistered === 'true' && sessionId;
+        // ユーザー情報が存在するかチェック
+        const hasUserInfo = !!(localStorage.getItem('userNickname') && 
+                              localStorage.getItem('birthYear') && 
+                              localStorage.getItem('birthMonth') && 
+                              localStorage.getItem('birthDay'));
+        const isFirstTimeRitual = postRitualChatUrl && justRegistered === 'true' && hasUserInfo;
 
         // 【重要】守護神が決定した時点ですぐにAPIに送信（バックグラウンド）
         let dbSavePromise = null;

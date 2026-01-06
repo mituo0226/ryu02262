@@ -87,7 +87,7 @@
     <script src="../../js/auth-state.js"></script>
     <script>
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'kaon.html:75',message:'プロフィールページ読み込み',data:{url:window.location.href,search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'kaon.html:75',message:'プロフィールページ読み込み',data:{url:window.location.href,search:window.location.search},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
         // #endregion
         
         // ログイン状態をチェックして「相談する」ボタンのリンクを設定
@@ -198,7 +198,7 @@
         // #region agent log
         document.querySelectorAll('a[href*="back.html"]').forEach((btn) => {
             btn.addEventListener('click', (e) => {
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'kaon.html:click',message:'鑑定に進むボタンクリック',data:{href:btn.href,text:btn.textContent},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'kaon.html:click',message:'鑑定に進むボタンクリック',data:{href:btn.href,text:btn.textContent},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
             });
         });
         // #endregion

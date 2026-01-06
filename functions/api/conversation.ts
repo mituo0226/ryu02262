@@ -1,6 +1,5 @@
 // Cloudflare Pages Functions
 // 会話履歴管理API - メッセージ保存・取得・管理
-// session_idは削除。nickname + 生年月日で識別
 
 const MAX_MESSAGES_PER_CHARACTER = 100;
 

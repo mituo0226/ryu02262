@@ -224,7 +224,6 @@
     registerLink.href = `register.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
 
     window.addEventListener('DOMContentLoaded', () => {
-      // 【新仕様】userTokenは不要。session_idで識別する
       // ログイン画面では常にフォームを表示
     });
 
@@ -260,7 +259,6 @@
           return;
         }
 
-        // 【新仕様】userTokenは不要。session_idで識別する
         localStorage.setItem('userNickname', data.nickname);
         // APIからguardianを取得してassignedDeityとして保存
         if (data.guardian) {

@@ -45,7 +45,6 @@ interface ResponseBody {
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai';
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
-  // guestSessionIdは削除
 }
 
 interface UserRecord {

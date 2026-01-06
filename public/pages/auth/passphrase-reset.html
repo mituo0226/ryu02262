@@ -295,7 +295,6 @@
         passphraseValue.textContent = data.passphrase;
         passphraseDisplay.classList.add('visible');
 
-        // 【新仕様】userTokenは不要。session_idで識別する
         localStorage.setItem('userNickname', data.nickname);
         localStorage.setItem('userPassphrase', data.passphrase);
         localStorage.setItem('hasAccount', 'true');
