@@ -573,7 +573,7 @@
         
         try {
             const character = 'yukino';
-            const userToken = (window.AuthState && typeof window.AuthState.getUserToken === 'function' && window.AuthState.getUserToken()) || localStorage.getItem('userToken');
+            // 【新仕様】userTokenは不要。session_idで識別する
             
             const cardNames = currentState.cards.map(c => `${c.position}：${c.name}`).join('\n');
             const message = `これまでに見た3枚のタロットカードを総合的に解釈して、まとめの鑑定をお願いします。
@@ -584,15 +584,16 @@ ${cardNames}
             
             const payload = { message, character };
             
-            if (userToken) {
-                payload.userToken = userToken;
+            // ゲストメタデータを追加（session_idを含める）
+            const guestSessionId = localStorage.getItem('guestSessionId') || sessionStorage.getItem('guestSessionId');
+            if (guestSessionId) {
+                payload.guestMetadata = { sessionId: guestSessionId };
             } else {
                 // ゲストモード（session_idがlocalStorageにない場合）
                 const guestCount = sessionStorage.getItem(`guestMessageCount_${character}`);
-                const guestSessionId = localStorage.getItem('guestSessionId') || sessionStorage.getItem('guestSessionId');
                 payload.guestMetadata = { 
                     messageCount: guestCount ? parseInt(guestCount, 10) : 0,
-                    sessionId: guestSessionId || undefined
+                    sessionId: undefined
                 };
             }
             
