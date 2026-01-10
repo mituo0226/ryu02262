@@ -129,7 +129,7 @@ const KaedeHandler = {
             }
         }
 
-        // 守護神の儀式開始処理
+        // 守護神の儀式開始処理（historyDataが存在する場合）
         if (historyData) {
             const ritualHandled = await this.handlePostRegistrationRitualStart(
                 this.characterId,
@@ -138,6 +138,15 @@ const KaedeHandler = {
             );
             // handlePostRegistrationRitualStartがtrueを返した場合でも、守護神の確認は続行する
             // （儀式を開始しない場合でも、守護神が未登録なら儀式を開始する必要があるため）
+        } else if (!isGuestMode) {
+            // historyDataが存在しない場合でも、登録済みユーザーの場合は守護神の儀式開始チェックを実行
+            // （historyDataが取得できない場合でも、守護神が未登録なら儀式を開始する必要があるため）
+            // handlePostRegistrationRitualStartにnullを渡すことで、localStorageから守護神を確認する処理を実行
+            const ritualHandled = await this.handlePostRegistrationRitualStart(
+                this.characterId,
+                null,
+                urlParams
+            );
         }
 
         // 守護神が未登録かどうかを確認（ゲストユーザー・登録済みユーザー共通）
@@ -191,22 +200,32 @@ const KaedeHandler = {
             hasAssignedDeity,
             guestHistoryLength: guestHistory.length,
             guardianMessageShown,
-            shouldStartRitual: !hasAssignedDeity && guestHistory.length === 0 && !guardianMessageShown
+            hasHistoryData: !!historyData,
+            shouldStartRitual: !hasAssignedDeity && !guardianMessageShown
         });
         
         // 守護神が未登録の場合、挨拶メッセージを表示し、自動的に儀式を開始
-        if (!hasAssignedDeity && guestHistory.length === 0 && !guardianMessageShown) {
+        // 【重要】会話履歴があっても、守護神が未登録なら儀式を開始する
+        // （会話履歴がある場合は、儀式開始時に会話履歴をデータベースに移行する）
+        if (!hasAssignedDeity && !guardianMessageShown) {
             const userType = isGuestMode ? 'ゲストユーザー' : '登録済みユーザー';
             console.log(`[楓専用処理] ${userType}が楓にアクセス。守護神が未登録のため、挨拶メッセージを表示し、自動的に儀式を開始します。`);
             const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
             const info = ChatData.characterInfo[this.characterId];
-            const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
+            
+            // 会話履歴がある場合は、それを考慮したメッセージを表示
+            const greetingMessage = guestHistory.length > 0
+                ? `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`
+                : `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
             ChatUI.addMessage('welcome', greetingMessage, info.name);
             
             // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
+            // 会話履歴がある場合は、それを守護神の儀式に渡す
             setTimeout(async () => {
                 if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                    await window.ChatInit.startGuardianRitual(this.characterId, null);
+                    // ゲスト履歴がある場合は、それを儀式に渡す
+                    const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
+                    await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
                 }
             }, 2000); // 2秒後に儀式を開始
             

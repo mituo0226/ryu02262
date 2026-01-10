@@ -605,6 +605,32 @@ const ChatInit = {
                 // #endregion
                 ChatData.userNickname = historyData.nickname;
                 
+                // ユーザーデータを更新（会話履歴がある場合でも、生年月日が取得できる場合は更新）
+                if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
+                    ChatUI.updateUserStatus(true, {
+                        nickname: historyData.nickname,
+                        birthYear: historyData.birthYear,
+                        birthMonth: historyData.birthMonth,
+                        birthDay: historyData.birthDay,
+                        assignedDeity: historyData.assignedDeity
+                    });
+                } else if (!isGuestMode) {
+                    // 登録済みユーザーで会話履歴に生年月日がない場合、localStorageから取得
+                    const nickname = localStorage.getItem('userNickname') || historyData.nickname || '鑑定者';
+                    const deity = historyData.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
+                    const birthYear = localStorage.getItem('birthYear');
+                    const birthMonth = localStorage.getItem('birthMonth');
+                    const birthDay = localStorage.getItem('birthDay');
+                    
+                    ChatUI.updateUserStatus(true, {
+                        nickname: nickname,
+                        birthYear: birthYear ? parseInt(birthYear) : null,
+                        birthMonth: birthMonth ? parseInt(birthMonth) : null,
+                        birthDay: birthDay ? parseInt(birthDay) : null,
+                        assignedDeity: deity
+                    });
+                }
+                
                 // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
                 const handler = CharacterRegistry.get(character);
                 console.log('[初期化] ハンドラー取得結果:', {
@@ -654,6 +680,23 @@ const ChatInit = {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐3: historyDataなしまたはnicknameなし',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,isGuestMode},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
+                
+                // 登録済みユーザーの場合、localStorageからユーザー情報を取得して表示
+                if (!isGuestMode) {
+                    const nickname = localStorage.getItem('userNickname') || '鑑定者';
+                    const deity = localStorage.getItem('assignedDeity') || '未割当';
+                    const birthYear = localStorage.getItem('birthYear');
+                    const birthMonth = localStorage.getItem('birthMonth');
+                    const birthDay = localStorage.getItem('birthDay');
+                    
+                    ChatUI.updateUserStatus(true, {
+                        nickname: nickname,
+                        birthYear: birthYear ? parseInt(birthYear) : null,
+                        birthMonth: birthMonth ? parseInt(birthMonth) : null,
+                        birthDay: birthDay ? parseInt(birthDay) : null,
+                        assignedDeity: deity
+                    });
+                }
                 
                 // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
                 const handler = CharacterRegistry.get(character);
