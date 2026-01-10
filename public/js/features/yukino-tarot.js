@@ -432,6 +432,17 @@
             
             const character = 'yukino';
             
+            // ユーザー情報を取得
+            const nickname = localStorage.getItem('userNickname') || '';
+            const birthYear = parseInt(localStorage.getItem('birthYear'), 10);
+            const birthMonth = parseInt(localStorage.getItem('birthMonth'), 10);
+            const birthDay = parseInt(localStorage.getItem('birthDay'), 10);
+            
+            // ユーザー情報の検証
+            if (!nickname || !birthYear || !birthMonth || !birthDay) {
+                throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
+            }
+            
             // メッセージを作成
             const message = `以下のタロットカードについて、詳しく解説してください。
 
@@ -440,8 +451,17 @@
 
 このカードが示す${card.position}の意味、私の状況にどのように関連しているか、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
             
-            const payload = { message, character };
+            // ペイロードを作成（chat-api.jsのsendMessageと同じ形式）
+            const payload = {
+                message,
+                character,
+                nickname,
+                birthYear,
+                birthMonth,
+                birthDay
+            };
             
+            console.log('[タロット解説] APIリクエスト送信:', { character, cardName: card.name, position: card.position });
             
             // API呼び出し
             const response = await fetch('/api/consult', {
@@ -451,10 +471,26 @@
             });
             
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                // エラーレスポンスの詳細を取得
+                let errorMessage = `APIエラー (${response.status})`;
+                try {
+                    const errorText = await response.text();
+                    if (errorText) {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    }
+                } catch (e) {
+                    console.error('[タロット解説] エラーレスポンスの解析に失敗:', e);
+                }
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
+            
+            // エラーレスポンスのチェック
+            if (data.error && !data.message) {
+                throw new Error(data.error || '解説の取得に失敗しました');
+            }
             
             hideLoadingOverlay();
             
@@ -478,7 +514,8 @@
         } catch (error) {
             console.error('[タロット解説] エラー:', error);
             hideLoadingOverlay();
-            alert('解説の取得に失敗しました。もう一度お試しください。');
+            const errorMessage = error instanceof Error ? error.message : '解説の取得に失敗しました。もう一度お試しください。';
+            alert(errorMessage);
         }
     }
 
@@ -600,6 +637,17 @@
         try {
             const character = 'yukino';
             
+            // ユーザー情報を取得
+            const nickname = localStorage.getItem('userNickname') || '';
+            const birthYear = parseInt(localStorage.getItem('birthYear'), 10);
+            const birthMonth = parseInt(localStorage.getItem('birthMonth'), 10);
+            const birthDay = parseInt(localStorage.getItem('birthDay'), 10);
+            
+            // ユーザー情報の検証
+            if (!nickname || !birthYear || !birthMonth || !birthDay) {
+                throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
+            }
+            
             const cardNames = currentState.cards.map(c => `${c.position}：${c.name}`).join('\n');
             const message = `これまでに見た3枚のタロットカードを総合的に解釈して、まとめの鑑定をお願いします。
 
@@ -607,8 +655,17 @@ ${cardNames}
 
 過去、現在、未来の流れを踏まえて、今のあなたへの具体的なアドバイスと励ましの言葉をください。最後に「それでは、もし私に相談したいことがあれば、いつでもどうぞ」と締めくくってください。`;
             
-            const payload = { message, character };
+            // ペイロードを作成（chat-api.jsのsendMessageと同じ形式）
+            const payload = {
+                message,
+                character,
+                nickname,
+                birthYear,
+                birthMonth,
+                birthDay
+            };
             
+            console.log('[タロットまとめ] APIリクエスト送信:', { character, cardCount: currentState.cards.length });
             
             const response = await fetch('/api/consult', {
                 method: 'POST',
@@ -617,10 +674,26 @@ ${cardNames}
             });
             
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                // エラーレスポンスの詳細を取得
+                let errorMessage = `APIエラー (${response.status})`;
+                try {
+                    const errorText = await response.text();
+                    if (errorText) {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    }
+                } catch (e) {
+                    console.error('[タロットまとめ] エラーレスポンスの解析に失敗:', e);
+                }
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
+            
+            // エラーレスポンスのチェック
+            if (data.error && !data.message) {
+                throw new Error(data.error || 'まとめの取得に失敗しました');
+            }
             
             hideLoadingOverlay();
             
@@ -641,7 +714,8 @@ ${cardNames}
         } catch (error) {
             console.error('[タロットまとめ] エラー:', error);
             hideLoadingOverlay();
-            alert('まとめの取得に失敗しました。もう一度お試しください。');
+            const errorMessage = error instanceof Error ? error.message : 'まとめの取得に失敗しました。もう一度お試しください。';
+            alert(errorMessage);
             
             // エラー時も入力欄を有効化
             enableMessageInput();
@@ -1166,19 +1240,30 @@ ${cardNames}
         showLoadingOverlay(`カード「${card.name}」の解説を作成中...`);
         
         try {
-            // 会話履歴を取得（ユーザーの相談内容を含む）
             const character = 'yukino';
             
-            // 会話履歴を取得（API側でデータベースから取得するため、空の配列でOK）
-            let conversationHistory = [];
+            // ユーザー情報を取得
+            const nickname = localStorage.getItem('userNickname') || '';
+            const birthYear = parseInt(localStorage.getItem('birthYear'), 10);
+            const birthMonth = parseInt(localStorage.getItem('birthMonth'), 10);
+            const birthDay = parseInt(localStorage.getItem('birthDay'), 10);
             
-            // リクエストペイロードを作成
+            // ユーザー情報の検証
+            if (!nickname || !birthYear || !birthMonth || !birthDay) {
+                throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
+            }
+            
+            // リクエストペイロードを作成（chat-api.jsのsendMessageと同じ形式）
             const payload = {
                 message: `[TAROT_SINGLE_CARD:${card.name}]`,
                 character: character,
-                clientHistory: conversationHistory  // 会話履歴を送信
+                nickname,
+                birthYear,
+                birthMonth,
+                birthDay
             };
             
+            console.log('[タロット占い] 1枚カード解説APIリクエスト送信:', { character, cardName: card.name });
             
             const response = await fetch('/api/consult', {
                 method: 'POST',
@@ -1187,10 +1272,27 @@ ${cardNames}
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // エラーレスポンスの詳細を取得
+                let errorMessage = `APIエラー (${response.status})`;
+                try {
+                    const errorText = await response.text();
+                    if (errorText) {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    }
+                } catch (e) {
+                    console.error('[タロット占い] エラーレスポンスの解析に失敗:', e);
+                }
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
+            
+            // エラーレスポンスのチェック
+            if (data.error && !data.message) {
+                throw new Error(data.error || 'カードの解説の取得に失敗しました');
+            }
+            
             hideLoadingOverlay();
             
             // 雪乃の解説を表示
@@ -1213,7 +1315,8 @@ ${cardNames}
         } catch (error) {
             console.error('[タロット占い] エラー:', error);
             hideLoadingOverlay();
-            alert('カードの解説の取得に失敗しました。もう一度お試しください。');
+            const errorMessage = error instanceof Error ? error.message : 'カードの解説の取得に失敗しました。もう一度お試しください。';
+            alert(errorMessage);
             enableMessageInput();
         }
     }
