@@ -88,7 +88,11 @@ const CharacterLoader = {
 
             // 4. ハンドラーを初期化して登録
             if (typeof handler.init === 'function') {
-                handler.init(config);
+                // initメソッドが非同期の場合に対応
+                const initResult = handler.init(config);
+                if (initResult instanceof Promise) {
+                    await initResult;
+                }
             }
 
             CharacterRegistry.register(characterId, handler, config);
