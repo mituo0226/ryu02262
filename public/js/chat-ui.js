@@ -189,141 +189,17 @@ const ChatUI = {
 
         this.messagesDiv.appendChild(messageDiv);
         
-        // 雪乃のメッセージに[SUGGEST_TAROT]マーカーが含まれている場合、「タロットカードを引く」ボタンを表示
-        if ((type === 'character' || type === 'assistant') && 
-            ChatData.currentCharacter === 'yukino' && 
-            text.includes('[SUGGEST_TAROT]')) {
-            
-            console.log('[chat-ui] タロット鑑定提案を検出しました');
-            
-            // 安全策：入力欄が無効化されている場合（3枚鑑定中）はスキップ
-            const messageInput = document.getElementById('messageInput');
-            if (messageInput && messageInput.disabled) {
-                console.log('[chat-ui] タロット鑑定中のため、ボタン表示をスキップします');
-                return;
-            }
-            
-            // [SUGGEST_TAROT]マーカーをメッセージから削除
-            const cleanedText = text.replace('[SUGGEST_TAROT]', '');
-            messageDiv.querySelector('.message-text').textContent = cleanedText;
-            
-            // 「タロットカードを引く」ボタンを作成
-            const buttonWrapper = document.createElement('div');
-            buttonWrapper.style.marginTop = '15px';
-            buttonWrapper.style.textAlign = 'center';
-            
-            const tarotButton = document.createElement('button');
-            tarotButton.textContent = 'タロットカードを引く';
-            tarotButton.className = 'tarot-button';
-            tarotButton.style.padding = '12px 30px';
-            tarotButton.style.backgroundColor = '#9370DB';
-            tarotButton.style.color = 'white';
-            tarotButton.style.border = 'none';
-            tarotButton.style.borderRadius = '25px';
-            tarotButton.style.fontSize = '16px';
-            tarotButton.style.cursor = 'pointer';
-            tarotButton.style.boxShadow = '0 2px 8px rgba(147, 112, 219, 0.3)';
-            tarotButton.style.transition = 'all 0.3s ease';
-            
-            tarotButton.addEventListener('mouseover', () => {
-                tarotButton.style.backgroundColor = '#7B68EE';
-                tarotButton.style.transform = 'translateY(-2px)';
-                tarotButton.style.boxShadow = '0 4px 12px rgba(147, 112, 219, 0.4)';
-            });
-            
-            tarotButton.addEventListener('mouseout', () => {
-                tarotButton.style.backgroundColor = '#9370DB';
-                tarotButton.style.transform = 'translateY(0)';
-                tarotButton.style.boxShadow = '0 2px 8px rgba(147, 112, 219, 0.3)';
-            });
-            
-            tarotButton.addEventListener('click', () => {
-                console.log('[chat-ui] タロットカードを引くボタンがクリックされました');
-                
-                // ボタンを無効化（2重クリック防止）
-                tarotButton.disabled = true;
-                tarotButton.textContent = 'カードを準備中...';
-                tarotButton.style.opacity = '0.6';
-                tarotButton.style.cursor = 'not-allowed';
-                
-                // 1枚のカード鑑定を開始
-                if (window.YukinoTarot && typeof window.YukinoTarot.startSingleCard === 'function') {
-                    window.YukinoTarot.startSingleCard();
-                } else {
-                    console.error('[タロット占い] YukinoTarot.startSingleCardが見つかりません');
+        // メッセージ追加後、ハンドラーのコールバックを呼び出す（鑑定士固有の処理を委譲）
+        // これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
+        if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
+            const handler = CharacterRegistry.get(ChatData.currentCharacter);
+            if (handler && typeof handler.onMessageAdded === 'function') {
+                try {
+                    handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
+                } catch (error) {
+                    console.error(`[chat-ui] ハンドラーのonMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
                 }
-            });
-            
-            buttonWrapper.appendChild(tarotButton);
-            messageDiv.appendChild(buttonWrapper);
-        }
-        
-        // 雪乃の初回メッセージの後に「タロット占い開始」ボタンを追加
-        if ((type === 'welcome' || type === 'character') && 
-            ChatData.currentCharacter === 'yukino' && 
-            text.includes('それではまず、過去のカードをめくってみましょう')) {
-            
-            const buttonWrapper = document.createElement('div');
-            buttonWrapper.style.width = '100%';
-            buttonWrapper.style.display = 'flex';
-            buttonWrapper.style.justifyContent = 'center';
-            buttonWrapper.style.marginTop = '16px';
-            buttonWrapper.style.marginBottom = '16px';
-            
-            const startButton = document.createElement('button');
-            startButton.textContent = 'タロット占い開始';
-            startButton.style.padding = '12px 32px';
-            startButton.style.fontSize = '16px';
-            startButton.style.fontWeight = '600';
-            startButton.style.color = '#ffffff';
-            startButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
-            startButton.style.border = '2px solid rgba(138, 43, 226, 1)';
-            startButton.style.borderRadius = '8px';
-            startButton.style.cursor = 'pointer';
-            startButton.style.transition = 'all 0.2s ease';
-            startButton.style.boxShadow = '0 4px 16px rgba(138, 43, 226, 0.4)';
-            
-            startButton.addEventListener('mouseenter', () => {
-                startButton.style.backgroundColor = 'rgba(138, 43, 226, 1)';
-                startButton.style.transform = 'scale(1.05)';
-            });
-            startButton.addEventListener('mouseleave', () => {
-                startButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
-                startButton.style.transform = 'scale(1)';
-            });
-            
-            startButton.addEventListener('click', () => {
-                startButton.disabled = true;
-                startButton.style.opacity = '0.5';
-                startButton.style.cursor = 'not-allowed';
-                
-                // タロット占いを開始
-                if (window.YukinoTarot && typeof window.YukinoTarot.start === 'function') {
-                    window.YukinoTarot.start();
-                } else {
-                    console.error('[タロット占い] YukinoTarot.startが見つかりません');
-                }
-            });
-            
-            buttonWrapper.appendChild(startButton);
-            messageDiv.appendChild(buttonWrapper);
-            
-            // 初回の3枚タロット鑑定が完了するまで、メッセージ入力欄を無効化
-            const messageInput = document.getElementById('messageInput');
-            const sendButton = document.getElementById('sendButton');
-            if (messageInput) {
-                messageInput.disabled = true;
-                messageInput.placeholder = '3枚のタロット鑑定を完了してから相談できます';
-                messageInput.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
-                messageInput.style.cursor = 'not-allowed';
             }
-            if (sendButton) {
-                sendButton.disabled = true;
-                sendButton.style.opacity = '0.5';
-                sendButton.style.cursor = 'not-allowed';
-            }
-            
-            console.log('[chat-ui] 初回タロット鑑定ボタン表示 - 入力欄を無効化しました');
         }
         
         requestAnimationFrame(() => {

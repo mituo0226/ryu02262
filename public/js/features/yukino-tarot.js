@@ -6,6 +6,46 @@
 (function() {
     'use strict';
 
+    /**
+     * タロットカードのCSSスタイルを動的に追加
+     * chat.htmlに直接記述するのではなく、必要な時のみ追加する
+     */
+    function injectTarotStyles() {
+        // 既にスタイルが追加されているかチェック
+        if (document.getElementById('yukino-tarot-styles')) {
+            return;
+        }
+
+        const style = document.createElement('style');
+        style.id = 'yukino-tarot-styles';
+        style.textContent = `
+            /* タロットカード画像のスタイル */
+            .tarot-card-image {
+                width: 80px;
+                height: auto;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+
+            .tarot-card-image:hover {
+                transform: scale(1.1);
+            }
+
+            @media (max-width: 768px) {
+                .tarot-card-image {
+                    width: 60px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        console.log('[タロット機能] CSSスタイルを動的に追加しました');
+    }
+
+    // 初期化時にCSSスタイルを追加
+    injectTarotStyles();
+
     // タロットカード名から画像ファイル名へのマッピング
     const TAROT_CARDS = {
         '愚者': 'The Fool.png',

@@ -736,26 +736,6 @@
             }
         }
 
-        /* タロットカード画像のスタイル */
-        .tarot-card-image {
-            width: 80px;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .tarot-card-image:hover {
-            transform: scale(1.1);
-        }
-
-        @media (max-width: 768px) {
-            .tarot-card-image {
-                width: 60px;
-            }
-        }
-
         /* 守護神の儀式への同意ボタン */
         .ritual-consent-container {
             position: fixed;
@@ -1186,8 +1166,7 @@
            </script>
           <script src="../../js/auth-state.js"></script>
           <script src="../../js/character-features.js"></script>
-          <!-- 笹岡雪乃のタロット機能（雪乃の場合のみ使用） -->
-          <script src="../../js/features/yukino-tarot.js"></script>
+          <!-- 鑑定士固有の機能スクリプトはハンドラーのinit()で動的に読み込まれる -->
           <script src="../../js/chat-api.js"></script>
           <script src="../../js/chat-data.js"></script>
           <script src="../../js/chat-ui.js"></script>
