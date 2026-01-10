@@ -673,13 +673,21 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         const shouldSkipRitual = ritualCompletedCheck === 'true' && sessionStorage.getItem('guardianMessageShown') === 'true';
 
         if (!shouldSkipRitual) {
-            // 【重要】守護神の鑑定を受け入れた場合のみ、儀式を自動開始
+            // 【重要】守護神が未決定（assignedDeityがnull）の場合、自動的に儀式を開始
+            const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
             const acceptedGuardianRitual = sessionStorage.getItem('acceptedGuardianRitual');
+            
             console.log('[楓専用処理] カエデの場合、守護神の儀式を開始するかチェック:', {
+                hasHistoryData: !!historyData,
+                assignedDeity: historyData?.assignedDeity,
+                hasAssignedDeity: hasAssignedDeity,
                 acceptedGuardianRitual: acceptedGuardianRitual
             });
 
-            if (acceptedGuardianRitual !== 'true') {
+            // 守護神が未決定の場合、自動的に儀式を開始
+            if (!hasAssignedDeity) {
+                console.log('[楓専用処理] 守護神が未決定のため、自動的に儀式を開始します');
+            } else if (acceptedGuardianRitual !== 'true') {
                 console.log('[楓専用処理] 守護神の鑑定を受け入れていないため、儀式を自動開始しません');
 
                 // URLパラメータからjustRegisteredを削除
@@ -692,9 +700,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
                 // 登録ユーザーとして通常の会話を続ける
                 return true; // 処理完了（儀式を開始しない）
+            } else {
+                console.log('[楓専用処理] 守護神の鑑定を受け入れているため、儀式を準備します');
             }
-
-            console.log('[楓専用処理] 守護神の鑑定を受け入れているため、儀式を準備します');
 
             // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
             console.log('[楓専用処理] ゲスト履歴取得を開始:', character);
@@ -736,6 +744,37 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
 
             // sessionStorageからも登録完了フラグを削除
             sessionStorage.removeItem('justRegistered');
+
+            // 【重要】守護神が未決定の場合、自動的に儀式を開始
+            if (!hasAssignedDeity) {
+                console.log('[楓専用処理] 守護神が未決定のため、儀式を自動開始します');
+                
+                // 守護神の儀式開始メッセージを表示
+                const characterName = ChatData.characterInfo[character]?.name || '楓';
+                const ritualStartMessage = 'それではこれより守護神のイベントを開始いたします。\n画面が切り替わりますので、儀式を体験してください。';
+                
+                ChatUI.addMessage('character', ritualStartMessage, characterName);
+                
+                // DOM更新を待つ
+                await new Promise(resolve => requestAnimationFrame(() => {
+                    requestAnimationFrame(resolve);
+                }));
+                
+                // スクロールしてメッセージを表示
+                ChatUI.scrollToLatest();
+                
+                // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待つ
+                
+                // guardian-ritual.htmlに遷移
+                const currentChatUrl = window.location.href;
+                sessionStorage.setItem('postRitualChatUrl', currentChatUrl);
+                
+                console.log('[楓専用処理] guardian-ritual.htmlに遷移:', currentChatUrl);
+                window.location.href = '../guardian-ritual.html';
+                
+                return true; // 処理完了（遷移するため、以降の処理は実行されない）
+            }
 
             return true; // 処理完了（儀式準備完了）
         } else {
