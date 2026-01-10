@@ -1339,6 +1339,9 @@ ${cardNames}
                 throw new Error(data.error || 'カードの解説の取得に失敗しました');
             }
             
+            // タイマーをクリア（APIレスポンスが返ってきたら即座に非表示）
+            clearTimeout(message2Timeout);
+            clearTimeout(message3Timeout);
             hideLoadingOverlay();
             
             // 雪乃の解説を表示
@@ -1359,6 +1362,9 @@ ${cardNames}
             enableMessageInput();
             
         } catch (error) {
+            // タイマーをクリア（エラー時もクリア）
+            clearTimeout(message2Timeout);
+            clearTimeout(message3Timeout);
             console.error('[タロット占い] エラー:', error);
             hideLoadingOverlay();
             const errorMessage = error instanceof Error ? error.message : 'カードの解説の取得に失敗しました。もう一度お試しください。';
