@@ -422,7 +422,24 @@
      * AI解説をリクエスト
      */
     async function requestExplanation(card) {
-        showLoadingOverlay(`${card.position}のカード「${card.name}」を解説中...`);
+        // 最初のメッセージを表示
+        showLoadingOverlay('タロットを引いています');
+        
+        // 10秒後に2番目のメッセージに更新
+        const message2Timeout = setTimeout(() => {
+            const loadingText = document.getElementById('yukinoTarotLoadingText');
+            if (loadingText) {
+                loadingText.textContent = 'タロットの鑑定をしています';
+            }
+        }, 10000);
+        
+        // 20秒後に3番目のメッセージに更新
+        const message3Timeout = setTimeout(() => {
+            const loadingText = document.getElementById('yukinoTarotLoadingText');
+            if (loadingText) {
+                loadingText.textContent = '鑑定結果を書込んでいます';
+            }
+        }, 20000);
         
         try {
             // AuthStateの初期化
@@ -492,6 +509,9 @@
                 throw new Error(data.error || '解説の取得に失敗しました');
             }
             
+            // タイマーをクリア（APIレスポンスが返ってきたら即座に非表示）
+            clearTimeout(message2Timeout);
+            clearTimeout(message3Timeout);
             hideLoadingOverlay();
             
             // AI応答を表示
@@ -512,6 +532,9 @@
             }, 500);
             
         } catch (error) {
+            // タイマーをクリア（エラー時もクリア）
+            clearTimeout(message2Timeout);
+            clearTimeout(message3Timeout);
             console.error('[タロット解説] エラー:', error);
             hideLoadingOverlay();
             const errorMessage = error instanceof Error ? error.message : '解説の取得に失敗しました。もう一度お試しください。';
@@ -616,23 +639,23 @@
      */
     async function requestSummary() {
         // 最初のメッセージを表示
-        showLoadingOverlay('3枚のカードのまとめを雪乃が鑑定しています');
+        showLoadingOverlay('タロットを引いています');
         
-        // 3.5秒後に2番目のメッセージに更新（最初のメッセージを3.5秒表示）
-        setTimeout(() => {
+        // 10秒後に2番目のメッセージに更新
+        const message2Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = 'メッセージを入力中です。';
+                loadingText.textContent = 'タロットの鑑定をしています';
             }
-        }, 3500);
+        }, 10000);
         
-        // 8秒後に3番目のメッセージに更新（2番目のメッセージを4.5秒表示）
-        setTimeout(() => {
+        // 20秒後に3番目のメッセージに更新
+        const message3Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = 'もうすぐメッセージが届きますからお待ちくださいね。';
+                loadingText.textContent = '鑑定結果を書込んでいます';
             }
-        }, 8000);
+        }, 20000);
         
         try {
             const character = 'yukino';
@@ -695,6 +718,9 @@ ${cardNames}
                 throw new Error(data.error || 'まとめの取得に失敗しました');
             }
             
+            // タイマーをクリア（APIレスポンスが返ってきたら即座に非表示）
+            clearTimeout(message2Timeout);
+            clearTimeout(message3Timeout);
             hideLoadingOverlay();
             
             if (window.ChatUI && window.ChatUI.addMessage) {
@@ -712,6 +738,9 @@ ${cardNames}
             await sendCompletionMessages(character);
             
         } catch (error) {
+            // タイマーをクリア（エラー時もクリア）
+            clearTimeout(message2Timeout);
+            clearTimeout(message3Timeout);
             console.error('[タロットまとめ] エラー:', error);
             hideLoadingOverlay();
             const errorMessage = error instanceof Error ? error.message : 'まとめの取得に失敗しました。もう一度お試しください。';
@@ -1237,7 +1266,24 @@ ${cardNames}
     async function requestSingleCardExplanation(card) {
         console.log('[タロット占い] 1枚のカード解説をリクエスト:', card.name);
         
-        showLoadingOverlay(`カード「${card.name}」の解説を作成中...`);
+        // 最初のメッセージを表示
+        showLoadingOverlay('タロットを引いています');
+        
+        // 10秒後に2番目のメッセージに更新
+        const message2Timeout = setTimeout(() => {
+            const loadingText = document.getElementById('yukinoTarotLoadingText');
+            if (loadingText) {
+                loadingText.textContent = 'タロットの鑑定をしています';
+            }
+        }, 10000);
+        
+        // 20秒後に3番目のメッセージに更新
+        const message3Timeout = setTimeout(() => {
+            const loadingText = document.getElementById('yukinoTarotLoadingText');
+            if (loadingText) {
+                loadingText.textContent = '鑑定結果を書込んでいます';
+            }
+        }, 20000);
         
         try {
             const character = 'yukino';
