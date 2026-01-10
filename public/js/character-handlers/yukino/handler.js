@@ -14,12 +14,20 @@ const YukinoHandler = {
     async init() {
         console.log('[雪乃ハンドラー] 初期化');
         
-        // タロット機能スクリプトを動的に読み込む（必要な時のみ読み込む）
-        await this.loadTarotScript();
-        
-        // タロット機能の初期化
-        if (window.YukinoTarot && typeof window.YukinoTarot.init === 'function') {
-            window.YukinoTarot.init();
+        try {
+            // タロット機能スクリプトを動的に読み込む（必要な時のみ読み込む）
+            console.log('[雪乃ハンドラー] loadTarotScript()を呼び出します');
+            await this.loadTarotScript();
+            console.log('[雪乃ハンドラー] loadTarotScript()完了');
+            
+            // タロット機能の初期化
+            if (window.YukinoTarot && typeof window.YukinoTarot.init === 'function') {
+                window.YukinoTarot.init();
+            } else {
+                console.warn('[雪乃ハンドラー] YukinoTarotが読み込まれていません');
+            }
+        } catch (error) {
+            console.error('[雪乃ハンドラー] init()でエラーが発生しました:', error);
         }
         
         // ゲストモード再訪問のチェック
