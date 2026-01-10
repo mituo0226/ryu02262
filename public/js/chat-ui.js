@@ -238,9 +238,10 @@ const ChatUI = {
     },
 
     /**
-     * 守護神の儀式への同意ボタンを表示
+     * 守護神の儀式への同意ボタンを表示（汎用関数）
+     * 注意: キャラクター固有のロジックはハンドラー側で処理されます
      */
-    showRitualConsentButtons() {
+    showRitualConsentButtons(questionText = '守護神の儀式を始めますか？') {
         // 既に表示されている、または一度表示された場合は表示しない
         if (ChatData.ritualConsentShown) {
             return;
@@ -255,17 +256,8 @@ const ChatUI = {
                 return;
             }
             
-            // キャラクターに応じてメッセージを変更
+            // 質問テキストを設定（ハンドラーから渡されたテキストを使用）
             if (ritualConsentQuestion) {
-                const currentCharacter = ChatData.currentCharacter;
-                let questionText = '守護神の儀式を始めますか？'; // デフォルト（楓用）
-                
-                if (currentCharacter === 'yukino') {
-                    questionText = 'ユーザー登録を進めますか？';
-                } else if (currentCharacter === 'kaede') {
-                    questionText = '守護神の儀式を始めますか？';
-                }
-                
                 ritualConsentQuestion.textContent = questionText;
             }
             
@@ -397,39 +389,12 @@ const ChatUI = {
 
     /**
      * 守護神の儀式開始ボタンを再表示（メッセージ送信時に呼ばれる）
+     * 注意: この関数は削除されました。必要に応じてハンドラー側で処理してください。
+     * @deprecated この関数は削除されました。ハンドラー側で処理してください。
      */
     showRitualStartPrompt() {
-        // 「まずは守護神の儀式を始めてください」メッセージを表示
-        ChatUI.addMessage('error', 'まずは守護神の儀式を始めてください。上の「守護神の儀式を始める」ボタンを押してください。', 'システム');
-        
-        // 「それでは守護神の儀式を始めます」というメッセージを探して、ボタンを再表示
-        const messages = document.querySelectorAll('#messages .message.character');
-        for (let i = messages.length - 1; i >= 0; i--) {
-            const message = messages[i];
-            if (message.textContent.includes('それでは守護神の儀式を始めます')) {
-                // 既にボタンがあるかチェック
-                const existingButton = message.querySelector('.ritual-start-button');
-                if (existingButton) {
-                    // ボタンが非表示になっている場合は再表示
-                    const buttonStyle = window.getComputedStyle(existingButton);
-                    if (buttonStyle.display === 'none') {
-                        existingButton.style.display = '';
-                        const container = existingButton.closest('.ritual-start-button-container');
-                        if (container) {
-                            container.style.display = '';
-                        }
-                        console.log('[守護神の儀式] 既存のボタンを再表示しました');
-                    }
-                } else {
-                    // ボタンが存在しない場合は、グローバルに公開された関数を使用して追加
-                    console.log('[守護神の儀式] ボタンを新規追加します');
-                    if (window.ChatInit && typeof window.ChatInit.addRitualStartButtonToMessage === 'function') {
-                        window.ChatInit.addRitualStartButtonToMessage(message);
-                    }
-                }
-                break;
-            }
-        }
+        // この関数は削除されました。ハンドラー側で処理してください。
+        console.warn('[chat-ui] showRitualStartPrompt()は削除されました。ハンドラー側で処理してください。');
     }
 };
 

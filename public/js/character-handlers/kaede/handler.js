@@ -36,7 +36,17 @@ const KaedeHandler = {
      */
     init() {
         console.log('[楓ハンドラー] 初期化');
-        // 特に初期化処理なし（守護神の儀式は動的に開始）
+        
+        // HTMLの同意ボタンにイベントリスナーを設定
+        // DOMContentLoadedイベントで実行（HTMLが完全に読み込まれた後に実行）
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.initRitualConsentButtons();
+            });
+        } else {
+            // 既に読み込み完了している場合は即座に実行
+            this.initRitualConsentButtons();
+        }
     },
 
     // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
@@ -900,10 +910,87 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         }, 500); // メッセージが完全に表示されるまで少し待つ
 
         return true; // ボタンが追加された
+    },
+
+    /**
+     * 初期化時にHTMLの同意ボタンにイベントリスナーを設定
+     */
+    initRitualConsentButtons() {
+        const ritualYesButton = document.getElementById('ritualYesButton');
+        const ritualNoButton = document.getElementById('ritualNoButton');
+        
+        if (ritualYesButton) {
+            // 既存のイベントリスナーを削除
+            ritualYesButton.replaceWith(ritualYesButton.cloneNode(true));
+            const newYesButton = document.getElementById('ritualYesButton');
+            newYesButton.addEventListener('click', () => {
+                this.handleRitualConsent(true);
+            });
+        }
+        
+        if (ritualNoButton) {
+            // 既存のイベントリスナーを削除
+            ritualNoButton.replaceWith(ritualNoButton.cloneNode(true));
+            const newNoButton = document.getElementById('ritualNoButton');
+            newNoButton.addEventListener('click', () => {
+                this.handleRitualConsent(false);
+            });
+        }
+    },
+
+    /**
+     * 管理者用の守護神の儀式再発動ボタンの処理
+     */
+    async handleAdminRitualButton() {
+        const character = ChatData?.currentCharacter || 'unknown';
+        const isRegistered = window.AuthState?.isRegistered() || false;
+        
+        if (!isRegistered) {
+            alert('守護神の儀式は登録済みユーザーのみ利用できます。');
+            return;
+        }
+        
+        if (character !== 'kaede') {
+            alert('守護神の儀式は楓（カエデ）のみ利用できます。');
+            return;
+        }
+        
+        if (!confirm('守護神の儀式を再発動しますか？\n\n現在の会話履歴を使って、儀式を再度開始します。')) {
+            return;
+        }
+        
+        const ritualBtn = document.getElementById('adminRitualButton');
+        if (ritualBtn) {
+            ritualBtn.disabled = true;
+            ritualBtn.textContent = '発動中...';
+        }
+        
+        try {
+            // 「それでは守護神の儀式を始めます」というメッセージを表示
+            const ritualStartMessage = 'それでは守護神の儀式を始めます';
+            ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
+            
+            // 1秒待機後、守護神の儀式を開始
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 登録済みユーザーの場合、会話履歴はAPIから取得されるため、nullを渡す
+            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                await window.ChatInit.startGuardianRitual(character, null);
+            } else {
+                alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
+            }
+        } catch (error) {
+            console.error('[管理者モード] 守護神の儀式再発動エラー:', error);
+            alert('守護神の儀式の開始に失敗しました: ' + error.message);
+        } finally {
+            if (ritualBtn) {
+                ritualBtn.disabled = false;
+                ritualBtn.textContent = '🔮 守護神の儀式を再発動';
+            }
+        }
     }
 };
 
-// グローバルスコープに公開
 // グローバルスコープに公開
 window.KaedeHandler = KaedeHandler;
 

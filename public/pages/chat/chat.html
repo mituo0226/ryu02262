@@ -943,13 +943,14 @@
             <div class="messages" id="messages"></div>
 
             <!-- 守護神の儀式への同意ボタン（フェードインで表示） -->
+            <!-- 注意: イベントリスナーはハンドラー側で動的に設定されます -->
             <div class="ritual-consent-container" id="ritualConsentContainer" style="display: none;">
                 <div class="ritual-consent-question" id="ritualConsentQuestion">守護神の儀式を始めますか？</div>
                 <div class="ritual-consent-buttons">
-                    <button class="ritual-consent-button" id="ritualYesButton" onclick="handleRitualConsent(true)">
+                    <button class="ritual-consent-button" id="ritualYesButton">
                         はい
                     </button>
-                    <button class="ritual-consent-button no" id="ritualNoButton" onclick="handleRitualConsent(false)">
+                    <button class="ritual-consent-button no" id="ritualNoButton">
                         いいえ
                     </button>
                 </div>
@@ -1478,54 +1479,16 @@
                    }
                    
                    // 守護神の儀式を再発動するボタンのイベントリスナー
+                   // 注意: イベントリスナーはハンドラー側で動的に設定されます（楓専用）
                    const ritualBtn = document.getElementById('adminRitualButton');
-                   if (ritualBtn) {
+                   if (ritualBtn && character === 'kaede') {
                        ritualBtn.addEventListener('click', async () => {
-                           const character = ChatData?.currentCharacter || 'unknown';
-                           const isRegistered = window.AuthState?.isRegistered() || false;
-                           
-                           if (!isRegistered) {
-                               alert('守護神の儀式は登録済みユーザーのみ利用できます。');
-                               return;
-                           }
-                           
-                           if (character !== 'kaede') {
-                               alert('守護神の儀式は楓（カエデ）のみ利用できます。');
-                               return;
-                           }
-                           
-                           if (!confirm('守護神の儀式を再発動しますか？\n\n現在の会話履歴を使って、儀式を再度開始します。')) {
-                               return;
-                           }
-                           
-                           ritualBtn.disabled = true;
-                           ritualBtn.textContent = '発動中...';
-                           
-                           try {
-                               // 「それでは守護神の儀式を始めます」というメッセージを表示
-                               const ritualStartMessage = 'それでは守護神の儀式を始めます';
-                               ChatUI.addMessage('character', ritualStartMessage, ChatData.characterInfo[character].name);
-                               
-                               // 1秒待機後、守護神の儀式を開始
-                               await new Promise(resolve => setTimeout(resolve, 1000));
-                               
-                               // 登録済みユーザーの場合、会話履歴はAPIから取得されるため、nullを渡す
-                               if (ChatInit && typeof ChatInit.startGuardianRitual === 'function') {
-                                   await ChatInit.startGuardianRitual(character, null);
-                               } else {
-                                   alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
-                               }
-                               
-                               // 分析パネルを更新
-                               setTimeout(() => {
-                                   updateAdminAnalysisPanel();
-                               }, 2000);
-                           } catch (error) {
-                               console.error('[管理者モード] 守護神の儀式再発動エラー:', error);
-                               alert('守護神の儀式の開始に失敗しました: ' + error.message);
-                           } finally {
-                               ritualBtn.disabled = false;
-                               ritualBtn.textContent = '🔮 守護神の儀式を再発動';
+                           // ハンドラー側で処理を実行
+                           const handler = window.CharacterRegistry?.get(character);
+                           if (handler && typeof handler.handleAdminRitualButton === 'function') {
+                               await handler.handleAdminRitualButton();
+                           } else {
+                               alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
                            }
                        });
                    }
