@@ -8,6 +8,7 @@ interface RegisterRequestBody {
 interface RegisterResponseBody {
   nickname: string;
   message: string;
+  warning?: boolean; // 警告フラグ（ニックネーム重複時）
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -39,19 +40,37 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response(JSON.stringify({ error: 'nickname cannot be empty' }), { status: 400, headers });
     }
 
-    const existingUser = await env.DB.prepare<{ id: number; nickname: string }>(
-      'SELECT id, nickname FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
+    // まず、ニックネーム・生年月日の完全一致をチェック
+    const existingUser = await env.DB.prepare<{ id: number; nickname: string; birth_year: number; birth_month: number; birth_day: number }>(
+      'SELECT id, nickname, birth_year, birth_month, birth_day FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )
       .bind(trimmedNickname, birthYear, birthMonth, birthDay)
       .first();
 
     if (existingUser) {
-      // 既存ユーザーが見つかった場合、成功レスポンスを返す
+      // 完全一致する既存ユーザーが見つかった場合、成功レスポンスを返す
       const responseBody: RegisterResponseBody = {
         nickname: existingUser.nickname,
         message: '登録が完了しました。',
       };
       return new Response(JSON.stringify(responseBody), { status: 200, headers });
+    }
+
+    // ニックネームだけの重複チェック（生年月日が異なる場合）
+    const duplicateNickname = await env.DB.prepare<{ id: number; nickname: string; birth_year: number; birth_month: number; birth_day: number }>(
+      'SELECT id, nickname, birth_year, birth_month, birth_day FROM users WHERE nickname = ?'
+    )
+      .bind(trimmedNickname)
+      .first();
+
+    if (duplicateNickname) {
+      // ニックネームが重複しているが、生年月日が異なる場合、警告メッセージを返す
+      const responseBody: RegisterResponseBody = {
+        nickname: duplicateNickname.nickname,
+        message: `「${trimmedNickname}」というニックネームは既に使用されています。別のニックネームをご使用ください。`,
+        warning: true, // 警告フラグ
+      };
+      return new Response(JSON.stringify(responseBody), { status: 409, headers }); // 409 Conflict
     }
 
     // 既存ユーザーが見つからない場合は、新規ユーザーを作成
@@ -91,8 +110,23 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify(responseBody), { status: 201, headers });
   } catch (error) {
     console.error('[register] 予期しないエラー:', error);
+    
+    // データベースエラーの詳細を確認
+    let errorMessage = 'ユーザー登録中にエラーが発生しました。';
+    if (error instanceof Error) {
+      // UNIQUE制約違反の場合の処理
+      if (error.message.includes('UNIQUE constraint') || error.message.includes('UNIQUE constraint failed')) {
+        errorMessage = 'このニックネームは既に使用されています。別のニックネームをご使用ください。';
+        return new Response(
+          JSON.stringify({ error: errorMessage, warning: true }),
+          { status: 409, headers } // 409 Conflict
+        );
+      }
+      console.error('[register] エラー詳細:', error.message);
+    }
+    
     return new Response(
-      JSON.stringify({ error: 'ユーザー登録中にエラーが発生しました。' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers }
     );
   }

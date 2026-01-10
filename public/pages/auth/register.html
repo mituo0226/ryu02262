@@ -105,6 +105,11 @@
     .result-message.error {
       color: #ffb5b5;
     }
+    .result-message.warning {
+      color: #ffd966;
+      background: rgba(255, 217, 102, 0.15);
+      border: 1px solid rgba(255, 217, 102, 0.4);
+    }
     .switch-link {
       margin-top: 20px;
       text-align: center;
@@ -333,6 +338,13 @@
         const data = await response.json();
 
         if (!response.ok) {
+          // 409 Conflict（ニックネーム重複）の場合は警告として表示
+          if (response.status === 409) {
+            resultMessage.textContent = data.message || data.error || 'このニックネームは既に使用されています。別のニックネームをご使用ください。';
+            resultMessage.classList.add('warning');
+            return;
+          }
+          // その他のエラーは通常のエラーとして表示
           resultMessage.textContent = data.error || '登録に失敗しました。';
           resultMessage.classList.add('error');
           return;
