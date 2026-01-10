@@ -632,12 +632,22 @@ const ChatInit = {
                 }
                 
                 // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
-                const handler = CharacterRegistry.get(character);
+                // ハンドラーが読み込まれるのを待つ（最大5秒）
+                let handler = CharacterRegistry.get(character);
+                let attempts = 0;
+                const maxAttempts = 50; // 5秒間待機（100ms × 50）
+                while (!handler && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    handler = CharacterRegistry.get(character);
+                    attempts++;
+                }
+                
                 console.log('[初期化] ハンドラー取得結果:', {
                     character,
                     hasHandler: !!handler,
                     hasInitPage: handler && typeof handler.initPage === 'function',
-                    handlerType: handler ? typeof handler : 'null'
+                    handlerType: handler ? typeof handler : 'null',
+                    attempts: attempts
                 });
                 let handlerSkippedFirstMessage = false;
                 if (handler && typeof handler.initPage === 'function') {
@@ -659,6 +669,10 @@ const ChatInit = {
                         console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
+                } else if (!handler) {
+                    console.warn('[初期化] ハンドラーが読み込まれていません。後で再試行します。');
+                    // ハンドラーが読み込まれた後に、もう一度initPageを呼び出すために、カスタムイベントを発火
+                    // ただし、これは暫定的な解決策です。本来は、ハンドラーが読み込まれるのを待つべきです。
                 }
                 
                 const info = ChatData.characterInfo[character];

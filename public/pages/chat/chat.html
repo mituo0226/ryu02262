@@ -1478,20 +1478,24 @@
                        });
                    }
                    
-                   // 守護神の儀式を再発動するボタンのイベントリスナー
-                   // 注意: イベントリスナーはハンドラー側で動的に設定されます（楓専用）
-                   const ritualBtn = document.getElementById('adminRitualButton');
-                   if (ritualBtn && character === 'kaede') {
-                       ritualBtn.addEventListener('click', async () => {
-                           // ハンドラー側で処理を実行
-                           const handler = window.CharacterRegistry?.get(character);
-                           if (handler && typeof handler.handleAdminRitualButton === 'function') {
-                               await handler.handleAdminRitualButton();
-                           } else {
-                               alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
-                           }
-                       });
-                   }
+                  // 守護神の儀式を再発動するボタンのイベントリスナー
+                  // 注意: イベントリスナーはハンドラー側で動的に設定されます（楓専用）
+                  const ritualBtn = document.getElementById('adminRitualButton');
+                  if (ritualBtn) {
+                      // character変数を取得（管理者モードの初期化コード内で使用）
+                      const currentCharacter = ChatData?.currentCharacter || urlParams.get('character') || 'unknown';
+                      if (currentCharacter === 'kaede') {
+                          ritualBtn.addEventListener('click', async () => {
+                              // ハンドラー側で処理を実行
+                              const handler = window.CharacterRegistry?.get(currentCharacter);
+                              if (handler && typeof handler.handleAdminRitualButton === 'function') {
+                                  await handler.handleAdminRitualButton();
+                              } else {
+                                  alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
+                              }
+                          });
+                      }
+                  }
                
                // メッセージ送信時に分析パネルを更新（カスタムイベントを監視）
                document.addEventListener('adminPanelUpdate', () => {
