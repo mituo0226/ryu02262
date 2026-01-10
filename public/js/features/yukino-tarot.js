@@ -1178,8 +1178,23 @@ ${cardNames}
         }
     }
 
+    /**
+     * 初期化処理（ハンドラーから呼び出される）
+     */
+    function initTarot() {
+        console.log('[タロット機能] 初期化処理を実行');
+        // 特に初期化処理は不要（状態は必要に応じてリセットされる）
+        currentState = {
+            phase: null,
+            cards: [],
+            isCardFlipped: false,
+            isExplanationShown: false
+        };
+    }
+
     // グローバルに公開
     window.YukinoTarot = {
+        init: initTarot,
         start: startTarotReading,
         startSingleCard: startSingleCardReading
     };
