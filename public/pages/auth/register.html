@@ -54,9 +54,20 @@
       color: #fff;
       font-size: 16px;
     }
+    select {
+      appearance: auto;
+      -webkit-appearance: menulist;
+      -moz-appearance: menulist;
+      cursor: pointer;
+    }
     option {
       color: #111;
       background: #fff;
+      padding: 8px;
+    }
+    select:focus option:checked {
+      background: rgba(138, 43, 226, 0.8);
+      color: #fff;
     }
     input:focus, select:focus {
       outline: none;
