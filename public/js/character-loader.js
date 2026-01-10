@@ -130,7 +130,11 @@ const CharacterLoader = {
             };
 
             if (typeof handler.init === 'function') {
-                handler.init(defaultConfig);
+                // initメソッドが非同期の場合に対応
+                const initResult = handler.init(defaultConfig);
+                if (initResult instanceof Promise) {
+                    await initResult;
+                }
             }
 
             CharacterRegistry.register(characterId, handler, defaultConfig);
