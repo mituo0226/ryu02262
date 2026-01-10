@@ -713,14 +713,28 @@ const ChatInit = {
                 }
                 
                 // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
-                const handler = CharacterRegistry.get(character);
+                // ハンドラーが読み込まれるのを待つ（最大5秒）
+                let handler = CharacterRegistry.get(character);
+                let attempts = 0;
+                const maxAttempts = 50; // 5秒間待機（100ms × 50）
+                while (!handler && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    handler = CharacterRegistry.get(character);
+                    attempts++;
+                }
+                
                 let handlerSkippedFirstMessage = false;
                 if (handler && typeof handler.initPage === 'function') {
+                    console.log('[初期化] ハンドラーのinitPageを呼び出します（historyDataなし）:', character);
                     // historyDataが取得できなかった場合でも、ハンドラーにnullを渡して処理を委譲
                     const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
                         isGuestMode,
                         guestHistory,
                         guardianMessageShown
+                    });
+                    console.log('[初期化] ハンドラーのinitPage呼び出し完了（historyDataなし）:', {
+                        character,
+                        result: handlerResult
                     });
                     if (handlerResult && handlerResult.completed) {
                         console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
@@ -730,6 +744,8 @@ const ChatInit = {
                         console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
+                } else if (!handler) {
+                    console.warn('[初期化] ハンドラーが読み込まれていません（historyDataなし）。後で再試行します。');
                 }
                 
                 const info = ChatData.characterInfo[character];
