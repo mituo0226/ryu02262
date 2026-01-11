@@ -221,6 +221,15 @@ const ChatUI = {
     },
 
     /**
+     * メッセージをすべてクリア
+     */
+    clearMessages() {
+        if (!this.messagesDiv) return;
+        this.messagesDiv.innerHTML = '';
+        console.log('[ChatUI] メッセージをクリアしました');
+    },
+
+    /**
      * 送信ボタンの表示/非表示を更新
      * 【重要】入力欄に文字が入力された時、いかなる場合でも送信ボタンが表示される
      */

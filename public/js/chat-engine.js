@@ -61,12 +61,15 @@ const ChatInit = {
         // キャラクターを設定
         const character = ChatData.getCharacterFromURL();
         
+        // 以前のキャラクターを保存（キャラクター切り替え判定用）
+        const previousCharacter = ChatData.currentCharacter;
+        
         // #region agent log
         console.log('🔍🔍🔍 [キャラクター初期化]', {
             URLから取得: character,
             現在のURL: window.location.href,
             URLSearchParams: Object.fromEntries(new URLSearchParams(window.location.search)),
-            以前のcurrentCharacter: ChatData.currentCharacter,
+            以前のcurrentCharacter: previousCharacter,
             sessionStorage_kaede履歴: sessionStorage.getItem('guestConversationHistory_kaede') ? 'あり' : 'なし',
             sessionStorage_yukino履歴: sessionStorage.getItem('guestConversationHistory_yukino') ? 'あり' : 'なし'
         });
@@ -335,6 +338,17 @@ const ChatInit = {
         }
         
         try {
+            // キャラクターが切り替わった場合、以前のキャラクターのメッセージをクリア
+            if (previousCharacter && previousCharacter !== character) {
+                console.log('[初期化] キャラクターが切り替わりました。以前のメッセージをクリアします:', {
+                    previousCharacter,
+                    newCharacter: character
+                });
+                if (ChatUI && typeof ChatUI.clearMessages === 'function') {
+                    ChatUI.clearMessages();
+                }
+            }
+            
             // 守護神の儀式完了直後のフラグを事前にチェック
             const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
             
