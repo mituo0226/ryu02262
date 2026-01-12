@@ -1016,7 +1016,8 @@
                'use strict';
                
                // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
-               function initEntryForm() {
+               // 【変更】非同期関数に変更して、会話履歴の読み込みを待つ
+               async function initEntryForm() {
                    const entryFormContainer = document.getElementById('entryFormContainer');
                    const chatContainer = document.getElementById('chatContainer');
                    const entryForm = document.getElementById('entryForm');
@@ -1028,13 +1029,6 @@
                        return;
                    }
                    
-                   // 登録ユーザーの場合は入口フォームをスキップ
-                   // ユーザー情報が存在するかチェック
-                   const hasUserInfo = !!(localStorage.getItem('userNickname') && 
-                                         localStorage.getItem('birthYear') && 
-                                         localStorage.getItem('birthMonth') && 
-                                         localStorage.getItem('birthDay'));
-                   
                    // 待機画面を非表示にする
                    const waitingOverlay = document.getElementById('waitingOverlay');
                    if (waitingOverlay) {
@@ -1042,17 +1036,54 @@
                        console.log('[入口フォーム] 待機画面を非表示にしました');
                    }
                    
-                   if (hasUserInfo) {
-                       console.log('[入口フォーム] ユーザー情報が存在するため、チャット画面を表示します');
+                   // 【変更】データベースからユーザー情報を取得（会話履歴の読み込みを待つ）
+                   // URLパラメータからcharacterを取得
+                   const urlParams = new URLSearchParams(window.location.search);
+                   const character = urlParams.get('character') || 'kaede';
+                   
+                   try {
+                       // 会話履歴APIを呼び出してユーザー情報を確認
+                       // ただし、この時点ではユーザー情報が分からないため、まずはチャット画面を表示して、
+                       // 会話履歴の読み込み時に判定する
+                       // もし会話履歴が存在しない場合は、入口フォームを表示する
+                       
+                       // 一時的にチャット画面を表示（会話履歴の読み込みを待つ）
+                       console.log('[入口フォーム] 会話履歴の読み込みを待機中...');
                        entryFormContainer.classList.add('entry-form-hidden');
                        chatContainer.classList.remove('entry-form-hidden');
-                       return;
+                       
+                       // 会話履歴の読み込みを待つ（最大3秒）
+                       let historyData = null;
+                       let attempts = 0;
+                       const maxAttempts = 30; // 3秒間待機（100ms × 30）
+                       
+                       while (!historyData && attempts < maxAttempts) {
+                           // ChatData.conversationHistoryを確認
+                           if (window.ChatData && window.ChatData.conversationHistory) {
+                               historyData = window.ChatData.conversationHistory;
+                               break;
+                           }
+                           await new Promise(resolve => setTimeout(resolve, 100));
+                           attempts++;
+                       }
+                       
+                       // 会話履歴にユーザー情報が含まれているか確認
+                       if (historyData && historyData.nickname) {
+                           console.log('[入口フォーム] ユーザー情報が存在するため、チャット画面を表示します');
+                           // チャット画面は既に表示されている
+                           return;
+                       }
+                       
+                       // 会話履歴が存在しない、またはユーザー情報が含まれていない場合は入口フォームを表示
+                       console.log('[入口フォーム] ユーザー情報が存在しないため、入口フォームを表示します');
+                       entryFormContainer.classList.remove('entry-form-hidden');
+                       chatContainer.classList.add('entry-form-hidden');
+                   } catch (error) {
+                       console.error('[入口フォーム] エラー:', error);
+                       // エラー時は入口フォームを表示
+                       entryFormContainer.classList.remove('entry-form-hidden');
+                       chatContainer.classList.add('entry-form-hidden');
                    }
-                   
-                   // ユーザー情報が存在しない場合は入口フォームを表示
-                   console.log('[入口フォーム] ユーザー情報が存在しないため、入口フォームを表示します');
-                   entryFormContainer.classList.remove('entry-form-hidden');
-                   chatContainer.classList.add('entry-form-hidden');
                
                    // 入口フォームの送信処理（ユーザー情報が存在しない場合のみ設定）
                    entryForm.addEventListener('submit', async (e) => {
@@ -1114,13 +1145,8 @@
                        
                        const data = await response.json();
                        
-                       // ユーザー情報をlocalStorageに保存
-                       if (data.nickname) {
-                           localStorage.setItem('userNickname', data.nickname);
-                       }
-                       localStorage.setItem('birthYear', String(birthYear));
-                       localStorage.setItem('birthMonth', String(birthMonth));
-                       localStorage.setItem('birthDay', String(birthDay));
+                       // 【変更】ユーザー情報をlocalStorageに保存しない（データベースベースの判断）
+                       // すべてのユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
                        
                        // 入口フォームを非表示にしてチャット画面を表示
                        entryFormContainer.classList.add('entry-form-hidden');
