@@ -30,10 +30,6 @@ const ChatInit = {
         // ChatUIを初期化
         if (ChatUI && typeof ChatUI.init === 'function') {
             ChatUI.init();
-            // ページ読み込み時に、DOMに残っている可能性がある以前のメッセージをクリア
-            if (ChatUI && typeof ChatUI.clearMessages === 'function') {
-                ChatUI.clearMessages();
-            }
         }
         
         // AuthStateを初期化
@@ -351,9 +347,15 @@ const ChatInit = {
         }
         
         try {
-            // 会話履歴を読み込む前に、常にメッセージをクリア（ページ遷移時のDOMキャッシュ対策）
-            if (ChatUI && typeof ChatUI.clearMessages === 'function') {
-                ChatUI.clearMessages();
+            // キャラクターが切り替わった場合のみ、会話履歴を読み込む前にメッセージをクリア
+            if (previousCharacter && previousCharacter !== character) {
+                if (ChatUI && typeof ChatUI.clearMessages === 'function') {
+                    ChatUI.clearMessages();
+                    console.log('[初期化] キャラクターが切り替わりました。メッセージをクリアしました:', {
+                        previousCharacter,
+                        newCharacter: character
+                    });
+                }
             }
             
             // 守護神の儀式完了直後のフラグを事前にチェック
