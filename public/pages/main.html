@@ -62,7 +62,12 @@
             document.querySelectorAll('.consult-button').forEach((btn) => {
                 const href = btn.getAttribute('href');
                 if (href && href.startsWith('profiles/')) {
-                    const url = new URL(href, window.location.origin);
+                    // 現在のページのパスを基準に相対パスを解決
+                    // window.location.pathname = '/pages/main' または '/pages/main.html'
+                    const currentPath = window.location.pathname;
+                    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/')); // '/pages'
+                    const absolutePath = basePath + '/' + href; // '/pages/profiles/kaede.html'
+                    const url = new URL(absolutePath, window.location.origin);
                     url.searchParams.set('userId', userId);
                     btn.href = url.pathname + url.search;
                     console.log('[main] プロフィールページへのリンクにuserIdを追加:', btn.href);
