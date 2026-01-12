@@ -1190,6 +1190,30 @@
                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:756',message:'チャット画面読み込み',data:{url:window.location.href,character:character,search:window.location.search},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
            })();
            // #endregion
+           
+           // 【追加】URLパラメータからuserIdを取得して、ナビゲーションリンクに追加
+           (function() {
+               const urlParams = new URLSearchParams(window.location.search);
+               const userId = urlParams.get('userId');
+               
+               if (userId) {
+                   // 「鑑定師一覧に戻る」リンクにuserIdを追加
+                   document.querySelectorAll('.navigation-links a[href="../main.html"]').forEach((link) => {
+                       const url = new URL(link.href, window.location.origin);
+                       url.searchParams.set('userId', userId);
+                       link.href = url.pathname + url.search;
+                       console.log('[chat] ナビゲーションリンクにuserIdを追加:', link.href);
+                   });
+                   
+                   // モバイルヘッダーの戻るリンクにuserIdを追加
+                   document.querySelectorAll('.mobile-header-back[href="../main.html"]').forEach((link) => {
+                       const url = new URL(link.href, window.location.origin);
+                       url.searchParams.set('userId', userId);
+                       link.href = url.pathname + url.search;
+                       console.log('[chat] モバイルヘッダーの戻るリンクにuserIdを追加:', link.href);
+                   });
+               }
+           })();
            </script>
           <script src="../../js/auth-state.js"></script>
           <script src="../../js/character-features.js"></script>
