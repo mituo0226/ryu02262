@@ -259,55 +259,9 @@
         console.log('Character:', validatedCharacter);
         console.log('Chat URL:', chatUrl);
 
-        // 【追加】アニメーション中にデータベースからユーザー情報を読み込む
-        // インデックスから入ってきた時点で、ユーザーが登録ユーザーかゲストユーザーかの判別は既にできているはず
-        // その情報を引き継いだ状態で、各鑑定士のチャットに入る
-        // アニメーションの時間を利用してデータベースを読み込み、履歴や生年月日などを再度読み込む
-        async function loadUserInfoFromDatabase() {
-            try {
-                console.log('[back.html] データベースからユーザー情報を読み込み開始:', validatedCharacter);
-                
-                // 会話履歴APIを呼び出してユーザー情報を取得
-                // ただし、この時点ではユーザー情報が分からないため、すべての可能性を試行
-                // まず、sessionStorageに保存されているユーザー情報を確認
-                const savedUserInfo = sessionStorage.getItem('userInfo');
-                if (savedUserInfo) {
-                    try {
-                        const userInfo = JSON.parse(savedUserInfo);
-                        if (userInfo.nickname && userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay) {
-                            // 会話履歴APIを呼び出して、データベースから最新情報を取得
-                            const historyUrl = `/api/conversation-history?nickname=${encodeURIComponent(userInfo.nickname)}&birthYear=${encodeURIComponent(userInfo.birthYear)}&birthMonth=${encodeURIComponent(userInfo.birthMonth)}&birthDay=${encodeURIComponent(userInfo.birthDay)}&character=${encodeURIComponent(validatedCharacter)}`;
-                            const response = await fetch(historyUrl);
-                            if (response.ok) {
-                                const historyData = await response.json();
-                                if (historyData && historyData.nickname) {
-                                    // データベースから取得した情報をsessionStorageに保存
-                                    sessionStorage.setItem('userInfo', JSON.stringify({
-                                        nickname: historyData.nickname,
-                                        birthYear: historyData.birthYear,
-                                        birthMonth: historyData.birthMonth,
-                                        birthDay: historyData.birthDay,
-                                        assignedDeity: historyData.assignedDeity || null
-                                    }));
-                                    console.log('[back.html] ✅ データベースからユーザー情報を取得しました:', historyData);
-                                    return;
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error('[back.html] sessionStorageからの情報取得エラー:', e);
-                    }
-                }
-                
-                // sessionStorageに情報がない場合は、データベースから取得できないため、ゲストユーザーとして扱う
-                console.log('[back.html] ユーザー情報が見つかりません。ゲストユーザーとして扱います。');
-            } catch (error) {
-                console.error('[back.html] データベースからの情報取得エラー:', error);
-            }
-        }
-        
-        // アニメーション開始時にデータベースから情報を読み込む
-        loadUserInfoFromDatabase();
+        // 【変更】sessionStorage/localStorageの使用を削除（データベースベースの判断）
+        // アニメーション中にデータベースからユーザー情報を読み込む処理は削除
+        // チャット画面に入る際、URLパラメータからユーザー情報を取得して会話履歴APIを呼び出す
 
         // アニメーション中断用のフラグ
         let animationCancelled = false;

@@ -197,20 +197,9 @@
     (function(){
       const params = new URLSearchParams(location.search);
       const passphraseFromQuery = params.get('passphrase');
-      // 【変更】localStorageからの取得を削除（データベースベースの判断）
-      // sessionStorageから取得を試行
-      let nickname = params.get('nickname') || '';
-      if (!nickname) {
-        const savedUserInfo = sessionStorage.getItem('userInfo');
-        if (savedUserInfo) {
-          try {
-            const userInfo = JSON.parse(savedUserInfo);
-            nickname = userInfo.nickname || '';
-          } catch (e) {
-            console.error('[passphrase-success] sessionStorageからの情報取得エラー:', e);
-          }
-        }
-      }
+      // 【変更】URLパラメータからのみ取得（データベースベースの判断）
+      // sessionStorage/localStorageの使用を削除
+      const nickname = params.get('nickname') || '';
       const redirect = params.get('redirect') || document.referrer || '/';
 
       const passEl = document.getElementById('passphrase');

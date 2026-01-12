@@ -259,17 +259,19 @@
           return;
         }
 
-        // 【追加】ログイン成功時にsessionStorageにユーザー情報を保存
-        // チャット画面で会話履歴を取得するために必要
-        sessionStorage.setItem('userInfo', JSON.stringify({
-          nickname: payload.nickname,
-          birthYear: payload.birthYear,
-          birthMonth: payload.birthMonth,
-          birthDay: payload.birthDay
-        }));
-        console.log('[login] ユーザー情報をsessionStorageに保存しました:', payload);
+        // 【変更】sessionStorageへの保存を削除（データベースベースの判断）
+        // リダイレクトURLにユーザー情報をパラメータとして含める
+        let redirectUrl = getRedirectTarget();
+        const url = new URL(redirectUrl, window.location.origin);
+        url.searchParams.set('nickname', payload.nickname);
+        url.searchParams.set('birthYear', String(payload.birthYear));
+        url.searchParams.set('birthMonth', String(payload.birthMonth));
+        url.searchParams.set('birthDay', String(payload.birthDay));
+        redirectUrl = url.pathname + url.search;
+        
+        console.log('[login] リダイレクトURLにユーザー情報を追加:', redirectUrl);
 
-        window.location.href = getRedirectTarget();
+        window.location.href = redirectUrl;
       } catch (error) {
         console.error(error);
         resultMessage.textContent = '通信エラーが発生しました。時間を置いて再試行してください。';

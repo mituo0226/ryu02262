@@ -11,8 +11,8 @@ const ChatAPI = {
      */
     async loadConversationHistory(characterId, userInfo = null) {
         // 【変更】データベースから最新のユーザー情報と会話履歴を取得
-        // localStorageからの取得を削除（データベースベースの判断に移行）
-        // userInfoが提供されない場合は、sessionStorageから取得を試行
+        // localStorage/sessionStorageからの取得を削除（データベースベースの判断に完全移行）
+        // userInfoが提供されない場合は、URLパラメータから取得
         let nickname, birthYear, birthMonth, birthDay;
         
         if (userInfo) {
@@ -21,19 +21,16 @@ const ChatAPI = {
             birthMonth = userInfo.birthMonth;
             birthDay = userInfo.birthDay;
         } else {
-            // sessionStorageから取得を試行
-            const savedUserInfo = sessionStorage.getItem('userInfo');
-            if (savedUserInfo) {
-                try {
-                    const parsed = JSON.parse(savedUserInfo);
-                    nickname = parsed.nickname;
-                    birthYear = parsed.birthYear;
-                    birthMonth = parsed.birthMonth;
-                    birthDay = parsed.birthDay;
-                } catch (e) {
-                    console.error('[loadConversationHistory] sessionStorageからの情報取得エラー:', e);
-                }
-            }
+            // URLパラメータから取得（ログイン成功時にリダイレクトURLに含まれる）
+            const urlParams = new URLSearchParams(window.location.search);
+            nickname = urlParams.get('nickname');
+            const birthYearParam = urlParams.get('birthYear');
+            const birthMonthParam = urlParams.get('birthMonth');
+            const birthDayParam = urlParams.get('birthDay');
+            
+            if (birthYearParam) birthYear = Number(birthYearParam);
+            if (birthMonthParam) birthMonth = Number(birthMonthParam);
+            if (birthDayParam) birthDay = Number(birthDayParam);
         }
         
         if (!nickname || !birthYear || !birthMonth || !birthDay) {
