@@ -611,6 +611,9 @@ const ChatInit = {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:398',message:'分岐2: historyData.nickname存在',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
+                // 【重要】hasHistoryがfalseでも、nicknameが存在する場合は登録済みユーザーとして扱う
+                // ChatData.conversationHistoryを設定（データベースから読み込んだ情報を保存）
+                ChatData.conversationHistory = historyData;
                 ChatData.userNickname = historyData.nickname;
                 
                 // ユーザーデータを更新（会話履歴がある場合でも、生年月日が取得できる場合は更新）

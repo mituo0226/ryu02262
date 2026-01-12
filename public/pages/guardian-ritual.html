@@ -573,24 +573,28 @@
         };
       }
       
-      // 優先順位2: sessionStorageから取得（守護神の儀式開始時に保存された情報）
-      const ritualUserInfo = sessionStorage.getItem('ritualUserInfo');
-      if (ritualUserInfo) {
+      // 優先順位2: userIdからデータベースから取得（URLパラメータにuserIdが含まれている場合）
+      const userId = urlParams.get('userId');
+      if (userId) {
         try {
-          const userInfo = JSON.parse(ritualUserInfo);
-          if (userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay) {
-            return {
-              birthYear: parseInt(userInfo.birthYear, 10),
-              birthMonth: parseInt(userInfo.birthMonth, 10),
-              birthDay: parseInt(userInfo.birthDay, 10)
-            };
+          // 会話履歴APIからユーザー情報を取得
+          const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.birthYear && data.birthMonth && data.birthDay) {
+              return {
+                birthYear: Number(data.birthYear),
+                birthMonth: Number(data.birthMonth),
+                birthDay: Number(data.birthDay)
+              };
+            }
           }
         } catch (e) {
-          console.error('[守護神の儀式] sessionStorageからの情報取得エラー:', e);
+          console.error('[守護神の儀式] データベースからの情報取得エラー:', e);
         }
       }
       
-      // 優先順位3: データベースから取得（会話履歴APIを使用）
+      // 優先順位3: データベースから取得（会話履歴APIを使用）- フォールバック
       // ただし、この方法は非同期のため、エラーを投げる前に試行
       try {
         // 会話履歴APIを呼び出してユーザー情報を取得
