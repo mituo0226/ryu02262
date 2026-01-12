@@ -30,6 +30,10 @@ const ChatInit = {
         // ChatUIを初期化
         if (ChatUI && typeof ChatUI.init === 'function') {
             ChatUI.init();
+            // ページ読み込み時に、DOMに残っている可能性がある以前のメッセージをクリア
+            if (ChatUI && typeof ChatUI.clearMessages === 'function') {
+                ChatUI.clearMessages();
+            }
         }
         
         // AuthStateを初期化
@@ -60,9 +64,18 @@ const ChatInit = {
         
         // キャラクターを設定
         const character = ChatData.getCharacterFromURL();
-        
+
         // 以前のキャラクターを保存（キャラクター切り替え判定用）
         const previousCharacter = ChatData.currentCharacter;
+        
+        // キャラクターが切り替わった場合、lastUserMessageをクリア（handleReturnFromAnimationで表示されないようにするため）
+        if (previousCharacter && previousCharacter !== character) {
+            sessionStorage.removeItem('lastUserMessage');
+            console.log('[初期化] キャラクターが切り替わりました。lastUserMessageをクリアしました:', {
+                previousCharacter,
+                newCharacter: character
+            });
+        }
         
         // #region agent log
         console.log('🔍🔍🔍 [キャラクター初期化]', {
@@ -338,15 +351,9 @@ const ChatInit = {
         }
         
         try {
-            // キャラクターが切り替わった場合、以前のキャラクターのメッセージをクリア
-            if (previousCharacter && previousCharacter !== character) {
-                console.log('[初期化] キャラクターが切り替わりました。以前のメッセージをクリアします:', {
-                    previousCharacter,
-                    newCharacter: character
-                });
-                if (ChatUI && typeof ChatUI.clearMessages === 'function') {
-                    ChatUI.clearMessages();
-                }
+            // 会話履歴を読み込む前に、常にメッセージをクリア（ページ遷移時のDOMキャッシュ対策）
+            if (ChatUI && typeof ChatUI.clearMessages === 'function') {
+                ChatUI.clearMessages();
             }
             
             // 守護神の儀式完了直後のフラグを事前にチェック
