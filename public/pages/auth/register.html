@@ -206,7 +206,7 @@
 
   <script>
     // DOMContentLoadedイベントで実行（DOMが完全に読み込まれた後に実行）
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       const yearSelect = document.getElementById('birthYear');
       const monthSelect = document.getElementById('birthMonth');
       const daySelect = document.getElementById('birthDay');
@@ -222,6 +222,51 @@
       const params = new URLSearchParams(window.location.search);
       const redirectParam = params.get('redirect');
       const characterParam = params.get('character'); // 鑑定士IDを取得
+      const userIdParam = params.get('userId'); // userIdパラメータを取得
+      
+      function getRedirectTarget() {
+        // characterパラメータがある場合は、そのcharacterのチャット画面へ
+        if (characterParam) {
+          return `../chat/chat.html?character=${encodeURIComponent(characterParam)}`;
+        }
+        // redirectパラメータがある場合はそれを使用
+        if (redirectParam) {
+          const decoded = decodeURIComponent(redirectParam);
+          return decoded || '../main.html';
+        }
+        // デフォルトはメインページ
+        return '../main.html';
+      }
+      
+      // 【追加】userIdがURLパラメータにある場合、既に登録済みのユーザーの可能性があるため、
+      // 会話履歴APIを呼び出して確認し、登録済みの場合は自動的にリダイレクト
+      if (userIdParam) {
+        const userId = Number(userIdParam);
+        if (Number.isFinite(userId) && userId > 0) {
+          try {
+            // 会話履歴APIを呼び出して、ユーザーが存在するか確認
+            const characterId = characterParam || 'kaede';
+            const historyResponse = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(characterId)}`);
+            
+            if (historyResponse.ok) {
+              const historyData = await historyResponse.json();
+              // ユーザーが存在する場合、自動的にリダイレクト
+              if (historyData && historyData.nickname) {
+                console.log('[register] 既に登録済みのユーザーです。チャット画面にリダイレクトします');
+                let redirectUrl = getRedirectTarget();
+                const url = new URL(redirectUrl, window.location.origin);
+                url.searchParams.set('userId', String(userId));
+                redirectUrl = url.pathname + url.search;
+                window.location.href = redirectUrl;
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('[register] ユーザー確認エラー:', error);
+            // エラー時は登録フォームを表示する
+          }
+        }
+      }
 
       function populateSelect(select, start, end, suffix) {
         if (!select) {
@@ -249,19 +294,6 @@
         dayOptions: daySelect.options.length
       });
 
-      function getRedirectTarget() {
-        // characterパラメータがある場合は、そのcharacterのチャット画面へ
-        if (characterParam) {
-          return `../chat/chat.html?character=${encodeURIComponent(characterParam)}`;
-        }
-        // redirectパラメータがある場合はそれを使用
-        if (redirectParam) {
-          const decoded = decodeURIComponent(redirectParam);
-          return decoded || '../main.html';
-        }
-        // デフォルトはメインページ
-        return '../main.html';
-      }
 
       if (loginLink) {
         loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
