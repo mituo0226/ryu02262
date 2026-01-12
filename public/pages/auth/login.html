@@ -259,8 +259,15 @@
           return;
         }
 
-        // 【変更】ユーザー情報をlocalStorageに保存しない（データベースベースの判断）
-        // すべてのユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
+        // 【追加】ログイン成功時にsessionStorageにユーザー情報を保存
+        // チャット画面で会話履歴を取得するために必要
+        sessionStorage.setItem('userInfo', JSON.stringify({
+          nickname: payload.nickname,
+          birthYear: payload.birthYear,
+          birthMonth: payload.birthMonth,
+          birthDay: payload.birthDay
+        }));
+        console.log('[login] ユーザー情報をsessionStorageに保存しました:', payload);
 
         window.location.href = getRedirectTarget();
       } catch (error) {
