@@ -100,8 +100,9 @@ export const onRequestGet: PagesFunction = async (context) => {
     }
 
     // ===== ユーザーの会話履歴取得 =====
+    // 【変更】contentカラムを優先的に使用し、なければmessageカラムを使用（後方互換性）
     const historyResults = await env.DB.prepare<ConversationRow>(
-      `SELECT c.role, c.message as content, COALESCE(c.timestamp, c.created_at) as created_at
+      `SELECT c.role, COALESCE(c.content, c.message) as content, c.message, COALESCE(c.timestamp, c.created_at) as created_at
        FROM conversations c
        WHERE c.user_id = ? AND c.character_id = ?
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
