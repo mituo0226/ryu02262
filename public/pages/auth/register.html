@@ -385,9 +385,18 @@
         }
         resultMessage.classList.add('success');
 
-        // 登録完了後、1秒後にmain.htmlにリダイレクト
+        // 登録完了後、1秒後にリダイレクト（URLパラメータにユーザー情報を含める）
         setTimeout(() => {
-          window.location.href = '../main.html';
+          let redirectUrl = getRedirectTarget();
+          const url = new URL(redirectUrl, window.location.origin);
+          url.searchParams.set('nickname', payload.nickname);
+          url.searchParams.set('birthYear', String(payload.birthYear));
+          url.searchParams.set('birthMonth', String(payload.birthMonth));
+          url.searchParams.set('birthDay', String(payload.birthDay));
+          redirectUrl = url.pathname + url.search;
+          
+          console.log('[register] リダイレクトURLにユーザー情報を追加:', redirectUrl);
+          window.location.href = redirectUrl;
         }, 1000);
       } catch (error) {
         console.error(error);
