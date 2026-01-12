@@ -75,32 +75,35 @@
     </div>
 
     <script>
-        // 【追加】URLパラメータからuserIdを取得して、back.htmlへのリンクに追加
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');
-        
-        if (userId) {
-            // すべてのback.htmlへのリンクにuserIdを追加
-            document.querySelectorAll('a[href*="back.html"]').forEach((link) => {
-                const href = link.getAttribute('href');
-                if (href) {
-                    const url = new URL(href, window.location.origin);
-                    url.searchParams.set('userId', userId);
-                    link.href = url.pathname + url.search;
-                    console.log('[yukino] back.htmlへのリンクにuserIdを追加:', link.href);
-                }
-            });
-            // main.htmlへのリンクにもuserIdを追加
-            document.querySelectorAll('a[href="../main.html"]').forEach((link) => {
-                const href = link.getAttribute('href');
-                if (href) {
-                    const url = new URL(href, window.location.origin);
-                    url.searchParams.set('userId', userId);
-                    link.href = url.pathname + url.search;
-                    console.log('[yukino] main.htmlへのリンクにuserIdを追加:', link.href);
-                }
-            });
-        }
+        // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
+        document.addEventListener('DOMContentLoaded', function() {
+            // 【追加】URLパラメータからuserIdを取得して、back.htmlへのリンクに追加
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('userId');
+            
+            if (userId) {
+                // すべてのback.htmlへのリンクにuserIdを追加
+                document.querySelectorAll('a[href*="back.html"]').forEach((link) => {
+                    const href = link.getAttribute('href');
+                    if (href) {
+                        const url = new URL(href, window.location.origin);
+                        url.searchParams.set('userId', userId);
+                        link.href = url.pathname + url.search;
+                        console.log('[yukino] back.htmlへのリンクにuserIdを追加:', link.href);
+                    }
+                });
+                // main.htmlへのリンクにもuserIdを追加
+                document.querySelectorAll('a[href="../main.html"]').forEach((link) => {
+                    const href = link.getAttribute('href');
+                    if (href) {
+                        const url = new URL(href, window.location.origin);
+                        url.searchParams.set('userId', userId);
+                        link.href = url.pathname + url.search;
+                        console.log('[yukino] main.htmlへのリンクにuserIdを追加:', link.href);
+                    }
+                });
+            }
+        });
         
         // パーティクルエフェクト
         function createFloatingParticle() {
