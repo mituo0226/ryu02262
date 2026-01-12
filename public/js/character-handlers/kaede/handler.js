@@ -196,15 +196,8 @@ const KaedeHandler = {
             }
         }
         
-        // 3. localStorageからも確認（ゲストユーザーでも確認）
-        if (!hasAssignedDeity) {
-            const localStorageDeity = localStorage.getItem('assignedDeity');
-            hasAssignedDeity = !!(localStorageDeity && localStorageDeity.trim() !== '');
-            console.log('[楓専用処理] localStorageから守護神を確認:', {
-                localStorageDeity,
-                hasAssignedDeity
-            });
-        }
+        // 【変更】localStorageからの確認を削除（データベースベースの判断）
+        // 守護神の確認はhistoryDataとrecheckHistoryDataからのみ行う
         
         console.log('[楓専用処理] 守護神確認結果:', {
             hasAssignedDeity,
@@ -220,7 +213,8 @@ const KaedeHandler = {
         if (!hasAssignedDeity && !guardianMessageShown) {
             const userType = isGuestMode ? 'ゲストユーザー' : '登録済みユーザー';
             console.log(`[楓専用処理] ${userType}が楓にアクセス。守護神が未登録のため、挨拶メッセージを表示し、自動的に儀式を開始します。`);
-            const nickname = ChatData.userNickname || localStorage.getItem('userNickname') || 'あなた';
+            // 【変更】nicknameをhistoryDataから取得（データベースベースの判断）
+            const nickname = (historyData && historyData.nickname) || ChatData.userNickname || 'あなた';
             const info = ChatData.characterInfo[this.characterId];
             
             // 会話履歴がある場合は、それを考慮したメッセージを表示
@@ -513,13 +507,17 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         }
 
         const ritualCompleted = sessionStorage.getItem('ritualCompleted');
-        const assignedDeity = localStorage.getItem('assignedDeity');
+        // 【変更】assignedDeityをhistoryDataから取得（データベースベースの判断）
+        // この関数は登録完了時に呼ばれるため、historyDataが利用可能な場合がある
+        // ただし、この関数の呼び出し元でhistoryDataが渡されていない場合は、ChatData.conversationHistoryから取得
+        const assignedDeity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || null;
         console.log('[楓専用処理] ritualCompletedフラグをチェック:', ritualCompleted, 'assignedDeity:', assignedDeity);
 
         // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
         if ((ritualCompleted === 'true' || assignedDeity) && sessionStorage.getItem('guardianMessageShown') !== 'true') {
             console.log('[楓専用処理] 守護神の儀式は既に完了しています。会話履歴読み込み後に定型文を表示します。');
-            const userNickname = localStorage.getItem('userNickname') || 'あなた';
+            // 【変更】userNicknameをhistoryDataまたはChatDataから取得（データベースベースの判断）
+            const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || ChatData.userNickname || 'あなた';
             const guardianName = assignedDeity;
 
             // 【重要】ゲスト履歴をデータベースに移行（登録直後の場合）
@@ -622,18 +620,19 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                     assignedDeity: historyData.assignedDeity
                 });
             } else {
-                // 会話履歴がない場合はlocalStorageから取得
-                const nickname = localStorage.getItem('userNickname') || '鑑定者';
-                const deity = localStorage.getItem('assignedDeity') || '未割当';
-                const birthYear = localStorage.getItem('birthYear');
-                const birthMonth = localStorage.getItem('birthMonth');
-                const birthDay = localStorage.getItem('birthDay');
+                // 【変更】会話履歴がない場合でもlocalStorageから取得しない（データベースベースの判断）
+                // historyDataが存在しない場合は、ChatDataから取得
+                const nickname = ChatData.userNickname || '鑑定者';
+                const deity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || '未割当';
+                const birthYear = null;
+                const birthMonth = null;
+                const birthDay = null;
 
                 ChatUI.updateUserStatus(true, {
                     nickname: nickname,
-                    birthYear: birthYear ? parseInt(birthYear) : null,
-                    birthMonth: birthMonth ? parseInt(birthMonth) : null,
-                    birthDay: birthDay ? parseInt(birthDay) : null,
+                    birthYear: birthYear,
+                    birthMonth: birthMonth,
+                    birthDay: birthDay,
                     assignedDeity: deity
                 });
             }
@@ -651,18 +650,19 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 assignedDeity: historyData.assignedDeity
             });
         } else {
-            // 会話履歴がない場合はlocalStorageから取得
-            const nickname = localStorage.getItem('userNickname') || '鑑定者';
-            const deity = localStorage.getItem('assignedDeity') || '未割当';
-            const birthYear = localStorage.getItem('birthYear');
-            const birthMonth = localStorage.getItem('birthMonth');
-            const birthDay = localStorage.getItem('birthDay');
+            // 【変更】会話履歴がない場合でもlocalStorageから取得しない（データベースベースの判断）
+            // historyDataが存在しない場合は、ChatDataから取得
+            const nickname = ChatData.userNickname || '鑑定者';
+            const deity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || '未割当';
+            const birthYear = null;
+            const birthMonth = null;
+            const birthDay = null;
 
             ChatUI.updateUserStatus(true, {
                 nickname: nickname,
-                birthYear: birthYear ? parseInt(birthYear) : null,
-                birthMonth: birthMonth ? parseInt(birthMonth) : null,
-                birthDay: birthDay ? parseInt(birthDay) : null,
+                birthYear: birthYear,
+                birthMonth: birthMonth,
+                birthDay: birthDay,
                 assignedDeity: deity
             });
         }

@@ -362,42 +362,20 @@
             );
             if (userInfoResponse.ok) {
                 const userInfo = await userInfoResponse.json();
-                // データベースから取得した最新情報をlocalStorageに保存
-                if (userInfo.nickname) {
-                    localStorage.setItem('userNickname', userInfo.nickname);
-                }
-                if (userInfo.birthYear) {
-                    localStorage.setItem('birthYear', String(userInfo.birthYear));
-                }
-                if (userInfo.birthMonth) {
-                    localStorage.setItem('birthMonth', String(userInfo.birthMonth));
-                }
-                if (userInfo.birthDay) {
-                    localStorage.setItem('birthDay', String(userInfo.birthDay));
-                }
-                if (userInfo.assignedDeity) {
-                    localStorage.setItem('assignedDeity', userInfo.assignedDeity);
-                }
+                // 【変更】データベースから取得した情報をlocalStorageに保存しない（データベースベースの判断）
+                // すべてのユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
                 dbConfirmed = true;
                 console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
             } else {
-                // APIエラーの場合は、レスポンスから取得した情報を使用（フォールバック）
-                localStorage.setItem('userNickname', data.nickname || payload.nickname);
-                localStorage.setItem('birthYear', String(payload.birthYear));
-                localStorage.setItem('birthMonth', String(payload.birthMonth));
-                localStorage.setItem('birthDay', String(payload.birthDay));
-                console.warn('[register] データベースからの情報取得に失敗。レスポンス情報を使用します');
+                // 【変更】APIエラー時もlocalStorageに保存しない（データベースベースの判断）
+                console.warn('[register] データベースからの情報取得に失敗しましたが、登録は完了しています');
             }
         } catch (error) {
-            // エラーの場合は、レスポンスから取得した情報を使用（フォールバック）
-            localStorage.setItem('userNickname', data.nickname || payload.nickname);
-            localStorage.setItem('birthYear', String(payload.birthYear));
-            localStorage.setItem('birthMonth', String(payload.birthMonth));
-            localStorage.setItem('birthDay', String(payload.birthDay));
+            // 【変更】エラー時もlocalStorageに保存しない（データベースベースの判断）
             console.error('[register] データベースからの情報取得エラー:', error);
         }
         
-        localStorage.setItem('hasAccount', 'true');
+        // 【変更】hasAccountをlocalStorageに保存しない（データベースベースの判断）
 
         // データベースへの保存を確認した後、登録完了メッセージを表示
         if (dbConfirmed) {

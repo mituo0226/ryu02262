@@ -259,12 +259,8 @@
           return;
         }
 
-        localStorage.setItem('userNickname', data.nickname);
-        // APIからguardianを取得してassignedDeityとして保存
-        if (data.guardian) {
-          localStorage.setItem('assignedDeity', data.guardian);
-        }
-        localStorage.setItem('hasAccount', 'true');
+        // 【変更】ユーザー情報をlocalStorageに保存しない（データベースベースの判断）
+        // すべてのユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
 
         window.location.href = getRedirectTarget();
       } catch (error) {

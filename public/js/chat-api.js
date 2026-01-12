@@ -99,11 +99,31 @@ const ChatAPI = {
             };
         });
         
-        // ユーザー情報を取得
-        const nickname = localStorage.getItem('userNickname');
-        const birthYear = localStorage.getItem('birthYear');
-        const birthMonth = localStorage.getItem('birthMonth');
-        const birthDay = localStorage.getItem('birthDay');
+        // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
+        // ChatData.conversationHistoryが存在する場合は、そこから取得
+        // そうでない場合は、ChatData.userNicknameから取得（初期化時に設定済み）
+        let nickname, birthYear, birthMonth, birthDay;
+        
+        if (ChatData && ChatData.conversationHistory && ChatData.conversationHistory.nickname) {
+            // 会話履歴から取得
+            nickname = ChatData.conversationHistory.nickname;
+            birthYear = ChatData.conversationHistory.birthYear;
+            birthMonth = ChatData.conversationHistory.birthMonth;
+            birthDay = ChatData.conversationHistory.birthDay;
+        } else if (ChatData && ChatData.userNickname) {
+            // ChatData.userNicknameから取得（会話履歴がない場合のフォールバック）
+            nickname = ChatData.userNickname;
+            // 生年月日は会話履歴に含まれていない場合はundefined
+            birthYear = undefined;
+            birthMonth = undefined;
+            birthDay = undefined;
+        } else {
+            // どちらも存在しない場合はundefined（ゲストユーザー）
+            nickname = undefined;
+            birthYear = undefined;
+            birthMonth = undefined;
+            birthDay = undefined;
+        }
         
         const payload = {
             message: message,

@@ -25,46 +25,19 @@ const SoraHandler = {
      * 一度ゲストで会話した後、再度ゲストで訪問した場合は強制的にユーザー登録画面へ
      */
     checkGuestRevisit() {
-        // 登録済みユーザーはチェック不要
-        if (window.AuthState && window.AuthState.isRegistered()) {
-            console.log('[水野ソラハンドラー] 登録済みユーザー - 再訪問チェックをスキップ');
-            return;
-        }
-
-        // ゲストモードで会話したことがあるかをチェック
-        const hasConversedAsGuest = localStorage.getItem('soraGuestConversed');
-        
-        if (hasConversedAsGuest === 'true') {
-            console.log('[水野ソラハンドラー] ゲストモード再訪問を検知 - ユーザー登録画面へリダイレクト');
-            
-            // システムメッセージを表示
-            ChatUI.addMessage('character', 
-                '（少し真剣な顔で）あのさ、前回はゲストモードで話したよね？続きを話すには、ユーザー登録が必要なんだ。生年月日とニックネームを教えてくれれば、もっと深く君のこと分かるようになるから。お金とか一切かからないし、個人情報も守られるから安心して。登録ボタンから手続きしてくれると嬉しい。', 
-                this.characterName
-            );
-            
-            // 入力欄を無効化
-            if (ChatUI.messageInput) {
-                ChatUI.messageInput.disabled = true;
-                ChatUI.messageInput.placeholder = 'ユーザー登録が必要です';
-            }
-            if (ChatUI.sendButton) {
-                ChatUI.sendButton.disabled = true;
-            }
-            
-            // 3秒後にユーザー登録画面へリダイレクト
-            setTimeout(() => {
-                window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
-            }, 3000);
-        }
+        // 【変更】データベースベースの判断に移行
+        // ゲストユーザーの会話状態はデータベースから判断するため、この関数は削除または空実装に変更
+        // ゲストユーザーの再訪問チェックは、会話履歴の読み込み時に実行される
+        console.log('[水野ソラハンドラー] checkGuestRevisit: データベースベースの判断に移行したため、この関数は使用されません');
     },
 
     /**
      * ゲストモードで会話したことを記録
+     * 【変更】データベースベースの判断に移行
+     * ゲストユーザーの会話状態はデータベースで管理されるため、この関数は削除または空実装に変更
      */
     markGuestConversed() {
-        console.log('[水野ソラハンドラー] ゲストモードで会話したことを記録');
-        localStorage.setItem('soraGuestConversed', 'true');
+        console.log('[水野ソラハンドラー] markGuestConversed: データベースベースの判断に移行したため、この関数は使用されません');
     },
 
     /**
@@ -116,9 +89,8 @@ const SoraHandler = {
     async handlePostRegistration(historyData, guestHistory = []) {
         console.log('[水野ソラハンドラー] 登録完了後の処理');
 
-        // ゲストモードで会話したフラグをクリア（登録完了したため）
-        localStorage.removeItem('soraGuestConversed');
-        console.log('[水野ソラハンドラー] ゲストモード会話フラグをクリアしました');
+        // 【変更】localStorageからのフラグ削除を削除（データベースベースの判断）
+        // ゲストユーザーの会話状態はデータベースで管理されるため、フラグの削除は不要
 
         // 【重要】送信ボタンの表示状態を更新
         // 登録後にページがリロードされた際、イベントリスナーは設定されているが

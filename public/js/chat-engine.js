@@ -40,7 +40,8 @@ const ChatInit = {
         // 守護神の儀式への同意ボタンの表示フラグをリセット（ページ読み込み時）
         ChatData.ritualConsentShown = false;
         
-        const isGuestMode = !AuthState.isRegistered();
+        // 【変更】isGuestModeの判定はhistoryDataの取得後に実行
+        // （データベースベースの判断に移行するため、初期化時は未定義）
 
         // キャラクター情報を読み込む
         // #region agent log
@@ -88,12 +89,9 @@ const ChatInit = {
         ChatData.currentCharacter = character;
         ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
         
-        // ユーザー情報を設定
-        if (AuthState.isRegistered()) {
-            ChatData.userNickname = localStorage.getItem('userNickname') || null;
-        } else {
-            ChatData.userNickname = null;
-        }
+        // 【変更】ユーザー情報の設定はhistoryDataの取得後に実行
+        // （データベースベースの判断に移行するため、初期化時はnull）
+        ChatData.userNickname = null;
         
         // 登録完了フラグをチェック
         const urlParams = new URLSearchParams(window.location.search);
@@ -103,40 +101,16 @@ const ChatInit = {
         const justRegisteredSession = sessionStorage.getItem('justRegistered') === 'true';
         const justRegistered = justRegisteredParam || justRegisteredSession;
         
-        // 登録完了時は、ユーザー情報が存在するかどうかで判定
-        const hasUserInfo = !!(localStorage.getItem('userNickname') && 
-                              localStorage.getItem('birthYear') && 
-                              localStorage.getItem('birthMonth') && 
-                              localStorage.getItem('birthDay'));
+        // 【変更】登録完了時の判定はhistoryDataの取得後に実行
+        // （データベースベースの判断に移行するため、ここではURLパラメータのみをチェック）
         const hasPendingMigration = !!sessionStorage.getItem('pendingGuestHistoryMigration');
-        const shouldTriggerRegistrationFlow = justRegistered || (hasUserInfo && hasPendingMigration);
+        const shouldTriggerRegistrationFlow = justRegistered || hasPendingMigration;
         
-        // justRegisteredがtrueの場合、ユーザー情報の存在をチェック
-        // （AuthStateの初期化が完了する前でも、登録完了処理を実行できるようにするため）
-        const hasValidSession = justRegistered || shouldTriggerRegistrationFlow ? hasUserInfo : true;
-        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasUserInfo:', hasUserInfo, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'hasValidSession:', hasValidSession, 'character:', character);
-        
-        // ユーザーステータスを更新（登録完了時はすぐに表示）
-        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidSession) {
-            const nickname = localStorage.getItem('userNickname') || '鑑定者';
-            const deity = localStorage.getItem('assignedDeity') || '未割当';
-            const birthYear = localStorage.getItem('birthYear') || null;
-            const birthMonth = localStorage.getItem('birthMonth') || null;
-            const birthDay = localStorage.getItem('birthDay') || null;
-            
-            ChatUI.updateUserStatus(true, {
-                nickname: nickname,
-                birthYear: birthYear ? parseInt(birthYear) : null,
-                birthMonth: birthMonth ? parseInt(birthMonth) : null,
-                birthDay: birthDay ? parseInt(birthDay) : null,
-                assignedDeity: deity
-            });
-        } else {
-            ChatUI.updateUserStatus(!isGuestMode);
-        }
+        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'hasPendingMigration:', hasPendingMigration, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'character:', character);
 
         // 登録完了時の処理を先にチェック（会話履歴を読み込む前に実行）
-        if ((justRegistered || shouldTriggerRegistrationFlow) && hasValidSession) {
+        // 【変更】hasValidSessionのチェックを削除（historyDataの取得後に判定）
+        if (justRegistered || shouldTriggerRegistrationFlow) {
             console.log('[登録完了処理] 開始 - character:', character);
             
             // 待機画面を表示
@@ -156,8 +130,7 @@ const ChatInit = {
                     historyData = await ChatAPI.loadConversationHistory(character);
                     if (historyData && historyData.nickname) {
                         dbUserNickname = historyData.nickname;
-                        // データベースから取得したニックネームをlocalStorageに保存
-                        localStorage.setItem('userNickname', dbUserNickname);
+                        // 【変更】データベースから取得した情報をlocalStorageに保存しない
                         ChatData.userNickname = dbUserNickname;
                         console.log('[登録完了処理] データベースからユーザー情報を取得しました:', {
                             nickname: dbUserNickname,
@@ -166,14 +139,14 @@ const ChatInit = {
                     } else {
                         // データベースにユーザー情報がない場合（初回登録直後）
                         console.log('[登録完了処理] データベースにユーザー情報が見つかりません（初回登録のため正常）');
-                        // localStorageからニックネームを取得（フォールバック）
-                        dbUserNickname = localStorage.getItem('userNickname') || 'あなた';
+                        // 【変更】localStorageから取得しない（データベースベースの判断）
+                        dbUserNickname = 'あなた';
                         ChatData.userNickname = dbUserNickname;
                     }
                 } catch (error) {
                     console.error('[登録完了処理] データベースからの情報取得エラー:', error);
-                    // エラー時はlocalStorageから取得（フォールバック）
-                    dbUserNickname = localStorage.getItem('userNickname') || 'あなた';
+                    // 【変更】エラー時もlocalStorageから取得しない（データベースベースの判断）
+                    dbUserNickname = 'あなた';
                     ChatData.userNickname = dbUserNickname;
                     historyData = null;
                 }
@@ -250,8 +223,8 @@ const ChatInit = {
                         }
                     }
                     
-                    // ニックネームを取得
-                    const userNickname = localStorage.getItem('userNickname') || 'あなた';
+                    // 【変更】ニックネームをhistoryDataから取得
+                    const userNickname = (historyData && historyData.nickname) || dbUserNickname || 'あなた';
                     
                     // 定型文を生成（ハンドラーから取得、なければ汎用メッセージ）
                     let welcomeBackMessage = null;
@@ -364,7 +337,7 @@ const ChatInit = {
             
             // 会話履歴を読み込む
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:217',message:'loadConversationHistory呼び出し前',data:{character,isGuestMode},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:217',message:'loadConversationHistory呼び出し前',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
             const historyData = await ChatAPI.loadConversationHistory(character);
             // #region agent log
@@ -376,6 +349,15 @@ const ChatInit = {
                 hasNickname: !!historyData?.nickname,
                 nickname: historyData?.nickname
             });
+            
+            // 【変更】isGuestModeをhistoryDataの存在で判定（データベースベースの判断）
+            // historyDataが存在し、nicknameが存在する場合は登録済みユーザー、そうでない場合はゲスト
+            const isGuestMode = !(historyData && historyData.nickname);
+            
+            // ユーザー情報を設定（historyDataから）
+            if (historyData && historyData.nickname) {
+                ChatData.userNickname = historyData.nickname;
+            }
             
             // ゲスト履歴を取得
             let guestHistory = this.getGuestHistoryForMigration(character);
@@ -521,7 +503,8 @@ const ChatInit = {
                 // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
                 // 【重要】guardianMessageShownがtrueの場合は、楓専用の定型文が既に表示されているためスキップ
                 const ritualCompleted = sessionStorage.getItem('ritualCompleted');
-                const assignedDeity = localStorage.getItem('assignedDeity');
+                // 【変更】assignedDeityをhistoryDataから取得（データベースベースの判断）
+                const assignedDeity = (historyData && historyData.assignedDeity) || null;
                 const guardianMessageShownCheck = sessionStorage.getItem('guardianMessageShown') === 'true';
                 
                 if ((ritualCompleted === 'true' || assignedDeity) && !guardianMessageShownCheck && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
@@ -530,7 +513,8 @@ const ChatInit = {
                     );
                     
                     if (!hasGuardianMessage && assignedDeity) {
-                        const userNickname = localStorage.getItem('userNickname') || 'あなた';
+                        // 【変更】userNicknameをhistoryDataから取得（データベースベースの判断）
+                        const userNickname = (historyData && historyData.nickname) || ChatData.userNickname || 'あなた';
                         // 守護神名（データベースに日本語で保存されているのでそのまま使用）
                         const guardianName = assignedDeity;
                         const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
@@ -638,20 +622,15 @@ const ChatInit = {
                         birthDay: historyData.birthDay,
                         assignedDeity: historyData.assignedDeity
                     });
-                } else if (!isGuestMode) {
-                    // 登録済みユーザーで会話履歴に生年月日がない場合、localStorageから取得
-                    const nickname = localStorage.getItem('userNickname') || historyData.nickname || '鑑定者';
-                    const deity = historyData.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
-                    const birthYear = localStorage.getItem('birthYear');
-                    const birthMonth = localStorage.getItem('birthMonth');
-                    const birthDay = localStorage.getItem('birthDay');
-                    
+                } else if (historyData && historyData.nickname) {
+                    // 【変更】登録済みユーザーで会話履歴に生年月日がない場合でも、historyDataからのみ取得
+                    // （データベースベースの判断のため、localStorageは使用しない）
                     ChatUI.updateUserStatus(true, {
-                        nickname: nickname,
-                        birthYear: birthYear ? parseInt(birthYear) : null,
-                        birthMonth: birthMonth ? parseInt(birthMonth) : null,
-                        birthDay: birthDay ? parseInt(birthDay) : null,
-                        assignedDeity: deity
+                        nickname: historyData.nickname || '鑑定者',
+                        birthYear: historyData.birthYear || null,
+                        birthMonth: historyData.birthMonth || null,
+                        birthDay: historyData.birthDay || null,
+                        assignedDeity: historyData.assignedDeity || '未割当'
                     });
                 }
                 
@@ -719,20 +698,16 @@ const ChatInit = {
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐3: historyDataなしまたはnicknameなし',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,isGuestMode},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
                 
-                // 登録済みユーザーの場合、localStorageからユーザー情報を取得して表示
-                if (!isGuestMode) {
-                    const nickname = localStorage.getItem('userNickname') || '鑑定者';
-                    const deity = localStorage.getItem('assignedDeity') || '未割当';
-                    const birthYear = localStorage.getItem('birthYear');
-                    const birthMonth = localStorage.getItem('birthMonth');
-                    const birthDay = localStorage.getItem('birthDay');
-                    
+                // 【変更】登録済みユーザーの場合でも、historyDataがない場合は表示しない
+                // （データベースベースの判断のため、localStorageは使用しない）
+                // historyDataが存在する場合は、上記の分岐で既に処理されている
+                if (historyData && historyData.nickname) {
                     ChatUI.updateUserStatus(true, {
-                        nickname: nickname,
-                        birthYear: birthYear ? parseInt(birthYear) : null,
-                        birthMonth: birthMonth ? parseInt(birthMonth) : null,
-                        birthDay: birthDay ? parseInt(birthDay) : null,
-                        assignedDeity: deity
+                        nickname: historyData.nickname || '鑑定者',
+                        birthYear: historyData.birthYear || null,
+                        birthMonth: historyData.birthMonth || null,
+                        birthDay: historyData.birthDay || null,
+                        assignedDeity: historyData.assignedDeity || '未割当'
                     });
                 }
                 
@@ -976,7 +951,11 @@ const ChatInit = {
             return;
         }
         
-        const isGuest = !AuthState.isRegistered();
+        // 【変更】isGuestをhistoryDataの存在で判定（データベースベースの判断）
+        // 会話履歴から最新のユーザー情報を取得して判定
+        // ただし、メッセージ送信時には既に初期化が完了しているため、ChatDataから取得可能
+        const historyData = ChatData.conversationHistory;
+        const isGuest = !(historyData && historyData.nickname);
         
         // タロットカード解説トリガーマーカーを検出
         const isTarotExplanationTrigger = message.includes('[TAROT_EXPLANATION_TRIGGER:');
