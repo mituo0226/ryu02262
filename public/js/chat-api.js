@@ -12,36 +12,59 @@ const ChatAPI = {
     async loadConversationHistory(characterId, userInfo = null) {
         // 【変更】データベースから最新のユーザー情報と会話履歴を取得
         // localStorage/sessionStorageからの取得を削除（データベースベースの判断に完全移行）
-        // userInfoが提供されない場合は、URLパラメータから取得
-        let nickname, birthYear, birthMonth, birthDay;
+        // user_idを優先的に使用（より安全で効率的）
+        let userId = null;
+        let nickname = null;
+        let birthYear = null;
+        let birthMonth = null;
+        let birthDay = null;
         
         if (userInfo) {
-            nickname = userInfo.nickname;
-            birthYear = userInfo.birthYear;
-            birthMonth = userInfo.birthMonth;
-            birthDay = userInfo.birthDay;
+            userId = userInfo.userId || null;
+            nickname = userInfo.nickname || null;
+            birthYear = userInfo.birthYear || null;
+            birthMonth = userInfo.birthMonth || null;
+            birthDay = userInfo.birthDay || null;
         } else {
             // URLパラメータから取得（ログイン成功時にリダイレクトURLに含まれる）
             const urlParams = new URLSearchParams(window.location.search);
-            nickname = urlParams.get('nickname');
-            const birthYearParam = urlParams.get('birthYear');
-            const birthMonthParam = urlParams.get('birthMonth');
-            const birthDayParam = urlParams.get('birthDay');
+            const userIdParam = urlParams.get('userId');
+            if (userIdParam) {
+                userId = Number(userIdParam);
+                if (!Number.isFinite(userId) || userId <= 0) {
+                    userId = null;
+                }
+            }
             
-            if (birthYearParam) birthYear = Number(birthYearParam);
-            if (birthMonthParam) birthMonth = Number(birthMonthParam);
-            if (birthDayParam) birthDay = Number(birthDayParam);
+            // userIdがない場合、後方互換性のためnickname+生年月日を使用
+            if (!userId) {
+                nickname = urlParams.get('nickname');
+                const birthYearParam = urlParams.get('birthYear');
+                const birthMonthParam = urlParams.get('birthMonth');
+                const birthDayParam = urlParams.get('birthDay');
+                
+                if (birthYearParam) birthYear = Number(birthYearParam);
+                if (birthMonthParam) birthMonth = Number(birthMonthParam);
+                if (birthDayParam) birthDay = Number(birthDayParam);
+            }
         }
         
-        if (!nickname || !birthYear || !birthMonth || !birthDay) {
+        if (!userId && (!nickname || !birthYear || !birthMonth || !birthDay)) {
             console.log('[loadConversationHistory] ユーザー情報が見つかりません（ゲストユーザーの可能性があります）');
             return null;
         }
         
         try {
-            const response = await fetch(
-                `/api/conversation-history?nickname=${encodeURIComponent(nickname)}&birthYear=${encodeURIComponent(birthYear)}&birthMonth=${encodeURIComponent(birthMonth)}&birthDay=${encodeURIComponent(birthDay)}&character=${encodeURIComponent(characterId)}`
-            );
+            // user_idを優先的に使用
+            let apiUrl;
+            if (userId) {
+                apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(characterId)}`;
+            } else {
+                // 後方互換性のため、nickname+生年月日を使用
+                apiUrl = `/api/conversation-history?nickname=${encodeURIComponent(nickname)}&birthYear=${encodeURIComponent(birthYear)}&birthMonth=${encodeURIComponent(birthMonth)}&birthDay=${encodeURIComponent(birthDay)}&character=${encodeURIComponent(characterId)}`;
+            }
+            
+            const response = await fetch(apiUrl);
             
             const responseText = await response.text();
             let data = null;
@@ -107,10 +130,26 @@ const ChatAPI = {
         });
         
         // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
-        // ChatData.conversationHistoryが存在する場合は、そこから取得
-        // そうでない場合は、ChatData.userNicknameから取得（初期化時に設定済み）
-        let nickname, birthYear, birthMonth, birthDay;
+        // user_idを優先的に使用（より安全で効率的）
+        // URLパラメータからuserIdを取得（ログイン成功時にリダイレクトURLに含まれる）
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = null;
+        const userIdParam = urlParams.get('userId');
+        if (userIdParam) {
+            userId = Number(userIdParam);
+            if (!Number.isFinite(userId) || userId <= 0) {
+                userId = null;
+            }
+        }
         
+        // userIdがない場合、ChatData.conversationHistoryから取得を試みる
+        // （会話履歴APIのレスポンスにuserIdが含まれる可能性がある）
+        if (!userId && ChatData && ChatData.conversationHistory && ChatData.conversationHistory.userId) {
+            userId = ChatData.conversationHistory.userId;
+        }
+        
+        // 後方互換性のため、nickname+生年月日も取得
+        let nickname, birthYear, birthMonth, birthDay;
         if (ChatData && ChatData.conversationHistory && ChatData.conversationHistory.nickname) {
             // 会話履歴から取得
             nickname = ChatData.conversationHistory.nickname;
@@ -136,7 +175,8 @@ const ChatAPI = {
             message: message,
             character: characterId,
             clientHistory: clientHistory,
-            nickname: nickname || undefined,
+            userId: userId || undefined, // user_idを優先的に使用
+            nickname: nickname || undefined, // 後方互換性のため
             birthYear: birthYear ? Number(birthYear) : undefined,
             birthMonth: birthMonth ? Number(birthMonth) : undefined,
             birthDay: birthDay ? Number(birthDay) : undefined

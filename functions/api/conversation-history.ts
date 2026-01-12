@@ -56,39 +56,46 @@ export const onRequestGet: PagesFunction = async (context) => {
 
   try {
     const url = new URL(request.url);
+    const userIdParam = url.searchParams.get('userId');
     const nickname = url.searchParams.get('nickname');
     const birthYear = url.searchParams.get('birthYear');
     const birthMonth = url.searchParams.get('birthMonth');
     const birthDay = url.searchParams.get('birthDay');
     const characterId = url.searchParams.get('character') || 'kaede';
 
-    if (!nickname || !birthYear || !birthMonth || !birthDay) {
-      return new Response(
-        JSON.stringify({
-          hasHistory: false,
-          error: 'nickname and birth date are required',
-        } as ResponseBody),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
-      );
+    let user: UserRecord | null = null;
+
+    // 【変更】user_idを優先的に使用（より安全で効率的）
+    if (userIdParam) {
+      const userId = Number(userIdParam);
+      if (Number.isFinite(userId) && userId > 0) {
+        user = await env.DB.prepare<UserRecord>(
+          'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE id = ?'
+        )
+          .bind(userId)
+          .first();
+      }
     }
 
-    // nickname + 生年月日からuser_idを解決
-    const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
-    )
-      .bind(nickname.trim(), Number(birthYear), Number(birthMonth), Number(birthDay))
-      .first();
+    // user_idで取得できない場合、nickname + 生年月日で取得（後方互換性のため）
+    if (!user && nickname && birthYear && birthMonth && birthDay) {
+      user = await env.DB.prepare<UserRecord>(
+        'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
+      )
+        .bind(nickname.trim(), Number(birthYear), Number(birthMonth), Number(birthDay))
+        .first();
+    }
 
     if (!user) {
       return new Response(
         JSON.stringify({
           hasHistory: false,
-          error: 'user not found',
+          error: userIdParam ? 'user not found (invalid userId)' : 'nickname and birth date are required',
         } as ResponseBody),
-        { status: 404, headers: corsHeaders }
+        {
+          status: userIdParam ? 404 : 400,
+          headers: corsHeaders,
+        }
       );
     }
 

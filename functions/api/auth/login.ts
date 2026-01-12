@@ -6,6 +6,7 @@ interface LoginRequestBody {
 }
 
 interface LoginResponseBody {
+  userId: number;
   nickname: string;
   guardian: string | null;
 }
@@ -61,6 +62,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   }
 
   const responseBody: LoginResponseBody = {
+    userId: user.id,
     nickname: user.nickname,
     guardian: user.guardian,
   };

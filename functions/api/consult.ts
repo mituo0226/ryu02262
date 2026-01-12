@@ -29,10 +29,11 @@ interface RequestBody {
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;
   ritualStart?: boolean; // 守護神の儀式開始通知フラグ
-  nickname?: string; // ユーザー識別用
-  birthYear?: number; // ユーザー識別用
-  birthMonth?: number; // ユーザー識別用
-  birthDay?: number; // ユーザー識別用
+  userId?: number; // ユーザー識別用（優先的に使用）
+  nickname?: string; // ユーザー識別用（後方互換性のため）
+  birthYear?: number; // ユーザー識別用（後方互換性のため）
+  birthMonth?: number; // ユーザー識別用（後方互換性のため）
+  birthDay?: number; // ユーザー識別用（後方互換性のため）
 }
 
 interface ResponseBody {
@@ -720,29 +721,28 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
-    // ===== 2. ユーザーの識別（nickname + 生年月日） =====
-    const { nickname, birthYear, birthMonth, birthDay } = body;
+    // ===== 2. ユーザーの識別（user_idを優先的に使用） =====
+    const { userId: requestUserId, nickname, birthYear, birthMonth, birthDay } = body;
     
-    if (!nickname || typeof birthYear !== 'number' || typeof birthMonth !== 'number' || typeof birthDay !== 'number') {
-      return new Response(
-        JSON.stringify({
-          error: 'nickname and birth date are required. 入口フォームでユーザーを作成してください。',
-          message: '',
-          character: characterId,
-          characterName: '',
-          isInappropriate: false,
-          detectedKeywords: [],
-        } as ResponseBody),
-        { status: 400, headers: corsHeaders }
-      );
+    let userRecord: { id: number; nickname: string | null; guardian: string | null } | null = null;
+
+    // 【変更】user_idを優先的に使用（より安全で効率的）
+    if (requestUserId && typeof requestUserId === 'number' && requestUserId > 0) {
+      userRecord = await env.DB.prepare<{ id: number; nickname: string | null; guardian: string | null }>(
+        'SELECT id, nickname, guardian FROM users WHERE id = ?'
+      )
+        .bind(requestUserId)
+        .first();
     }
 
-    // nickname + 生年月日からuser_idを解決
-    const userRecord = await env.DB.prepare<{ id: number; nickname: string | null; guardian: string | null }>(
-      'SELECT id, nickname, guardian FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
-    )
-      .bind(nickname.trim(), birthYear, birthMonth, birthDay)
-      .first();
+    // user_idで取得できない場合、nickname + 生年月日で取得（後方互換性のため）
+    if (!userRecord && nickname && typeof birthYear === 'number' && typeof birthMonth === 'number' && typeof birthDay === 'number') {
+      userRecord = await env.DB.prepare<{ id: number; nickname: string | null; guardian: string | null }>(
+        'SELECT id, nickname, guardian FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
+      )
+        .bind(nickname.trim(), birthYear, birthMonth, birthDay)
+        .first();
+    }
 
     if (!userRecord) {
       return new Response(

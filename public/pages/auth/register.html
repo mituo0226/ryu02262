@@ -385,17 +385,23 @@
         }
         resultMessage.classList.add('success');
 
-        // 登録完了後、1秒後にリダイレクト（URLパラメータにユーザー情報を含める）
+        // 登録完了後、1秒後にリダイレクト（URLパラメータにuser.idを含める）
         setTimeout(() => {
           let redirectUrl = getRedirectTarget();
           const url = new URL(redirectUrl, window.location.origin);
-          url.searchParams.set('nickname', payload.nickname);
-          url.searchParams.set('birthYear', String(payload.birthYear));
-          url.searchParams.set('birthMonth', String(payload.birthMonth));
-          url.searchParams.set('birthDay', String(payload.birthDay));
+          if (data.userId) {
+            url.searchParams.set('userId', String(data.userId));
+            console.log('[register] リダイレクトURLにuserIdを追加:', redirectUrl);
+          } else {
+            // 後方互換性のため、userIdがない場合はnickname+生年月日を使用
+            url.searchParams.set('nickname', payload.nickname);
+            url.searchParams.set('birthYear', String(payload.birthYear));
+            url.searchParams.set('birthMonth', String(payload.birthMonth));
+            url.searchParams.set('birthDay', String(payload.birthDay));
+            console.log('[register] リダイレクトURLにユーザー情報を追加（後方互換性）:', redirectUrl);
+          }
           redirectUrl = url.pathname + url.search;
-          
-          console.log('[register] リダイレクトURLにユーザー情報を追加:', redirectUrl);
+
           window.location.href = redirectUrl;
         }, 1000);
       } catch (error) {

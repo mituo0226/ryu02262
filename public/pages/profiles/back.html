@@ -199,6 +199,7 @@
         // URLパラメータから取得
         const urlParams = new URLSearchParams(window.location.search);
         const character = urlParams.get('character') || 'kaede';
+        const userId = urlParams.get('userId'); // userIdを取得（ログイン済みの場合）
         
         // characterパラメータの検証
         const validCharacters = ['kaede', 'yukino', 'kaon', 'sora'];
@@ -247,7 +248,11 @@
         const skipLink = document.getElementById('skipLink');
 
         // チャットURLを設定（検証済みのcharacterを使用）
-        const chatUrl = `../chat/chat.html?character=${encodeURIComponent(validatedCharacter)}`;
+        // userIdがある場合は含める（ログイン済みの場合）
+        let chatUrl = `../chat/chat.html?character=${encodeURIComponent(validatedCharacter)}`;
+        if (userId) {
+            chatUrl += `&userId=${encodeURIComponent(userId)}`;
+        }
         chatLink.href = chatUrl;
         chatLink.textContent = currentCharacterData.buttonText;
         

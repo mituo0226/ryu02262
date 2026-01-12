@@ -6,6 +6,7 @@ interface RegisterRequestBody {
 }
 
 interface RegisterResponseBody {
+  userId?: number;
   nickname: string;
   message: string;
   warning?: boolean; // 警告フラグ（ニックネーム重複時）
@@ -50,6 +51,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     if (existingUser) {
       // 完全一致する既存ユーザーが見つかった場合、成功レスポンスを返す
       const responseBody: RegisterResponseBody = {
+        userId: existingUser.id,
         nickname: existingUser.nickname,
         message: '登録が完了しました。',
       };
@@ -103,6 +105,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     }
 
     const responseBody: RegisterResponseBody = {
+      userId: userId,
       nickname: trimmedNickname,
       message: '登録が完了しました。',
     };
