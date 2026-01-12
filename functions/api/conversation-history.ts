@@ -149,7 +149,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     // 会話の要約を生成（最後の数件のメッセージから）
     const lastMessages = sortedConversations.slice(-6);
     const conversationText = lastMessages
-      .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.message}`)
+      .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.content || msg.message || ''}`)
       .join('\n');
 
     // 今日の最初のユーザーメッセージを取得（儀式完了後の定型文で使用）
@@ -163,7 +163,7 @@ export const onRequestGet: PagesFunction = async (context) => {
         return msg.created_at.startsWith(todayStr);
       });
       if (todayMessages.length > 0) {
-        firstQuestion = todayMessages[0].message;
+        firstQuestion = todayMessages[0].content || todayMessages[0].message || '';
         console.log('[conversation-history] 今日のfirstQuestion取得:', {
           message: firstQuestion.substring(0, 50) + '...',
           created_at: todayMessages[0].created_at,
