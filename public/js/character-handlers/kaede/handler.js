@@ -609,7 +609,9 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         const ritualCompleted = sessionStorage.getItem('ritualCompleted');
 
         // 既に守護神確認メッセージを表示済みの場合は、儀式開始処理をスキップ
-        if (ritualCompleted === 'true' && sessionStorage.getItem('guardianMessageShown') === 'true') {
+        // 【重要】守護神が既に決定されている場合も、儀式開始処理をスキップ
+        const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+        if ((ritualCompleted === 'true' && sessionStorage.getItem('guardianMessageShown') === 'true') || hasAssignedDeity) {
             // ユーザーデータを更新（儀式完了済みの場合も必要）
             if (historyData && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
                 ChatUI.updateUserStatus(true, {
@@ -619,6 +621,16 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                     birthDay: historyData.birthDay,
                     assignedDeity: historyData.assignedDeity
                 });
+            }
+            
+            // 【重要】守護神が既に決定されているが、メッセージが表示されていない場合は表示
+            if (hasAssignedDeity && !sessionStorage.getItem('guardianMessageShown')) {
+                const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
+                const guardianName = historyData.assignedDeity;
+                const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                ChatUI.addMessage('welcome', guardianConfirmationMessage, ChatData.characterInfo[this.characterId].name);
+                sessionStorage.setItem('guardianMessageShown', 'true');
+                console.log('[楓専用処理] 守護神確認メッセージを表示しました:', guardianName);
             } else {
                 // 【変更】会話履歴がない場合でもlocalStorageから取得しない（データベースベースの判断）
                 // historyDataが存在しない場合は、ChatDataから取得
