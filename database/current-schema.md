@@ -4,7 +4,7 @@
 > データベース構造が変更された場合は、このドキュメントを更新してください。
 
 ## 最終更新日時
-2026-01-04
+2026-01-12
 
 ## usersテーブル
 
@@ -74,7 +74,7 @@ WHERE ip_address IS NOT NULL;
 PRAGMA table_info(conversations);
 ```
 
-> **注意**: 実際の構造は要確認。以下はスキーマファイルからの推測。
+> **確認済み**: 2026-01-12に実際のデータベース構造を確認しました。
 
 | cid | name | type | notnull | dflt_value | pk |
 |-----|------|------|---------|------------|-----|
@@ -87,6 +87,8 @@ PRAGMA table_info(conversations);
 | 6 | timestamp | DATETIME | 0 | <null> | 0 |
 | 7 | message_type | TEXT | 0 | 'normal' | 0 |
 | 8 | is_guest_message | INTEGER | 0 | 0 | 0 |
+
+> **重要**: `content`カラムは存在しません。メッセージ内容は`message`カラムに保存されます。
 
 ### カラム詳細
 
@@ -117,11 +119,18 @@ PRAGMA table_info(conversations);
    - すべてのカラムがデータベースに存在 ✅
    - NOT NULL制約のあるカラムに値を設定 ✅
 
-### ⚠️ 要確認
+### ✅ 確認済み（2026-01-12）
 
-- `conversations`テーブルの実際の構造（`PRAGMA table_info(conversations);`の実行結果を待つ）
+- `conversations`テーブルの実際の構造を確認 ✅
+  - 9列すべて確認済み
+  - `content`カラムは存在せず、`message`カラムのみが存在することを確認
 
 ## 更新履歴
+
+### 2026-01-12
+- `conversations`テーブルの実際の構造を確認（Cloudflare D1ダッシュボードから確認）
+- `content`カラムが存在しないことを確認（`message`カラムのみが存在）
+- コードとの整合性を確認（すべてのカラムが正しく使用されていることを確認）
 
 ### 2026-01-04
 - `users`テーブルの構造を記録

@@ -2,8 +2,8 @@
 
 interface ConversationRow {
   role: 'user' | 'assistant';
-  message?: string; // 後方互換性のため残す（実際はcontentを使用）
-  content?: string; // 実際のカラム名
+  message?: string; // データベースの実際のカラム名
+  content?: string; // SQLクエリでmessage as contentとしてエイリアスされた値
   created_at: string;
 }
 
@@ -100,9 +100,10 @@ export const onRequestGet: PagesFunction = async (context) => {
     }
 
     // ===== ユーザーの会話履歴取得 =====
-    // 【変更】contentカラムを優先的に使用し、なければmessageカラムを使用（後方互換性）
+    // 【重要】実際のデータベースにはmessageカラムが存在し、contentカラムは存在しない
+    // したがって、messageカラムのみを使用する
     const historyResults = await env.DB.prepare<ConversationRow>(
-      `SELECT c.role, COALESCE(c.content, c.message) as content, c.message, COALESCE(c.timestamp, c.created_at) as created_at
+      `SELECT c.role, c.message as content, c.message, COALESCE(c.timestamp, c.created_at) as created_at
        FROM conversations c
        WHERE c.user_id = ? AND c.character_id = ?
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
@@ -141,13 +142,15 @@ export const onRequestGet: PagesFunction = async (context) => {
       : null;
 
     // 最近のメッセージを返す（最新10件、created_atも含める）
+    // SQLクエリでmessage as contentとしてエイリアスしているため、row.contentに値が入る
     const recentMessages = sortedConversations.slice(-10).map((row) => ({
       role: row.role,
-      content: row.content || row.message || '', // contentを優先、後方互換性のためmessageも確認
+      content: row.content || row.message || '', // SQLエイリアスでcontentに値が入るが、フォールバックとしてmessageも確認
       created_at: row.created_at,
     }));
 
     // 会話の要約を生成（最後の数件のメッセージから）
+    // SQLクエリでmessage as contentとしてエイリアスしているため、msg.contentに値が入る
     const lastMessages = sortedConversations.slice(-6);
     const conversationText = lastMessages
       .map((msg) => `${msg.role === 'user' ? 'ユーザー' : '鑑定士'}: ${msg.content || msg.message || ''}`)
