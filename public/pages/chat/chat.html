@@ -1212,17 +1212,10 @@
               // ===== テストモードチェック（最優先で実行） =====
               // chat-engine.jsが読み込まれる前に実行されるため、ここでもチェックする
               const urlParams = new URLSearchParams(window.location.search);
+              // 【変更】localStorageの使用を削除（データベースベースの判断）
+              // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
               if (urlParams.get('test') === 'true') {
-                  console.log('[chat.html] テストモードが有効です。すべてのゲストフラグをクリアします...');
-                  const characters = ['kaede', 'yukino', 'sora', 'kaon'];
-                  characters.forEach(c => {
-                      const flag = `${c}GuestConversed`;
-                      if (localStorage.getItem(flag)) {
-                          localStorage.removeItem(flag);
-                          console.log(`[chat.html] ✅ ${flag} をクリアしました`);
-                      }
-                  });
-                  console.log('[chat.html] テストモード: すべてのゲストフラグのクリアが完了しました');
+                  console.log('[chat.html] テストモード: ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要です。');
               }
               
               // URLパラメータからキャラクターIDを取得

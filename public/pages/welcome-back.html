@@ -107,8 +107,18 @@
                     AuthState.init();
                 }
 
-                // ユーザー情報を取得
-                const nickname = localStorage.getItem('userNickname');
+                // 【変更】ユーザー情報をデータベースから取得（localStorageの使用を削除）
+                // sessionStorageから取得を試行
+                let nickname = null;
+                const savedUserInfo = sessionStorage.getItem('userInfo');
+                if (savedUserInfo) {
+                    try {
+                        const userInfo = JSON.parse(savedUserInfo);
+                        nickname = userInfo.nickname;
+                    } catch (e) {
+                        console.error('[welcome-back] sessionStorageからの情報取得エラー:', e);
+                    }
+                }
 
                 if (nickname) {
                     // ニックネームを表示

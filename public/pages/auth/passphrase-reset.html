@@ -295,9 +295,8 @@
         passphraseValue.textContent = data.passphrase;
         passphraseDisplay.classList.add('visible');
 
-        localStorage.setItem('userNickname', data.nickname);
-        localStorage.setItem('userPassphrase', data.passphrase);
-        localStorage.setItem('hasAccount', 'true');
+        // 【変更】localStorageへの保存を削除（データベースベースの判断）
+        // ユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
       } catch (error) {
         console.error(error);
         resultMessage.textContent = error.message || '通信エラーが発生しました。';

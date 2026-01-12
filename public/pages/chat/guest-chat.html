@@ -785,14 +785,10 @@
               const urlParams = new URLSearchParams(window.location.search);
               if (urlParams.get('test') === 'true') {
                   console.log('[guest-chat.html] テストモードが有効です。すべてのゲストフラグをクリアします...');
+                  // 【変更】localStorageの使用を削除（データベースベースの判断）
+                  // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
                   const characters = ['kaede', 'yukino', 'sora', 'kaon'];
-                  characters.forEach(c => {
-                      const flag = `${c}GuestConversed`;
-                      if (localStorage.getItem(flag)) {
-                          localStorage.removeItem(flag);
-                          console.log(`[guest-chat.html] ✅ ${flag} をクリアしました`);
-                      }
-                  });
+                  console.log('[guest-chat.html] テストモード: ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要です。');
                   console.log('[guest-chat.html] テストモード: すべてのゲストフラグのクリアが完了しました');
               }
               

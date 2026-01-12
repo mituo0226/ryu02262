@@ -449,16 +449,29 @@
             
             const character = 'yukino';
             
-            // ユーザー情報を取得
-            const nickname = localStorage.getItem('userNickname') || '';
-            const birthYear = parseInt(localStorage.getItem('birthYear'), 10);
-            const birthMonth = parseInt(localStorage.getItem('birthMonth'), 10);
-            const birthDay = parseInt(localStorage.getItem('birthDay'), 10);
+            // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
+            // localStorageからの取得を削除
+            let nickname = '';
+            let birthYear = null;
+            let birthMonth = null;
+            let birthDay = null;
+            
+            if (window.ChatData && window.ChatData.conversationHistory) {
+                nickname = window.ChatData.conversationHistory.nickname || '';
+                birthYear = window.ChatData.conversationHistory.birthYear || null;
+                birthMonth = window.ChatData.conversationHistory.birthMonth || null;
+                birthDay = window.ChatData.conversationHistory.birthDay || null;
+            }
             
             // ユーザー情報の検証
             if (!nickname || !birthYear || !birthMonth || !birthDay) {
                 throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
             }
+            
+            // 数値に変換
+            birthYear = parseInt(birthYear, 10);
+            birthMonth = parseInt(birthMonth, 10);
+            birthDay = parseInt(birthDay, 10);
             
             // メッセージを作成
             const message = `以下のタロットカードについて、詳しく解説してください。
@@ -660,16 +673,29 @@
         try {
             const character = 'yukino';
             
-            // ユーザー情報を取得
-            const nickname = localStorage.getItem('userNickname') || '';
-            const birthYear = parseInt(localStorage.getItem('birthYear'), 10);
-            const birthMonth = parseInt(localStorage.getItem('birthMonth'), 10);
-            const birthDay = parseInt(localStorage.getItem('birthDay'), 10);
+            // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
+            // localStorageからの取得を削除
+            let nickname = '';
+            let birthYear = null;
+            let birthMonth = null;
+            let birthDay = null;
+            
+            if (window.ChatData && window.ChatData.conversationHistory) {
+                nickname = window.ChatData.conversationHistory.nickname || '';
+                birthYear = window.ChatData.conversationHistory.birthYear || null;
+                birthMonth = window.ChatData.conversationHistory.birthMonth || null;
+                birthDay = window.ChatData.conversationHistory.birthDay || null;
+            }
             
             // ユーザー情報の検証
             if (!nickname || !birthYear || !birthMonth || !birthDay) {
                 throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
             }
+            
+            // 数値に変換
+            birthYear = parseInt(birthYear, 10);
+            birthMonth = parseInt(birthMonth, 10);
+            birthDay = parseInt(birthDay, 10);
             
             const cardNames = currentState.cards.map(c => `${c.position}：${c.name}`).join('\n');
             const message = `これまでに見た3枚のタロットカードを総合的に解釈して、まとめの鑑定をお願いします。
@@ -1288,16 +1314,29 @@ ${cardNames}
         try {
             const character = 'yukino';
             
-            // ユーザー情報を取得
-            const nickname = localStorage.getItem('userNickname') || '';
-            const birthYear = parseInt(localStorage.getItem('birthYear'), 10);
-            const birthMonth = parseInt(localStorage.getItem('birthMonth'), 10);
-            const birthDay = parseInt(localStorage.getItem('birthDay'), 10);
+            // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
+            // localStorageからの取得を削除
+            let nickname = '';
+            let birthYear = null;
+            let birthMonth = null;
+            let birthDay = null;
+            
+            if (window.ChatData && window.ChatData.conversationHistory) {
+                nickname = window.ChatData.conversationHistory.nickname || '';
+                birthYear = window.ChatData.conversationHistory.birthYear || null;
+                birthMonth = window.ChatData.conversationHistory.birthMonth || null;
+                birthDay = window.ChatData.conversationHistory.birthDay || null;
+            }
             
             // ユーザー情報の検証
             if (!nickname || !birthYear || !birthMonth || !birthDay) {
                 throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
             }
+            
+            // 数値に変換
+            birthYear = parseInt(birthYear, 10);
+            birthMonth = parseInt(birthMonth, 10);
+            birthDay = parseInt(birthDay, 10);
             
             // リクエストペイロードを作成（chat-api.jsのsendMessageと同じ形式）
             const payload = {

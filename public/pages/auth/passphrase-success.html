@@ -197,7 +197,20 @@
     (function(){
       const params = new URLSearchParams(location.search);
       const passphraseFromQuery = params.get('passphrase');
-      const nickname = params.get('nickname') || localStorage.getItem('userNickname') || '';
+      // 【変更】localStorageからの取得を削除（データベースベースの判断）
+      // sessionStorageから取得を試行
+      let nickname = params.get('nickname') || '';
+      if (!nickname) {
+        const savedUserInfo = sessionStorage.getItem('userInfo');
+        if (savedUserInfo) {
+          try {
+            const userInfo = JSON.parse(savedUserInfo);
+            nickname = userInfo.nickname || '';
+          } catch (e) {
+            console.error('[passphrase-success] sessionStorageからの情報取得エラー:', e);
+          }
+        }
+      }
       const redirect = params.get('redirect') || document.referrer || '/';
 
       const passEl = document.getElementById('passphrase');
@@ -205,8 +218,8 @@
       const copiedMsg = document.getElementById('copiedMsg');
       const continueBtn = document.getElementById('continueBtn');
 
-      const localPass = localStorage.getItem('assignedDeity') || '';
-      const passphrase = (passphraseFromQuery || localPass || '').toString();
+      // 【変更】localStorageからの取得を削除（データベースベースの判断）
+      const passphrase = (passphraseFromQuery || '').toString();
 
       if (!passphrase) {
         passEl.textContent = '（合言葉が見つかりませんでした）';

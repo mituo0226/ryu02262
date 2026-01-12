@@ -10,8 +10,9 @@ const ChatAPI = {
      * @returns {Promise<Object|null>} 会話履歴データ
      */
     async loadConversationHistory(characterId, userInfo = null) {
-        // データベースから最新のユーザー情報と会話履歴を取得
-        // userInfoが提供されない場合は、localStorageから取得（後方互換性のため）
+        // 【変更】データベースから最新のユーザー情報と会話履歴を取得
+        // localStorageからの取得を削除（データベースベースの判断に移行）
+        // userInfoが提供されない場合は、sessionStorageから取得を試行
         let nickname, birthYear, birthMonth, birthDay;
         
         if (userInfo) {
@@ -20,14 +21,23 @@ const ChatAPI = {
             birthMonth = userInfo.birthMonth;
             birthDay = userInfo.birthDay;
         } else {
-            nickname = localStorage.getItem('userNickname');
-            birthYear = localStorage.getItem('birthYear');
-            birthMonth = localStorage.getItem('birthMonth');
-            birthDay = localStorage.getItem('birthDay');
+            // sessionStorageから取得を試行
+            const savedUserInfo = sessionStorage.getItem('userInfo');
+            if (savedUserInfo) {
+                try {
+                    const parsed = JSON.parse(savedUserInfo);
+                    nickname = parsed.nickname;
+                    birthYear = parsed.birthYear;
+                    birthMonth = parsed.birthMonth;
+                    birthDay = parsed.birthDay;
+                } catch (e) {
+                    console.error('[loadConversationHistory] sessionStorageからの情報取得エラー:', e);
+                }
+            }
         }
         
         if (!nickname || !birthYear || !birthMonth || !birthDay) {
-            console.log('[loadConversationHistory] ユーザー情報が見つかりません');
+            console.log('[loadConversationHistory] ユーザー情報が見つかりません（ゲストユーザーの可能性があります）');
             return null;
         }
         

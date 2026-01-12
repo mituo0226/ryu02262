@@ -1142,8 +1142,10 @@ const ChatInit = {
                     );
                     
                     if (!hasGuardianMessage) {
-                        const assignedDeity = localStorage.getItem('assignedDeity');
-                        const userNickname = localStorage.getItem('userNickname') || 'あなた';
+                        // 【変更】localStorageから取得しない（データベースベースの判断）
+                        // 守護神情報はhistoryDataから取得
+                        const assignedDeity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || null;
+                        const userNickname = ChatData.userNickname || 'あなた';
                         
                         if (assignedDeity) {
                             // 守護神名（データベースに日本語で保存されているのでそのまま使用）
@@ -1435,11 +1437,9 @@ const ChatInit = {
                 
                 // 【新仕様】userTokenは不要。エラーハンドリングを簡素化
                 if (data.error && (data.error.includes('user not found') || data.error.includes('session'))) {
+                    // 【変更】localStorageからの削除を削除（データベースベースの判断）
                     if (window.AuthState && typeof window.AuthState.clearAuth === 'function') {
                         AuthState.clearAuth();
-                    } else {
-                        localStorage.removeItem('userNickname');
-                        localStorage.removeItem('assignedDeity');
                     }
                     window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(window.location.href);
                     if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
@@ -1677,8 +1677,7 @@ const ChatInit = {
             // 【重要】データベースのguardianカラムから守護神が既に決定されているかチェック（優先）
             if (historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '') {
                 console.log('[守護神の儀式] データベースで守護神が既に決定されていることを確認（' + historyData.assignedDeity + '）。儀式を開始しません。');
-                // localStorageにも同期（表示用）
-                localStorage.setItem('assignedDeity', historyData.assignedDeity);
+                // 【変更】localStorageに保存しない（データベースベースの判断）
                 if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
                 return; // 儀式を開始しない
             }
@@ -1901,21 +1900,9 @@ window.ChatTestUtils = {
      * @param {string|null} characterId - キャラクターID（指定しない場合はすべてクリア）
      */
     clearGuestFlags(characterId = null) {
-        const characters = ['kaede', 'yukino', 'sora', 'kaon'];
-        const flagsToClear = characterId 
-            ? [`${characterId}GuestConversed`]
-            : characters.map(c => `${c}GuestConversed`);
-        
-        flagsToClear.forEach(flag => {
-            if (localStorage.getItem(flag)) {
-                localStorage.removeItem(flag);
-                console.log(`[ChatTestUtils] ✅ ${flag} をクリアしました`);
-            } else {
-                console.log(`[ChatTestUtils] ℹ️ ${flag} は存在しませんでした`);
-            }
-        });
-        
-        console.log('[ChatTestUtils] ゲストフラグのクリアが完了しました。ページをリロードしてください。');
+        // 【変更】localStorageの使用を削除（データベースベースの判断）
+        // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
+        console.log('[ChatTestUtils] ゲストフラグのクリアはデータベースベースの判断に移行したため、localStorageのクリアは不要です。');
     },
     
     /**
@@ -1926,14 +1913,8 @@ window.ChatTestUtils = {
         const characters = ['kaede', 'yukino', 'sora', 'kaon'];
         const targets = characterId ? [characterId] : characters;
         
-        // localStorageのフラグをクリア
-        targets.forEach(c => {
-            const flag = `${c}GuestConversed`;
-            if (localStorage.getItem(flag)) {
-                localStorage.removeItem(flag);
-                console.log(`[ChatTestUtils] ✅ ${flag} をクリアしました`);
-            }
-        });
+        // 【変更】localStorageの使用を削除（データベースベースの判断）
+        // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
         
         // sessionStorageの履歴をクリア
         targets.forEach(c => {
@@ -1967,10 +1948,10 @@ window.ChatTestUtils = {
         const characters = ['kaede', 'yukino', 'sora', 'kaon'];
         const status = {};
         
+        // 【変更】localStorageの使用を削除（データベースベースの判断）
         characters.forEach(c => {
-            const flag = `${c}GuestConversed`;
             status[c] = {
-                flag: localStorage.getItem(flag) || 'なし',
+                flag: 'データベースで管理',
                 history: sessionStorage.getItem(`guestConversationHistory_${c}`) ? 'あり' : 'なし',
                 count: sessionStorage.getItem(`guestMessageCount_${c}`) || '0'
             };
@@ -1992,14 +1973,10 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('test') === 'true') {
         console.log('[ChatEngine] テストモードが有効です。すべてのゲストフラグをクリアします...');
+        // 【変更】localStorageの使用を削除（データベースベースの判断）
+        // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
         const characters = ['kaede', 'yukino', 'sora', 'kaon'];
-        characters.forEach(c => {
-            const flag = `${c}GuestConversed`;
-            if (localStorage.getItem(flag)) {
-                localStorage.removeItem(flag);
-                console.log(`[ChatEngine] ✅ ${flag} をクリアしました`);
-            }
-        });
+        console.log('[ChatEngine] テストモード: ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要です。');
         console.log('[ChatEngine] テストモード: すべてのゲストフラグのクリアが完了しました');
     }
 })();
@@ -2464,12 +2441,11 @@ window.addEventListener('DOMContentLoaded', async () => {
                 break;
                 
             case 'ADMIN_SIMULATE_REGISTRATION':
-                // テスト用ユーザー登録をシミュレート
+                // 【変更】テスト用ユーザー登録をシミュレート（localStorageの使用を削除）
+                // データベースベースの判断に移行したため、localStorageへの保存は不要
                 if (window.AuthState) {
                     window.AuthState.setAuth(null, nickname, assignedDeity);
-                    if (nickname) localStorage.setItem('userNickname', nickname);
-                    if (assignedDeity) localStorage.setItem('assignedDeity', assignedDeity);
-                    localStorage.setItem('hasAccount', 'true');
+                    // localStorageへの保存を削除
                     location.reload();
                 }
                 break;
@@ -2480,9 +2456,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     window.AuthState.clearAuth();
                     window.AuthState.resetGuestProgress({ keepHistory: false });
                 }
-                localStorage.removeItem('userNickname');
-                localStorage.removeItem('assignedDeity');
-                localStorage.removeItem('hasAccount');
+                // 【変更】localStorageからの削除を削除（データベースベースの判断）
                 sessionStorage.clear();
                 location.reload();
                 break;
@@ -2783,8 +2757,8 @@ function showYukinoRegistrationButtons() {
         const farewellMessage = 'わかりました。それではまた何かあったら連絡ください。これまでの会話の中身は私は忘れてしまうと思うので、今度来た時にはゼロから話をしてくださいね。お待ちしています。';
         ChatUI.addMessage('character', farewellMessage, info.name);
         
-        // ゲストモードで会話したことを記録（次回再訪問時にリダイレクト用）
-        localStorage.setItem('yukinoGuestConversed', 'true');
+        // 【変更】ゲストモードで会話したことを記録しない（データベースベースの判断）
+        // localStorageへの保存を削除
         
         // ボタンを削除
         container.remove();
