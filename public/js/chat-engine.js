@@ -705,6 +705,11 @@ const ChatInit = {
                 // （データベースベースの判断のため、localStorageは使用しない）
                 // historyDataが存在する場合は、上記の分岐で既に処理されている
                 if (historyData && historyData.nickname) {
+                    // 【重要】hasHistoryがfalseでも、nicknameが存在する場合は登録済みユーザーとして扱う
+                    // ChatData.conversationHistoryを設定（データベースから読み込んだ情報を保存）
+                    ChatData.conversationHistory = historyData;
+                    ChatData.userNickname = historyData.nickname;
+                    
                     ChatUI.updateUserStatus(true, {
                         nickname: historyData.nickname || '鑑定者',
                         birthYear: historyData.birthYear || null,
