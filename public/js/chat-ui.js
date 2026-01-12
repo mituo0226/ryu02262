@@ -93,11 +93,17 @@ const ChatUI = {
         if (!this.userStatus) return;
         
         if (isRegistered) {
-            const nickname = userData?.nickname || localStorage.getItem('userNickname') || '鑑定者';
-            const deityId = userData?.assignedDeity || localStorage.getItem('assignedDeity') || '未割当';
-            const birthYear = userData?.birthYear || null;
-            const birthMonth = userData?.birthMonth || null;
-            const birthDay = userData?.birthDay || null;
+            // 【変更】userDataからのみ取得（localStorageは使用しない）
+            if (!userData) {
+                console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
+                return;
+            }
+            
+            const nickname = userData.nickname || '鑑定者';
+            const deityId = userData.assignedDeity || '未割当';
+            const birthYear = userData.birthYear || null;
+            const birthMonth = userData.birthMonth || null;
+            const birthDay = userData.birthDay || null;
             
             // 守護神名（データベースに日本語で保存されているのでそのまま使用）
             const deity = deityId;

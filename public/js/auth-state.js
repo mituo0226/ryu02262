@@ -27,10 +27,12 @@
   }
 
   function isRegistered() {
-    return !!(localStorage.getItem('userNickname') && 
-              localStorage.getItem('birthYear') && 
-              localStorage.getItem('birthMonth') && 
-              localStorage.getItem('birthDay'));
+    // 【変更】データベースベースの判断に変更
+    // localStorageではなく、データベースから判断するため、常にfalseを返す
+    // 実際の判断は、historyDataの存在で行う
+    // 後方互換性のため、この関数は残すが、使用は推奨されない
+    console.warn('[AuthState] isRegistered()は非推奨です。historyDataの存在で判断してください。');
+    return false;
   }
 
   function getUserToken() {
@@ -39,22 +41,17 @@
   }
 
   function setAuth(token, nickname, deity) {
-    // tokenは無視（使用しない）
-    if (nickname) {
-      localStorage.setItem('userNickname', nickname);
-    }
-    if (deity) {
-      localStorage.setItem('assignedDeity', deity);
-    }
-    // Mark that this browser/user has completed registration
-    localStorage.setItem('hasAccount', 'true');
+    // 【変更】データベースベースの判断に変更
+    // localStorageへの保存を削除（すべてのユーザー情報はデータベースに保存）
+    // 後方互換性のため、この関数は残すが、何もしない
+    console.warn('[AuthState] setAuth()は非推奨です。ユーザー情報はデータベースに保存されます。');
   }
 
   function clearAuth() {
-    // ユーザー情報をクリア
-    localStorage.removeItem('userNickname');
-    localStorage.removeItem('assignedDeity');
-    localStorage.removeItem('hasAccount');
+    // 【変更】データベースベースの判断に変更
+    // localStorageからの削除を削除（すべてのユーザー情報はデータベースに保存）
+    // 後方互換性のため、この関数は残すが、何もしない
+    console.warn('[AuthState] clearAuth()は非推奨です。ユーザー情報はデータベースに保存されます。');
   }
 
   function getGuestMessageCount() {

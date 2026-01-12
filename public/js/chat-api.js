@@ -9,12 +9,22 @@ const ChatAPI = {
      * @param {string} characterId - キャラクターID
      * @returns {Promise<Object|null>} 会話履歴データ
      */
-    async loadConversationHistory(characterId) {
+    async loadConversationHistory(characterId, userInfo = null) {
         // データベースから最新のユーザー情報と会話履歴を取得
-        const nickname = localStorage.getItem('userNickname');
-        const birthYear = localStorage.getItem('birthYear');
-        const birthMonth = localStorage.getItem('birthMonth');
-        const birthDay = localStorage.getItem('birthDay');
+        // userInfoが提供されない場合は、localStorageから取得（後方互換性のため）
+        let nickname, birthYear, birthMonth, birthDay;
+        
+        if (userInfo) {
+            nickname = userInfo.nickname;
+            birthYear = userInfo.birthYear;
+            birthMonth = userInfo.birthMonth;
+            birthDay = userInfo.birthDay;
+        } else {
+            nickname = localStorage.getItem('userNickname');
+            birthYear = localStorage.getItem('birthYear');
+            birthMonth = localStorage.getItem('birthMonth');
+            birthDay = localStorage.getItem('birthDay');
+        }
         
         if (!nickname || !birthYear || !birthMonth || !birthDay) {
             console.log('[loadConversationHistory] ユーザー情報が見つかりません');
@@ -48,24 +58,9 @@ const ChatAPI = {
                 return null;
             }
             
-            // データベースから取得した最新のユーザー情報をlocalStorageに保存
+            // 【変更】データベースから取得した情報をlocalStorageに保存しない
+            // すべてのユーザー情報はデータベースから取得する
             if (data) {
-                if (data.nickname) {
-                    localStorage.setItem('userNickname', data.nickname);
-                }
-                if (data.birthYear) {
-                    localStorage.setItem('birthYear', String(data.birthYear));
-                }
-                if (data.birthMonth) {
-                    localStorage.setItem('birthMonth', String(data.birthMonth));
-                }
-                if (data.birthDay) {
-                    localStorage.setItem('birthDay', String(data.birthDay));
-                }
-                if (data.assignedDeity) {
-                    localStorage.setItem('assignedDeity', data.assignedDeity);
-                    console.log('[loadConversationHistory] 守護神情報をlocalStorageに保存:', data.assignedDeity);
-                }
                 console.log('[loadConversationHistory] データベースから最新のユーザー情報を取得しました:', {
                     nickname: data.nickname,
                     birthYear: data.birthYear,
