@@ -766,29 +766,32 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
                 await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待つ
                 
-                // 【重要】guardian-ritual.htmlに遷移する前に、ユーザー情報をsessionStorageに保存
-                // （データベースベースの判断に移行したため、localStorageではなくsessionStorageを使用）
-                const ritualUserInfo = {
-                    nickname: historyData?.nickname || ChatData.userNickname || 'あなた',
-                    birthYear: historyData?.birthYear || null,
-                    birthMonth: historyData?.birthMonth || null,
-                    birthDay: historyData?.birthDay || null
-                };
+                // 【変更】guardian-ritual.htmlに遷移する際、userIdをURLパラメータに含める
+                // sessionStorageの使用を削除（データベースベースの判断に移行）
+                // URLパラメータからuserIdを取得
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('userId');
                 
-                if (ritualUserInfo.birthYear && ritualUserInfo.birthMonth && ritualUserInfo.birthDay) {
-                    sessionStorage.setItem('ritualUserInfo', JSON.stringify(ritualUserInfo));
-                    console.log('[楓専用処理] ユーザー情報をsessionStorageに保存:', ritualUserInfo);
-                } else {
-                    console.error('[楓専用処理] ❌ ユーザー情報が不足しています:', ritualUserInfo);
+                // guardian-ritual.htmlへのURLを構築
+                let ritualUrl = '../guardian-ritual.html';
+                if (userId) {
+                    ritualUrl += `?userId=${encodeURIComponent(userId)}`;
+                    // ユーザー情報も含める（守護神決定に必要）
+                    if (historyData) {
+                        if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
+                            ritualUrl += `&birthYear=${encodeURIComponent(historyData.birthYear)}&birthMonth=${encodeURIComponent(historyData.birthMonth)}&birthDay=${encodeURIComponent(historyData.birthDay)}`;
+                        }
+                        if (historyData.nickname) {
+                            ritualUrl += `&nickname=${encodeURIComponent(historyData.nickname)}`;
+                        }
+                    } else if (ChatData.userNickname) {
+                        // historyDataがない場合のフォールバック
+                        ritualUrl += `&nickname=${encodeURIComponent(ChatData.userNickname)}`;
+                    }
                 }
                 
-                // guardian-ritual.htmlに遷移
-                const currentChatUrl = window.location.href;
-                sessionStorage.setItem('postRitualChatUrl', currentChatUrl);
-                sessionStorage.setItem('justRegistered', 'true');
-                
-                console.log('[楓専用処理] guardian-ritual.htmlに遷移:', currentChatUrl);
-                window.location.href = '../guardian-ritual.html';
+                console.log('[楓専用処理] guardian-ritual.htmlに遷移:', ritualUrl);
+                window.location.href = ritualUrl;
                 
                 return true; // 処理完了（遷移するため、以降の処理は実行されない）
             }

@@ -1,9 +1,10 @@
 interface UpdateDeityRequestBody {
   guardian: string;
-  nickname: string; // ユーザー識別用
-  birthYear: number; // ユーザー識別用
-  birthMonth: number; // ユーザー識別用
-  birthDay: number; // ユーザー識別用
+  userId?: number; // ユーザー識別用（優先）
+  nickname?: string; // ユーザー識別用（後方互換性）
+  birthYear?: number; // ユーザー識別用（後方互換性）
+  birthMonth?: number; // ユーザー識別用（後方互換性）
+  birthDay?: number; // ユーザー識別用（後方互換性）
 }
 
 export const onRequestPost: PagesFunction = async ({ request, env }) => {
@@ -16,24 +17,32 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { guardian, nickname, birthYear, birthMonth, birthDay } = body;
+  const { guardian, userId, nickname, birthYear, birthMonth, birthDay } = body;
 
-  if (!nickname || typeof birthYear !== 'number' || typeof birthMonth !== 'number' || typeof birthDay !== 'number') {
-    return new Response(JSON.stringify({ error: 'nickname and birth date are required' }), { status: 400, headers });
+  // userIdを優先的に使用
+  let userRecord;
+  if (userId && typeof userId === 'number' && userId > 0) {
+    userRecord = await env.DB.prepare<{ id: number }>(
+      'SELECT id FROM users WHERE id = ?'
+    )
+      .bind(userId)
+      .first();
+  } else if (nickname && typeof birthYear === 'number' && typeof birthMonth === 'number' && typeof birthDay === 'number') {
+    // userIdがない場合、後方互換性のためnickname + 生年月日を使用
+    userRecord = await env.DB.prepare<{ id: number }>(
+      'SELECT id FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
+    )
+      .bind(nickname.trim(), birthYear, birthMonth, birthDay)
+      .first();
+  } else {
+    return new Response(JSON.stringify({ error: 'userId or nickname and birth date are required' }), { status: 400, headers });
   }
 
-  // nickname + 生年月日からuser_idを解決
-  const user = await env.DB.prepare<{ id: number }>(
-    'SELECT id FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
-  )
-    .bind(nickname.trim(), birthYear, birthMonth, birthDay)
-    .first();
-
-  if (!user) {
+  if (!userRecord) {
     return new Response(JSON.stringify({ error: 'ユーザーが見つかりません' }), { status: 404, headers });
   }
 
-  const userId = user.id;
+  const finalUserId = userRecord.id;
 
   if (!guardian || typeof guardian !== 'string') {
     return new Response(JSON.stringify({ error: 'guardian is required' }), { status: 400, headers });
@@ -50,7 +59,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
      SET guardian = ?
      WHERE id = ?`
   )
-    .bind(trimmedGuardian, userId)
+    .bind(trimmedGuardian, finalUserId)
     .run();
 
   return new Response(JSON.stringify({ success: true, guardian: trimmedGuardian }), { status: 200, headers });

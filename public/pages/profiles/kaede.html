@@ -85,7 +85,12 @@
                 document.querySelectorAll('a[href*="back.html"]').forEach((link) => {
                     const href = link.getAttribute('href');
                     if (href) {
-                        const url = new URL(href, window.location.origin);
+                        // 現在のページのパスを基準に相対パスを解決
+                        // window.location.pathname = '/pages/profiles/kaede' または '/pages/profiles/kaede.html'
+                        const currentPath = window.location.pathname;
+                        const basePath = currentPath.substring(0, currentPath.lastIndexOf('/')); // '/pages/profiles'
+                        const absolutePath = basePath + '/' + href; // '/pages/profiles/back.html?character=kaede'
+                        const url = new URL(absolutePath, window.location.origin);
                         url.searchParams.set('userId', userId);
                         link.href = url.pathname + url.search;
                         console.log('[kaede] back.htmlへのリンクにuserIdを追加:', link.href);
