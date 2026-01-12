@@ -2194,13 +2194,30 @@ window.addEventListener('DOMContentLoaded', async () => {
     ChatUI.init();
     
     // ページを初期化
-    // 入口フォームが表示されている場合は初期化をスキップ
+    // 入口フォームが表示されている場合は初期化をスキップ（ただし、initEntryForm()が処理中の場合を除く）
     const entryFormContainer = document.getElementById('entryFormContainer');
     const chatContainer = document.getElementById('chatContainer');
     const isEntryFormVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
     
     if (isEntryFormVisible) {
         console.log('[chat-engine] 入口フォームが表示されているため、初期化をスキップします');
+        // 【変更】initEntryForm()がチャット画面を表示した後、初期化を再試行するため、
+        // 入口フォームが非表示になったら初期化を実行するイベントリスナーを設定
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const isNowHidden = entryFormContainer.classList.contains('entry-form-hidden');
+                    if (isNowHidden) {
+                        console.log('[chat-engine] 入口フォームが非表示になったため、初期化を実行します');
+                        observer.disconnect();
+                        ChatInit.initPage().catch(error => {
+                            console.error('[chat-engine] 初期化エラー:', error);
+                        });
+                    }
+                }
+            });
+        });
+        observer.observe(entryFormContainer, { attributes: true });
         return;
     }
     

@@ -1068,6 +1068,32 @@
                            console.log('[入口フォーム] データベースにユーザー情報が存在するため、チャット画面を表示します');
                            entryFormContainer.classList.add('entry-form-hidden');
                            chatContainer.classList.remove('entry-form-hidden');
+                           
+                           // 【重要】チャット画面を表示した後、chat-engine.jsの初期化を実行
+                           // ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
+                           if (window.ChatData) {
+                               window.ChatData.conversationHistory = historyData;
+                               window.ChatData.userNickname = historyData.nickname;
+                           }
+                           
+                           // chat-engine.jsの初期化を実行
+                           if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                               console.log('[入口フォーム] chat-engine.jsの初期化を実行します');
+                               await window.ChatInit.initPage();
+                           } else {
+                               console.warn('[入口フォーム] ChatInit.initPageが見つかりません。後で再試行します。');
+                               // ChatInitが読み込まれるのを待つ（最大5秒）
+                               let attempts = 0;
+                               const maxAttempts = 50; // 5秒間待機（100ms × 50）
+                               while (!window.ChatInit && attempts < maxAttempts) {
+                                   await new Promise(resolve => setTimeout(resolve, 100));
+                                   attempts++;
+                               }
+                               if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                   console.log('[入口フォーム] ChatInit.initPageを実行します（再試行）');
+                                   await window.ChatInit.initPage();
+                               }
+                           }
                            return;
                        }
                        
