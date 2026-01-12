@@ -74,9 +74,32 @@
     </div>
 
     <script>
-        // 【変更】ログイン状態のチェックを削除
-        // プロフィールページからは常にback.htmlに遷移し、chat.html側で会話履歴を確認する
-        // （データベースベースの判断に移行したため、プロフィールページでの判定は不要）
+        // 【追加】URLパラメータからuserIdを取得して、back.htmlへのリンクに追加
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        
+        if (userId) {
+            // すべてのback.htmlへのリンクにuserIdを追加
+            document.querySelectorAll('a[href*="back.html"]').forEach((link) => {
+                const href = link.getAttribute('href');
+                if (href) {
+                    const url = new URL(href, window.location.origin);
+                    url.searchParams.set('userId', userId);
+                    link.href = url.pathname + url.search;
+                    console.log('[kaede] back.htmlへのリンクにuserIdを追加:', link.href);
+                }
+            });
+            // main.htmlへのリンクにもuserIdを追加
+            document.querySelectorAll('a[href="../main.html"]').forEach((link) => {
+                const href = link.getAttribute('href');
+                if (href) {
+                    const url = new URL(href, window.location.origin);
+                    url.searchParams.set('userId', userId);
+                    link.href = url.pathname + url.search;
+                    console.log('[kaede] main.htmlへのリンクにuserIdを追加:', link.href);
+                }
+            });
+        }
         
         // パーティクルエフェクト
         function createFloatingParticle() {

@@ -53,6 +53,23 @@
         fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.html:52',message:'ページ読み込み完了',data:{url:window.location.href,userAgent:navigator.userAgent},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         
+        // 【追加】URLパラメータからuserIdを取得して、プロフィールページへのリンクに追加
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        
+        if (userId) {
+            // すべてのプロフィールページへのリンクにuserIdを追加
+            document.querySelectorAll('.consult-button').forEach((btn) => {
+                const href = btn.getAttribute('href');
+                if (href && href.startsWith('profiles/')) {
+                    const url = new URL(href, window.location.origin);
+                    url.searchParams.set('userId', userId);
+                    btn.href = url.pathname + url.search;
+                    console.log('[main] プロフィールページへのリンクにuserIdを追加:', btn.href);
+                }
+            });
+        }
+        
         // スクロール時のアニメーション強化
         const cards = document.querySelectorAll('.fortune-teller-card');
         const observer = new IntersectionObserver((entries) => {
