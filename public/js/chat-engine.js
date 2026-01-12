@@ -64,10 +64,11 @@ const ChatInit = {
         // 以前のキャラクターを保存（キャラクター切り替え判定用）
         const previousCharacter = ChatData.currentCharacter;
         
-        // キャラクターが切り替わった場合、lastUserMessageをクリア（handleReturnFromAnimationで表示されないようにするため）
+        // キャラクターが切り替わった場合、lastUserMessageとguardianMessageShownフラグをクリア
         if (previousCharacter && previousCharacter !== character) {
             sessionStorage.removeItem('lastUserMessage');
-            console.log('[初期化] キャラクターが切り替わりました。lastUserMessageをクリアしました:', {
+            sessionStorage.removeItem('guardianMessageShown');
+            console.log('[初期化] キャラクターが切り替わりました。lastUserMessageとguardianMessageShownをクリアしました:', {
                 previousCharacter,
                 newCharacter: character
             });
