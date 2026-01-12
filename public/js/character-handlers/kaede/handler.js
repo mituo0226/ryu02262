@@ -766,9 +766,26 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
                 await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待つ
                 
+                // 【重要】guardian-ritual.htmlに遷移する前に、ユーザー情報をsessionStorageに保存
+                // （データベースベースの判断に移行したため、localStorageではなくsessionStorageを使用）
+                const ritualUserInfo = {
+                    nickname: historyData?.nickname || ChatData.userNickname || 'あなた',
+                    birthYear: historyData?.birthYear || null,
+                    birthMonth: historyData?.birthMonth || null,
+                    birthDay: historyData?.birthDay || null
+                };
+                
+                if (ritualUserInfo.birthYear && ritualUserInfo.birthMonth && ritualUserInfo.birthDay) {
+                    sessionStorage.setItem('ritualUserInfo', JSON.stringify(ritualUserInfo));
+                    console.log('[楓専用処理] ユーザー情報をsessionStorageに保存:', ritualUserInfo);
+                } else {
+                    console.error('[楓専用処理] ❌ ユーザー情報が不足しています:', ritualUserInfo);
+                }
+                
                 // guardian-ritual.htmlに遷移
                 const currentChatUrl = window.location.href;
                 sessionStorage.setItem('postRitualChatUrl', currentChatUrl);
+                sessionStorage.setItem('justRegistered', 'true');
                 
                 console.log('[楓専用処理] guardian-ritual.htmlに遷移:', currentChatUrl);
                 window.location.href = '../guardian-ritual.html';

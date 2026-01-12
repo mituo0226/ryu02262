@@ -556,12 +556,15 @@
 
     /**
      * ユーザー情報の取得
+     * 【変更】データベースベースの判断に移行したため、sessionStorageまたはURLパラメータから取得
      */
     async function getUserBirthday() {
-      const birthYear = localStorage.getItem('birthYear');
-      const birthMonth = localStorage.getItem('birthMonth');
-      const birthDay = localStorage.getItem('birthDay');
-
+      // 優先順位1: URLパラメータから取得
+      const urlParams = new URLSearchParams(window.location.search);
+      const birthYear = urlParams.get('birthYear');
+      const birthMonth = urlParams.get('birthMonth');
+      const birthDay = urlParams.get('birthDay');
+      
       if (birthYear && birthMonth && birthDay) {
         return {
           birthYear: parseInt(birthYear, 10),
@@ -569,8 +572,35 @@
           birthDay: parseInt(birthDay, 10)
         };
       }
-
-      throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
+      
+      // 優先順位2: sessionStorageから取得（守護神の儀式開始時に保存された情報）
+      const ritualUserInfo = sessionStorage.getItem('ritualUserInfo');
+      if (ritualUserInfo) {
+        try {
+          const userInfo = JSON.parse(ritualUserInfo);
+          if (userInfo.birthYear && userInfo.birthMonth && userInfo.birthDay) {
+            return {
+              birthYear: parseInt(userInfo.birthYear, 10),
+              birthMonth: parseInt(userInfo.birthMonth, 10),
+              birthDay: parseInt(userInfo.birthDay, 10)
+            };
+          }
+        } catch (e) {
+          console.error('[守護神の儀式] sessionStorageからの情報取得エラー:', e);
+        }
+      }
+      
+      // 優先順位3: データベースから取得（会話履歴APIを使用）
+      // ただし、この方法は非同期のため、エラーを投げる前に試行
+      try {
+        // 会話履歴APIを呼び出してユーザー情報を取得
+        // ただし、この時点ではユーザー情報が分からないため、エラーを投げる
+        throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
+      } catch (error) {
+        // エラーメッセージを表示して、登録画面にリダイレクト
+        console.error('[守護神の儀式] ユーザー情報の取得に失敗:', error);
+        throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
+      }
     }
 
     /**
@@ -802,8 +832,26 @@
     async function init() {
       try {
         // ユーザー生年月日とニックネームを取得
+        // 【変更】データベースベースの判断に移行したため、sessionStorageまたはURLパラメータから取得
         const birthday = await getUserBirthday();
-        const nickname = localStorage.getItem('userNickname') || 'あなた';
+        
+        // ニックネームの取得（優先順位: URLパラメータ > sessionStorage > デフォルト）
+        const urlParams = new URLSearchParams(window.location.search);
+        let nickname = urlParams.get('nickname');
+        
+        if (!nickname) {
+          const ritualUserInfo = sessionStorage.getItem('ritualUserInfo');
+          if (ritualUserInfo) {
+            try {
+              const userInfo = JSON.parse(ritualUserInfo);
+              nickname = userInfo.nickname;
+            } catch (e) {
+              console.error('[守護神の儀式] sessionStorageからのニックネーム取得エラー:', e);
+            }
+          }
+        }
+        
+        nickname = nickname || 'あなた';
         
         // 守護神を決定
         const guardian = getGuardianFromParts(
@@ -812,18 +860,16 @@
           birthday.birthDay
         );
 
-        // 守護神のIDをlocalStorageに保存（すぐに保存）
-        localStorage.setItem('assignedDeity', guardian.id);
+        // 【変更】守護神のIDをlocalStorageに保存しない（データベースベースの判断）
+        // 守護神の情報はデータベースに保存されるため、localStorageへの保存は不要
         console.log('[守護神の儀式] 守護神を決定しました:', guardian.id, guardian.name);
 
         // 初回登録後かどうかをチェック
+        // 【変更】データベースベースの判断に移行したため、localStorageではなくsessionStorageから取得
         const postRitualChatUrl = sessionStorage.getItem('postRitualChatUrl');
         const justRegistered = sessionStorage.getItem('justRegistered');
-        // ユーザー情報が存在するかチェック
-        const hasUserInfo = !!(localStorage.getItem('userNickname') && 
-                              localStorage.getItem('birthYear') && 
-                              localStorage.getItem('birthMonth') && 
-                              localStorage.getItem('birthDay'));
+        // ユーザー情報が存在するかチェック（sessionStorageまたはURLパラメータから）
+        const hasUserInfo = !!(nickname && birthday.birthYear && birthday.birthMonth && birthday.birthDay);
         const isFirstTimeRitual = postRitualChatUrl && justRegistered === 'true' && hasUserInfo;
 
         // 【重要】守護神が決定した時点ですぐにAPIに送信（バックグラウンド）
@@ -831,14 +877,11 @@
         if (isFirstTimeRitual) {
           console.log('[守護神の儀式] 守護神情報をバックグラウンドでデータベースに保存開始:', guardian.id);
           
-          // ユーザー情報をlocalStorageから取得
-          const nickname = localStorage.getItem('userNickname');
-          const birthYear = localStorage.getItem('birthYear');
-          const birthMonth = localStorage.getItem('birthMonth');
-          const birthDay = localStorage.getItem('birthDay');
+          // 【変更】ユーザー情報をsessionStorageまたはURLパラメータから取得（データベースベースの判断）
+          // nicknameとbirthdayは既に取得済み
           
-          if (!nickname || !birthYear || !birthMonth || !birthDay) {
-            console.error('[守護神の儀式] ❌ ユーザー情報が不足しています:', { nickname, birthYear, birthMonth, birthDay });
+          if (!nickname || !birthday.birthYear || !birthday.birthMonth || !birthday.birthDay) {
+            console.error('[守護神の儀式] ❌ ユーザー情報が不足しています:', { nickname, birthday });
             dbSavePromise = Promise.resolve(false);
           } else {
             dbSavePromise = fetch('/api/auth/update-deity', {
@@ -849,9 +892,9 @@
               body: JSON.stringify({
                 guardian: guardian.id,
                 nickname: nickname,
-                birthYear: Number(birthYear),
-                birthMonth: Number(birthMonth),
-                birthDay: Number(birthDay)
+                birthYear: birthday.birthYear,
+                birthMonth: birthday.birthMonth,
+                birthDay: birthday.birthDay
               })
             })
           .then(async (response) => {
