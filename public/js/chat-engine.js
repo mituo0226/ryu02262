@@ -682,7 +682,10 @@ const ChatInit = {
                 }
                 
                 const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
+                // 【重要】守護神が既に決定されている場合は、firstTimeGuestメッセージを表示しない
+                // 楓の場合は、守護神が決定されている場合、ハンドラーで守護神確認メッセージが表示される
+                const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage && !hasAssignedDeity) {
                     // #region agent log
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
@@ -695,6 +698,13 @@ const ChatInit = {
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
                     // #endregion
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                } else if (hasAssignedDeity && character === 'kaede' && !guardianMessageShown && !handlerSkippedFirstMessage) {
+                    // 【重要】楓で守護神が既に決定されている場合、守護神確認メッセージを表示
+                    console.log('[初期化] 楓で守護神が既に決定されているため、守護神確認メッセージを表示します');
+                    const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
+                    const guardianName = historyData.assignedDeity;
+                    const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                    ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                 }
             } else {
                 // #region agent log
