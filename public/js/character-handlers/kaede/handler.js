@@ -1010,6 +1010,67 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
     },
 
     /**
+     * メッセージ追加後の処理（chat-ui.jsから呼び出される）
+     * これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
+     * @param {string} type - メッセージタイプ ('user', 'character', 'welcome', 'error', 'loading')
+     * @param {string} text - メッセージテキスト
+     * @param {string} sender - 送信者名
+     * @param {HTMLElement} messageDiv - メッセージ要素
+     * @param {string} messageId - メッセージID
+     * @param {Object} options - オプション
+     */
+    onMessageAdded(type, text, sender, messageDiv, messageId, options = {}) {
+        // 楓の初回メッセージ（firstTimeGuest）の後に守護神の儀式を自動開始
+        if ((type === 'welcome' || type === 'character') && 
+            (text.includes('訪れていただきありがとうございます') ||
+             text.includes('守護神を導き出すための儀式でございますので'))) {
+            
+            // 既に儀式が開始されているか、または守護神が決定済みの場合はスキップ
+            const ritualCompleted = sessionStorage.getItem('ritualCompleted') === 'true';
+            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+            const ritualStarted = sessionStorage.getItem('ritualStarted') === 'true';
+            
+            if (ritualCompleted || guardianMessageShown || ritualStarted) {
+                console.log('[楓ハンドラー] 儀式は既に開始済みまたは完了済みのため、スキップします');
+                return;
+            }
+            
+            console.log('[楓ハンドラー] 初回メッセージを検出 - 守護神の儀式を自動開始します');
+            
+            // 儀式開始フラグを設定（二重実行を防ぐ）
+            sessionStorage.setItem('ritualStarted', 'true');
+            
+            // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
+            setTimeout(async () => {
+                if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                    console.log('[楓ハンドラー] 守護神の儀式を自動開始します');
+                    // ゲスト履歴を取得（存在する場合）
+                    const guestHistory = ChatData.getGuestHistory(this.characterId) || [];
+                    const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
+                    await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                } else {
+                    console.error('[楓ハンドラー] ChatInit.startGuardianRitualが見つかりません');
+                    // ChatInitが読み込まれていない場合、少し待ってから再試行
+                    setTimeout(async () => {
+                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                            console.log('[楓ハンドラー] 守護神の儀式を自動開始します（リトライ）');
+                            const guestHistory = ChatData.getGuestHistory(this.characterId) || [];
+                            const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
+                            await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                        } else {
+                            console.error('[楓ハンドラー] ChatInit.startGuardianRitualが見つかりません（リトライ失敗）');
+                            // リトライ失敗時はフラグをクリア
+                            sessionStorage.removeItem('ritualStarted');
+                        }
+                    }, 500);
+                }
+            }, 2000); // 2秒後に儀式を開始
+            
+            console.log('[楓ハンドラー] 初回守護神の儀式自動開始設定完了');
+        }
+    },
+
+    /**
      * 管理者用の守護神の儀式再発動ボタンの処理
      */
     async handleAdminRitualButton() {
