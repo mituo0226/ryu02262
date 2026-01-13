@@ -561,73 +561,72 @@
     async function getUserBirthday() {
       const urlParams = new URLSearchParams(window.location.search);
       
-      // 【修正】優先順位1: userIdがある場合、データベースから取得（データベースに登録済みの情報を使用）
+      // 【重要】userIdがある場合は、データベースから取得する（URLパラメータによるユーザー情報の保持は行わない）
       const userId = urlParams.get('userId');
       if (userId) {
+        // URLパラメータにユーザー情報が含まれている場合、クリーンアップ（userIdのみに）
+        const birthYear = urlParams.get('birthYear');
+        const birthMonth = urlParams.get('birthMonth');
+        const birthDay = urlParams.get('birthDay');
+        const nickname = urlParams.get('nickname');
+        
+        if (birthYear || birthMonth || birthDay || nickname) {
+          console.warn('[守護神の儀式] URLパラメータにユーザー情報が含まれています。クリーンアップします。');
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('birthYear');
+          newUrl.searchParams.delete('birthMonth');
+          newUrl.searchParams.delete('birthDay');
+          newUrl.searchParams.delete('nickname');
+          // userIdのみを残す
+          if (!newUrl.searchParams.has('userId')) {
+            newUrl.searchParams.set('userId', userId);
+          }
+          window.history.replaceState({}, '', newUrl.toString());
+          console.log('[守護神の儀式] URLパラメータをクリーンアップしました（userIdのみ）');
+        }
+        
+        // データベースからユーザー情報を取得
         try {
           console.log('[守護神の儀式] userIdからデータベースからユーザー情報を取得中...');
-          // 会話履歴APIからユーザー情報を取得
           const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
+          
           if (response.ok) {
             const data = await response.json();
             if (data && data.birthYear && data.birthMonth && data.birthDay) {
               console.log('[守護神の儀式] ✅ データベースからユーザー情報を取得しました:', data);
-              // 【追加】URLパラメータをクリーンアップ（userIdのみに）
-              const newUrl = new URL(window.location.href);
-              newUrl.searchParams.delete('birthYear');
-              newUrl.searchParams.delete('birthMonth');
-              newUrl.searchParams.delete('birthDay');
-              newUrl.searchParams.delete('nickname');
-              // userIdのみを残す
-              if (!newUrl.searchParams.has('userId')) {
-                newUrl.searchParams.set('userId', userId);
-              }
-              // 履歴を追加せずにURLを更新（ページリロードなし）
-              window.history.replaceState({}, '', newUrl.toString());
-              console.log('[守護神の儀式] URLパラメータをクリーンアップしました（userIdのみ）');
-              
               return {
                 birthYear: Number(data.birthYear),
                 birthMonth: Number(data.birthMonth),
                 birthDay: Number(data.birthDay)
               };
+            } else {
+              // データベースに生年月日情報がない場合
+              console.error('[守護神の儀式] データベースに生年月日情報がありません:', data);
+              throw new Error('データベースに生年月日情報が登録されていません。ユーザー登録を完了してください。');
             }
           } else if (response.status === 404) {
-            console.warn('[守護神の儀式] ユーザー情報が見つかりません（404）。URLパラメータから取得を試みます。');
+            // ユーザーが見つからない場合
+            console.error('[守護神の儀式] ユーザー情報が見つかりません（404）');
+            throw new Error('ユーザー情報が見つかりません。ユーザー登録を完了してください。');
+          } else {
+            // その他のエラー
+            const errorText = await response.text();
+            console.error('[守護神の儀式] データベースからの情報取得エラー:', response.status, errorText);
+            throw new Error(`データベースからの情報取得に失敗しました（ステータス: ${response.status}）。時間を置いて再度お試しください。`);
           }
         } catch (e) {
+          // ネットワークエラーなど
+          if (e instanceof Error && e.message.includes('データベース')) {
+            throw e; // 既にエラーメッセージが設定されている場合はそのまま投げる
+          }
           console.error('[守護神の儀式] データベースからの情報取得エラー:', e);
-          // エラー時はURLパラメータから取得を試みる
+          throw new Error('データベースからの情報取得に失敗しました。ネットワーク接続を確認してください。');
         }
       }
       
-      // 【重要】基本的にURLパラメータによるユーザー情報の保持は行わない（データベースベースの判断）
-      // userIdがない場合、またはデータベース取得に失敗した場合はエラー
-      // URLパラメータにユーザー情報が含まれている場合は削除（クリーンアップ）
-      const birthYear = urlParams.get('birthYear');
-      const birthMonth = urlParams.get('birthMonth');
-      const birthDay = urlParams.get('birthDay');
-      const nickname = urlParams.get('nickname');
-      
-      if (birthYear || birthMonth || birthDay || nickname) {
-        // URLパラメータにユーザー情報が含まれている場合、クリーンアップ
-        console.warn('[守護神の儀式] URLパラメータにユーザー情報が含まれています。クリーンアップします。');
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('birthYear');
-        newUrl.searchParams.delete('birthMonth');
-        newUrl.searchParams.delete('birthDay');
-        newUrl.searchParams.delete('nickname');
-        // userIdのみを残す
-        if (userId && !newUrl.searchParams.has('userId')) {
-          newUrl.searchParams.set('userId', userId);
-        }
-        window.history.replaceState({}, '', newUrl.toString());
-        console.log('[守護神の儀式] URLパラメータをクリーンアップしました（userIdのみ）');
-      }
-      
-      // エラー（ユーザー情報が見つからない）
-      console.error('[守護神の儀式] ユーザー情報の取得に失敗: データベースから生年月日情報を取得できませんでした。ユーザー登録を行ってください。');
-      throw new Error('データベースから生年月日情報を取得できませんでした。ユーザー登録を行ってください。');
+      // userIdがない場合
+      console.error('[守護神の儀式] ユーザーIDが指定されていません');
+      throw new Error('ユーザーIDが指定されていません。ユーザー登録を行ってください。');
     }
 
     /**
@@ -1091,17 +1090,29 @@
           }
         }
       } catch (error) {
-        console.error('エラー:', error);
+        console.error('[守護神の儀式] エラー:', error);
         const errorMessage = document.getElementById('errorMessage');
         const ritualOverlay = document.getElementById('ritualOverlay');
+        const resultSection = document.getElementById('resultSection');
         
+        // エラーメッセージを表示
         if (errorMessage) {
           errorMessage.textContent = error.message || 'エラーが発生しました。';
           errorMessage.style.display = 'block';
         }
+        
+        // アニメーションオーバーレイを非表示
         if (ritualOverlay) {
           ritualOverlay.style.display = 'none';
         }
+        
+        // 結果セクションを表示（エラーメッセージと一緒に）
+        if (resultSection) {
+          resultSection.classList.add('visible');
+        }
+        
+        // エラー時はトップページにリダイレクトしない（エラーメッセージを表示する）
+        console.log('[守護神の儀式] エラーが発生しましたが、ページは表示を続けます');
       }
     }
 
