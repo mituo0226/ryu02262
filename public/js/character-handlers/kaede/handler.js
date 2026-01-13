@@ -778,28 +778,25 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
                 await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待つ
                 
-                // 【変更】guardian-ritual.htmlに遷移する際、userIdをURLパラメータに含める
+                // 【変更】guardian-ritual.htmlに遷移する際、userIdのみをURLパラメータに含める
+                // 【重要】基本的にURLパラメータによるユーザー情報の保持は行わない（データベースから取得するため）
                 // sessionStorageの使用を削除（データベースベースの判断に移行）
                 // URLパラメータからuserIdを取得
                 const urlParams = new URLSearchParams(window.location.search);
                 const userId = urlParams.get('userId');
                 
-                // guardian-ritual.htmlへのURLを構築
+                // guardian-ritual.htmlへのURLを構築（userIdのみを使用）
                 let ritualUrl = '../guardian-ritual.html';
                 if (userId) {
-                    ritualUrl += `?userId=${encodeURIComponent(userId)}`;
-                    // ユーザー情報も含める（守護神決定に必要）
-                    if (historyData) {
-                        if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
-                            ritualUrl += `&birthYear=${encodeURIComponent(historyData.birthYear)}&birthMonth=${encodeURIComponent(historyData.birthMonth)}&birthDay=${encodeURIComponent(historyData.birthDay)}`;
-                        }
-                        if (historyData.nickname) {
-                            ritualUrl += `&nickname=${encodeURIComponent(historyData.nickname)}`;
-                        }
-                    } else if (ChatData.userNickname) {
-                        // historyDataがない場合のフォールバック
-                        ritualUrl += `&nickname=${encodeURIComponent(ChatData.userNickname)}`;
-                    }
+                    // userIdのみを使用（データベースからユーザー情報を取得するため、birthYear, birthMonth, birthDay, nicknameは含めない）
+                    const url = new URL(ritualUrl, window.location.origin);
+                    url.searchParams.set('userId', userId);
+                    ritualUrl = url.pathname + url.search;
+                    console.log('[楓専用処理] guardian-ritual.htmlに遷移（userIdのみ）:', ritualUrl);
+                } else {
+                    console.error('[楓専用処理] userIdが取得できませんでした');
+                    ChatUI.addMessage('error', 'ユーザー情報の取得に失敗しました。', 'システム');
+                    return false;
                 }
                 
                 console.log('[楓専用処理] guardian-ritual.htmlに遷移:', ritualUrl);

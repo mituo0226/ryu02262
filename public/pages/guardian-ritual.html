@@ -601,23 +601,33 @@
         }
       }
       
-      // 優先順位2: URLパラメータから取得（userIdがない場合、またはデータベース取得に失敗した場合）
+      // 【重要】基本的にURLパラメータによるユーザー情報の保持は行わない（データベースベースの判断）
+      // userIdがない場合、またはデータベース取得に失敗した場合はエラー
+      // URLパラメータにユーザー情報が含まれている場合は削除（クリーンアップ）
       const birthYear = urlParams.get('birthYear');
       const birthMonth = urlParams.get('birthMonth');
       const birthDay = urlParams.get('birthDay');
+      const nickname = urlParams.get('nickname');
       
-      if (birthYear && birthMonth && birthDay) {
-        console.log('[守護神の儀式] URLパラメータからユーザー情報を取得しました');
-        return {
-          birthYear: parseInt(birthYear, 10),
-          birthMonth: parseInt(birthMonth, 10),
-          birthDay: parseInt(birthDay, 10)
-        };
+      if (birthYear || birthMonth || birthDay || nickname) {
+        // URLパラメータにユーザー情報が含まれている場合、クリーンアップ
+        console.warn('[守護神の儀式] URLパラメータにユーザー情報が含まれています。クリーンアップします。');
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('birthYear');
+        newUrl.searchParams.delete('birthMonth');
+        newUrl.searchParams.delete('birthDay');
+        newUrl.searchParams.delete('nickname');
+        // userIdのみを残す
+        if (userId && !newUrl.searchParams.has('userId')) {
+          newUrl.searchParams.set('userId', userId);
+        }
+        window.history.replaceState({}, '', newUrl.toString());
+        console.log('[守護神の儀式] URLパラメータをクリーンアップしました（userIdのみ）');
       }
       
-      // 優先順位3: エラー（ユーザー情報が見つからない）
-      console.error('[守護神の儀式] ユーザー情報の取得に失敗: 生年月日情報が見つかりません。ユーザー登録を行ってください。');
-      throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
+      // エラー（ユーザー情報が見つからない）
+      console.error('[守護神の儀式] ユーザー情報の取得に失敗: データベースから生年月日情報を取得できませんでした。ユーザー登録を行ってください。');
+      throw new Error('データベースから生年月日情報を取得できませんでした。ユーザー登録を行ってください。');
     }
 
     /**
@@ -651,11 +661,46 @@
       // フェーズ3: cosmo.mp4（宇宙の映像）- 4秒（重なりながら）
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // 動画の読み込みを待つ
-      return new Promise((resolve) => {
-        cosmo.addEventListener('loadeddata', async () => {
-          cosmo.play();
-          cosmo.classList.add('active');
+      // 動画の読み込みを待つ（既に読み込まれている場合は待機しない）
+      const playCosmoAnimation = async () => {
+        try {
+          // 動画が既に読み込まれているか確認
+          if (cosmo.readyState >= 2) { // HAVE_CURRENT_DATA以上
+            console.log('[守護神の儀式] 動画は既に読み込まれています');
+            await cosmo.play();
+            cosmo.classList.add('active');
+          } else {
+            // 動画が読み込まれていない場合、読み込みを待つ
+            console.log('[守護神の儀式] 動画の読み込みを待機中...');
+            await new Promise((resolve) => {
+              const onLoadedData = async () => {
+                try {
+                  await cosmo.play();
+                  cosmo.classList.add('active');
+                  resolve();
+                } catch (error) {
+                  console.error('[守護神の儀式] 動画の再生エラー:', error);
+                  // エラーでも処理を続行
+                  cosmo.classList.add('active');
+                  resolve();
+                }
+              };
+              
+              if (cosmo.readyState >= 2) {
+                // 既に読み込まれている場合
+                onLoadedData();
+              } else {
+                cosmo.addEventListener('loadeddata', onLoadedData, { once: true });
+                cosmo.addEventListener('error', () => {
+                  console.error('[守護神の儀式] 動画の読み込みエラー');
+                  // エラーでも処理を続行
+                  cosmo.classList.add('active');
+                  resolve();
+                }, { once: true });
+                cosmo.load();
+              }
+            });
+          }
           
           await new Promise(resolve => setTimeout(resolve, 4000));
 
@@ -663,8 +708,10 @@
           guardianRevealImage.src = `../../photo/kami/${guardian.image}`;
           guardianRevealImage.alt = guardian.name;
           
-          // 画像の読み込みを待つ
-            guardianRevealImage.addEventListener('load', async () => {
+          // 画像の読み込みを待つ（既に読み込まれている場合は待機しない）
+          if (guardianRevealImage.complete && guardianRevealImage.naturalHeight !== 0) {
+            // 画像が既に読み込まれている場合
+            console.log('[守護神の儀式] 守護神画像は既に読み込まれています');
             guardianReveal.classList.add('visible');
             
             // ローディングテキストを非表示（守護神の紹介表示前に非表示にする）
@@ -678,13 +725,52 @@
               guardianIntro.classList.add('visible');
             }
             await new Promise(resolve => setTimeout(resolve, 3000));
-            
-            resolve();
-          }, { once: true });
-        }, { once: true });
-        
-        cosmo.load();
-      });
+          } else {
+            // 画像が読み込まれていない場合、読み込みを待つ
+            console.log('[守護神の儀式] 守護神画像の読み込みを待機中...');
+            await new Promise((resolve) => {
+              guardianRevealImage.addEventListener('load', async () => {
+                guardianReveal.classList.add('visible');
+                
+                // ローディングテキストを非表示（守護神の紹介表示前に非表示にする）
+                if (loadingText) {
+                  loadingText.style.display = 'none';
+                }
+                
+                if (guardianIntro && guardianIntroTitle && guardianIntroMessage) {
+                  guardianIntroTitle.textContent = `守護神：${guardian.name}`;
+                  guardianIntroMessage.textContent = guardian.message || 'あなたを見守る守護神です。';
+                  guardianIntro.classList.add('visible');
+                }
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                resolve();
+              }, { once: true });
+              
+              // エラーハンドリング
+              guardianRevealImage.addEventListener('error', () => {
+                console.error('[守護神の儀式] 守護神画像の読み込みエラー');
+                // エラーでも処理を続行
+                guardianReveal.classList.add('visible');
+                if (loadingText) {
+                  loadingText.style.display = 'none';
+                }
+                if (guardianIntro && guardianIntroTitle && guardianIntroMessage) {
+                  guardianIntroTitle.textContent = `守護神：${guardian.name}`;
+                  guardianIntroMessage.textContent = guardian.message || 'あなたを見守る守護神です。';
+                  guardianIntro.classList.add('visible');
+                }
+                resolve();
+              }, { once: true });
+            });
+          }
+        } catch (error) {
+          console.error('[守護神の儀式] アニメーション実行エラー:', error);
+          // エラーでも処理を続行
+        }
+      };
+      
+      await playCosmoAnimation();
     }
 
     /**
