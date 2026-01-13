@@ -6,7 +6,9 @@
     "image": "../../photo/kaede.png",
     "profileUrl": "../profiles/kaede.html",
     "messages": {
-      "firstTimeGuest": "{nickname}さん、訪問していただいてありがとうございます。まずは、{nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。"
+      "firstTimeGuest": "訪れていただきありがとうございます。\nまずは{nickname}様の守護神を導き出すための儀式でございますので、よろしくお願いします。",
+      "returning": "{nickname}さん、訪問してくれてありがとうございます。\n前回の会話で最後の言葉は「{conversationContent}」でした\n本日はどのようなお相談でしょうか。\nどんなことでも気軽に話しかけてください。",
+      "returningConversationFormat": "{content}"
     }
   },
   "yukino": {
