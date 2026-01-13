@@ -14,6 +14,9 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:16',message:'initPage関数開始',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
         // ここでは実行しない（重複を避ける）
         
@@ -476,7 +479,7 @@ const ChatInit = {
             
             if (historyData && historyData.hasHistory) {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:377',message:'分岐1-1: returningメッセージ生成開始',data:{character,hasHistory:historyData.hasHistory,recentMessagesLength:historyData.recentMessages?.length||0},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:477',message:'historyData.hasHistory=trueブロック開始',data:{character,hasHistory:historyData.hasHistory,recentMessagesLength:historyData.recentMessages?.length||0,guestHistoryLength:guestHistory.length,guardianMessageShown,handlerSkippedFirstMessage:false},timestamp:Date.now(),runId:'debug-run',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
                 ChatData.conversationHistory = historyData;
                 ChatData.userNickname = historyData.nickname || ChatData.userNickname;
@@ -580,9 +583,12 @@ const ChatInit = {
                         console.log('[初期化] returningメッセージを生成します');
                         const initialMessage = ChatData.generateInitialMessage(character, historyData);
                         // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:404',message:'分岐1-1: returningメッセージ生成完了→addMessage呼び出し',data:{character,messagePreview:initialMessage.substring(0,200),containsOldMessage:initialMessage.includes('あなたさん、初めまして')||initialMessage.includes('システムからお聞き')},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:581',message:'returningメッセージ生成完了→addMessage呼び出し直前',data:{character,messagePreview:initialMessage.substring(0,200),containsReturningMessage:initialMessage.includes('また私に会いに来てくれてありがとう'),guestHistoryLength:guestHistory.length,guardianMessageShown,handlerSkippedFirstMessage},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
                         // #endregion
                         ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:585',message:'addMessage呼び出し完了',data:{character},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
+                        // #endregion
                     } else {
                         // #region agent log
                         fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:406',message:'分岐1-2: firstTimeGuestメッセージ生成開始',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
@@ -801,7 +807,13 @@ const ChatInit = {
                 sessionStorage.removeItem('guardianMessageShown');
                 sessionStorage.removeItem('ritualCompleted');
             }
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:810',message:'initPage関数終了（正常終了）',data:{character},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
         } catch (error) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:815',message:'initPage関数エラー',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
             console.error('Error loading conversation history:', error);
             const character = ChatData.currentCharacter;
             const info = ChatData.characterInfo[character];
