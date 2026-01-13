@@ -361,6 +361,80 @@ const ChatInit = {
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:217',message:'loadConversationHistory呼び出し前',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
             const historyData = await ChatAPI.loadConversationHistory(character);
+            
+            /**
+             * 【統一化】すべての鑑定士で共通の初回メッセージ表示ロジック
+             * 初回ユーザー（hasHistory === false）→ firstTimeGuestメッセージ
+             * 再訪問ユーザー（hasHistory === true）→ returningメッセージ
+             * @param {Object} options - オプション
+             * @param {boolean} options.shouldShow - メッセージを表示するかどうか
+             * @param {boolean} options.handlerSkippedFirstMessage - ハンドラーでスキップされたかどうか
+             * @returns {boolean} メッセージが表示されたかどうか
+             */
+            const showInitialMessage = (options = {}) => {
+                const { shouldShow = true, handlerSkippedFirstMessage = false } = options;
+                
+                // 表示条件をチェック
+                if (!shouldShow || guestHistory.length > 0 || guardianMessageShown || handlerSkippedFirstMessage) {
+                    return false;
+                }
+                
+                const info = ChatData.characterInfo[character];
+                if (!info) {
+                    console.warn('[初期化] キャラクター情報が見つかりません:', character);
+                    return false;
+                }
+                
+                // 会話履歴がある場合：returningメッセージを表示
+                if (historyData && historyData.hasHistory) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'returningメッセージ生成開始',data:{character,hasHistory:historyData.hasHistory,recentMessagesLength:historyData.recentMessages?.length||0},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    // #endregion
+                    console.log('[初期化] 再訪問ユーザー。returningメッセージを生成します');
+                    const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'returningメッセージ生成完了',data:{character,messagePreview:initialMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                    // #endregion
+                    ChatUI.addMessage('welcome', initialMessage, info.name);
+                    return true;
+                }
+                
+                // 会話履歴がない場合：firstTimeGuestメッセージを表示
+                // 【重要】守護神が既に決定されている場合は、firstTimeGuestメッセージを表示しない
+                // 楓の場合は、守護神が決定されている場合、ハンドラーで守護神確認メッセージが表示される
+                // ただし、三崎花音や水野ソラなど、他のキャラクターの場合は守護神の有無に関係なく初回メッセージを表示する
+                const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+                const shouldSkipFirstMessageForDeity = hasAssignedDeity && character === 'kaede'; // 楓のみ守護神がある場合はスキップ
+                
+                if (!shouldSkipFirstMessageForDeity) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
+                    console.log('[初期化] 初回ユーザー。firstTimeGuestメッセージを生成します');
+                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                        character, 
+                        ChatData.userNickname || 'あなた',
+                        false,
+                        hasOtherCharacterHistory
+                    );
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'firstTimeGuestメッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                    // #endregion
+                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                    return true;
+                } else if (hasAssignedDeity && character === 'kaede' && !guardianMessageShown && !handlerSkippedFirstMessage) {
+                    // 【重要】楓で守護神が既に決定されている場合、守護神確認メッセージを表示（楓専用の特別処理）
+                    console.log('[初期化] 楓で守護神が既に決定されているため、守護神確認メッセージを表示します');
+                    const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
+                    const guardianName = historyData.assignedDeity;
+                    const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                    ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                    return true;
+                }
+                
+                return false;
+            };
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:220',message:'loadConversationHistory呼び出し後',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,nickname:historyData?.nickname,recentMessagesLength:historyData?.recentMessages?.length||0},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
@@ -581,63 +655,8 @@ const ChatInit = {
                     }
                 }
                 
-                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:369',message:'初回メッセージ表示判定開始',data:{guestHistoryLength:guestHistory.length,guardianMessageShown,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                    // #endregion
-                    // ゲストユーザーで会話履歴が空の場合：初回メッセージを表示
-                    // 会話履歴がある場合はreturning、ない場合はfirstTimeGuest
-                    console.log('[初期化] 初回メッセージ表示判定:', {
-                        guestHistoryLength: guestHistory.length,
-                        guardianMessageShown,
-                        hasHistoryData: !!historyData,
-                        hasHistory: historyData?.hasHistory
-                    });
-                    if (historyData && historyData.hasHistory) {
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:398',message:'分岐1-1: returningメッセージ生成開始',data:{character,hasHistory:historyData.hasHistory,recentMessagesLength:historyData.recentMessages?.length||0},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        // #endregion
-                        console.log('[初期化] returningメッセージを生成します');
-                        const initialMessage = ChatData.generateInitialMessage(character, historyData);
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:581',message:'returningメッセージ生成完了→addMessage呼び出し直前',data:{character,messagePreview:initialMessage.substring(0,200),containsReturningMessage:initialMessage.includes('また私に会いに来てくれてありがとう'),guestHistoryLength:guestHistory.length,guardianMessageShown,handlerSkippedFirstMessage},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
-                        // #endregion
-                        ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:585',message:'addMessage呼び出し完了',data:{character},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
-                        // #endregion
-                    } else {
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:406',message:'分岐1-2: firstTimeGuestメッセージ生成開始',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                        // #endregion
-                        // 各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
-                        // 他のキャラクターとの会話履歴がある場合はnoHistory、ない場合はfirstTimeGuestを使用
-                        const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                        console.log('[初期化] 初回メッセージを生成します:', {
-                            character,
-                            hasOtherCharacterHistory
-                        });
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                            character, 
-                            ChatData.userNickname || 'あなた',
-                            false,
-                            hasOtherCharacterHistory
-                        );
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐1-2: メッセージ生成完了→addMessage呼び出し',data:{character,messageLength:firstTimeMessage.length,messagePreview:firstTimeMessage.substring(0,200),containsOldMessage:firstTimeMessage.includes('あなたさん、初めまして')||firstTimeMessage.includes('システムからお聞き'),containsNewMessage:firstTimeMessage.includes('はじめまして、笹岡雪乃です')},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                        // #endregion
-                        console.log('[初期化] 生成されたメッセージ:', firstTimeMessage.substring(0, 100) + '...');
-                        ChatUI.addMessage('welcome', firstTimeMessage, ChatData.characterInfo[character].name);
-                    }
-                } else {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:400',message:'分岐1: 初回メッセージスキップ（条件不成立）',data:{guestHistoryLength:guestHistory.length,guardianMessageShown,character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                    // #endregion
-                    console.log('[初期化] 初回メッセージをスキップ:', {
-                        guestHistoryLength: guestHistory.length,
-                        guardianMessageShown
-                    });
-                }
+                // 【統一化】共通の初回メッセージ表示ロジックを使用
+                showInitialMessage({ handlerSkippedFirstMessage });
             } else if (historyData && historyData.nickname) {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:398',message:'分岐2: historyData.nickname存在',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
@@ -712,34 +731,8 @@ const ChatInit = {
                     // ただし、これは暫定的な解決策です。本来は、ハンドラーが読み込まれるのを待つべきです。
                 }
                 
-                const info = ChatData.characterInfo[character];
-                // 【重要】守護神が既に決定されている場合は、firstTimeGuestメッセージを表示しない
-                // 楓の場合は、守護神が決定されている場合、ハンドラーで守護神確認メッセージが表示される
-                const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
-                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage && !hasAssignedDeity) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                    // #endregion
-                    // 各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
-                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                        character, 
-                        ChatData.userNickname || 'あなた',
-                        false,
-                        hasOtherCharacterHistory
-                    );
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    // #endregion
-                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                } else if (hasAssignedDeity && character === 'kaede' && !guardianMessageShown && !handlerSkippedFirstMessage) {
-                    // 【重要】楓で守護神が既に決定されている場合、守護神確認メッセージを表示
-                    console.log('[初期化] 楓で守護神が既に決定されているため、守護神確認メッセージを表示します');
-                    const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
-                    const guardianName = historyData.assignedDeity;
-                    const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
-                    ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
-                }
+                // 【統一化】共通の初回メッセージ表示ロジックを使用
+                showInitialMessage({ handlerSkippedFirstMessage });
             } else {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐3: historyDataなしまたはnicknameなし',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,isGuestMode},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
@@ -799,24 +792,8 @@ const ChatInit = {
                     console.warn('[初期化] ハンドラーが読み込まれていません（historyDataなし）。後で再試行します。');
                 }
                 
-                const info = ChatData.characterInfo[character];
-                if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                    // #endregion
-                    // 各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
-                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                        character, 
-                        ChatData.userNickname || 'あなた',
-                        false,
-                        hasOtherCharacterHistory
-                    );
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    // #endregion
-                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                }
+                // 【統一化】共通の初回メッセージ表示ロジックを使用
+                showInitialMessage({ handlerSkippedFirstMessage });
             }
             
             // 守護神確認メッセージを表示した場合は、フラグをクリア
@@ -898,23 +875,8 @@ const ChatInit = {
                     }
                 }
                 
-                if (!handlerSkippedFirstMessage) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:520',message:'エラー分岐: firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                    // #endregion
-                    // 会話履歴が空の場合：各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
-                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                        character, 
-                        ChatData.userNickname || 'あなた',
-                        false,
-                        hasOtherCharacterHistory
-                    );
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:525',message:'エラー分岐: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    // #endregion
-                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                }
+                // 【統一化】共通の初回メッセージ表示ロジックを使用
+                showInitialMessage({ handlerSkippedFirstMessage });
             }
         }
 
