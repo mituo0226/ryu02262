@@ -174,6 +174,50 @@
             transform: translateY(0);
         }
 
+        /* 待機画面（API呼び出し中） */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .loading-message {
+            color: #e8d5ff;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(139, 61, 255, 0.3);
+            border-top-color: #8b3dff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .skip-link {
                 top: 15px;
@@ -185,6 +229,12 @@
     </style>
 </head>
 <body>
+    <!-- 待機画面（API呼び出し中） -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-message">あなたの情報を鑑定士が取り込んでいます...</div>
+        <div class="loading-spinner"></div>
+    </div>
+    
     <a href="#" id="skipLink" class="skip-link">スキップ</a>
     <div class="animation-container" id="animationContainer"></div>
     <div class="button-container" id="buttonContainer">
@@ -264,9 +314,82 @@
         console.log('Character:', validatedCharacter);
         console.log('Chat URL:', chatUrl);
 
-        // 【変更】sessionStorage/localStorageの使用を削除（データベースベースの判断）
-        // アニメーション中にデータベースからユーザー情報を読み込む処理は削除
-        // チャット画面に入る際、URLパラメータからユーザー情報を取得して会話履歴APIを呼び出す
+        // 【追加】アニメーション中にAPIを呼び出してユーザー情報を取得
+        // これにより、チャット画面への遷移時のタイムラグを解消
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        let userDataPromise = null;
+        let userDataReady = false;
+        
+        // API呼び出し関数
+        async function fetchUserData() {
+            if (userDataPromise) {
+                return userDataPromise;
+            }
+            
+            userDataPromise = (async () => {
+                try {
+                    console.log('[back.html] アニメーション中にユーザー情報を取得開始');
+                    let apiUrl;
+                    if (userId) {
+                        apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(validatedCharacter)}`;
+                    } else {
+                        // userIdがない場合は、nickname+生年月日が必要なため、API呼び出しをスキップ
+                        console.log('[back.html] userIdがないため、API呼び出しをスキップします');
+                        userDataReady = true;
+                        return null;
+                    }
+                    
+                    const response = await fetch(apiUrl);
+                    if (response.ok) {
+                        const responseText = await response.text();
+                        if (responseText) {
+                            const data = JSON.parse(responseText);
+                            // sessionStorageに保存（チャット画面で使用するため）
+                            sessionStorage.setItem('preloadedUserData', JSON.stringify({
+                                character: validatedCharacter,
+                                data: data,
+                                timestamp: Date.now()
+                            }));
+                            console.log('[back.html] ユーザー情報を取得して保存しました:', data.nickname);
+                            userDataReady = true;
+                            return data;
+                        }
+                    } else if (response.status === 404) {
+                        // ユーザーが見つからない場合（404エラー）
+                        console.log('[back.html] ユーザー情報が見つかりません（404）');
+                        userDataReady = true;
+                        return null;
+                    }
+                } catch (error) {
+                    console.error('[back.html] ユーザー情報の取得エラー:', error);
+                    userDataReady = true;
+                    return null;
+                }
+                userDataReady = true;
+                return null;
+            })();
+            
+            return userDataPromise;
+        }
+        
+        // チャット画面への遷移関数（API完了を待つ）
+        async function navigateToChat() {
+            // API呼び出しが完了していない場合、待機画面を表示
+            if (!userDataReady && userId) {
+                console.log('[back.html] API呼び出しが完了していないため、待機画面を表示します');
+                loadingOverlay.classList.add('visible');
+                
+                // API呼び出しを待つ
+                await fetchUserData();
+                
+                // 少し待ってから待機画面を非表示
+                await new Promise(resolve => setTimeout(resolve, 300));
+                loadingOverlay.classList.remove('visible');
+            }
+            
+            // チャット画面に遷移
+            window.location.href = chatUrl;
+        }
 
         // アニメーション中断用のフラグ
         let animationCancelled = false;
@@ -312,7 +435,7 @@
 
         // スキップリンクの処理（video変数の定義後に設定）
         skipLink.href = chatUrl;
-        skipLink.addEventListener('click', (e) => {
+        skipLink.addEventListener('click', async (e) => {
             e.preventDefault();
             
             // #region agent log
@@ -331,12 +454,12 @@
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:306',message:'スキップリンクからチャット画面への遷移実行',data:{chatUrl:chatUrl},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // #endregion
             
-            // チャット画面に遷移
-            window.location.href = chatUrl;
+            // API完了を待ってからチャット画面に遷移
+            await navigateToChat();
         });
 
         // つながるボタン（chatLink）の処理
-        chatLink.addEventListener('click', (e) => {
+        chatLink.addEventListener('click', async (e) => {
             e.preventDefault();
             
             // #region agent log
@@ -355,8 +478,8 @@
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'back.html:322',message:'チャット画面への遷移実行',data:{chatUrl:chatUrl},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // #endregion
             
-            // チャット画面に遷移
-            window.location.href = chatUrl;
+            // API完了を待ってからチャット画面に遷移
+            await navigateToChat();
         });
 
         // 中断チェック付きのdelay関数
@@ -380,6 +503,14 @@
 
         // アニメーション実行
         async function playAnimation() {
+            // 【追加】アニメーション開始と同時にAPI呼び出しを開始
+            // これにより、アニメーション中にデータを取得してタイムラグを解消
+            if (userId) {
+                fetchUserData().catch(error => {
+                    console.error('[back.html] バックグラウンドでのAPI呼び出しエラー:', error);
+                });
+            }
+            
             // 画面をフェードイン
             document.body.classList.add('fade-in');
             await delay(500);

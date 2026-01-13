@@ -259,6 +259,11 @@
             min-height: 100%;
             padding: 20px;
         }
+        
+        /* userIdパラメータがある場合は、API呼び出し完了まで非表示 */
+        .entry-form-container.loading {
+            display: none;
+        }
 
         .entry-form {
             background: rgba(75, 0, 130, 0.4);
@@ -1042,23 +1047,60 @@
                    const character = urlParams.get('character') || 'kaede';
                    const userId = urlParams.get('userId');
                    
+                   // 【修正】userIdパラメータがある場合、API呼び出し完了まで入口フォームを非表示にする
+                   // これにより、一瞬だけ登録画面が表示される問題を防ぐ
+                   if (userId) {
+                       entryFormContainer.classList.add('loading');
+                       console.log('[入口フォーム] userIdパラメータが存在するため、API呼び出し完了まで入口フォームを非表示にします');
+                   }
+                   
                    try {
-                       // データベースから直接読み込む（ChatAPI.loadConversationHistoryを直接呼び出す）
-                       console.log('[入口フォーム] データベースからユーザー情報を読み込み中...');
-                       
+                       // 【追加】back.htmlで事前に取得したデータを確認
+                       // これにより、API呼び出しのタイムラグを解消
                        let historyData = null;
-                       if (window.ChatAPI && typeof window.ChatAPI.loadConversationHistory === 'function') {
-                           historyData = await window.ChatAPI.loadConversationHistory(character);
-                       } else {
-                           // ChatAPIが読み込まれていない場合、直接APIを呼び出す
-                           const apiUrl = userId 
-                               ? `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(character)}`
-                               : `/api/conversation-history?character=${encodeURIComponent(character)}`;
-                           const response = await fetch(apiUrl);
-                           if (response.ok) {
-                               const responseText = await response.text();
-                               if (responseText) {
-                                   historyData = JSON.parse(responseText);
+                       const preloadedDataKey = 'preloadedUserData';
+                       const preloadedDataStr = sessionStorage.getItem(preloadedDataKey);
+                       
+                       if (preloadedDataStr) {
+                           try {
+                               const preloadedData = JSON.parse(preloadedDataStr);
+                               // キャラクターが一致し、5分以内のデータか確認
+                               const dataAge = Date.now() - (preloadedData.timestamp || 0);
+                               if (preloadedData.character === character && dataAge < 5 * 60 * 1000) {
+                                   historyData = preloadedData.data;
+                                   console.log('[入口フォーム] back.htmlで事前取得したデータを使用します');
+                                   // 使用後は削除
+                                   sessionStorage.removeItem(preloadedDataKey);
+                               } else {
+                                   // 古いデータまたはキャラクターが不一致の場合は削除
+                                   sessionStorage.removeItem(preloadedDataKey);
+                               }
+                           } catch (error) {
+                               console.error('[入口フォーム] 事前取得データの解析エラー:', error);
+                               sessionStorage.removeItem(preloadedDataKey);
+                           }
+                       }
+                       
+                       // 事前取得データがない場合、APIから取得
+                       if (!historyData) {
+                           console.log('[入口フォーム] データベースからユーザー情報を読み込み中...');
+                           if (window.ChatAPI && typeof window.ChatAPI.loadConversationHistory === 'function') {
+                               historyData = await window.ChatAPI.loadConversationHistory(character);
+                           } else {
+                               // ChatAPIが読み込まれていない場合、直接APIを呼び出す
+                               const apiUrl = userId 
+                                   ? `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(character)}`
+                                   : `/api/conversation-history?character=${encodeURIComponent(character)}`;
+                               const response = await fetch(apiUrl);
+                               if (response.ok) {
+                                   const responseText = await response.text();
+                                   if (responseText) {
+                                       historyData = JSON.parse(responseText);
+                                   }
+                               } else if (response.status === 404 && userId) {
+                                   // userIdが存在するが、ユーザーが見つからない場合（404エラー）
+                                   // これは異常な状態なので、エラーとして扱う
+                                   console.error('[入口フォーム] userIdが存在するが、ユーザーが見つかりません:', userId);
                                }
                            }
                        }
@@ -1099,11 +1141,15 @@
                        
                        // データベースにユーザー情報が存在しない場合は入口フォームを表示
                        console.log('[入口フォーム] データベースにユーザー情報が存在しないため、入口フォームを表示します');
+                       // loadingクラスを削除してから表示
+                       entryFormContainer.classList.remove('loading');
                        entryFormContainer.classList.remove('entry-form-hidden');
                        chatContainer.classList.add('entry-form-hidden');
                    } catch (error) {
                        console.error('[入口フォーム] データベース読み込みエラー:', error);
                        // エラー時は入口フォームを表示
+                       // loadingクラスを削除してから表示
+                       entryFormContainer.classList.remove('loading');
                        entryFormContainer.classList.remove('entry-form-hidden');
                        chatContainer.classList.add('entry-form-hidden');
                    }
