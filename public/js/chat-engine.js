@@ -22,6 +22,13 @@ const ChatInit = {
             // #endregion
             return;
         }
+        if (this._initPageCompleted) {
+            console.warn('[初期化] initPageは既に完了しています。重複実行をスキップします。');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:26',message:'initPage完了済み検出→スキップ',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            return;
+        }
         this._initPageRunning = true;
         
         // #region agent log
@@ -821,11 +828,13 @@ const ChatInit = {
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:820',message:'initPage関数終了（正常終了）',data:{character},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // #endregion
             this._initPageRunning = false;
+            this._initPageCompleted = true;
         } catch (error) {
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:825',message:'initPage関数エラー',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // #endregion
             this._initPageRunning = false;
+            this._initPageCompleted = true;
             console.error('Error loading conversation history:', error);
             const character = ChatData.currentCharacter;
             const info = ChatData.characterInfo[character];
@@ -2261,9 +2270,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                     if (isNowHidden) {
                         console.log('[chat-engine] 入口フォームが非表示になったため、初期化を実行します');
                         observer.disconnect();
-                        ChatInit.initPage().catch(error => {
-                            console.error('[chat-engine] 初期化エラー:', error);
-                        });
+                        // 重複実行を防ぐ: 既に実行中または完了している場合はスキップ
+                        if (!ChatInit._initPageRunning && !ChatInit._initPageCompleted) {
+                            ChatInit.initPage().catch(error => {
+                                console.error('[chat-engine] 初期化エラー:', error);
+                            });
+                        } else {
+                            console.log('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
+                        }
                     }
                 }
             });
@@ -2272,7 +2286,12 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    await ChatInit.initPage();
+    // 重複実行を防ぐ: 既に実行中または完了している場合はスキップ
+    if (!ChatInit._initPageRunning && !ChatInit._initPageCompleted) {
+        await ChatInit.initPage();
+    } else {
+        console.log('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
+    }
     
     // アニメーション画面から戻ってきた時の処理
     setTimeout(() => {
