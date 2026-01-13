@@ -262,7 +262,8 @@ const ChatInit = {
                     console.log('[登録完了処理] ゲスト履歴なし。新規ユーザーとして初回メッセージを表示します');
                     const nicknameForMessage = dbUserNickname || ChatData.userNickname || 'あなた';
                     console.log('[登録完了処理] 初回メッセージに使用するニックネーム:', nicknameForMessage);
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, nicknameForMessage);
+                    // 登録直後のため、他のキャラクターとの会話履歴はないと仮定（firstTimeGuestを使用）
+                    const firstTimeMessage = ChatData.generateFirstTimeMessage(character, nicknameForMessage, false, false);
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                 }
                 
@@ -584,13 +585,20 @@ const ChatInit = {
                         ChatUI.addMessage('welcome', initialMessage, ChatData.characterInfo[character].name);
                     } else {
                         // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:406',message:'分岐1-2: firstTimeGuestメッセージ生成開始',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:406',message:'分岐1-2: firstTimeGuestメッセージ生成開始',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                         // #endregion
-                        // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
-                        console.log('[初期化] firstTimeGuestメッセージを生成します');
+                        // 各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
+                        // 他のキャラクターとの会話履歴がある場合はnoHistory、ない場合はfirstTimeGuestを使用
+                        const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
+                        console.log('[初期化] 初回メッセージを生成します:', {
+                            character,
+                            hasOtherCharacterHistory
+                        });
                         const firstTimeMessage = ChatData.generateFirstTimeMessage(
                             character, 
-                            ChatData.userNickname || 'あなた'
+                            ChatData.userNickname || 'あなた',
+                            false,
+                            hasOtherCharacterHistory
                         );
                         // #region agent log
                         fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐1-2: メッセージ生成完了→addMessage呼び出し',data:{character,messageLength:firstTimeMessage.length,messagePreview:firstTimeMessage.substring(0,200),containsOldMessage:firstTimeMessage.includes('あなたさん、初めまして')||firstTimeMessage.includes('システムからお聞き'),containsNewMessage:firstTimeMessage.includes('はじめまして、笹岡雪乃です')},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
@@ -687,12 +695,15 @@ const ChatInit = {
                 const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
                 if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage && !hasAssignedDeity) {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
-                    // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
+                    // 各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
+                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(
                         character, 
-                        ChatData.userNickname || 'あなた'
+                        ChatData.userNickname || 'あなた',
+                        false,
+                        hasOtherCharacterHistory
                     );
                     // #region agent log
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
@@ -768,12 +779,15 @@ const ChatInit = {
                 const info = ChatData.characterInfo[character];
                 if (guestHistory.length === 0 && !guardianMessageShown && !handlerSkippedFirstMessage) {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:427',message:'分岐2: firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
-                    // 各鑑定士の初回メッセージ（firstTimeGuest）を使用
+                    // 各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
+                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(
                         character, 
-                        ChatData.userNickname || 'あなた'
+                        ChatData.userNickname || 'あなた',
+                        false,
+                        hasOtherCharacterHistory
                     );
                     // #region agent log
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:432',message:'分岐2: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
@@ -853,12 +867,15 @@ const ChatInit = {
                 
                 if (!handlerSkippedFirstMessage) {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:520',message:'エラー分岐: firstTimeGuestメッセージ生成',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:520',message:'エラー分岐: firstTimeGuestメッセージ生成',data:{character,hasOtherCharacterHistory:historyData?.hasOtherCharacterHistory},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
-                    // 会話履歴が空の場合：各鑑定士の初回メッセージ（firstTimeGuest）を使用
+                    // 会話履歴が空の場合：各鑑定士の初回メッセージ（firstTimeGuestまたはnoHistory）を使用
+                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(
                         character, 
-                        ChatData.userNickname || 'あなた'
+                        ChatData.userNickname || 'あなた',
+                        false,
+                        hasOtherCharacterHistory
                     );
                     // #region agent log
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:525',message:'エラー分岐: メッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});

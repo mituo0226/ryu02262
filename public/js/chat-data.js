@@ -182,14 +182,19 @@ const ChatData = {
             return null;
         }
 
-        const sortedMessages = historyData.recentMessages.slice().reverse();
-        const firstUserMessage = sortedMessages.find(msg => msg.role === 'user');
-        
-        if (firstUserMessage) {
-            const content = firstUserMessage.content;
-            if (content.length > 60) {
-                return content.substring(0, 60) + '...';
+        // 最後のユーザーメッセージを取得（時系列順に並んでいる場合）
+        const messages = historyData.recentMessages;
+        let lastUserMessage = null;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') {
+                lastUserMessage = messages[i];
+                break;
             }
+        }
+        
+        if (lastUserMessage) {
+            const content = lastUserMessage.content;
+            // 長さ制限は設けず、そのまま返す（returningメッセージで使用されるため）
             return content;
         }
         
@@ -291,9 +296,10 @@ const ChatData = {
      * @param {string} characterId - キャラクターID
      * @param {string} nickname - ニックネーム
      * @param {boolean} isGuestFirstVisit - ゲストユーザーとして初めて入室した場合true（未使用、後方互換性のため残す）
+     * @param {boolean} hasOtherCharacterHistory - 他のキャラクターとの会話履歴があるかどうか（未使用、後方互換性のため残す）
      * @returns {string} メッセージ
      */
-    generateFirstTimeMessage(characterId, nickname, isGuestFirstVisit = false) {
+    generateFirstTimeMessage(characterId, nickname, isGuestFirstVisit = false, hasOtherCharacterHistory = false) {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:284',message:'generateFirstTimeMessage呼び出し',data:{characterId,nickname,hasCharacterInfo:!!this.characterInfo[characterId],hasMessages:!!this.characterInfo[characterId]?.messages,hasFirstTimeGuest:!!this.characterInfo[characterId]?.messages?.firstTimeGuest},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
@@ -314,8 +320,7 @@ const ChatData = {
             return `${nickname}さん、初めまして。`;
         }
         
-        // firstTimeGuestを優先的に使用（各鑑定士の初回メッセージ）
-        // firstTimeGuestが存在しない場合は、デフォルトメッセージを返す
+        // 初めて笹岡と会話するユーザーは、他のキャラクターとの会話履歴に関係なく、常にfirstTimeGuestを使用
         let messageTemplate = null;
         if (character.messages.firstTimeGuest) {
             messageTemplate = character.messages.firstTimeGuest;
@@ -339,7 +344,7 @@ const ChatData = {
             return `${nickname}さん、初めまして。`;
         }
         
-        // firstTimeGuestはテンプレート変数を含まない可能性があるため、その場合はそのまま返す
+        // テンプレート変数を含まない可能性があるため、その場合はそのまま返す
         if (!messageTemplate.includes('{nickname}')) {
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:316',message:'テンプレート変数なし→そのまま返却',data:{characterId,returnMessage:messageTemplate.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});

@@ -377,54 +377,12 @@ const YukinoHandler = {
             messageDiv.appendChild(buttonWrapper);
         }
         
-        // 雪乃の初回メッセージの後に「タロット占い開始」ボタンを追加
+        // 雪乃の初回メッセージ（firstTimeGuest）の後にタロット鑑定を自動開始
         if ((type === 'welcome' || type === 'character') && 
-            text.includes('それではまず、過去のカードをめくってみましょう')) {
+            (text.includes('まずは何がともあれ、あなたの現在の運勢をタロットで占いますので') ||
+             text.includes('はじめまして、笹岡雪乃です'))) {
             
-            const buttonWrapper = document.createElement('div');
-            buttonWrapper.style.width = '100%';
-            buttonWrapper.style.display = 'flex';
-            buttonWrapper.style.justifyContent = 'center';
-            buttonWrapper.style.marginTop = '16px';
-            buttonWrapper.style.marginBottom = '16px';
-            
-            const startButton = document.createElement('button');
-            startButton.textContent = 'タロット占い開始';
-            startButton.style.padding = '12px 32px';
-            startButton.style.fontSize = '16px';
-            startButton.style.fontWeight = '600';
-            startButton.style.color = '#ffffff';
-            startButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
-            startButton.style.border = '2px solid rgba(138, 43, 226, 1)';
-            startButton.style.borderRadius = '8px';
-            startButton.style.cursor = 'pointer';
-            startButton.style.transition = 'all 0.2s ease';
-            startButton.style.boxShadow = '0 4px 16px rgba(138, 43, 226, 0.4)';
-            
-            startButton.addEventListener('mouseenter', () => {
-                startButton.style.backgroundColor = 'rgba(138, 43, 226, 1)';
-                startButton.style.transform = 'scale(1.05)';
-            });
-            startButton.addEventListener('mouseleave', () => {
-                startButton.style.backgroundColor = 'rgba(138, 43, 226, 0.8)';
-                startButton.style.transform = 'scale(1)';
-            });
-            
-            startButton.addEventListener('click', () => {
-                startButton.disabled = true;
-                startButton.style.opacity = '0.5';
-                startButton.style.cursor = 'not-allowed';
-                
-                // タロット占いを開始
-                if (window.YukinoTarot && typeof window.YukinoTarot.start === 'function') {
-                    window.YukinoTarot.start();
-                } else {
-                    console.error('[タロット占い] YukinoTarot.startが見つかりません');
-                }
-            });
-            
-            buttonWrapper.appendChild(startButton);
-            messageDiv.appendChild(buttonWrapper);
+            console.log('[雪乃ハンドラー] 初回メッセージを検出 - タロット鑑定を自動開始します');
             
             // 初回の3枚タロット鑑定が完了するまで、メッセージ入力欄を無効化
             const messageInput = document.getElementById('messageInput');
@@ -441,7 +399,26 @@ const YukinoHandler = {
                 sendButton.style.cursor = 'not-allowed';
             }
             
-            console.log('[雪乃ハンドラー] 初回タロット鑑定ボタン表示 - 入力欄を無効化しました');
+            // 少し待ってからタロット鑑定を自動開始（メッセージが完全に表示された後）
+            setTimeout(() => {
+                if (window.YukinoTarot && typeof window.YukinoTarot.start === 'function') {
+                    console.log('[雪乃ハンドラー] タロット鑑定を自動開始します');
+                    window.YukinoTarot.start();
+                } else {
+                    console.error('[雪乃ハンドラー] YukinoTarot.startが見つかりません');
+                    // YukinoTarotが読み込まれていない場合、少し待ってから再試行
+                    setTimeout(() => {
+                        if (window.YukinoTarot && typeof window.YukinoTarot.start === 'function') {
+                            console.log('[雪乃ハンドラー] タロット鑑定を自動開始します（リトライ）');
+                            window.YukinoTarot.start();
+                        } else {
+                            console.error('[雪乃ハンドラー] YukinoTarot.startが見つかりません（リトライ失敗）');
+                        }
+                    }, 500);
+                }
+            }, 500);
+            
+            console.log('[雪乃ハンドラー] 初回タロット鑑定自動開始設定 - 入力欄を無効化しました');
         }
     }
 };

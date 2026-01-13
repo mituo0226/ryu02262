@@ -18,6 +18,7 @@ interface UserRecord {
 
 interface ResponseBody {
   hasHistory: boolean;
+  hasOtherCharacterHistory?: boolean; // 他のキャラクターとの会話履歴があるかどうか
   nickname?: string;
   birthYear?: number;
   birthMonth?: number;
@@ -118,10 +119,33 @@ export const onRequestGet: PagesFunction = async (context) => {
     // 儀式完了後は、APIの指示によりチャットをクリアし、会話はゼロからスタート
     const isAfterRitual = !!user.guardian;
 
+    // 他のキャラクターとの会話履歴があるかどうかを確認
+    // 現在のキャラクター以外（kaede, yukino, sora, kaon）との会話履歴を確認
+    const allCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+    const otherCharacters = allCharacters.filter(c => c !== characterId);
+    
+    let hasOtherCharacterHistory = false;
+    if (conversations.length === 0 && otherCharacters.length > 0) {
+      // 現在のキャラクターとの会話履歴がない場合、他のキャラクターとの会話履歴を確認
+      // SQLクエリを動的に構築（IN句を使用）
+      const placeholders = otherCharacters.map(() => '?').join(',');
+      const otherHistoryResults = await env.DB.prepare<{ count: number }>(
+        `SELECT COUNT(*) as count
+         FROM conversations
+         WHERE user_id = ? AND character_id IN (${placeholders})
+         LIMIT 1`
+      )
+        .bind(user.id, ...otherCharacters)
+        .first();
+      
+      hasOtherCharacterHistory = (otherHistoryResults?.count || 0) > 0;
+    }
+
     if (conversations.length === 0) {
       return new Response(
         JSON.stringify({
           hasHistory: false,
+          hasOtherCharacterHistory,
           nickname: user.nickname,
           birthYear: user.birth_year,
           birthMonth: user.birth_month,
@@ -187,6 +211,7 @@ export const onRequestGet: PagesFunction = async (context) => {
     return new Response(
       JSON.stringify({
         hasHistory: true,
+        hasOtherCharacterHistory: true, // 現在のキャラクターとの会話履歴がある場合、他のキャラクターとの会話履歴も確認済みとして扱う
         nickname: user.nickname,
         birthYear: user.birth_year,
         birthMonth: user.birth_month,
