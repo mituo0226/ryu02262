@@ -260,19 +260,20 @@
         }
 
         // 【変更】user.idをURLパラメータに含める（データベースベースの判断）
-        // nickname+生年月日ではなく、user.idを使用することで、より安全で効率的
+        // 【重要】基本的にURLパラメータによるユーザー情報の保持は行わない（userIdのみを使用）
         let redirectUrl = getRedirectTarget();
-        const url = new URL(redirectUrl, window.location.origin);
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const url = new URL(redirectUrl, baseUrl);
         if (data.userId) {
+          // userIdのみを使用（データベースから取得するため、nickname+生年月日は含めない）
           url.searchParams.set('userId', String(data.userId));
-          console.log('[login] リダイレクトURLにuserIdを追加:', redirectUrl);
+          console.log('[login] リダイレクトURLにuserIdのみを追加（データベースベースの判断）:', url.href);
         } else {
-          // 後方互換性のため、userIdがない場合はnickname+生年月日を使用
-          url.searchParams.set('nickname', payload.nickname);
-          url.searchParams.set('birthYear', String(payload.birthYear));
-          url.searchParams.set('birthMonth', String(payload.birthMonth));
-          url.searchParams.set('birthDay', String(payload.birthDay));
-          console.log('[login] リダイレクトURLにユーザー情報を追加（後方互換性）:', redirectUrl);
+          // userIdがない場合はエラー（データベースに正常に登録されていない可能性がある）
+          console.error('[login] userIdが取得できませんでした');
+          resultMessage.textContent = 'ログインに失敗しました。ユーザー情報の取得に失敗しました。';
+          resultMessage.classList.add('error');
+          return;
         }
         redirectUrl = url.pathname + url.search;
 

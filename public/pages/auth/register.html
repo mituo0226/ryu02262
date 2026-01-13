@@ -119,6 +119,45 @@
       color: #cfaeff;
       text-decoration: underline;
     }
+    /* 確認画面 */
+    .confirmation-screen {
+      display: none;
+    }
+    .confirmation-screen.active {
+      display: block;
+    }
+    .confirmation-item {
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .confirmation-item-label {
+      font-size: 12px;
+      color: #c8b7ff;
+      margin-bottom: 4px;
+    }
+    .confirmation-item-value {
+      font-size: 16px;
+      color: #fff;
+      font-weight: 500;
+    }
+    .confirmation-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .confirmation-buttons button {
+      flex: 1;
+    }
+    .confirmation-buttons button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .confirmation-buttons button.secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
     @media (max-width: 768px) {
       body {
         padding: 10px;
@@ -168,38 +207,67 @@
 </head>
 <body>
   <div class="auth-card">
-    <h1>新規ユーザー登録</h1>
-    <div style="background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
-      <p style="font-size: 14px; line-height: 1.6; color: #e0d4ff; margin: 0; text-align: left;">
-        まずはユーザー登録が必要です。以下の情報を入力してください。料金が発生することはありません。また、あなたのプロフィールに個人情報が含まれておりません。ご安心ください。
-      </p>
-    </div>
-    <form id="registerForm">
-      <label>
-        ニックネーム
-        <input type="text" id="nickname" maxlength="50" required placeholder="例: かえで好きさん">
-      </label>
-      <div>
-        <span style="font-size:14px;color:#e0d4ff;">生年月日</span>
-        <div class="birth-grid">
-          <select id="birthYear" required></select>
-          <select id="birthMonth" required></select>
-          <select id="birthDay" required></select>
-        </div>
+    <!-- 登録フォーム -->
+    <div id="registerFormContainer">
+      <h1>新規ユーザー登録</h1>
+      <div style="background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+        <p style="font-size: 14px; line-height: 1.6; color: #e0d4ff; margin: 0; text-align: left;">
+          まずはユーザー登録が必要です。以下の情報を入力してください。料金が発生することはありません。また、あなたのプロフィールに個人情報が含まれておりません。ご安心ください。
+        </p>
       </div>
-      <label>
-        性別
-        <select id="gender">
-          <option value="male">男性</option>
-          <option value="female">女性</option>
-          <option value="">回答しない</option>
-        </select>
-      </label>
-      <button type="submit">登録してはじめる</button>
-    </form>
-    <div id="resultMessage" class="result-message"></div>
-    <div class="switch-link">
-      すでに登録済みの方は <a id="loginLink" href="login.html">こちらからログイン</a>
+      <form id="registerForm">
+        <label>
+          ニックネーム
+          <input type="text" id="nickname" maxlength="50" required placeholder="例: かえで好きさん">
+        </label>
+        <div>
+          <span style="font-size:14px;color:#e0d4ff;">生年月日</span>
+          <div class="birth-grid">
+            <select id="birthYear" required></select>
+            <select id="birthMonth" required></select>
+            <select id="birthDay" required></select>
+          </div>
+        </div>
+        <label>
+          性別
+          <select id="gender">
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+            <option value="">回答しない</option>
+          </select>
+        </label>
+        <button type="submit">登録してはじめる</button>
+      </form>
+      <div id="resultMessage" class="result-message"></div>
+      <div class="switch-link">
+        すでに登録済みの方は <a id="loginLink" href="login.html">こちらからログイン</a>
+      </div>
+    </div>
+
+    <!-- 確認画面 -->
+    <div id="confirmationScreen" class="confirmation-screen">
+      <h1>登録情報の確認</h1>
+      <div style="background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+        <p style="font-size: 14px; line-height: 1.6; color: #e0d4ff; margin: 0; text-align: left;">
+          データベースに正常に登録されました。以下の情報をご確認ください。
+        </p>
+      </div>
+      <div class="confirmation-item">
+        <div class="confirmation-item-label">ニックネーム</div>
+        <div class="confirmation-item-value" id="confirmNickname"></div>
+      </div>
+      <div class="confirmation-item">
+        <div class="confirmation-item-label">生年月日</div>
+        <div class="confirmation-item-value" id="confirmBirthday"></div>
+      </div>
+      <div class="confirmation-item">
+        <div class="confirmation-item-label">性別</div>
+        <div class="confirmation-item-value" id="confirmGender"></div>
+      </div>
+      <div class="confirmation-buttons">
+        <button type="button" id="confirmButton" class="primary">確認して次へ進む</button>
+        <button type="button" id="backButton" class="secondary">戻る</button>
+      </div>
     </div>
   </div>
 
@@ -382,64 +450,118 @@
           return;
         }
 
-        // 登録完了後、データベースへの保存を確認してからメッセージを表示
+        // 【追加】登録完了後、データベースから取得した情報を確認画面に表示
         let dbConfirmed = false;
+        let userInfo = null;
         
         try {
-            // データベースから最新のユーザー情報を取得（会話履歴APIを使用）
+            // データベースから最新のユーザー情報を取得（userIdを使用）
             // これにより、データベースに保存されたことを確認
             console.log('[register] データベースへの保存を確認中...');
+            
+            if (!data.userId) {
+                throw new Error('userIdが取得できませんでした');
+            }
+            
+            // userIdからデータベースから取得（確実にデータベースに保存された情報を取得）
             const userInfoResponse = await fetch(
-                `/api/conversation-history?nickname=${encodeURIComponent(payload.nickname)}&birthYear=${encodeURIComponent(payload.birthYear)}&birthMonth=${encodeURIComponent(payload.birthMonth)}&birthDay=${encodeURIComponent(payload.birthDay)}&character=kaede`
+                `/api/conversation-history?userId=${encodeURIComponent(data.userId)}&character=kaede`
             );
+            
             if (userInfoResponse.ok) {
-                const userInfo = await userInfoResponse.json();
-                // 【変更】データベースから取得した情報をlocalStorageに保存しない（データベースベースの判断）
-                // すべてのユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
+                userInfo = await userInfoResponse.json();
                 dbConfirmed = true;
                 console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
             } else {
-                // 【変更】APIエラー時もlocalStorageに保存しない（データベースベースの判断）
-                console.warn('[register] データベースからの情報取得に失敗しましたが、登録は完了しています');
+                // データベース取得に失敗した場合、エラーを表示
+                throw new Error('データベースからの情報取得に失敗しました');
             }
         } catch (error) {
-            // 【変更】エラー時もlocalStorageに保存しない（データベースベースの判断）
             console.error('[register] データベースからの情報取得エラー:', error);
+            resultMessage.textContent = '登録は完了しましたが、データベースからの情報取得に失敗しました。時間を置いて再度お試しください。';
+            resultMessage.classList.add('error');
+            return; // エラー時は処理を中断
         }
         
         // 【変更】hasAccountをlocalStorageに保存しない（データベースベースの判断）
 
-        // データベースへの保存を確認した後、登録完了メッセージを表示
-        if (dbConfirmed) {
-            resultMessage.textContent = '登録が完了しました。';
+        // データベースへの保存を確認した後、確認画面を表示
+        if (dbConfirmed && userInfo) {
+            // 登録フォームを非表示
+            const registerFormContainer = document.getElementById('registerFormContainer');
+            const confirmationScreen = document.getElementById('confirmationScreen');
+            
+            if (registerFormContainer && confirmationScreen) {
+                registerFormContainer.style.display = 'none';
+                confirmationScreen.classList.add('active');
+                
+                // 確認画面に情報を表示
+                const confirmNickname = document.getElementById('confirmNickname');
+                const confirmBirthday = document.getElementById('confirmBirthday');
+                const confirmGender = document.getElementById('confirmGender');
+                
+                if (confirmNickname) {
+                    confirmNickname.textContent = userInfo.nickname || payload.nickname;
+                }
+                if (confirmBirthday) {
+                    const birthYear = userInfo.birthYear || payload.birthYear;
+                    const birthMonth = userInfo.birthMonth || payload.birthMonth;
+                    const birthDay = userInfo.birthDay || payload.birthDay;
+                    confirmBirthday.textContent = `${birthYear}年${birthMonth}月${birthDay}日`;
+                }
+                if (confirmGender) {
+                    const genderMap = {
+                        'male': '男性',
+                        'female': '女性',
+                        '': '回答しない'
+                    };
+                    const gender = userInfo.gender || payload.gender || '';
+                    confirmGender.textContent = genderMap[gender] || '回答しない';
+                }
+                
+                // 確認ボタンのイベントリスナー
+                const confirmButton = document.getElementById('confirmButton');
+                const backButton = document.getElementById('backButton');
+                
+                if (confirmButton) {
+                    confirmButton.addEventListener('click', () => {
+                        // リダイレクト（userIdのみを使用、URLパラメータによるユーザー情報の保持は行わない）
+                        let redirectUrl = getRedirectTarget();
+                        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+                        const url = new URL(redirectUrl, baseUrl);
+                        
+                        // 【重要】userIdのみを使用（URLパラメータによるユーザー情報の保持は行わない）
+                        if (data.userId) {
+                            url.searchParams.set('userId', String(data.userId));
+                            // nickname, birthYear, birthMonth, birthDayは含めない（データベースから取得するため）
+                            console.log('[register] リダイレクトURLにuserIdのみを追加（データベースベースの判断）:', url.href);
+                        } else {
+                            console.error('[register] userIdが取得できませんでした');
+                            resultMessage.textContent = 'エラーが発生しました。時間を置いて再度お試しください。';
+                            resultMessage.classList.add('error');
+                            return;
+                        }
+                        
+                        redirectUrl = url.pathname + url.search;
+                        window.location.href = redirectUrl;
+                    });
+                }
+                
+                if (backButton) {
+                    backButton.addEventListener('click', () => {
+                        // 登録フォームに戻る
+                        registerFormContainer.style.display = 'block';
+                        confirmationScreen.classList.remove('active');
+                        resultMessage.textContent = '';
+                        resultMessage.className = 'result-message';
+                    });
+                }
+            }
         } else {
-            resultMessage.textContent = '登録が完了しました。';
+            // データベース確認に失敗した場合
+            resultMessage.textContent = '登録は完了しましたが、データベースからの情報取得に失敗しました。時間を置いて再度お試しください。';
+            resultMessage.classList.add('error');
         }
-        resultMessage.classList.add('success');
-
-        // 登録完了後、1秒後にリダイレクト（URLパラメータにuser.idを含める）
-        setTimeout(() => {
-          let redirectUrl = getRedirectTarget();
-          // 【修正】相対パスを正しく解決するため、現在のページのURLをベースにする
-          // window.location.origin を使うと相対パスがルートから解決されてしまうため、
-          // 現在のページのURL（window.location.href）をベースにする
-          const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-          const url = new URL(redirectUrl, baseUrl);
-          if (data.userId) {
-            url.searchParams.set('userId', String(data.userId));
-            console.log('[register] リダイレクトURLにuserIdを追加:', url.href);
-          } else {
-            // 後方互換性のため、userIdがない場合はnickname+生年月日を使用
-            url.searchParams.set('nickname', payload.nickname);
-            url.searchParams.set('birthYear', String(payload.birthYear));
-            url.searchParams.set('birthMonth', String(payload.birthMonth));
-            url.searchParams.set('birthDay', String(payload.birthDay));
-            console.log('[register] リダイレクトURLにユーザー情報を追加（後方互換性）:', url.href);
-          }
-          redirectUrl = url.pathname + url.search;
-
-          window.location.href = redirectUrl;
-        }, 1000);
       } catch (error) {
         console.error(error);
         resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';

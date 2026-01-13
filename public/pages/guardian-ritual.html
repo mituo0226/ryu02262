@@ -556,16 +556,58 @@
 
     /**
      * ユーザー情報の取得
-     * 【変更】データベースベースの判断に移行したため、sessionStorageまたはURLパラメータから取得
+     * 【変更】データベースベースの判断に移行したため、userIdがある場合はデータベースから取得を優先
      */
     async function getUserBirthday() {
-      // 優先順位1: URLパラメータから取得
       const urlParams = new URLSearchParams(window.location.search);
+      
+      // 【修正】優先順位1: userIdがある場合、データベースから取得（データベースに登録済みの情報を使用）
+      const userId = urlParams.get('userId');
+      if (userId) {
+        try {
+          console.log('[守護神の儀式] userIdからデータベースからユーザー情報を取得中...');
+          // 会話履歴APIからユーザー情報を取得
+          const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.birthYear && data.birthMonth && data.birthDay) {
+              console.log('[守護神の儀式] ✅ データベースからユーザー情報を取得しました:', data);
+              // 【追加】URLパラメータをクリーンアップ（userIdのみに）
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.delete('birthYear');
+              newUrl.searchParams.delete('birthMonth');
+              newUrl.searchParams.delete('birthDay');
+              newUrl.searchParams.delete('nickname');
+              // userIdのみを残す
+              if (!newUrl.searchParams.has('userId')) {
+                newUrl.searchParams.set('userId', userId);
+              }
+              // 履歴を追加せずにURLを更新（ページリロードなし）
+              window.history.replaceState({}, '', newUrl.toString());
+              console.log('[守護神の儀式] URLパラメータをクリーンアップしました（userIdのみ）');
+              
+              return {
+                birthYear: Number(data.birthYear),
+                birthMonth: Number(data.birthMonth),
+                birthDay: Number(data.birthDay)
+              };
+            }
+          } else if (response.status === 404) {
+            console.warn('[守護神の儀式] ユーザー情報が見つかりません（404）。URLパラメータから取得を試みます。');
+          }
+        } catch (e) {
+          console.error('[守護神の儀式] データベースからの情報取得エラー:', e);
+          // エラー時はURLパラメータから取得を試みる
+        }
+      }
+      
+      // 優先順位2: URLパラメータから取得（userIdがない場合、またはデータベース取得に失敗した場合）
       const birthYear = urlParams.get('birthYear');
       const birthMonth = urlParams.get('birthMonth');
       const birthDay = urlParams.get('birthDay');
       
       if (birthYear && birthMonth && birthDay) {
+        console.log('[守護神の儀式] URLパラメータからユーザー情報を取得しました');
         return {
           birthYear: parseInt(birthYear, 10),
           birthMonth: parseInt(birthMonth, 10),
@@ -573,38 +615,9 @@
         };
       }
       
-      // 優先順位2: userIdからデータベースから取得（URLパラメータにuserIdが含まれている場合）
-      const userId = urlParams.get('userId');
-      if (userId) {
-        try {
-          // 会話履歴APIからユーザー情報を取得
-          const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.birthYear && data.birthMonth && data.birthDay) {
-              return {
-                birthYear: Number(data.birthYear),
-                birthMonth: Number(data.birthMonth),
-                birthDay: Number(data.birthDay)
-              };
-            }
-          }
-        } catch (e) {
-          console.error('[守護神の儀式] データベースからの情報取得エラー:', e);
-        }
-      }
-      
-      // 優先順位3: データベースから取得（会話履歴APIを使用）- フォールバック
-      // ただし、この方法は非同期のため、エラーを投げる前に試行
-      try {
-        // 会話履歴APIを呼び出してユーザー情報を取得
-        // ただし、この時点ではユーザー情報が分からないため、エラーを投げる
-        throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
-      } catch (error) {
-        // エラーメッセージを表示して、登録画面にリダイレクト
-        console.error('[守護神の儀式] ユーザー情報の取得に失敗:', error);
-        throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
-      }
+      // 優先順位3: エラー（ユーザー情報が見つからない）
+      console.error('[守護神の儀式] ユーザー情報の取得に失敗: 生年月日情報が見つかりません。ユーザー登録を行ってください。');
+      throw new Error('生年月日情報が見つかりません。ユーザー登録を行ってください。');
     }
 
     /**

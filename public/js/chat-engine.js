@@ -1806,14 +1806,33 @@ const ChatInit = {
             
             // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
             await this.delay(2000); // 2秒待つ（ユーザーがメッセージを読む時間を確保）
-            
+
             // guardian-ritual.htmlに遷移
             // 現在のチャット画面のURLを保存（儀式完了後に戻るため）
             const currentChatUrl = window.location.href;
             sessionStorage.setItem('postRitualChatUrl', currentChatUrl);
-            
-            console.log('[守護神の儀式] guardian-ritual.htmlに遷移:', currentChatUrl);
-            window.location.href = '../guardian-ritual.html';
+
+            // 【修正】userIdをURLパラメータに含める（データベースからユーザー情報を取得するため）
+            let ritualUrl = '../guardian-ritual.html';
+            if (historyData && historyData.userId) {
+                const url = new URL(ritualUrl, window.location.origin);
+                url.searchParams.set('userId', String(historyData.userId));
+                ritualUrl = url.pathname + url.search;
+                console.log('[守護神の儀式] userIdをURLパラメータに追加:', historyData.userId);
+            } else {
+                // historyDataにuserIdがない場合、現在のURLから取得を試みる
+                const currentUrlParams = new URLSearchParams(window.location.search);
+                const userId = currentUrlParams.get('userId');
+                if (userId) {
+                    const url = new URL(ritualUrl, window.location.origin);
+                    url.searchParams.set('userId', userId);
+                    ritualUrl = url.pathname + url.search;
+                    console.log('[守護神の儀式] 現在のURLからuserIdを取得して追加:', userId);
+                }
+            }
+
+            console.log('[守護神の儀式] guardian-ritual.htmlに遷移:', ritualUrl);
+            window.location.href = ritualUrl;
             return; // 遷移するため、以降の処理は実行されない
             
         } catch (error) {
