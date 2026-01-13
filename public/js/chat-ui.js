@@ -139,7 +139,19 @@ const ChatUI = {
         // #region agent log
         if (type === 'welcome') {
             const stackTrace = new Error().stack;
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-ui.js:138',message:'addMessage welcome呼び出し',data:{type,sender,textLength:text.length,textPreview:text.substring(0,200),containsReturningMessage:text.includes('また私に会いに来てくれてありがとう'),stackTrace:stackTrace?.split('\n').slice(0,10).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
+            // 重複チェック: 同じ内容のwelcomeメッセージが既に表示されているか確認
+            const existingMessages = this.messagesDiv?.querySelectorAll('.message.welcome') || [];
+            const isDuplicate = Array.from(existingMessages).some(msg => {
+                const textDiv = msg.querySelector('.message-text');
+                return textDiv && textDiv.textContent === text;
+            });
+            
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-ui.js:138',message:'addMessage welcome呼び出し',data:{type,sender,textLength:text.length,textPreview:text.substring(0,200),containsReturningMessage:text.includes('また私に会いに来てくれてありがとう'),isDuplicate,existingWelcomeCount:existingMessages.length,stackTrace:stackTrace?.split('\n').slice(0,10).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
+            
+            if (isDuplicate) {
+                console.warn('[ChatUI] 重複したwelcomeメッセージを検出しました。スキップします。', text.substring(0, 100));
+                return null;
+            }
         }
         // #endregion
         if (!this.messagesDiv) return null;
