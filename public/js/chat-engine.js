@@ -165,7 +165,26 @@ const ChatInit = {
                     }
                 } catch (error) {
                     console.error('[登録完了処理] データベースからの情報取得エラー:', error);
-                    // 【変更】エラー時もlocalStorageから取得しない（データベースベースの判断）
+                    // エラーハンドリング
+                    if (error instanceof Error) {
+                        if (error.message === 'USER_NOT_FOUND') {
+                            // ユーザー情報が登録されていない場合：登録画面にリダイレクト
+                            console.error('[登録完了処理] ユーザー情報が登録されていません。登録画面にリダイレクトします。');
+                            alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
+                            window.location.href = '../auth/register.html';
+                            return;
+                        } else if (error.message === 'NETWORK_ERROR') {
+                            // ネットワーク接続エラーの場合
+                            console.error('[登録完了処理] ネットワーク接続エラーが発生しました');
+                            ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
+                            // エラー時はデフォルト値を使用
+                            dbUserNickname = 'あなた';
+                            ChatData.userNickname = dbUserNickname;
+                            return;
+                        }
+                    }
+                    // その他のエラー：デフォルト値を使用
+                    console.warn('[登録完了処理] エラーが発生しましたが、処理を続行します');
                     dbUserNickname = 'あなた';
                     ChatData.userNickname = dbUserNickname;
                     historyData = null;
@@ -360,7 +379,30 @@ const ChatInit = {
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:217',message:'loadConversationHistory呼び出し前',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
-            const historyData = await ChatAPI.loadConversationHistory(character);
+            let historyData = null;
+            try {
+                historyData = await ChatAPI.loadConversationHistory(character);
+            } catch (error) {
+                // エラーハンドリング
+                if (error instanceof Error) {
+                    if (error.message === 'USER_NOT_FOUND') {
+                        // ユーザー情報が登録されていない場合：登録画面にリダイレクト
+                        console.error('[初期化] ユーザー情報が登録されていません。登録画面にリダイレクトします。');
+                        alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
+                        window.location.href = '../auth/register.html';
+                        return;
+                    } else if (error.message === 'NETWORK_ERROR') {
+                        // ネットワーク接続エラーの場合
+                        console.error('[初期化] ネットワーク接続エラーが発生しました');
+                        ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
+                        return;
+                    }
+                }
+                // その他のエラー
+                console.error('[初期化] 会話履歴の取得エラー:', error);
+                ChatUI.addMessage('error', '会話履歴の取得に失敗しました。時間を置いて再度お試しください。', 'システム');
+                return;
+            }
             
             /**
              * 【統一化】すべての鑑定士で共通の初回メッセージ表示ロジック
@@ -1701,8 +1743,33 @@ const ChatInit = {
         
         try {
             // 会話履歴を取得（データベースのguardianカラムを確認するため）
-            const historyData = await ChatAPI.loadConversationHistory(character);
-            console.log('[守護神の儀式] 会話履歴データ:', historyData);
+            let historyData = null;
+            try {
+                historyData = await ChatAPI.loadConversationHistory(character);
+                console.log('[守護神の儀式] 会話履歴データ:', historyData);
+            } catch (error) {
+                // エラーハンドリング
+                if (error instanceof Error) {
+                    if (error.message === 'USER_NOT_FOUND') {
+                        // ユーザー情報が登録されていない場合：登録画面にリダイレクト
+                        console.error('[守護神の儀式] ユーザー情報が登録されていません。登録画面にリダイレクトします。');
+                        alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
+                        window.location.href = '../auth/register.html';
+                        return;
+                    } else if (error.message === 'NETWORK_ERROR') {
+                        // ネットワーク接続エラーの場合
+                        console.error('[守護神の儀式] ネットワーク接続エラーが発生しました');
+                        ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
+                        if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+                        return;
+                    }
+                }
+                // その他のエラー
+                console.error('[守護神の儀式] 会話履歴の取得エラー:', error);
+                ChatUI.addMessage('error', '会話履歴の取得に失敗しました。時間を置いて再度お試しください。', 'システム');
+                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+                return;
+            }
             
             // 【重要】データベースのguardianカラムから守護神が既に決定されているかチェック（優先）
             if (historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '') {

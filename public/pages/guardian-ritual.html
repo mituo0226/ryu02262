@@ -602,25 +602,42 @@
             } else {
               // データベースに生年月日情報がない場合
               console.error('[守護神の儀式] データベースに生年月日情報がありません:', data);
-              throw new Error('データベースに生年月日情報が登録されていません。ユーザー登録を完了してください。');
+              const error = new Error('USER_NOT_REGISTERED');
+              error.userId = userId;
+              throw error;
             }
           } else if (response.status === 404) {
-            // ユーザーが見つからない場合
+            // ユーザーが見つからない場合（404）
             console.error('[守護神の儀式] ユーザー情報が見つかりません（404）');
-            throw new Error('ユーザー情報が見つかりません。ユーザー登録を完了してください。');
+            const error = new Error('USER_NOT_FOUND');
+            error.userId = userId;
+            throw error;
           } else {
-            // その他のエラー
+            // その他のサーバーエラー（500など）
             const errorText = await response.text();
             console.error('[守護神の儀式] データベースからの情報取得エラー:', response.status, errorText);
-            throw new Error(`データベースからの情報取得に失敗しました（ステータス: ${response.status}）。時間を置いて再度お試しください。`);
+            const error = new Error('SERVER_ERROR');
+            error.status = response.status;
+            throw error;
           }
         } catch (e) {
-          // ネットワークエラーなど
-          if (e instanceof Error && e.message.includes('データベース')) {
-            throw e; // 既にエラーメッセージが設定されている場合はそのまま投げる
+          // ネットワークエラー（fetch自体が失敗した場合）
+          if (e instanceof Error) {
+            if (e.message === 'USER_NOT_FOUND' || e.message === 'USER_NOT_REGISTERED') {
+              throw e; // ユーザー未登録エラーはそのまま投げる
+            }
+            if (e.message === 'SERVER_ERROR') {
+              throw e; // サーバーエラーはそのまま投げる
+            }
+            // ネットワークエラー（fetchが失敗した場合）
+            if (e.name === 'TypeError' || e.message.includes('fetch') || e.message.includes('network')) {
+              const error = new Error('NETWORK_ERROR');
+              throw error;
+            }
           }
           console.error('[守護神の儀式] データベースからの情報取得エラー:', e);
-          throw new Error('データベースからの情報取得に失敗しました。ネットワーク接続を確認してください。');
+          const error = new Error('NETWORK_ERROR');
+          throw error;
         }
       }
       
@@ -976,8 +993,9 @@
         // 【変更】データベースベースの判断に移行したため、URLパラメータからuserIdを取得
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
-        // ユーザー情報が存在するかチェック（URLパラメータから）
-        const hasUserInfo = !!(userId && nickname && birthday.birthYear && birthday.birthMonth && birthday.birthDay);
+        // 【修正】userIdがある場合は、データベースから取得した情報を使用（birthdayは既に取得済み）
+        // nicknameとbirthdayは既にデータベースから取得しているため、userIdがあれば十分
+        const hasUserInfo = !!(userId && birthday && birthday.birthYear && birthday.birthMonth && birthday.birthDay);
         const isFirstTimeRitual = userId && hasUserInfo;
 
         // 【重要】守護神が決定した時点ですぐにAPIに送信（バックグラウンド）
@@ -988,8 +1006,10 @@
           // 【変更】ユーザー情報をsessionStorageまたはURLパラメータから取得（データベースベースの判断）
           // nicknameとbirthdayは既に取得済み
           
-          if (!nickname || !birthday.birthYear || !birthday.birthMonth || !birthday.birthDay) {
-            console.error('[守護神の儀式] ❌ ユーザー情報が不足しています:', { nickname, birthday });
+          // 【修正】userIdがあれば、データベースから取得したbirthday情報を使用
+          // nicknameはデータベースから取得済み、birthdayもデータベースから取得済み
+          if (!userId || !birthday || !birthday.birthYear || !birthday.birthMonth || !birthday.birthDay) {
+            console.error('[守護神の儀式] ❌ ユーザー情報が不足しています:', { userId, birthday });
             dbSavePromise = Promise.resolve(false);
           } else {
             // userIdを優先的に使用
@@ -1095,15 +1115,62 @@
         const ritualOverlay = document.getElementById('ritualOverlay');
         const resultSection = document.getElementById('resultSection');
         
-        // エラーメッセージを表示
-        if (errorMessage) {
-          errorMessage.textContent = error.message || 'エラーが発生しました。';
-          errorMessage.style.display = 'block';
-        }
-        
         // アニメーションオーバーレイを非表示
         if (ritualOverlay) {
           ritualOverlay.style.display = 'none';
+        }
+        
+        // エラーの種類に応じて処理を分岐
+        if (error instanceof Error) {
+          if (error.message === 'USER_NOT_FOUND' || error.message === 'USER_NOT_REGISTERED') {
+            // ユーザー情報が登録されていない場合：登録画面にリダイレクト
+            if (errorMessage) {
+              errorMessage.textContent = 'あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。';
+              errorMessage.style.display = 'block';
+            }
+            
+            // 3秒後に登録画面にリダイレクト
+            setTimeout(() => {
+              window.location.href = '../auth/register.html';
+            }, 3000);
+            
+            console.log('[守護神の儀式] ユーザー情報が登録されていないため、登録画面にリダイレクトします');
+            return;
+          } else if (error.message === 'NETWORK_ERROR') {
+            // ネットワーク接続エラーの場合
+            if (errorMessage) {
+              errorMessage.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
+              errorMessage.style.display = 'block';
+            }
+            
+            // 結果セクションを表示（エラーメッセージと一緒に）
+            if (resultSection) {
+              resultSection.classList.add('visible');
+            }
+            
+            console.log('[守護神の儀式] ネットワーク接続エラーが発生しました');
+            return;
+          } else if (error.message === 'SERVER_ERROR') {
+            // サーバーエラーの場合
+            if (errorMessage) {
+              errorMessage.textContent = 'サーバーエラーが発生しました。しばらく経ってから再度お試しください。';
+              errorMessage.style.display = 'block';
+            }
+            
+            // 結果セクションを表示（エラーメッセージと一緒に）
+            if (resultSection) {
+              resultSection.classList.add('visible');
+            }
+            
+            console.log('[守護神の儀式] サーバーエラーが発生しました');
+            return;
+          }
+        }
+        
+        // その他のエラー
+        if (errorMessage) {
+          errorMessage.textContent = error.message || 'エラーが発生しました。';
+          errorMessage.style.display = 'block';
         }
         
         // 結果セクションを表示（エラーメッセージと一緒に）
@@ -1111,7 +1178,6 @@
           resultSection.classList.add('visible');
         }
         
-        // エラー時はトップページにリダイレクトしない（エラーメッセージを表示する）
         console.log('[守護神の儀式] エラーが発生しましたが、ページは表示を続けます');
       }
     }
