@@ -723,7 +723,8 @@
             if (userInfo.guardian) {
               console.log('[守護神の儀式] 既に守護神が登録されています:', userInfo.guardian);
               // チャット画面にリダイレクト
-              const chatUrl = new URL('../chat/chat.html', window.location.origin);
+              // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
+              const chatUrl = new URL('../chat/chat.html', window.location.href);
               chatUrl.searchParams.set('character', 'kaede');
               chatUrl.searchParams.set('userId', userId);
               window.location.href = chatUrl.toString();
@@ -788,7 +789,8 @@
           sessionStorage.setItem('ritualCompleted', 'true');
           console.log('[守護神の儀式] ritualCompletedフラグを設定しました');
           
-          const chatUrl = new URL('../chat/chat.html', window.location.origin);
+          // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
+          const chatUrl = new URL('../chat/chat.html', window.location.href);
           chatUrl.searchParams.set('character', 'kaede');
           chatUrl.searchParams.set('userId', userId);
           chatUrl.searchParams.set('justRegistered', 'true');
@@ -798,7 +800,8 @@
         } catch (error) {
           console.error('[守護神の儀式] メッセージ表示エラー:', error);
           // エラーが発生してもチャット画面にリダイレクト
-          const chatUrl = new URL('../chat/chat.html', window.location.origin);
+          // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
+          const chatUrl = new URL('../chat/chat.html', window.location.href);
           chatUrl.searchParams.set('character', 'kaede');
           if (userId) {
             chatUrl.searchParams.set('userId', userId);
