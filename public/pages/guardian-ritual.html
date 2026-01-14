@@ -284,21 +284,6 @@
       }
     }
 
-    /* エラーメッセージ */
-    .error-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(200, 0, 0, 0.8);
-      border: 1px solid rgba(255, 100, 100, 0.5);
-      border-radius: 10px;
-      padding: 30px;
-      color: #ffb5b5;
-      z-index: 300;
-      max-width: 90%;
-      text-align: center;
-    }
 
     /* スマートフォン対応 */
     @media (max-width: 768px) {
@@ -357,9 +342,6 @@
       <div class="loading-sub">もうすぐ結果が表示されます</div>
     </div>
   </div>
-
-  <!-- エラーメッセージ -->
-  <div class="error-message" id="errorMessage" style="display: none;"></div>
 
   <script type="module">
     /**
@@ -510,6 +492,15 @@
           return finalGuardian;
         } catch (error) {
           console.error('[守護神の儀式] アニメーション実行エラー:', error);
+          // エラーが発生しても、デフォルトの守護神を返す（アニメーションは表示される）
+          const GUARDIANS = [
+            { id: '天照大神', name: '天照大神', image: 'amaterasu.png', message: 'あなたは天照大神に守られています。太陽のように明るく、前向きな力を授かっています。' },
+            { id: '大国主命', name: '大国主命', image: 'okuni-nushi.png', message: 'あなたは大国主命に守られています。豊かさと調和の力を授かっています。' },
+            { id: '大日如来', name: '大日如来', image: 'dainithi-nyorai.png', message: 'あなたは大日如来に守られています。智慧と光明の力を授かっています。' },
+            { id: '千手観音', name: '千手観音', image: 'senju.png', message: 'あなたは千手観音に守られています。慈悲と救済の力を授かっています。' },
+            { id: '不動明王', name: '不動明王', image: 'fudo.png', message: 'あなたは不動明王に守られています。不動の意志と守護の力を授かっています。' }
+          ];
+          return GUARDIANS[0]; // デフォルトとして最初の守護神を返す
         }
       };
       
@@ -643,38 +634,32 @@
 
     /**
      * ユーザー情報と守護神情報を取得
+     * エラーが発生する条件: 通信エラーまたはデータベースにユーザー情報がない（404）
      * @param {number} userId - ユーザーID
      * @returns {Promise<Object>} ユーザー情報と守護神情報
      */
     async function getUserAndGuardianInfo(userId) {
-      try {
-        // 会話履歴APIからユーザー情報を取得
-        const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('ユーザー情報が見つかりませんでした。');
-          }
-          throw new Error('ユーザー情報の取得に失敗しました。');
+      // 会話履歴APIからユーザー情報を取得
+      const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
+      
+      if (!response.ok) {
+        // 404: データベースにユーザー情報がない
+        if (response.status === 404) {
+          throw new Error('USER_NOT_FOUND');
         }
-        
-        const data = await response.json();
-        
-        if (!data || !data.birthYear || !data.birthMonth || !data.birthDay) {
-          throw new Error('ユーザーの生年月日情報が取得できませんでした。');
-        }
-        
-        return {
-          nickname: data.nickname || 'あなた',
-          birthYear: data.birthYear,
-          birthMonth: data.birthMonth,
-          birthDay: data.birthDay,
-          guardian: data.guardian || null
-        };
-      } catch (error) {
-        console.error('[守護神の儀式] ユーザー情報取得エラー:', error);
-        throw error;
+        // その他のHTTPエラー: 通信エラーとして扱う
+        throw new Error('NETWORK_ERROR');
       }
+      
+      const data = await response.json();
+      
+      return {
+        nickname: data.nickname || 'あなた',
+        birthYear: data.birthYear,
+        birthMonth: data.birthMonth,
+        birthDay: data.birthDay,
+        guardian: data.guardian || null
+      };
     }
 
 
@@ -713,87 +698,101 @@
 
     /**
      * メイン処理
-     * URLパラメータから守護神情報を受け取り、アニメーションを表示するだけ
-     * 守護神情報がない場合、userIdから取得して決定・保存する
+     * このファイルは単純にアニメーションを表示し、守護神を決定するだけ
+     * エラーが発生してもアニメーションは必ず表示される
      */
     async function init() {
-      try {
-        console.log('[守護神の儀式] 初期化開始');
+      console.log('[守護神の儀式] 初期化開始');
+      
+      // URLパラメータから情報を取得
+      const urlParams = new URLSearchParams(window.location.search);
+      const guardianId = urlParams.get('guardianId');
+      const guardianName = urlParams.get('guardianName');
+      const guardianImage = urlParams.get('guardianImage');
+      const guardianMessage = urlParams.get('guardianMessage');
+      const userId = urlParams.get('userId');
+      const nickname = urlParams.get('nickname');
+
+      let guardian = null;
+      let userNickname = nickname || 'あなた';
+      let userBirthYear = null;
+      let userBirthMonth = null;
+      let userBirthDay = null;
+      let needToSaveGuardian = false;
+
+      // 守護神情報がURLパラメータにない場合、userIdから取得を試みる
+      if (!guardianId || !guardianName || !guardianImage) {
+        if (userId) {
+          try {
+            console.log('[守護神の儀式] 守護神情報がURLパラメータにないため、userIdから取得します:', userId);
+            
+            // ユーザー情報を取得（エラーが発生してもアニメーションは表示する）
+            const userInfo = await getUserAndGuardianInfo(Number(userId));
+            userNickname = userInfo.nickname || userNickname;
+            userBirthYear = userInfo.birthYear;
+            userBirthMonth = userInfo.birthMonth;
+            userBirthDay = userInfo.birthDay;
+
+            // 既に守護神が登録されている場合
+            if (userInfo.guardian) {
+              console.log('[守護神の儀式] 既に守護神が登録されています:', userInfo.guardian);
+              // チャット画面にリダイレクト
+              const chatUrl = new URL('../chat/chat.html', window.location.origin);
+              chatUrl.searchParams.set('character', 'kaede');
+              chatUrl.searchParams.set('userId', userId);
+              window.location.href = chatUrl.toString();
+              return;
+            }
+
+            // アニメーション後に守護神を決定・保存するフラグを設定
+            needToSaveGuardian = true;
+          } catch (error) {
+            console.error('[守護神の儀式] ユーザー情報取得エラー（アニメーションは続行）:', error);
+            // エラーが発生してもアニメーションは表示する（デフォルト値を使用）
+          }
+        }
         
-        // URLパラメータから情報を取得
-        const urlParams = new URLSearchParams(window.location.search);
-        const guardianId = urlParams.get('guardianId');
-        const guardianName = urlParams.get('guardianName');
-        const guardianImage = urlParams.get('guardianImage');
-        const guardianMessage = urlParams.get('guardianMessage');
-        const userId = urlParams.get('userId');
-        const nickname = urlParams.get('nickname');
-
-        let guardian = null;
-        let userNickname = nickname;
-        let userBirthYear = null;
-        let userBirthMonth = null;
-        let userBirthDay = null;
-        let needToSaveGuardian = false;
-
-        // 守護神情報がURLパラメータにない場合、userIdから取得
-        if (!guardianId || !guardianName || !guardianImage) {
-          if (!userId) {
-            throw new Error('守護神情報またはユーザーIDが必要です。チャット画面から守護神の儀式を開始してください。');
-          }
-
-          console.log('[守護神の儀式] 守護神情報がURLパラメータにないため、userIdから取得します:', userId);
-          
-          // ユーザー情報を取得
-          const userInfo = await getUserAndGuardianInfo(Number(userId));
-          userNickname = userInfo.nickname;
-          userBirthYear = userInfo.birthYear;
-          userBirthMonth = userInfo.birthMonth;
-          userBirthDay = userInfo.birthDay;
-
-          // 既に守護神が登録されている場合
-          if (userInfo.guardian) {
-            console.log('[守護神の儀式] 既に守護神が登録されています:', userInfo.guardian);
-            // チャット画面にリダイレクト
-            const chatUrl = new URL('../chat/chat.html', window.location.origin);
-            chatUrl.searchParams.set('character', 'kaede');
-            chatUrl.searchParams.set('userId', userId);
-            window.location.href = chatUrl.toString();
-            return;
-          }
-
-          // アニメーション後に守護神を決定・保存するフラグを設定
-          needToSaveGuardian = true;
-          
-          // アニメーションを再生（アニメーション終了時に守護神を決定）
+        // 生年月日が取得できた場合のみ、アニメーションを再生（アニメーション終了時に守護神を決定）
+        if (userBirthYear && userBirthMonth && userBirthDay) {
           guardian = await playRitualAnimation(null, userBirthYear, userBirthMonth, userBirthDay);
           
           // アニメーション終了後、守護神をデータベースに保存
           if (needToSaveGuardian && userId && guardian) {
             console.log('[守護神の儀式] アニメーション終了後、守護神をデータベースに保存します:', guardian);
-            const saveSuccess = await saveGuardianToDatabase(Number(userId), guardian.id);
-            if (!saveSuccess) {
-              console.warn('[守護神の儀式] ⚠️ データベース保存に失敗しました');
+            try {
+              const saveSuccess = await saveGuardianToDatabase(Number(userId), guardian.id);
+              if (!saveSuccess) {
+                console.warn('[守護神の儀式] ⚠️ データベース保存に失敗しました');
+              }
+            } catch (error) {
+              console.error('[守護神の儀式] データベース保存エラー:', error);
             }
           }
         } else {
-          // URLパラメータから守護神情報を取得（既に決定済み、ハンドラー側からリダイレクトされた場合）
-          guardian = {
-            id: guardianId,
-            name: guardianName,
-            image: guardianImage,
-            message: guardianMessage || 'あなたを見守る守護神です。'
-          };
-          
-          // アニメーションを再生（既に決定済みの守護神情報を使用）
-          guardian = await playRitualAnimation(guardian, null, null, null);
+          // 生年月日が取得できない場合でも、アニメーションを表示（デフォルトの守護神を使用）
+          console.warn('[守護神の儀式] 生年月日情報が取得できませんでした。デフォルト値でアニメーションを表示します');
+          // デフォルトの生年月日を使用（2000年1月1日）
+          guardian = await playRitualAnimation(null, 2000, 1, 1);
         }
+      } else {
+        // URLパラメータから守護神情報を取得（既に決定済み、ハンドラー側からリダイレクトされた場合）
+        guardian = {
+          id: guardianId,
+          name: guardianName,
+          image: guardianImage,
+          message: guardianMessage || 'あなたを見守る守護神です。'
+        };
+        
+        // アニメーションを再生（既に決定済みの守護神情報を使用）
+        guardian = await playRitualAnimation(guardian, null, null, null);
+      }
 
-        // 少し待機
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      // 少し待機
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // userIdとnicknameがある場合（初回登録後）：kaede2.pngとタイプライター表示
-        if (userId && userNickname) {
+      // userIdとnicknameがある場合（初回登録後）：kaede2.pngとタイプライター表示
+      if (userId && userNickname) {
+        try {
           await showKaedeMessage(guardian, userNickname);
           
           // チャット画面にリダイレクト（フェード演出を挟む）
@@ -806,33 +805,27 @@
           
           console.log('[守護神の儀式] チャット画面にリダイレクト:', chatUrl.toString());
           window.location.href = chatUrl.toString();
-        } else {
-          // 直接アクセスの場合：エラーメッセージを表示
-          const errorMessage = document.getElementById('errorMessage');
-          if (errorMessage) {
-            errorMessage.textContent = 'このページは直接アクセスできません。チャット画面から守護神の儀式を開始してください。';
-            errorMessage.style.display = 'block';
+        } catch (error) {
+          console.error('[守護神の儀式] メッセージ表示エラー:', error);
+          // エラーが発生してもチャット画面にリダイレクト
+          const chatUrl = new URL('../chat/chat.html', window.location.origin);
+          chatUrl.searchParams.set('character', 'kaede');
+          if (userId) {
+            chatUrl.searchParams.set('userId', userId);
           }
-        }
-      } catch (error) {
-        console.error('[守護神の儀式] エラー:', error);
-        const errorMessage = document.getElementById('errorMessage');
-        const ritualOverlay = document.getElementById('ritualOverlay');
-        
-        if (ritualOverlay) {
-          ritualOverlay.style.display = 'none';
-        }
-        
-        if (errorMessage) {
-          errorMessage.textContent = error.message || 'エラーが発生しました。';
-          errorMessage.style.display = 'block';
+          window.location.href = chatUrl.toString();
         }
       }
     }
 
     // ページロード時に実行
+    // エラーが発生してもアニメーションは表示される（デフォルト値を使用）
     init().catch((error) => {
-      console.error('[守護神の儀式] init()で未処理のエラーが発生しました:', error);
+      console.error('[守護神の儀式] init()で未処理のエラーが発生しました。デフォルト値でアニメーションを表示します:', error);
+      // エラーが発生してもアニメーションを表示（デフォルトの生年月日を使用）
+      playRitualAnimation(null, 2000, 1, 1).catch((animationError) => {
+        console.error('[守護神の儀式] アニメーション表示エラー:', animationError);
+      });
     });
   </script>
 </body>
