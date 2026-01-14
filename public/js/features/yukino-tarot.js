@@ -805,209 +805,169 @@ ${cardNames}
                 window.ChatData.addToHistory(character, 'assistant', completionMessage);
             }
             
-            // 少し待ってからボタンを追加
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // 少し待ってから自動的に個別相談モードに移行
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // ボタンを独立した要素として追加
-            const messagesDiv = document.getElementById('messages') || document.getElementById('chatMessages');
-            if (!messagesDiv) return;
+            console.log('[タロット占い] 自動的に個別相談モードに移行します');
             
-            const buttonWrapper = document.createElement('div');
-            buttonWrapper.style.display = 'flex';
-            buttonWrapper.style.justifyContent = 'center';
-            buttonWrapper.style.marginTop = '10px';
-            buttonWrapper.style.marginBottom = '20px';
+            // チャット画面全体にブラー効果を適用
+            const mainContent = document.querySelector('main') || document.body;
+            mainContent.style.transition = 'filter 1.2s ease, opacity 1.2s ease';
             
-            const consultButton = document.createElement('button');
-            consultButton.textContent = '雪乃に個別相談する';
-            consultButton.style.padding = '12px 32px';
-            consultButton.style.fontSize = '16px';
-            consultButton.style.fontWeight = '600';
-            consultButton.style.color = '#ffffff';
-            consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
-            consultButton.style.border = '2px solid rgba(255, 105, 180, 1)';
-            consultButton.style.borderRadius = '8px';
-            consultButton.style.cursor = 'pointer';
-            consultButton.style.transition = 'all 0.2s ease';
-            consultButton.style.boxShadow = '0 4px 16px rgba(255, 105, 180, 0.4)';
+            // 動画オーバーレイを作成（チャット画面の上に重ねて表示）
+            const videoOverlay = document.createElement('div');
+            videoOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                z-index: 10000;
+                opacity: 0;
+                transition: opacity 1.2s ease;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            `;
             
-            consultButton.addEventListener('mouseenter', () => {
-                consultButton.style.backgroundColor = 'rgba(255, 105, 180, 1)';
-                consultButton.style.transform = 'scale(1.05)';
-            });
-            consultButton.addEventListener('mouseleave', () => {
-                consultButton.style.backgroundColor = 'rgba(255, 105, 180, 0.8)';
-                consultButton.style.transform = 'scale(1)';
-            });
+            // ビデオ要素を作成
+            const video = document.createElement('video');
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.className = 'yukino-consultation-video';
             
-            consultButton.addEventListener('click', async () => {
-                consultButton.disabled = true;
-                consultButton.style.opacity = '0.5';
-                consultButton.style.cursor = 'not-allowed';
+            // スタイルを設定（PCとスマホで異なる表示）
+            const isMobile = window.innerWidth <= 768;
+            video.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: ${isMobile ? 'cover' : 'contain'};
+            `;
+            
+            video.innerHTML = '<source src="../../photo/yukino.mp4" type="video/mp4">';
+            videoOverlay.appendChild(video);
+            
+            // メッセージコンテナ
+            const messageContainer = document.createElement('div');
+            messageContainer.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                opacity: 0;
+                transition: opacity 1s ease;
+            `;
+            
+            const messageText = document.createElement('div');
+            messageText.style.cssText = `
+                color: #fff;
+                font-size: 20px;
+                line-height: 1.8;
+                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+                white-space: pre-wrap;
+            `;
+            messageContainer.appendChild(messageText);
+            videoOverlay.appendChild(messageContainer);
+            
+            document.body.appendChild(videoOverlay);
+            
+            // 即座にブラー開始
+            setTimeout(() => {
+                mainContent.style.filter = 'blur(15px)';
+                mainContent.style.opacity = '0.2';
+            }, 50);
+            
+            // 動画オーバーレイをフェードイン
+            setTimeout(() => {
+                videoOverlay.style.opacity = '1';
+            }, 600);
+            
+            // システムメッセージをAPIに送信（完了を待つ）
+            // ⚠️ 注意: この処理は雪乃専用です。タロット占いは雪乃のみが提供する機能です。
+            try {
+                console.log('[タロット占い] APIに通知を送信中（雪乃専用）');
                 
-                console.log('[タロット占い] 個別相談ボタンがクリックされました');
+                // 雪乃専用のシステムメッセージ（タロット占いは雪乃のみが提供する機能）
+                const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
                 
-                // チャット画面全体にブラー効果を適用
-                const mainContent = document.querySelector('main') || document.body;
-                mainContent.style.transition = 'filter 1.2s ease, opacity 1.2s ease';
+                // 明示的に雪乃を指定（タロット占いは雪乃専用）
+                const payload = { 
+                    message: systemMessage, 
+                    character: 'yukino'
+                };
                 
-                // 動画オーバーレイを作成（チャット画面の上に重ねて表示）
-                const videoOverlay = document.createElement('div');
-                videoOverlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: #000;
-                    z-index: 10000;
-                    opacity: 0;
-                    transition: opacity 1.2s ease;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                `;
                 
-                // ビデオ要素を作成
-                const video = document.createElement('video');
-                video.autoplay = true;
-                video.loop = true;
-                video.muted = true;
-                video.playsInline = true;
-                video.className = 'yukino-consultation-video';
+                const response = await fetch('/api/consult', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
                 
-                // スタイルを設定（PCとスマホで異なる表示）
-                const isMobile = window.innerWidth <= 768;
-                video.style.cssText = `
-                    width: 100%;
-                    height: 100%;
-                    object-fit: ${isMobile ? 'cover' : 'contain'};
-                `;
-                
-                video.innerHTML = '<source src="../../photo/yukino.mp4" type="video/mp4">';
-                videoOverlay.appendChild(video);
-                
-                // メッセージコンテナ
-                const messageContainer = document.createElement('div');
-                messageContainer.style.cssText = `
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    text-align: center;
-                    opacity: 0;
-                    transition: opacity 1s ease;
-                `;
-                
-                const messageText = document.createElement('div');
-                messageText.style.cssText = `
-                    color: #fff;
-                    font-size: 20px;
-                    line-height: 1.8;
-                    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-                    white-space: pre-wrap;
-                `;
-                messageContainer.appendChild(messageText);
-                videoOverlay.appendChild(messageContainer);
-                
-                document.body.appendChild(videoOverlay);
-                
-                // 即座にブラー開始
-                setTimeout(() => {
-                    mainContent.style.filter = 'blur(15px)';
-                    mainContent.style.opacity = '0.2';
-                }, 50);
-                
-                // 動画オーバーレイをフェードイン
-                setTimeout(() => {
-                    videoOverlay.style.opacity = '1';
-                }, 600);
-                
-                // システムメッセージをAPIに送信（完了を待つ）
-                // ⚠️ 注意: この処理は雪乃専用です。タロット占いは雪乃のみが提供する機能です。
-                try {
-                    console.log('[タロット占い] APIに通知を送信中（雪乃専用）');
+                if (response.ok) {
+                    const data = await response.json();
                     
-                    // 雪乃専用のシステムメッセージ（タロット占いは雪乃のみが提供する機能）
-                    const systemMessage = '【重要】初回の3枚のタロットカード鑑定は完了しました。これから先は通常の相談として対応してください。もしユーザーが悩みや迷いを相談した場合は、[SUGGEST_TAROT]マーカーを使って1枚のカード鑑定を提案してください。絶対に[TAROT_SUMMARY_TRIGGER]マーカーを使用しないでください。';
+                    // システムメッセージとAI応答を会話履歴に追加（画面非表示フラグ付き）
+                    const history = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
                     
-                    // 明示的に雪乃を指定（タロット占いは雪乃専用）
-                    const payload = { 
-                        message: systemMessage, 
-                        character: 'yukino'
-                    };
-                    
-                    
-                    const response = await fetch('/api/consult', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                    history.push({
+                        role: 'user',
+                        content: systemMessage,
+                        isSystemMessage: true
                     });
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        
-                        // システムメッセージとAI応答を会話履歴に追加（画面非表示フラグ付き）
-                        const history = JSON.parse(sessionStorage.getItem('guestConversationHistory_yukino') || '[]');
-                        
+                    if (data.message) {
                         history.push({
-                            role: 'user',
-                            content: systemMessage,
+                            role: 'assistant',
+                            content: data.message,
                             isSystemMessage: true
                         });
-                        
-                        if (data.message) {
-                            history.push({
-                                role: 'assistant',
-                                content: data.message,
-                                isSystemMessage: true
-                            });
-                        }
-                        
-                        sessionStorage.setItem('guestConversationHistory_yukino', JSON.stringify(history));
-                        console.log('[タロット占い] システムメッセージを会話履歴に追加しました（画面非表示）');
                     }
-                } catch (error) {
-                    console.error('[タロット占い] API通信エラー:', error);
+                    
+                    sessionStorage.setItem('guestConversationHistory_yukino', JSON.stringify(history));
+                    console.log('[タロット占い] システムメッセージを会話履歴に追加しました（画面非表示）');
                 }
-                
-                // タイプライター効果でメッセージを表示
-                setTimeout(async () => {
-                    messageContainer.style.opacity = '1';
-                    
-                    const text = 'これから先はあなたの相談を\n入力して相談してくださいね';
-                    let i = 0;
-                    const typeWriter = () => {
-                        if (i < text.length) {
-                            messageText.textContent += text.charAt(i);
-                            i++;
-                            setTimeout(typeWriter, 80);
-                        }
-                    };
-                    typeWriter();
-                    
-                    // 3秒後に個別相談モード設定してページをリロード
-                    setTimeout(() => {
-                        sessionStorage.setItem('yukinoConsultationStarted', 'true');
-                        sessionStorage.setItem('yukinoConsultationMessageCount', '0');
-                        sessionStorage.setItem('yukinoSummaryShown', 'true');
-                        
-                        // フェードアウトしてリロード
-                        videoOverlay.style.opacity = '0';
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1200);
-                    }, 3000);
-                }, 2000);
-            });
+            } catch (error) {
+                console.error('[タロット占い] API通信エラー:', error);
+            }
             
-            buttonWrapper.appendChild(consultButton);
-            messagesDiv.appendChild(buttonWrapper);
+            // タイプライター効果でメッセージを表示
+            setTimeout(async () => {
+                messageContainer.style.opacity = '1';
+                
+                const text = 'これから先はあなたの相談を\n入力して相談してくださいね';
+                let i = 0;
+                const typeWriter = () => {
+                    if (i < text.length) {
+                        messageText.textContent += text.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, 80);
+                    }
+                };
+                typeWriter();
+                
+                // 3秒後に個別相談モード設定してページをリロード
+                setTimeout(() => {
+                    sessionStorage.setItem('yukinoConsultationStarted', 'true');
+                    sessionStorage.setItem('yukinoConsultationMessageCount', '0');
+                    sessionStorage.setItem('yukinoSummaryShown', 'true');
+                    
+                    // フェードアウトしてリロード
+                    videoOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
+                }, 3000);
+            }, 2000);
             
             // スクロールして表示
             if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
                 window.ChatUI.scrollToLatest();
             }
+            
             
         } catch (error) {
             console.error('[タロット完了メッセージ] エラー:', error);
