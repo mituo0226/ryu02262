@@ -595,20 +595,7 @@
       const message = `${nickname}さん、あなたの守護神は${guardian.name}です。\nこれより${guardian.name}と共に鑑定を開始します`;
       await typeWriter(message, messageText, 80);
       
-      // メッセージ表示完了後、少し待ってから「楓が<守護神名>を呼び出しています、お待ちください」を表示
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const comingSoonMessage = document.createElement('div');
-      comingSoonMessage.className = 'guardian-coming-soon';
-      comingSoonMessage.textContent = `楓が${guardian.name}を呼び出しています、お待ちください`;
-      ritualOverlay.appendChild(comingSoonMessage);
-      
-      // アニメーションを開始
-      requestAnimationFrame(() => {
-        comingSoonMessage.classList.add('visible');
-      });
-      
-      // 残りの待機時間（合計3秒になるように調整）
+      // メッセージ表示完了後、少し待ってから自動的にチャット画面にリダイレクト
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
