@@ -1336,6 +1336,13 @@ const ChatInit = {
                 if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
                 return;
             }
+
+            // 汎用的なリダイレクト指示をチェック（特定のページへの依存を避ける）
+            if (response.redirect && response.redirectUrl) {
+                console.log('[ChatEngine] リダイレクト指示を受信:', response.redirectUrl);
+                window.location.href = response.redirectUrl;
+                return;
+            }
             
             // 応答メッセージを表示
             const characterName = ChatData.characterInfo[character]?.name || character;

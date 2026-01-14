@@ -94,120 +94,6 @@
       }
     }
 
-    /* 結果表示エリア */
-    .result-section {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      background: radial-gradient(circle at center, rgba(138, 43, 226, 0.3), #050108 80%);
-      animation: fadeInUp 1s ease-out;
-    }
-
-    .result-section.visible {
-      display: flex;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .guardian-result {
-      position: relative;
-      background: transparent;
-      padding: 40px 20px;
-      text-align: center;
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .guardian-image {
-      width: 100%;
-      max-width: 640px;
-      margin: 0 auto;
-      height: auto;
-      max-height: 70vh;
-      border-radius: 20px;
-      border: 4px solid rgba(138, 43, 226, 0.6);
-      box-shadow: 0 0 60px rgba(138, 43, 226, 0.8);
-      overflow: hidden;
-      animation: glow-pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes glow-pulse {
-      0%, 100% {
-        box-shadow: 0 0 60px rgba(138, 43, 226, 0.8);
-      }
-      50% {
-        box-shadow: 0 0 100px rgba(138, 43, 226, 1);
-      }
-    }
-
-    .guardian-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.8), #000);
-    }
-
-    .guardian-caption {
-      position: relative;
-      max-width: 640px;
-      margin: -90px auto 0;
-      padding: 24px 24px 28px;
-      background: rgba(0, 0, 0, 0.85);
-      border-radius: 20px;
-      border: 1px solid rgba(138, 43, 226, 0.6);
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
-      backdrop-filter: blur(12px);
-    }
-
-    .guardian-name {
-      font-size: 36px;
-      font-weight: bold;
-      margin-bottom: 16px;
-      color: #ffd700;
-      text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
-    }
-
-    .guardian-message {
-      font-size: 18px;
-      line-height: 1.8;
-      color: #e0d4ff;
-      margin-bottom: 0;
-    }
-
-    .continue-button {
-      display: inline-block;
-      padding: 16px 50px;
-      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
-      color: #fff;
-      text-decoration: none;
-      border-radius: 999px;
-      font-size: 18px;
-      font-weight: 600;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      border: none;
-      cursor: pointer;
-    }
-
-    .continue-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
-    }
-
     .loading-text {
       position: absolute;
       bottom: 10%;
@@ -263,6 +149,44 @@
         transform: scale(1.08);
         opacity: 1;
       }
+    }
+
+    .guardian-intro {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 720px;
+      width: 90%;
+      padding: 18px 20px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.72);
+      border: 1px solid rgba(138, 43, 226, 0.6);
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+      color: #eae4ff;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      z-index: 3;
+      backdrop-filter: blur(10px);
+    }
+
+    .guardian-intro.visible {
+      opacity: 1;
+    }
+
+    .guardian-intro h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      color: #ffd700;
+      text-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
+    }
+
+    .guardian-intro p {
+      margin: 0;
+      line-height: 1.7;
+      font-size: 16px;
+      white-space: pre-line;
     }
 
     /* チャット画面へ戻る際のフェードオーバーレイ */
@@ -360,57 +284,6 @@
       }
     }
 
-    .guardian-intro {
-      position: absolute;
-      bottom: 12%;
-      left: 50%;
-      transform: translateX(-50%);
-      max-width: 720px;
-      width: 90%;
-      padding: 18px 20px;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.72);
-      border: 1px solid rgba(138, 43, 226, 0.6);
-      border-radius: 16px;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-      color: #eae4ff;
-      opacity: 0;
-      transition: opacity 1s ease-in-out;
-      z-index: 3;
-      backdrop-filter: blur(10px);
-    }
-
-    .guardian-intro.visible {
-      opacity: 1;
-    }
-
-    .guardian-intro h3 {
-      margin: 0 0 8px;
-      font-size: 20px;
-      color: #ffd700;
-      text-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
-    }
-
-    .guardian-intro p {
-      margin: 0;
-      line-height: 1.7;
-      font-size: 16px;
-      white-space: pre-line;
-    }
-
-    @media (min-width: 1024px) {
-      .ritual-media {
-        object-fit: contain;
-      }
-      .guardian-reveal-image {
-        width: 70%;
-        height: 70%;
-      }
-      .guardian-intro {
-        max-width: 640px;
-      }
-    }
-
     /* エラーメッセージ */
     .error-message {
       position: fixed;
@@ -427,7 +300,7 @@
       text-align: center;
     }
 
-    /* スマートフォン対応 - フルスクリーンで目一杯 */
+    /* スマートフォン対応 */
     @media (max-width: 768px) {
       .ritual-media {
         object-fit: cover;
@@ -442,35 +315,6 @@
         padding: 20px;
       }
 
-      .guardian-result {
-        padding: 30px 20px;
-        max-width: 95%;
-      }
-
-      .guardian-image {
-        max-width: 100%;
-        max-height: 60vh;
-      }
-
-      .guardian-caption {
-        margin: -60px auto 0;
-        padding: 20px 20px 24px;
-        max-width: 95%;
-      }
-
-      .guardian-name {
-        font-size: 28px;
-      }
-
-      .guardian-message {
-        font-size: 16px;
-      }
-
-      .continue-button {
-        padding: 14px 40px;
-        font-size: 16px;
-      }
-
       .loading-text {
         font-size: 18px;
         bottom: 15%;
@@ -482,26 +326,7 @@
       }
     }
 
-    /* 縦長スマホ対応 */
     @media (max-width: 480px) and (orientation: portrait) {
-      .guardian-image {
-        max-width: 100%;
-        max-height: 55vh;
-      }
-
-      .guardian-caption {
-        margin: -50px auto 0;
-        padding: 16px 16px 20px;
-      }
-
-      .guardian-name {
-        font-size: 24px;
-      }
-
-      .guardian-message {
-        font-size: 14px;
-      }
-
       .loading-text {
         font-size: 16px;
       }
@@ -533,119 +358,10 @@
     </div>
   </div>
 
-  <!-- 結果表示エリア -->
-  <div class="result-section" id="resultSection">
-    <div class="guardian-result">
-      <div class="guardian-image" id="guardianImageContainer">
-        <img id="guardianImage" src="" alt="守護神">
-      </div>
-      <div class="guardian-caption">
-        <h2 class="guardian-name" id="guardianName"></h2>
-        <p class="guardian-message" id="guardianMessage"></p>
-      </div>
-      <!-- 直接アクセスの場合は「楓のチャットに戻る」ボタンを表示 -->
-      <a href="chat/chat.html?character=kaede" class="continue-button" id="continueButton" style="margin-top: 30px; display: none;">楓のチャットに戻る</a>
-    </div>
-  </div>
-
   <!-- エラーメッセージ -->
   <div class="error-message" id="errorMessage" style="display: none;"></div>
 
   <script type="module">
-    import { getGuardianFromParts } from '../../js/utils/guardian.js';
-
-    /**
-     * ユーザー情報の取得
-     * 【変更】データベースベースの判断に移行したため、userIdがある場合はデータベースから取得を優先
-     */
-    async function getUserBirthday() {
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      // 【重要】userIdがある場合は、データベースから取得する（URLパラメータによるユーザー情報の保持は行わない）
-      const userId = urlParams.get('userId');
-      if (userId) {
-        // URLパラメータにユーザー情報が含まれている場合、クリーンアップ（userIdのみに）
-        const birthYear = urlParams.get('birthYear');
-        const birthMonth = urlParams.get('birthMonth');
-        const birthDay = urlParams.get('birthDay');
-        const nickname = urlParams.get('nickname');
-        
-        if (birthYear || birthMonth || birthDay || nickname) {
-          console.warn('[守護神の儀式] URLパラメータにユーザー情報が含まれています。クリーンアップします。');
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('birthYear');
-          newUrl.searchParams.delete('birthMonth');
-          newUrl.searchParams.delete('birthDay');
-          newUrl.searchParams.delete('nickname');
-          // userIdのみを残す
-          if (!newUrl.searchParams.has('userId')) {
-            newUrl.searchParams.set('userId', userId);
-          }
-          window.history.replaceState({}, '', newUrl.toString());
-          console.log('[守護神の儀式] URLパラメータをクリーンアップしました（userIdのみ）');
-        }
-        
-        // データベースからユーザー情報を取得
-        try {
-          console.log('[守護神の儀式] userIdからデータベースからユーザー情報を取得中...');
-          const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.birthYear && data.birthMonth && data.birthDay) {
-              console.log('[守護神の儀式] ✅ データベースからユーザー情報を取得しました:', data);
-              return {
-                birthYear: Number(data.birthYear),
-                birthMonth: Number(data.birthMonth),
-                birthDay: Number(data.birthDay)
-              };
-            } else {
-              // データベースに生年月日情報がない場合
-              console.error('[守護神の儀式] データベースに生年月日情報がありません:', data);
-              const error = new Error('USER_NOT_REGISTERED');
-              error.userId = userId;
-              throw error;
-            }
-          } else if (response.status === 404) {
-            // ユーザーが見つからない場合（404）
-            console.error('[守護神の儀式] ユーザー情報が見つかりません（404）');
-            const error = new Error('USER_NOT_FOUND');
-            error.userId = userId;
-            throw error;
-          } else {
-            // その他のサーバーエラー（500など）
-            const errorText = await response.text();
-            console.error('[守護神の儀式] データベースからの情報取得エラー:', response.status, errorText);
-            const error = new Error('SERVER_ERROR');
-            error.status = response.status;
-            throw error;
-          }
-        } catch (e) {
-          // ネットワークエラー（fetch自体が失敗した場合）
-          if (e instanceof Error) {
-            if (e.message === 'USER_NOT_FOUND' || e.message === 'USER_NOT_REGISTERED') {
-              throw e; // ユーザー未登録エラーはそのまま投げる
-            }
-            if (e.message === 'SERVER_ERROR') {
-              throw e; // サーバーエラーはそのまま投げる
-            }
-            // ネットワークエラー（fetchが失敗した場合）
-            if (e.name === 'TypeError' || e.message.includes('fetch') || e.message.includes('network')) {
-              const error = new Error('NETWORK_ERROR');
-              throw error;
-            }
-          }
-          console.error('[守護神の儀式] データベースからの情報取得エラー:', e);
-          const error = new Error('NETWORK_ERROR');
-          throw error;
-        }
-      }
-      
-      // userIdがない場合
-      console.error('[守護神の儀式] ユーザーIDが指定されていません');
-      throw new Error('ユーザーIDが指定されていません。ユーザー登録を行ってください。');
-    }
-
     /**
      * 儀式アニメーションの実行
      * kaede-inori.png → dragon.png → cosmo.mp4 → 選ばれた守護神
@@ -677,17 +393,13 @@
       // フェーズ3: cosmo.mp4（宇宙の映像）- 4秒（重なりながら）
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // 動画の読み込みを待つ（既に読み込まれている場合は待機しない）
+      // 動画の読み込みと再生
       const playCosmoAnimation = async () => {
         try {
-          // 動画が既に読み込まれているか確認
-          if (cosmo.readyState >= 2) { // HAVE_CURRENT_DATA以上
-            console.log('[守護神の儀式] 動画は既に読み込まれています');
+          if (cosmo.readyState >= 2) {
             await cosmo.play();
             cosmo.classList.add('active');
           } else {
-            // 動画が読み込まれていない場合、読み込みを待つ
-            console.log('[守護神の儀式] 動画の読み込みを待機中...');
             await new Promise((resolve) => {
               const onLoadedData = async () => {
                 try {
@@ -696,20 +408,17 @@
                   resolve();
                 } catch (error) {
                   console.error('[守護神の儀式] 動画の再生エラー:', error);
-                  // エラーでも処理を続行
                   cosmo.classList.add('active');
                   resolve();
                 }
               };
               
               if (cosmo.readyState >= 2) {
-                // 既に読み込まれている場合
                 onLoadedData();
               } else {
                 cosmo.addEventListener('loadeddata', onLoadedData, { once: true });
                 cosmo.addEventListener('error', () => {
                   console.error('[守護神の儀式] 動画の読み込みエラー');
-                  // エラーでも処理を続行
                   cosmo.classList.add('active');
                   resolve();
                 }, { once: true });
@@ -720,21 +429,16 @@
           
           await new Promise(resolve => setTimeout(resolve, 4000));
 
-          // フェーズ4: 選ばれた守護神の登場（cosmo.mp4と重なりながら）
+          // フェーズ4: 選ばれた守護神の登場
           guardianRevealImage.src = `../../photo/kami/${guardian.image}`;
           guardianRevealImage.alt = guardian.name;
           
-          // 画像の読み込みを待つ（既に読み込まれている場合は待機しない）
+          // 画像の読み込みを待つ
           if (guardianRevealImage.complete && guardianRevealImage.naturalHeight !== 0) {
-            // 画像が既に読み込まれている場合
-            console.log('[守護神の儀式] 守護神画像は既に読み込まれています');
             guardianReveal.classList.add('visible');
-            
-            // ローディングテキストを非表示（守護神の紹介表示前に非表示にする）
             if (loadingText) {
               loadingText.style.display = 'none';
             }
-            
             if (guardianIntro && guardianIntroTitle && guardianIntroMessage) {
               guardianIntroTitle.textContent = `守護神：${guardian.name}`;
               guardianIntroMessage.textContent = guardian.message || 'あなたを見守る守護神です。';
@@ -742,31 +446,23 @@
             }
             await new Promise(resolve => setTimeout(resolve, 3000));
           } else {
-            // 画像が読み込まれていない場合、読み込みを待つ
-            console.log('[守護神の儀式] 守護神画像の読み込みを待機中...');
             await new Promise((resolve) => {
               guardianRevealImage.addEventListener('load', async () => {
                 guardianReveal.classList.add('visible');
-                
-                // ローディングテキストを非表示（守護神の紹介表示前に非表示にする）
                 if (loadingText) {
                   loadingText.style.display = 'none';
                 }
-                
                 if (guardianIntro && guardianIntroTitle && guardianIntroMessage) {
                   guardianIntroTitle.textContent = `守護神：${guardian.name}`;
                   guardianIntroMessage.textContent = guardian.message || 'あなたを見守る守護神です。';
                   guardianIntro.classList.add('visible');
                 }
                 await new Promise(resolve => setTimeout(resolve, 3000));
-                
                 resolve();
               }, { once: true });
               
-              // エラーハンドリング
               guardianRevealImage.addEventListener('error', () => {
                 console.error('[守護神の儀式] 守護神画像の読み込みエラー');
-                // エラーでも処理を続行
                 guardianReveal.classList.add('visible');
                 if (loadingText) {
                   loadingText.style.display = 'none';
@@ -782,7 +478,6 @@
           }
         } catch (error) {
           console.error('[守護神の儀式] アニメーション実行エラー:', error);
-          // エラーでも処理を続行
         }
       };
       
@@ -906,157 +601,43 @@
       `;
       document.body.appendChild(overlay);
 
-      // reflowしてから可視化
       requestAnimationFrame(() => {
         overlay.classList.add('visible');
       });
 
-      // 少し待ってから遷移できる状態に
       await new Promise(resolve => setTimeout(resolve, 1200));
     }
 
     /**
-     * 旧形式の結果表示（直接アクセス時のみ使用）
-     */
-    function showResult(guardian) {
-      const resultSection = document.getElementById('resultSection');
-      const guardianImage = document.getElementById('guardianImage');
-      const guardianName = document.getElementById('guardianName');
-      const guardianMessage = document.getElementById('guardianMessage');
-      const ritualOverlay = document.getElementById('ritualOverlay');
-
-      if (guardianImage) {
-        guardianImage.src = `../../photo/kami/${guardian.image}`;
-        guardianImage.alt = guardian.name;
-      }
-      if (guardianName) {
-        guardianName.textContent = guardian.name;
-      }
-      if (guardianMessage) {
-        guardianMessage.textContent = guardian.message;
-      }
-
-      // オーバーレイを非表示、結果を表示
-      if (ritualOverlay) {
-        ritualOverlay.style.display = 'none';
-      }
-      if (resultSection) {
-        resultSection.classList.add('visible');
-      }
-    }
-
-    /**
      * メイン処理
+     * URLパラメータから守護神情報を受け取り、アニメーションを表示するだけ
      */
     async function init() {
       try {
         console.log('[守護神の儀式] 初期化開始');
-        // ユーザー生年月日とニックネームを取得
-        // 【変更】データベースベースの判断に移行したため、sessionStorageまたはURLパラメータから取得
-        let birthday;
-        try {
-          birthday = await getUserBirthday();
-          console.log('[守護神の儀式] 生年月日情報を取得しました:', birthday);
-        } catch (birthdayError) {
-          console.error('[守護神の儀式] getUserBirthday()でエラーが発生しました:', birthdayError);
-          // getUserBirthday()のエラーをそのまま投げる（init()のcatchブロックで処理）
-          throw birthdayError;
-        }
         
-        // ニックネームの取得（優先順位: URLパラメータ > データベース（userId経由） > デフォルト）
+        // URLパラメータから守護神情報を取得
         const urlParams = new URLSearchParams(window.location.search);
-        let nickname = urlParams.get('nickname');
-        
-        if (!nickname) {
-          const userId = urlParams.get('userId');
-          if (userId) {
-            try {
-              // 会話履歴APIからユーザー情報を取得
-              const response = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=kaede`);
-              if (response.ok) {
-                const data = await response.json();
-                if (data && data.nickname) {
-                  nickname = data.nickname;
-                }
-              }
-            } catch (e) {
-              console.error('[守護神の儀式] データベースからのニックネーム取得エラー:', e);
-            }
-          }
-        }
-        
-        nickname = nickname || 'あなた';
-        
-        // 守護神を決定
-        const guardian = getGuardianFromParts(
-          birthday.birthYear,
-          birthday.birthMonth,
-          birthday.birthDay
-        );
-
-        // 【変更】守護神のIDをlocalStorageに保存しない（データベースベースの判断）
-        // 守護神の情報はデータベースに保存されるため、localStorageへの保存は不要
-        console.log('[守護神の儀式] 守護神を決定しました:', guardian.id, guardian.name);
-
-        // 初回登録後かどうかをチェック
-        // 【変更】データベースベースの判断に移行したため、URLパラメータからuserIdを取得
-        const urlParams = new URLSearchParams(window.location.search);
+        const guardianId = urlParams.get('guardianId');
+        const guardianName = urlParams.get('guardianName');
+        const guardianImage = urlParams.get('guardianImage');
+        const guardianMessage = urlParams.get('guardianMessage');
         const userId = urlParams.get('userId');
-        // 【修正】userIdがある場合は、データベースから取得した情報を使用（birthdayは既に取得済み）
-        // nicknameとbirthdayは既にデータベースから取得しているため、userIdがあれば十分
-        const hasUserInfo = !!(userId && birthday && birthday.birthYear && birthday.birthMonth && birthday.birthDay);
-        const isFirstTimeRitual = userId && hasUserInfo;
+        const nickname = urlParams.get('nickname');
 
-        // 【重要】守護神が決定した時点ですぐにAPIに送信（バックグラウンド）
-        let dbSavePromise = null;
-        if (isFirstTimeRitual) {
-          console.log('[守護神の儀式] 守護神情報をバックグラウンドでデータベースに保存開始:', guardian.id);
-          
-          // 【変更】ユーザー情報をsessionStorageまたはURLパラメータから取得（データベースベースの判断）
-          // nicknameとbirthdayは既に取得済み
-          
-          // 【修正】userIdがあれば、データベースから取得したbirthday情報を使用
-          // nicknameはデータベースから取得済み、birthdayもデータベースから取得済み
-          if (!userId || !birthday || !birthday.birthYear || !birthday.birthMonth || !birthday.birthDay) {
-            console.error('[守護神の儀式] ❌ ユーザー情報が不足しています:', { userId, birthday });
-            dbSavePromise = Promise.resolve(false);
-          } else {
-            // userIdを優先的に使用
-            const requestBody = userId ? {
-              guardian: guardian.id,
-              userId: Number(userId)
-            } : {
-              guardian: guardian.id,
-              nickname: nickname,
-              birthYear: birthday.birthYear,
-              birthMonth: birthday.birthMonth,
-              birthDay: birthday.birthDay
-            };
-            
-            dbSavePromise = fetch('/api/auth/update-deity', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(requestBody)
-            })
-          .then(async (response) => {
-            if (response.ok) {
-              const data = await response.json();
-              console.log('[守護神の儀式] ✅ 守護神情報をデータベースに保存しました:', data);
-              return true;
-            } else {
-              const error = await response.json();
-              console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
-              return false;
-            }
-          })
-          .catch((error) => {
-            console.error('[守護神の儀式] ❌ データベース保存エラー:', error);
-            return false;
-          });
-          }
+        // 必須パラメータのチェック
+        if (!guardianId || !guardianName || !guardianImage) {
+          throw new Error('守護神情報が不足しています。URLパラメータを確認してください。');
         }
+
+        const guardian = {
+          id: guardianId,
+          name: guardianName,
+          image: guardianImage,
+          message: guardianMessage || 'あなたを見守る守護神です。'
+        };
+
+        console.log('[守護神の儀式] 守護神情報を取得しました:', guardian);
 
         // アニメーションを再生
         await playRitualAnimation(guardian);
@@ -1064,145 +645,48 @@
         // 少し待機
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (isFirstTimeRitual) {
-          // 初回登録後の場合：kaede2.pngとタイプライター表示
+        // userIdとnicknameがある場合（初回登録後）：kaede2.pngとタイプライター表示
+        if (userId && nickname) {
           await showKaedeMessage(guardian, nickname);
-          
-          // データベース保存が完了するまで待機
-          console.log('[守護神の儀式] データベース保存完了を待機中...');
-          const dbSaveSuccess = await dbSavePromise;
-          
-          if (!dbSaveSuccess) {
-            throw new Error('守護神情報の保存に失敗しました。');
-          }
-          
-          // 【重要】データベースへの書き込みが確実に完了するまで少し待つ
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          console.log('[守護神の儀式] データベースコミット待機完了');
-          
-          // 「楓のチャットに戻る」ボタンを非表示（自動的にチャット画面にリダイレクトされるため）
-          const continueButton = document.getElementById('continueButton');
-          if (continueButton) {
-            continueButton.style.display = 'none';
-          }
           
           // チャット画面にリダイレクト（フェード演出を挟む）
           await fadeToChatOverlay();
           
-          // 【変更】チャット画面へのURLを構築（userIdを含める）
           const chatUrl = new URL('../chat/chat.html', window.location.origin);
           chatUrl.searchParams.set('character', 'kaede');
-          if (userId) {
-            chatUrl.searchParams.set('userId', userId);
-          }
+          chatUrl.searchParams.set('userId', userId);
           chatUrl.searchParams.set('justRegistered', 'true');
           
           console.log('[守護神の儀式] チャット画面にリダイレクト:', chatUrl.toString());
           window.location.href = chatUrl.toString();
-          } catch (error) {
-            console.error('[守護神の儀式] URL構築エラー:', error);
-            // フォールバック: シンプルな文字列結合
-            let fallbackUrl = '../chat/chat.html?character=kaede';
-            if (userId) {
-              fallbackUrl += `&userId=${encodeURIComponent(userId)}`;
-            }
-            fallbackUrl += '&justRegistered=true';
-            window.location.href = fallbackUrl;
-          }
         } else {
-          // 直接アクセスの場合：従来の結果表示
-          showResult(guardian);
-          
-          const continueButton = document.getElementById('continueButton');
-          if (continueButton) {
-            continueButton.style.display = 'inline-block';
+          // 直接アクセスの場合：エラーメッセージを表示
+          const errorMessage = document.getElementById('errorMessage');
+          if (errorMessage) {
+            errorMessage.textContent = 'このページは直接アクセスできません。チャット画面から守護神の儀式を開始してください。';
+            errorMessage.style.display = 'block';
           }
         }
       } catch (error) {
         console.error('[守護神の儀式] エラー:', error);
         const errorMessage = document.getElementById('errorMessage');
         const ritualOverlay = document.getElementById('ritualOverlay');
-        const resultSection = document.getElementById('resultSection');
         
-        // アニメーションオーバーレイを非表示
         if (ritualOverlay) {
           ritualOverlay.style.display = 'none';
         }
         
-        // エラーの種類に応じて処理を分岐
-        if (error instanceof Error) {
-          if (error.message === 'USER_NOT_FOUND' || error.message === 'USER_NOT_REGISTERED') {
-            // ユーザー情報が登録されていない場合：登録画面にリダイレクト
-            if (errorMessage) {
-              errorMessage.textContent = 'あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。';
-              errorMessage.style.display = 'block';
-            }
-            
-            // 結果セクションを表示（エラーメッセージと一緒に）
-            if (resultSection) {
-              resultSection.classList.add('visible');
-            }
-            
-            // 3秒後に登録画面にリダイレクト（正しいパスを使用）
-            setTimeout(() => {
-              // 現在のページのパスを基準に正しいパスを構築
-              const currentPath = window.location.pathname;
-              const basePath = currentPath.substring(0, currentPath.lastIndexOf('/')); // '/pages' または '/'
-              const registerPath = basePath === '/pages' ? '../auth/register.html' : '/pages/auth/register.html';
-              console.log('[守護神の儀式] 登録画面にリダイレクト:', registerPath);
-              window.location.href = registerPath;
-            }, 3000);
-            
-            console.log('[守護神の儀式] ユーザー情報が登録されていないため、登録画面にリダイレクトします');
-            return;
-          } else if (error.message === 'NETWORK_ERROR') {
-            // ネットワーク接続エラーの場合
-            if (errorMessage) {
-              errorMessage.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
-              errorMessage.style.display = 'block';
-            }
-            
-            // 結果セクションを表示（エラーメッセージと一緒に）
-            if (resultSection) {
-              resultSection.classList.add('visible');
-            }
-            
-            console.log('[守護神の儀式] ネットワーク接続エラーが発生しました');
-            return;
-          } else if (error.message === 'SERVER_ERROR') {
-            // サーバーエラーの場合
-            if (errorMessage) {
-              errorMessage.textContent = 'サーバーエラーが発生しました。しばらく経ってから再度お試しください。';
-              errorMessage.style.display = 'block';
-            }
-            
-            // 結果セクションを表示（エラーメッセージと一緒に）
-            if (resultSection) {
-              resultSection.classList.add('visible');
-            }
-            
-            console.log('[守護神の儀式] サーバーエラーが発生しました');
-            return;
-          }
-        }
-        
-        // その他のエラー
         if (errorMessage) {
           errorMessage.textContent = error.message || 'エラーが発生しました。';
           errorMessage.style.display = 'block';
         }
-        
-        // 結果セクションを表示（エラーメッセージと一緒に）
-        if (resultSection) {
-          resultSection.classList.add('visible');
-        }
-        
-        console.log('[守護神の儀式] エラーが発生しましたが、ページは表示を続けます');
       }
     }
 
     // ページロード時に実行
-    init();
+    init().catch((error) => {
+      console.error('[守護神の儀式] init()で未処理のエラーが発生しました:', error);
+    });
   </script>
 </body>
 </html>

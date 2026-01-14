@@ -46,6 +46,8 @@ interface ResponseBody {
   showTarotCard?: boolean;
   provider?: 'deepseek' | 'openai';
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
+  redirect?: boolean; // 汎用的なリダイレクト指示フラグ
+  redirectUrl?: string; // リダイレクト先URL（汎用的）
 }
 
 interface UserRecord {
@@ -865,6 +867,62 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ritualStartフラグがtrueの場合、チャットクリア指示を返す
     const shouldClearChat = body.ritualStart === true || isRitualStart;
 
+    // ===== 9.5. 守護神の儀式が必要かどうかを判定（カエデの場合のみ）=====
+    // カエデの場合、守護神が未登録かつ儀式開始メッセージの場合、守護神を決定してリダイレクト
+    let shouldRedirectToGuardianRitual = false;
+    let guardianInfo: { id: string; name: string; image: string; message: string } | null = null;
+    
+    if (characterId === 'kaede' && !user.guardian && isRitualStart) {
+      try {
+        // ユーザーの生年月日をデータベースから取得
+        const userBirthday = await env.DB.prepare<{ birth_year: number; birth_month: number; birth_day: number }>(
+          'SELECT birth_year, birth_month, birth_day FROM users WHERE id = ?'
+        )
+          .bind(userId)
+          .first();
+
+        if (userBirthday && userBirthday.birth_year && userBirthday.birth_month && userBirthday.birth_day) {
+          // 守護神を決定（guardian.jsのロジックを移植）
+          const GUARDIANS = [
+            { id: '天照大神', name: '天照大神', image: 'amaterasu.png', message: 'あなたは天照大神に守られています。太陽のように明るく、前向きな力を授かっています。' },
+            { id: '大国主命', name: '大国主命', image: 'okuni-nushi.png', message: 'あなたは大国主命に守られています。豊かさと調和の力を授かっています。' },
+            { id: '大日如来', name: '大日如来', image: 'dainithi-nyorai.png', message: 'あなたは大日如来に守られています。智慧と光明の力を授かっています。' },
+            { id: '千手観音', name: '千手観音', image: 'senju.png', message: 'あなたは千手観音に守られています。慈悲と救済の力を授かっています。' },
+            { id: '不動明王', name: '不動明王', image: 'fudo.png', message: 'あなたは不動明王に守られています。不動の意志と守護の力を授かっています。' }
+          ];
+
+          const yearStr = String(userBirthday.birth_year).padStart(4, '0');
+          const monthStr = String(userBirthday.birth_month).padStart(2, '0');
+          const dayStr = String(userBirthday.birth_day).padStart(2, '0');
+          const numericDate = parseInt(`${yearStr}${monthStr}${dayStr}`, 10);
+          const remainder = numericDate % 5;
+          guardianInfo = GUARDIANS[remainder];
+
+          if (guardianInfo) {
+            // データベースに守護神を保存
+            await env.DB.prepare('UPDATE users SET guardian = ? WHERE id = ?')
+              .bind(guardianInfo.id, userId)
+              .run();
+
+            console.log('[consult] ✅ 守護神を決定してデータベースに保存しました:', {
+              userId,
+              guardianId: guardianInfo.id,
+              guardianName: guardianInfo.name,
+            });
+
+            shouldRedirectToGuardianRitual = true;
+          }
+        } else {
+          console.error('[consult] ❌ ユーザーの生年月日情報が取得できませんでした:', userId);
+        }
+      } catch (error) {
+        console.error('[consult] ❌ 守護神の決定・保存エラー:', {
+          error: error instanceof Error ? error.message : String(error),
+          userId,
+        });
+      }
+    }
+
     // ===== 10. 最後のメッセージを抽出 =====
     // 【新仕様】すべてのユーザーを'registered'として扱うため、この処理は不要
     let lastGuestMessage: string | null = null;
@@ -1009,6 +1067,40 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 16. レスポンスを返す =====
+    // 守護神の儀式へのリダイレクトが必要な場合、汎用的なリダイレクト指示を返す
+    if (shouldRedirectToGuardianRitual && guardianInfo) {
+      // 相対パスでURLを構築（チャット本体が特定のページを知る必要がない）
+      const searchParams = new URLSearchParams();
+      searchParams.set('guardianId', guardianInfo.id);
+      searchParams.set('guardianName', guardianInfo.name);
+      searchParams.set('guardianImage', guardianInfo.image);
+      searchParams.set('guardianMessage', guardianInfo.message);
+      searchParams.set('userId', String(userId));
+      if (user.nickname) {
+        searchParams.set('nickname', user.nickname);
+      }
+      const redirectUrl = `../guardian-ritual.html?${searchParams.toString()}`;
+
+      console.log('[consult] 守護神の儀式へのリダイレクト指示:', redirectUrl);
+
+      return new Response(
+        JSON.stringify({
+          message: responseMessage,
+          character: characterId,
+          characterName,
+          isInappropriate: false,
+          detectedKeywords: [],
+          guestMode: false,
+          showTarotCard: false,
+          provider: llmResult.provider,
+          clearChat: false,
+          redirect: true,
+          redirectUrl: redirectUrl, // 相対パスで返す（汎用的）
+        } as ResponseBody),
+        { status: 200, headers: corsHeaders }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         message: responseMessage,
