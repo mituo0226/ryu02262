@@ -429,7 +429,7 @@
         const message2Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = 'タロットの鑑定をしています';
+                loadingText.textContent = '運勢を鑑定しています';
             }
         }, 10000);
         
@@ -437,7 +437,7 @@
         const message3Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = '鑑定結果を書込んでいます';
+                loadingText.textContent = '返信を書き込んでいます';
             }
         }, 20000);
         
@@ -658,7 +658,7 @@
         const message2Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = 'タロットの鑑定をしています';
+                loadingText.textContent = '運勢を鑑定しています';
             }
         }, 10000);
         
@@ -666,7 +666,7 @@
         const message3Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = '鑑定結果を書込んでいます';
+                loadingText.textContent = '返信を書き込んでいます';
             }
         }, 20000);
         
@@ -1299,7 +1299,7 @@ ${cardNames}
         const message2Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = 'タロットの鑑定をしています';
+                loadingText.textContent = '運勢を鑑定しています';
             }
         }, 10000);
         
@@ -1307,7 +1307,7 @@ ${cardNames}
         const message3Timeout = setTimeout(() => {
             const loadingText = document.getElementById('yukinoTarotLoadingText');
             if (loadingText) {
-                loadingText.textContent = '鑑定結果を書込んでいます';
+                loadingText.textContent = '返信を書き込んでいます';
             }
         }, 20000);
         
