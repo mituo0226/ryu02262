@@ -782,7 +782,7 @@
         // 【重要】守護神が決定されていることを確認（守護神の儀式は一度しか経験しない）
         if (!guardian || !guardian.id) {
           console.error('[守護神の儀式] エラー: 守護神が決定されていません');
-          // エラーメッセージを表示
+          // エラーメッセージを表示（守護神なしで鑑定を進める）
           const errorMessage = document.createElement('div');
           errorMessage.style.cssText = `
             position: fixed;
@@ -801,8 +801,21 @@
             line-height: 1.6;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
           `;
-          errorMessage.textContent = '守護神の決定に失敗しました。\nページを再読み込みするか、管理者にお問い合わせください。';
+          errorMessage.textContent = '守護神の呼び出しに失敗しました。\n次の鑑定で再度、守護神を呼び出します。';
           document.body.appendChild(errorMessage);
+          
+          // 3秒後にチャット画面にリダイレクト（守護神なしで鑑定を進める）
+          setTimeout(async () => {
+            await fadeToChatOverlay();
+            // 【重要】ritualCompletedフラグは設定しない（守護神が決定されていないため）
+            // 次回、楓のチャットに入室した時に、データベース上に守護神が存在しないことを確認し、自動的に儀式が開始される
+            const chatUrl = new URL('../chat/chat.html', window.location.href);
+            chatUrl.searchParams.set('character', 'kaede');
+            chatUrl.searchParams.set('userId', userId);
+            
+            console.log('[守護神の儀式] 守護神未決定のため、チャット画面にリダイレクト（次回自動的に儀式を開始）:', chatUrl.toString());
+            window.location.href = chatUrl.toString();
+          }, 3000);
           return; // 処理を中断
         }
 

@@ -159,7 +159,8 @@ const KaedeHandler = {
             );
         }
 
-        // 守護神が未登録かどうかを確認（ゲストユーザー・登録済みユーザー共通）
+        // 【重要】守護神が未登録かどうかを確認（ゲストユーザー・登録済みユーザー共通）
+        // 次回、楓のチャットに入室した時に、データベース上に守護神が存在しないことを確認し、自動的に儀式が開始される
         console.log('[楓専用処理] 守護神の確認を開始:', {
             hasHistoryData: !!historyData,
             historyDataAssignedDeity: historyData?.assignedDeity,
@@ -170,7 +171,7 @@ const KaedeHandler = {
         
         let hasAssignedDeity = false;
         
-        // 1. historyDataから守護神を確認
+        // 1. historyDataから守護神を確認（データベースから取得した情報）
         if (historyData && historyData.assignedDeity) {
             hasAssignedDeity = historyData.assignedDeity.trim() !== '';
             console.log('[楓専用処理] historyDataから守護神を確認:', {
@@ -179,7 +180,7 @@ const KaedeHandler = {
             });
         }
         
-        // 2. historyDataが取得できなかった場合、会話履歴を再取得して確認
+        // 2. historyDataが取得できなかった場合、会話履歴を再取得して確認（データベースから再取得）
         if (!hasAssignedDeity && !historyData && !isGuestMode) {
             try {
                 console.log('[楓専用処理] 会話履歴を再取得して守護神を確認します');
@@ -197,7 +198,7 @@ const KaedeHandler = {
         }
         
         // 【変更】localStorageからの確認を削除（データベースベースの判断）
-        // 守護神の確認はhistoryDataとrecheckHistoryDataからのみ行う
+        // 守護神の確認はhistoryDataとrecheckHistoryDataからのみ行う（データベースから取得）
         
         console.log('[楓専用処理] 守護神確認結果:', {
             hasAssignedDeity,
@@ -207,9 +208,10 @@ const KaedeHandler = {
             shouldStartRitual: !hasAssignedDeity && !guardianMessageShown
         });
         
-        // 守護神が未登録の場合、挨拶メッセージを表示し、自動的に儀式を開始
-        // 【重要】会話履歴があっても、守護神が未登録なら儀式を開始する
+        // 【重要】守護神が未登録の場合、挨拶メッセージを表示し、自動的に儀式を開始
+        // 会話履歴があっても、守護神が未登録なら儀式を開始する
         // （会話履歴がある場合は、儀式開始時に会話履歴をデータベースに移行する）
+        // 守護神の儀式でトラブルが発生して守護神が決定されなかった場合も、次回入室時にここで自動的に儀式が開始される
         if (!hasAssignedDeity && !guardianMessageShown) {
             const userType = isGuestMode ? 'ゲストユーザー' : '登録済みユーザー';
             console.log(`[楓専用処理] ${userType}が楓にアクセス。守護神が未登録のため、挨拶メッセージを表示し、自動的に儀式を開始します。`);
