@@ -422,8 +422,8 @@
      * AI解説をリクエスト
      */
     async function requestExplanation(card) {
-        // 最初のメッセージを表示
-        showLoadingOverlay('タロットを引いています');
+        // 最初のメッセージを表示（「タロットを引いています」を削除）
+        showLoadingOverlay('');
         
         // 10秒後に2番目のメッセージに更新
         const message2Timeout = setTimeout(() => {
@@ -651,8 +651,8 @@
      * まとめの解説をリクエスト
      */
     async function requestSummary() {
-        // 最初のメッセージを表示
-        showLoadingOverlay('タロットを引いています');
+        // 最初のメッセージを表示（「タロットを引いています」を削除）
+        showLoadingOverlay('');
         
         // 10秒後に2番目のメッセージに更新
         const message2Timeout = setTimeout(() => {
@@ -1262,8 +1262,8 @@ ${cardNames}
     async function requestSingleCardExplanation(card) {
         console.log('[タロット占い] 1枚のカード解説をリクエスト:', card.name);
         
-        // 最初のメッセージを表示
-        showLoadingOverlay('タロットを引いています');
+        // 最初のメッセージを表示（「タロットを引いています」を削除）
+        showLoadingOverlay('');
         
         // 10秒後に2番目のメッセージに更新
         const message2Timeout = setTimeout(() => {
