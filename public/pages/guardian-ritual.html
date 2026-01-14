@@ -784,6 +784,10 @@
           // チャット画面にリダイレクト（フェード演出を挟む）
           await fadeToChatOverlay();
           
+          // 【重要】守護神の儀式完了フラグを設定（チャット画面でメッセージを表示するため）
+          sessionStorage.setItem('ritualCompleted', 'true');
+          console.log('[守護神の儀式] ritualCompletedフラグを設定しました');
+          
           const chatUrl = new URL('../chat/chat.html', window.location.origin);
           chatUrl.searchParams.set('character', 'kaede');
           chatUrl.searchParams.set('userId', userId);
