@@ -783,7 +783,17 @@ ${cardNames}
     async function sendCompletionMessages(character) {
         try {
             // 1. 雪乃の定型文を通常の吹き出しで表示
-            const completionMessage = 'あなたの現在の運勢結果はここまでです。ここからは全く新しい鑑定を始めましょう';
+            // ニックネームを取得
+            let nickname = 'あなた';
+            if (window.ChatData) {
+                if (window.ChatData.conversationHistory && window.ChatData.conversationHistory.nickname) {
+                    nickname = window.ChatData.conversationHistory.nickname;
+                } else if (window.ChatData.userNickname) {
+                    nickname = window.ChatData.userNickname;
+                }
+            }
+            
+            const completionMessage = `${nickname}さんの過去、現在、未来の運勢をタロットカードで占った結果は、いかがでしたか?\nこれを踏まえて今度は、${nickname}さんの個人的なご相談をぜひ私に教えてください。\n私はあなたとつながって、誰よりも${nickname}さんのことを理解している鑑定士になりたいです。`;
             
             // ChatUI.addMessage() を使って通常のメッセージとして表示
             if (window.ChatUI && window.ChatUI.addMessage) {
