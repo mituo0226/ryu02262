@@ -950,9 +950,18 @@
      */
     async function init() {
       try {
+        console.log('[守護神の儀式] 初期化開始');
         // ユーザー生年月日とニックネームを取得
         // 【変更】データベースベースの判断に移行したため、sessionStorageまたはURLパラメータから取得
-        const birthday = await getUserBirthday();
+        let birthday;
+        try {
+          birthday = await getUserBirthday();
+          console.log('[守護神の儀式] 生年月日情報を取得しました:', birthday);
+        } catch (birthdayError) {
+          console.error('[守護神の儀式] getUserBirthday()でエラーが発生しました:', birthdayError);
+          // getUserBirthday()のエラーをそのまま投げる（init()のcatchブロックで処理）
+          throw birthdayError;
+        }
         
         // ニックネームの取得（優先順位: URLパラメータ > データベース（userId経由） > デフォルト）
         const urlParams = new URLSearchParams(window.location.search);
@@ -1129,9 +1138,19 @@
               errorMessage.style.display = 'block';
             }
             
-            // 3秒後に登録画面にリダイレクト
+            // 結果セクションを表示（エラーメッセージと一緒に）
+            if (resultSection) {
+              resultSection.classList.add('visible');
+            }
+            
+            // 3秒後に登録画面にリダイレクト（正しいパスを使用）
             setTimeout(() => {
-              window.location.href = '../auth/register.html';
+              // 現在のページのパスを基準に正しいパスを構築
+              const currentPath = window.location.pathname;
+              const basePath = currentPath.substring(0, currentPath.lastIndexOf('/')); // '/pages' または '/'
+              const registerPath = basePath === '/pages' ? '../auth/register.html' : '/pages/auth/register.html';
+              console.log('[守護神の儀式] 登録画面にリダイレクト:', registerPath);
+              window.location.href = registerPath;
             }, 3000);
             
             console.log('[守護神の儀式] ユーザー情報が登録されていないため、登録画面にリダイレクトします');

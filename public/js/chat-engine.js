@@ -1882,7 +1882,8 @@ const ChatInit = {
             // 【修正】userIdをURLパラメータに含める（データベースからユーザー情報を取得するため）
             let ritualUrl = '../guardian-ritual.html';
             if (historyData && historyData.userId) {
-                const url = new URL(ritualUrl, window.location.origin);
+                // 【修正】window.location.hrefを基準にして相対パスを解決
+                const url = new URL(ritualUrl, window.location.href);
                 url.searchParams.set('userId', String(historyData.userId));
                 ritualUrl = url.pathname + url.search;
                 console.log('[守護神の儀式] userIdをURLパラメータに追加:', historyData.userId);
@@ -1891,7 +1892,8 @@ const ChatInit = {
                 const currentUrlParams = new URLSearchParams(window.location.search);
                 const userId = currentUrlParams.get('userId');
                 if (userId) {
-                    const url = new URL(ritualUrl, window.location.origin);
+                    // 【修正】window.location.hrefを基準にして相対パスを解決
+                    const url = new URL(ritualUrl, window.location.href);
                     url.searchParams.set('userId', userId);
                     ritualUrl = url.pathname + url.search;
                     console.log('[守護神の儀式] 現在のURLからuserIdを取得して追加:', userId);

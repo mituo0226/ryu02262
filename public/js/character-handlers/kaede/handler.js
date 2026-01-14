@@ -786,10 +786,12 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
                 const userId = urlParams.get('userId');
                 
                 // guardian-ritual.htmlへのURLを構築（userIdのみを使用）
+                // 【修正】相対パスではなく、現在のページを基準に解決
                 let ritualUrl = '../guardian-ritual.html';
                 if (userId) {
                     // userIdのみを使用（データベースからユーザー情報を取得するため、birthYear, birthMonth, birthDay, nicknameは含めない）
-                    const url = new URL(ritualUrl, window.location.origin);
+                    // 【修正】window.location.hrefを基準にして相対パスを解決
+                    const url = new URL(ritualUrl, window.location.href);
                     url.searchParams.set('userId', userId);
                     ritualUrl = url.pathname + url.search;
                     console.log('[楓専用処理] guardian-ritual.htmlに遷移（userIdのみ）:', ritualUrl);
