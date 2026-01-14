@@ -723,8 +723,8 @@
             if (userInfo.guardian) {
               console.log('[守護神の儀式] 既に守護神が登録されています:', userInfo.guardian);
               // チャット画面にリダイレクト
-              // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
-              const chatUrl = new URL('../chat/chat.html', window.location.href);
+              // 【修正】絶対パスを使用して正しく解決（相対パスでは /chat/chat.html になってしまうため）
+              const chatUrl = new URL('/pages/chat/chat.html', window.location.origin);
               chatUrl.searchParams.set('character', 'kaede');
               chatUrl.searchParams.set('userId', userId);
               window.location.href = chatUrl.toString();
@@ -809,7 +809,8 @@
             await fadeToChatOverlay();
             // 【重要】ritualCompletedフラグは設定しない（守護神が決定されていないため）
             // 次回、楓のチャットに入室した時に、データベース上に守護神が存在しないことを確認し、自動的に儀式が開始される
-            const chatUrl = new URL('../chat/chat.html', window.location.href);
+            // 【修正】絶対パスを使用して正しく解決（相対パスでは /chat/chat.html になってしまうため）
+            const chatUrl = new URL('/pages/chat/chat.html', window.location.origin);
             chatUrl.searchParams.set('character', 'kaede');
             chatUrl.searchParams.set('userId', userId);
             
@@ -829,9 +830,9 @@
           sessionStorage.setItem('ritualCompleted', 'true');
           console.log('[守護神の儀式] ritualCompletedフラグを設定しました');
           
-          // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
+          // 【修正】絶対パスを使用して正しく解決（相対パスでは /chat/chat.html になってしまうため）
           // 【変更】justRegisteredパラメータを削除（データベースに守護神が登録されているかどうかで判断するため不要）
-          const chatUrl = new URL('../chat/chat.html', window.location.href);
+          const chatUrl = new URL('/pages/chat/chat.html', window.location.origin);
           chatUrl.searchParams.set('character', 'kaede');
           chatUrl.searchParams.set('userId', userId);
           
@@ -840,8 +841,8 @@
         } catch (error) {
           console.error('[守護神の儀式] メッセージ表示エラー:', error);
           // エラーが発生してもチャット画面にリダイレクト
-          // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
-          const chatUrl = new URL('../chat/chat.html', window.location.href);
+          // 【修正】絶対パスを使用して正しく解決（相対パスでは /chat/chat.html になってしまうため）
+          const chatUrl = new URL('/pages/chat/chat.html', window.location.origin);
           chatUrl.searchParams.set('character', 'kaede');
           if (userId) {
             chatUrl.searchParams.set('userId', userId);
