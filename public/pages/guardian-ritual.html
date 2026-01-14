@@ -779,6 +779,33 @@
 
       // userIdとnicknameがある場合（初回登録後）：kaede2.pngとタイプライター表示
       if (userId && userNickname) {
+        // 【重要】守護神が決定されていることを確認（守護神の儀式は一度しか経験しない）
+        if (!guardian || !guardian.id) {
+          console.error('[守護神の儀式] エラー: 守護神が決定されていません');
+          // エラーメッセージを表示
+          const errorMessage = document.createElement('div');
+          errorMessage.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(200, 0, 0, 0.9);
+            border: 2px solid rgba(255, 100, 100, 0.8);
+            border-radius: 16px;
+            padding: 30px 40px;
+            color: #ffb5b5;
+            z-index: 500;
+            max-width: 90%;
+            text-align: center;
+            font-size: 18px;
+            line-height: 1.6;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+          `;
+          errorMessage.textContent = '守護神の決定に失敗しました。\nページを再読み込みするか、管理者にお問い合わせください。';
+          document.body.appendChild(errorMessage);
+          return; // 処理を中断
+        }
+
         try {
           await showKaedeMessage(guardian, userNickname);
           
@@ -790,10 +817,10 @@
           console.log('[守護神の儀式] ritualCompletedフラグを設定しました');
           
           // 【修正】window.location.hrefを基準にして相対パスを解決（window.location.originでは正しく解決されない）
+          // 【変更】justRegisteredパラメータを削除（データベースに守護神が登録されているかどうかで判断するため不要）
           const chatUrl = new URL('../chat/chat.html', window.location.href);
           chatUrl.searchParams.set('character', 'kaede');
           chatUrl.searchParams.set('userId', userId);
-          chatUrl.searchParams.set('justRegistered', 'true');
           
           console.log('[守護神の儀式] チャット画面にリダイレクト:', chatUrl.toString());
           window.location.href = chatUrl.toString();
