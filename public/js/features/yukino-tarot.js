@@ -112,8 +112,11 @@
     /**
      * ローディングオーバーレイを表示
      */
-    function showLoadingOverlay(message = 'タロットカードの解説を作成中...') {
+    function showLoadingOverlay(message = 'タロットカードの解説を作成中...', startDelay = 0) {
         let overlay = document.getElementById('yukinoTarotLoadingOverlay');
+        let textElement = null;
+        let loadingMessageTimeouts = [];
+        
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'yukinoTarotLoadingOverlay';
@@ -142,19 +145,70 @@
             spinner.style.marginBottom = '20px';
             
             const style = document.createElement('style');
-            style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+            style.textContent = `
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                @keyframes loadingDot {
+                    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+                    40% { opacity: 1; transform: scale(1); }
+                }
+            `;
             document.head.appendChild(style);
             
-            const text = document.createElement('div');
-            text.id = 'yukinoTarotLoadingText';
-            text.textContent = message;
+            textElement = document.createElement('div');
+            textElement.id = 'yukinoTarotLoadingText';
             
             overlay.appendChild(spinner);
-            overlay.appendChild(text);
+            overlay.appendChild(textElement);
             document.body.appendChild(overlay);
         } else {
             overlay.style.display = 'flex';
-            document.getElementById('yukinoTarotLoadingText').textContent = message;
+            textElement = document.getElementById('yukinoTarotLoadingText');
+            // 既存のタイマーをクリア
+            if (overlay._loadingTimeouts) {
+                overlay._loadingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+            }
+            overlay._loadingTimeouts = [];
+        }
+        
+        if (!textElement) return;
+        
+        // メッセージが文字列の場合
+        if (typeof message === 'string') {
+            setTimeout(() => {
+                textElement.textContent = message;
+                textElement.style.opacity = '1';
+            }, startDelay);
+        } 
+        // メッセージが配列の場合（動的メッセージ）
+        else if (Array.isArray(message) && message.length > 0) {
+            let currentIndex = 0;
+            const showMessage = (index) => {
+                if (index >= message.length || !textElement) return;
+                const messageItem = message[index];
+                const messageText = typeof messageItem === 'string' ? messageItem : messageItem.text;
+                const delay = typeof messageItem === 'object' && messageItem.delay ? messageItem.delay : (index === 0 ? startDelay : 4000);
+                
+                const timeoutId = setTimeout(() => {
+                    textElement.style.opacity = '0';
+                    setTimeout(() => {
+                        const loadingDotsHtml = '<span style="display: inline-block; margin-left: 8px;"><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span></span>';
+                        textElement.innerHTML = messageText + loadingDotsHtml;
+                        setTimeout(() => {
+                            textElement.style.opacity = '1';
+                        }, 10);
+                        if (index + 1 < message.length) {
+                            showMessage(index + 1);
+                        }
+                    }, 300);
+                }, delay);
+                overlay._loadingTimeouts.push(timeoutId);
+            };
+            showMessage(0);
+        } else {
+            // その他の場合（オブジェクトなど）は文字列に変換
+            const defaultMessage = typeof message === 'object' && message !== null ? JSON.stringify(message) : String(message);
+            textElement.textContent = defaultMessage;
+            textElement.style.opacity = '1';
         }
     }
 
