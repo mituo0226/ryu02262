@@ -992,6 +992,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       guardian: user?.guardian,
       userMessageCount,
       isRitualStart,
+      userGender,
+      userBirthDate,
+      systemPromptLength: systemPrompt.length,
+      systemPromptPreview: systemPrompt.substring(0, 500) + '...',
     });
 
     // ===== 10. ユーザーメッセージの保存（2段階保存の第1段階）=====
@@ -1024,13 +1028,24 @@ export const onRequestPost: PagesFunction = async (context) => {
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
+    // 楓の完全版プロンプトは長いため、maxTokensを増やす
+    const maxTokensForCharacter = characterId === 'kaede' ? 2000 : 800;
+    
+    console.log('[consult] LLM API呼び出し準備:', {
+      characterId,
+      systemPromptLength: systemPrompt.length,
+      conversationHistoryLength: conversationHistory.length,
+      maxTokens: maxTokensForCharacter,
+      temperature: 0.5,
+    });
+    
     const llmResult = await getLLMResponse({
       systemPrompt,
       conversationHistory,
       userMessage: trimmedMessage,
-      temperature: 0.5,
-      maxTokens: 800,
-      topP: 0.8,
+      temperature: 0.7, // 楓の完全版では少し高い温度で神秘性を出す
+      maxTokens: maxTokensForCharacter,
+      topP: 0.9,
       deepseekApiKey: apiKey,
       fallbackApiKey,
       fallbackModel,

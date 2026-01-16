@@ -117,6 +117,12 @@ export function generateSystemPrompt(characterId, options = {}) {
     characterId,
     userNickname: options.userNickname,
     hasPreviousConversation: options.hasPreviousConversation,
+    guardian: options.guardian,
+    isRitualStart: options.isRitualStart,
+    userMessageCount: options.userMessageCount,
+    promptLength: prompt.length,
+    characterPromptLength: characterPrompt.length,
+    promptPreview: characterPrompt.substring(0, 300) + '...',
   });
 
   return prompt;
