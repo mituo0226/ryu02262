@@ -160,6 +160,8 @@
             overlay.appendChild(spinner);
             overlay.appendChild(textElement);
             document.body.appendChild(overlay);
+            // 新しいoverlayの場合、_loadingTimeoutsを初期化
+            overlay._loadingTimeouts = [];
         } else {
             overlay.style.display = 'flex';
             textElement = document.getElementById('yukinoTarotLoadingText');
