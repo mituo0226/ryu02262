@@ -927,7 +927,95 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 【新仕様】すべてのユーザーを'registered'として扱うため、この処理は不要
     let lastGuestMessage: string | null = null;
 
-    // ===== 11. システムプロンプトの生成 =====
+    // ===== 11. 守護神からの最初のメッセージ生成処理 =====
+    const isGuardianFirstMessage = body.guardianFirstMessage === true;
+    if (isGuardianFirstMessage && characterId === 'kaede' && user?.guardian) {
+      try {
+        const guardianName = body.guardianName || user.guardian;
+        const userNickname = user?.nickname || 'あなた';
+        const firstQuestion = body.firstQuestion || null;
+
+        console.log('[consult] 守護神からの最初のメッセージを生成します:', {
+          guardianName,
+          userNickname,
+          hasFirstQuestion: !!firstQuestion,
+        });
+
+        // 守護神専用のシステムプロンプトを生成
+        const guardianSystemPrompt = generateGuardianFirstMessagePrompt(
+          guardianName,
+          userNickname,
+          firstQuestion
+        );
+
+        // 会話履歴は空（守護神の最初のメッセージのため）
+        const guardianConversationHistory: ClientHistoryEntry[] = [];
+
+        // LLMにリクエストを送信
+        const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
+        const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+        const guardianLLMResult = await getLLMResponse({
+          systemPrompt: guardianSystemPrompt,
+          conversationHistory: guardianConversationHistory,
+          userMessage: `${userNickname}さん、守護神の儀式が完了しました。${userNickname}さんに最初のメッセージを送ってください。`,
+          temperature: 0.8, // 創造性を少し高める
+          maxTokens: 500,
+          topP: 0.9,
+          deepseekApiKey: apiKey,
+          fallbackApiKey: fallbackApiKey,
+          fallbackModel: fallbackModel,
+        });
+
+        if (guardianLLMResult.success && guardianLLMResult.message) {
+          console.log('[consult] ✅ 守護神からの最初のメッセージを生成しました');
+
+          // 生成されたメッセージを会話履歴に保存
+          if (user) {
+            await saveAssistantMessage(env.DB, user.id, characterId, guardianLLMResult.message);
+          }
+
+          return new Response(
+            JSON.stringify({
+              message: guardianLLMResult.message,
+              character: characterId,
+              characterName: getCharacterName(characterId),
+              isInappropriate: false,
+              detectedKeywords: [],
+              provider: guardianLLMResult.provider,
+              clearChat: false,
+            } as ResponseBody),
+            { status: 200, headers: corsHeaders }
+          );
+        } else {
+          console.error('[consult] ❌ 守護神メッセージ生成エラー:', guardianLLMResult.error);
+          // エラーの場合、フォールバックメッセージを返す
+          const fallbackMessage = `${userNickname}さん、私は${guardianName}。あなたを、前世からずっと守り続けてきました。今、${userNickname}さんの心の奥底には、何か感じるものがありますね。${userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
+          
+          if (user) {
+            await saveAssistantMessage(env.DB, user.id, characterId, fallbackMessage);
+          }
+
+          return new Response(
+            JSON.stringify({
+              message: fallbackMessage,
+              character: characterId,
+              characterName: getCharacterName(characterId),
+              isInappropriate: false,
+              detectedKeywords: [],
+              clearChat: false,
+            } as ResponseBody),
+            { status: 200, headers: corsHeaders }
+          );
+        }
+      } catch (error) {
+        console.error('[consult] ❌ 守護神メッセージ生成処理エラー:', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // エラーが発生した場合、通常の処理にフォールバック
+      }
+    }
+
+    // ===== 12. システムプロンプトの生成 =====
     // 【改善】システムプロンプトをシンプルに：各鑑定士の性格設定だけを守らせる
     // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、登録したばかり
     // 【新仕様】すべてのユーザーを'registered'として扱う
