@@ -250,12 +250,22 @@
     function hideLoadingOverlay() {
         const overlay = document.getElementById('yukinoTarotLoadingOverlay');
         if (overlay) {
-            // タイマーをクリア
+            // タイマーをクリア（残りのメッセージ表示を中断）
             if (overlay._loadingTimeouts && Array.isArray(overlay._loadingTimeouts)) {
-                overlay._loadingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+                overlay._loadingTimeouts.forEach(timeoutId => {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
+                });
                 overlay._loadingTimeouts = [];
             }
-            overlay.style.display = 'none';
+            // フェードアウトして非表示
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                overlay.style.opacity = '1'; // 次回表示時のためにリセット
+            }, 300);
         }
     }
 
