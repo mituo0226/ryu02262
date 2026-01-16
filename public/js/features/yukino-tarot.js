@@ -250,6 +250,11 @@
     function hideLoadingOverlay() {
         const overlay = document.getElementById('yukinoTarotLoadingOverlay');
         if (overlay) {
+            // タイマーをクリア
+            if (overlay._loadingTimeouts && Array.isArray(overlay._loadingTimeouts)) {
+                overlay._loadingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+                overlay._loadingTimeouts = [];
+            }
             overlay.style.display = 'none';
         }
     }
