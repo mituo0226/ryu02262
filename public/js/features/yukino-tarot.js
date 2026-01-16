@@ -203,11 +203,15 @@
             
             let currentIndex = 0;
             const showMessage = (index) => {
-                if (index >= message.length || !textElement || !overlay) return;
+                // 毎回overlayとtextElementを再取得（DOMから削除される可能性があるため）
+                const currentOverlay = document.getElementById('yukinoTarotLoadingOverlay');
+                const currentTextElement = document.getElementById('yukinoTarotLoadingText');
+                
+                if (index >= message.length || !currentTextElement || !currentOverlay) return;
                 
                 // overlay._loadingTimeoutsが存在することを確認（念のための防御コード）
-                if (!overlay._loadingTimeouts || !Array.isArray(overlay._loadingTimeouts)) {
-                    overlay._loadingTimeouts = [];
+                if (!currentOverlay._loadingTimeouts || !Array.isArray(currentOverlay._loadingTimeouts)) {
+                    currentOverlay._loadingTimeouts = [];
                 }
                 
                 const messageItem = message[index];
@@ -223,31 +227,43 @@
                 }
                 
                 const timeoutId = setTimeout(() => {
-                    // overlayとtextElementがまだ存在するか確認
-                    if (!overlay || !textElement) return;
+                    // overlayとtextElementがまだ存在するか確認（再取得）
+                    const checkOverlay = document.getElementById('yukinoTarotLoadingOverlay');
+                    const checkTextElement = document.getElementById('yukinoTarotLoadingText');
+                    if (!checkOverlay || !checkTextElement) return;
                     
-                    textElement.style.opacity = '0';
-                    textElement.style.transition = 'opacity 0.3s ease-out';
+                    checkTextElement.style.opacity = '0';
+                    checkTextElement.style.transition = 'opacity 0.3s ease-out';
                     setTimeout(() => {
-                        if (!overlay || !textElement) return;
+                        // 再度確認
+                        const finalOverlay = document.getElementById('yukinoTarotLoadingOverlay');
+                        const finalTextElement = document.getElementById('yukinoTarotLoadingText');
+                        if (!finalOverlay || !finalTextElement) return;
                         
                         const loadingDotsHtml = '<span style="display: inline-block; margin-left: 8px;"><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span></span>';
-                        textElement.innerHTML = messageText + loadingDotsHtml;
-                        textElement.style.transition = 'opacity 0.3s ease-in';
+                        finalTextElement.innerHTML = messageText + loadingDotsHtml;
+                        finalTextElement.style.transition = 'opacity 0.3s ease-in';
                         setTimeout(() => {
-                            if (textElement) {
-                                textElement.style.opacity = '1';
+                            if (finalTextElement) {
+                                finalTextElement.style.opacity = '1';
                             }
                         }, 10);
-                        if (index + 1 < message.length && overlay && overlay._loadingTimeouts) {
+                        if (index + 1 < message.length && finalOverlay) {
+                            // _loadingTimeoutsを確実に初期化してから再帰呼び出し
+                            if (!finalOverlay._loadingTimeouts || !Array.isArray(finalOverlay._loadingTimeouts)) {
+                                finalOverlay._loadingTimeouts = [];
+                            }
                             showMessage(index + 1);
                         }
                     }, 300);
                 }, delay);
                 
                 // overlay._loadingTimeoutsが存在することを再度確認してからpush
-                if (overlay._loadingTimeouts && Array.isArray(overlay._loadingTimeouts)) {
-                    overlay._loadingTimeouts.push(timeoutId);
+                if (currentOverlay._loadingTimeouts && Array.isArray(currentOverlay._loadingTimeouts)) {
+                    currentOverlay._loadingTimeouts.push(timeoutId);
+                } else {
+                    // 万が一初期化されていない場合は初期化してからpush
+                    currentOverlay._loadingTimeouts = [timeoutId];
                 }
             };
             
