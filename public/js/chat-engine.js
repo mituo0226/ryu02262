@@ -1161,8 +1161,21 @@ const ChatInit = {
         // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
         
         if (skipAnimation) {
-            const currentUrl = window.location.href;
-            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(messageToSend)}`;
+            // 現在のURLからuserIdを取得して、returnUrlに含める（データベースIDのみを使用）
+            const currentUrlObj = new URL(window.location.href);
+            const currentUserId = currentUrlObj.searchParams.get('userId');
+            let returnUrl = window.location.pathname + window.location.search;
+            
+            // userIdがURLに含まれていない場合、AuthStateから取得
+            if (!currentUserId && window.AuthState && typeof window.AuthState.getUserId === 'function') {
+                const authUserId = window.AuthState.getUserId();
+                if (authUserId) {
+                    const separator = returnUrl.includes('?') ? '&' : '?';
+                    returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(authUserId))}`;
+                }
+            }
+            
+            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(messageToSend)}`;
             
             document.body.style.transition = 'opacity 0.5s ease';
             document.body.style.opacity = '0';

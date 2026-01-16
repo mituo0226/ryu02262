@@ -556,51 +556,8 @@
      * まとめの解説をリクエスト
      */
     async function requestSummary() {
-        // 最初のメッセージを表示（「タロットを引いています」を削除）
-        showLoadingOverlay('');
-        
-        // 10秒後に2番目のメッセージに更新
-        const message2Timeout = setTimeout(() => {
-            const loadingText = document.getElementById('yukinoTarotLoadingText');
-            if (loadingText) {
-                loadingText.textContent = '運勢を鑑定しています';
-            }
-        }, 10000);
-        
-        // 20秒後に3番目のメッセージに更新
-        const message3Timeout = setTimeout(() => {
-            const loadingText = document.getElementById('yukinoTarotLoadingText');
-            if (loadingText) {
-                loadingText.textContent = '返信を書き込んでいます';
-            }
-        }, 20000);
-        
         try {
             const character = 'yukino';
-            
-            // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
-            // localStorageからの取得を削除
-            let nickname = '';
-            let birthYear = null;
-            let birthMonth = null;
-            let birthDay = null;
-            
-            if (window.ChatData && window.ChatData.conversationHistory) {
-                nickname = window.ChatData.conversationHistory.nickname || '';
-                birthYear = window.ChatData.conversationHistory.birthYear || null;
-                birthMonth = window.ChatData.conversationHistory.birthMonth || null;
-                birthDay = window.ChatData.conversationHistory.birthDay || null;
-            }
-            
-            // ユーザー情報の検証
-            if (!nickname || !birthYear || !birthMonth || !birthDay) {
-                throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
-            }
-            
-            // 数値に変換
-            birthYear = parseInt(birthYear, 10);
-            birthMonth = parseInt(birthMonth, 10);
-            birthDay = parseInt(birthDay, 10);
             
             const cardNames = currentState.cards.map(c => `${c.position}：${c.name}`).join('\n');
             const message = `これまでに見た3枚のタロットカードを総合的に解釈して、まとめの鑑定をお願いします。

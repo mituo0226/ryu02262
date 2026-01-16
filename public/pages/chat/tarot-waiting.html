@@ -479,13 +479,14 @@
             }
 
             // メッセージオーバーレイを即座に表示（フェードインなしで最初から見えるように）
-            messageOverlay.classList.add('active');
+            messageOverlay.classList.add('active', 'immediate');
             messageText.classList.add('visible');
             
             // 最初のメッセージを即座に表示
             const loadingDotsHtml = '<span class="loading-dots"><span></span><span></span><span></span></span>';
             messageText.innerHTML = waitingMessages[0].text + loadingDotsHtml;
             messageText.style.opacity = '1';
+            messageText.style.transition = 'none'; // 最初の表示は即座に
             
             // メッセージの切り替えを開始
             if (waitingMessages.length > 1) {
