@@ -1532,6 +1532,35 @@ const ChatInit = {
                 } else if (data.message) {
                     ChatUI.addMessage('character', data.message, data.characterName);
                     
+                    // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
+                    const character = ChatData?.currentCharacter || 'unknown';
+                    if (character === 'yukino') {
+                        const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
+                        if (cardInfoStr) {
+                            try {
+                                const card = JSON.parse(cardInfoStr);
+                                console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
+                                    position: card.position,
+                                    name: card.name
+                                });
+                                
+                                // sessionStorageをクリア
+                                sessionStorage.removeItem('yukinoTarotCardForExplanation');
+                                
+                                // メッセージコンテナを取得
+                                const messagesDiv = document.getElementById('messages');
+                                if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
+                                    // 少し待ってからボタンを表示（AI応答が完全に表示された後）
+                                    setTimeout(() => {
+                                        window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
+                                    }, 500);
+                                }
+                            } catch (error) {
+                                console.error('[タロットボタン表示] カード情報の解析エラー:', error);
+                            }
+                        }
+                    }
+                    
                     // 親ウィンドウにメッセージ送信完了を通知（分析パネル更新用）
                     if (window.parent && window.parent !== window) {
                         try {

@@ -422,56 +422,8 @@
      * AI解説をリクエスト
      */
     async function requestExplanation(card) {
-        // 最初のメッセージを表示（「タロットを引いています」を削除）
-        showLoadingOverlay('');
-        
-        // 10秒後に2番目のメッセージに更新
-        const message2Timeout = setTimeout(() => {
-            const loadingText = document.getElementById('yukinoTarotLoadingText');
-            if (loadingText) {
-                loadingText.textContent = '運勢を鑑定しています';
-            }
-        }, 10000);
-        
-        // 20秒後に3番目のメッセージに更新
-        const message3Timeout = setTimeout(() => {
-            const loadingText = document.getElementById('yukinoTarotLoadingText');
-            if (loadingText) {
-                loadingText.textContent = '返信を書き込んでいます';
-            }
-        }, 20000);
-        
         try {
-            // AuthStateの初期化
-            if (window.AuthState && typeof window.AuthState.init === 'function') {
-                window.AuthState.init();
-            }
-            
             const character = 'yukino';
-            
-            // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
-            // localStorageからの取得を削除
-            let nickname = '';
-            let birthYear = null;
-            let birthMonth = null;
-            let birthDay = null;
-            
-            if (window.ChatData && window.ChatData.conversationHistory) {
-                nickname = window.ChatData.conversationHistory.nickname || '';
-                birthYear = window.ChatData.conversationHistory.birthYear || null;
-                birthMonth = window.ChatData.conversationHistory.birthMonth || null;
-                birthDay = window.ChatData.conversationHistory.birthDay || null;
-            }
-            
-            // ユーザー情報の検証
-            if (!nickname || !birthYear || !birthMonth || !birthDay) {
-                throw new Error('ユーザー情報が取得できませんでした。ページをリロードして再度お試しください。');
-            }
-            
-            // 数値に変換
-            birthYear = parseInt(birthYear, 10);
-            birthMonth = parseInt(birthMonth, 10);
-            birthDay = parseInt(birthDay, 10);
             
             // メッセージを作成
             const message = `以下のタロットカードについて、詳しく解説してください。
@@ -481,75 +433,28 @@
 
 このカードが示す${card.position}の意味、私の状況にどのように関連しているか、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
             
-            // ペイロードを作成（chat-api.jsのsendMessageと同じ形式）
-            const payload = {
-                message,
-                character,
-                nickname,
-                birthYear,
-                birthMonth,
-                birthDay
-            };
+            console.log('[タロット解説] 待機画面に遷移:', { character, cardName: card.name, position: card.position });
             
-            console.log('[タロット解説] APIリクエスト送信:', { character, cardName: card.name, position: card.position });
+            // 待機画面に遷移（chat-engine.jsと同じ処理）
+            const currentUrl = window.location.href;
+            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(message)}`;
             
-            // API呼び出し
-            const response = await fetch('/api/consult', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            // カード情報をsessionStorageに保存（待機画面から戻った時に使用）
+            sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify({
+                name: card.name,
+                position: card.position,
+                image: card.image
+            }));
             
-            if (!response.ok) {
-                // エラーレスポンスの詳細を取得
-                let errorMessage = `APIエラー (${response.status})`;
-                try {
-                    const errorText = await response.text();
-                    if (errorText) {
-                        const errorData = JSON.parse(errorText);
-                        errorMessage = errorData.error || errorData.message || errorMessage;
-                    }
-                } catch (e) {
-                    console.error('[タロット解説] エラーレスポンスの解析に失敗:', e);
-                }
-                throw new Error(errorMessage);
-            }
+            // フェードアウトして遷移
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '0';
             
-            const data = await response.json();
-            
-            // エラーレスポンスのチェック
-            if (data.error && !data.message) {
-                throw new Error(data.error || '解説の取得に失敗しました');
-            }
-            
-            // タイマーをクリア（APIレスポンスが返ってきたら即座に非表示）
-            clearTimeout(message2Timeout);
-            clearTimeout(message3Timeout);
-            hideLoadingOverlay();
-            
-            // AI応答を表示
-            if (window.ChatUI && window.ChatUI.addMessage) {
-                window.ChatUI.addMessage('character', data.message, '笹岡雪乃');
-                window.ChatUI.scrollToLatest();
-            }
-            
-            // 会話履歴を保存
-            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
-                window.ChatData.addToHistory(character, 'user', message);
-                window.ChatData.addToHistory(character, 'assistant', data.message);
-            }
-            
-            // 次のステップボタンを表示
-            setTimeout(() => {
-                displayNextStepButton();
-            }, 500);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            window.location.href = waitingUrl;
             
         } catch (error) {
-            // タイマーをクリア（エラー時もクリア）
-            clearTimeout(message2Timeout);
-            clearTimeout(message3Timeout);
             console.error('[タロット解説] エラー:', error);
-            hideLoadingOverlay();
             const errorMessage = error instanceof Error ? error.message : '解説の取得に失敗しました。もう一度お試しください。';
             alert(errorMessage);
         }
