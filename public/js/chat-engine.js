@@ -1621,6 +1621,18 @@ const ChatInit = {
                     
                     if (ChatUI.messageInput) ChatUI.messageInput.blur();
                     setTimeout(() => ChatUI.scrollToLatest(), 100);
+                    
+                    // 雪乃のタロットまとめ鑑定の場合、完了処理を実行
+                    const isTarotSummary = sessionStorage.getItem('yukinoTarotSummaryRequest') === 'true';
+                    if (character === 'yukino' && isTarotSummary) {
+                        sessionStorage.removeItem('yukinoTarotSummaryRequest');
+                        // 少し待ってから完了処理を実行
+                        setTimeout(async () => {
+                            if (window.YukinoTarot && typeof window.YukinoTarot.sendCompletionMessages === 'function') {
+                                await window.YukinoTarot.sendCompletionMessages(character);
+                            }
+                        }, 1000);
+                    }
                 } else {
                     ChatUI.addMessage('error', '返信が取得できませんでした', 'システム');
                 }

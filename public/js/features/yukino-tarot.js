@@ -1168,7 +1168,9 @@ ${cardNames}
     window.YukinoTarot = {
         init: initTarot,
         start: startTarotReading,
-        startSingleCard: startSingleCardReading
+        startSingleCard: startSingleCardReading,
+        displayNextCardButton: displayNextStepButton,
+        sendCompletionMessages: sendCompletionMessages
     };
     
     console.log('[タロット機能] 初期化完了（新規実装）');
