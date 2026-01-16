@@ -120,11 +120,47 @@
             text-align: center;
             padding: 20px;
             opacity: 0;
-            transition: opacity 2s ease-in-out;
+            transition: opacity 0.8s ease-in-out;
+            line-height: 1.6;
         }
 
         .message-text.visible {
             opacity: 1;
+        }
+
+        /* ローディングアニメーション */
+        .loading-dots {
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .loading-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #fff;
+            margin: 0 3px;
+            animation: loadingDot 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes loadingDot {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
     </style>
 </head>
@@ -137,7 +173,9 @@
             <img src="../../photo/yukino2.png" alt="笹岡雪乃" id="fallbackImage">
         </div>
         <div class="message-overlay" id="messageOverlay">
-            <div class="message-text" id="messageText">タロットカードの解説を返信していますから、待っていてくださいね</div>
+            <div class="message-text" id="messageText">
+                過去・現在・未来のタロットカードを準備しています<span class="loading-dots"><span></span><span></span><span></span></span>
+            </div>
         </div>
     </div>
 
@@ -160,6 +198,44 @@
 
         let apiPromise = null;
         let apiCompleted = false;
+        let messageTimeouts = []; // メッセージ切り替えのタイマーを保存
+        
+        // 待機中のメッセージリスト（初回訪問者の3枚タロット鑑定用）
+        const waitingMessages = [
+            { text: '過去・現在・未来のタロットカードを準備しています', delay: 0 },
+            { text: 'あなたの運勢を読み解いています', delay: 4000 },
+            { text: 'カードの意味を詳しく鑑定しています', delay: 9000 },
+            { text: '詳しい解説を作成しています', delay: 15000 },
+            { text: 'もうすぐ完了します', delay: 22000 }
+        ];
+        
+        // メッセージを切り替える関数
+        function updateMessage(index) {
+            if (index >= waitingMessages.length || !messageText) return;
+            
+            const message = waitingMessages[index];
+            const loadingDotsHtml = '<span class="loading-dots"><span></span><span></span><span></span></span>';
+            
+            // フェードアウト → テキスト変更 → フェードイン
+            messageText.style.transition = 'opacity 0.5s ease-out';
+            messageText.style.opacity = '0';
+            
+            setTimeout(() => {
+                messageText.innerHTML = message.text + loadingDotsHtml;
+                messageText.style.transition = 'opacity 0.8s ease-in';
+                messageText.style.opacity = '1';
+            }, 500);
+            
+            // 次のメッセージをスケジュール
+            if (index + 1 < waitingMessages.length) {
+                const nextMessage = waitingMessages[index + 1];
+                const delay = nextMessage.delay - message.delay;
+                const timeoutId = setTimeout(() => {
+                    updateMessage(index + 1);
+                }, delay);
+                messageTimeouts.push(timeoutId);
+            }
+        }
         
         // iPhone判定（簡易版）
         const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
@@ -391,7 +467,7 @@
             
             // iPhone以外の場合、動画または画像レイヤーをすぐにフェードイン
             if (!isIPhone) {
-                await delay(2000); // 2秒でフェードイン
+                await delay(1500); // 1.5秒でフェードイン
                 if (!useImageFallback) {
                     videoLayer.classList.add('active');
                 } else {
@@ -402,11 +478,22 @@
                 await delay(500); // 少し待機
             }
 
-            // メッセージオーバーレイをフェードイン
+            // メッセージオーバーレイを即座に表示（フェードインなしで最初から見えるように）
             messageOverlay.classList.add('active');
-            await delay(1000); // 1秒待機
             messageText.classList.add('visible');
-            await delay(2000); // 2秒でフェードイン
+            
+            // 最初のメッセージを即座に表示
+            const loadingDotsHtml = '<span class="loading-dots"><span></span><span></span><span></span></span>';
+            messageText.innerHTML = waitingMessages[0].text + loadingDotsHtml;
+            messageText.style.opacity = '1';
+            
+            // メッセージの切り替えを開始
+            if (waitingMessages.length > 1) {
+                const firstTimeout = setTimeout(() => {
+                    updateMessage(1);
+                }, waitingMessages[1].delay);
+                messageTimeouts.push(firstTimeout);
+            }
 
             // APIの完了を待つ
             if (apiPromise) {
@@ -416,26 +503,23 @@
                     await delay(100);
                 }
             }
-            
+
             // すべてのタイマーをクリア
             messageTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
             messageTimeouts = [];
 
-            // 最後のメッセージを表示（完了を知らせる）
-            if (messageContent) {
-                messageContent.style.transition = 'opacity 0.5s ease-out';
-                messageContent.style.opacity = '0';
-                setTimeout(() => {
-                    messageContent.textContent = '準備が整いました';
-                    messageContent.style.transition = 'opacity 0.5s ease-in';
-                    messageContent.style.opacity = '1';
-                }, 500);
-            }
+            // 最後の完了メッセージを表示
+            messageText.style.transition = 'opacity 0.5s ease-out';
+            messageText.style.opacity = '0';
+            await delay(500);
+            messageText.innerHTML = '準備が整いました';
+            messageText.style.transition = 'opacity 0.8s ease-in';
+            messageText.style.opacity = '1';
             await delay(1000); // 1秒表示
 
             // メッセージをフェードアウト
-            messageText.classList.remove('visible');
-            await delay(1000); // 1秒でフェードアウト
+            messageText.style.opacity = '0';
+            await delay(800); // 0.8秒でフェードアウト
             messageOverlay.classList.remove('active');
             await delay(500);
 
