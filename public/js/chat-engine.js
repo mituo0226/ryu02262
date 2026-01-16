@@ -1024,6 +1024,12 @@ const ChatInit = {
      * @param {boolean} skipAnimation - アニメーションをスキップするか
      */
     async sendMessage(skipUserMessage = false, skipAnimation = false, messageOverride = null) {
+        // メッセージ送信中フラグをチェック（重複送信防止）
+        if (this._sendingMessage) {
+            console.warn('[メッセージ送信] ⚠️ メッセージ送信が既に進行中です。重複送信をブロックします');
+            return;
+        }
+        
         // メッセージ入力欄が無効化されている場合は送信をブロック
         if (ChatUI.messageInput && ChatUI.messageInput.disabled) {
             console.log('[メッセージ送信] メッセージ入力欄が無効化されているため、送信をブロックします');
@@ -1038,6 +1044,9 @@ const ChatInit = {
             return;
         }
         
+        // 送信中フラグを設定
+        this._sendingMessage = true;
+        
         // 【デバッグ】sendMessageの呼び出しを追跡
         const callStack = new Error().stack;
         console.log('[メッセージ送信] sendMessage呼び出し:', {
@@ -1047,6 +1056,9 @@ const ChatInit = {
             skipAnimation,
             callStack: callStack?.split('\n').slice(0, 5).join(' | ')
         });
+        
+        // エラー時にもフラグをリセットするためにtry-finallyを使用
+        try {
         
         // 【変更】isGuestをhistoryDataの存在で判定（データベースベースの判断）
         // 会話履歴から最新のユーザー情報を取得して判定
@@ -1476,6 +1488,9 @@ const ChatInit = {
             
             ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
             if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+        } finally {
+            // 送信中フラグをリセット
+            this._sendingMessage = false;
         }
     },
 
