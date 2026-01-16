@@ -1070,113 +1070,113 @@ const ChatInit = {
             
             // メッセージ送信ボタンを押した時点で、即座にカウントを開始
             if (isGuest && !isTarotExplanationTrigger) {
-            // 個別相談モードのチェック（ハンドラーに委譲）
-            const handler = CharacterRegistry.get(character);
-            const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
-                ? handler.isConsultationMode() 
-                : false;
-            
-            // メッセージ送信前：現在のカウントを取得（ハンドラーに委譲）
-            let currentCount;
-            if (isConsultationMode && handler && typeof handler.getConsultationMessageCount === 'function') {
-                currentCount = handler.getConsultationMessageCount();
-            } else {
-                // 通常のゲストメッセージカウントを使用
-                currentCount = ChatData.getGuestMessageCount(character);
-            }
-            
-            // 【削除】10通制限チェックは削除されました（入口フォームで登録済みのため不要）
+                // 個別相談モードのチェック（ハンドラーに委譲）
+                const handler = CharacterRegistry.get(character);
+                const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
+                    ? handler.isConsultationMode() 
+                    : false;
+                
+                // メッセージ送信前：現在のカウントを取得（ハンドラーに委譲）
+                let currentCount;
+                if (isConsultationMode && handler && typeof handler.getConsultationMessageCount === 'function') {
+                    currentCount = handler.getConsultationMessageCount();
+                } else {
+                    // 通常のゲストメッセージカウントを使用
+                    currentCount = ChatData.getGuestMessageCount(character);
+                }
+                
+                // 【削除】10通制限チェックは削除されました（入口フォームで登録済みのため不要）
 
-            // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
-            // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
-            ChatData.addToGuestHistory(character, 'user', message);
-            
-            // ゲストモードで会話したことを記録（ハンドラーに委譲）
-            // 注意: handlerは上で既に宣言されているため、再宣言しない
-            if (handler && typeof handler.markGuestConversed === 'function') {
-                handler.markGuestConversed();
-            }
-            
-            // 会話履歴が正しく保存されたことを確認
-            const savedHistory = ChatData.getGuestHistory(character);
-            console.log('[メッセージ送信] 会話履歴に追加後の確認:', {
-                character,
-                historyLength: savedHistory.length,
-                userMessages: savedHistory.filter(msg => msg && msg.role === 'user').length,
-                lastMessage: savedHistory.length > 0 ? savedHistory[savedHistory.length - 1] : null
-            });
-            
-            // メッセージカウントを取得（ハンドラーに委譲）
-            let messageCount;
-            if (isConsultationMode && handler && typeof handler.incrementConsultationMessageCount === 'function') {
-                messageCount = handler.incrementConsultationMessageCount();
-            } else {
-                // 通常のカウントを取得
-                messageCount = ChatData.getGuestMessageCount(character);
-            }
-            
-            const isFirstMessage = currentCount === 0;
-            if (isFirstMessage) {
-                console.log('[メッセージ送信] 🎯 最初のメッセージを送信しました（カウント=1からスタート）:', {
+                // 送信ボタンを押した時点で、会話履歴にメッセージを追加してカウントを更新
+                // これにより、メッセージ数が確実に1からスタートし、以降は自動的に増える
+                ChatData.addToGuestHistory(character, 'user', message);
+                
+                // ゲストモードで会話したことを記録（ハンドラーに委譲）
+                // 注意: handlerは上で既に宣言されているため、再宣言しない
+                if (handler && typeof handler.markGuestConversed === 'function') {
+                    handler.markGuestConversed();
+                }
+                
+                // 会話履歴が正しく保存されたことを確認
+                const savedHistory = ChatData.getGuestHistory(character);
+                console.log('[メッセージ送信] 会話履歴に追加後の確認:', {
                     character,
-                    message: message.substring(0, 50) + '...',
-                    messageCount: messageCount,
-                    historyLength: savedHistory.length
+                    historyLength: savedHistory.length,
+                    userMessages: savedHistory.filter(msg => msg && msg.role === 'user').length,
+                    lastMessage: savedHistory.length > 0 ? savedHistory[savedHistory.length - 1] : null
                 });
                 
-                // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
-                if (character === 'yukino' && !isTarotExplanationTrigger) {
-                    sessionStorage.setItem('yukinoFirstMessageInSession', message);
-                    console.log('[メッセージ送信] 雪乃のセッション最初のメッセージを記録:', message.substring(0, 50));
+                // メッセージカウントを取得（ハンドラーに委譲）
+                let messageCount;
+                if (isConsultationMode && handler && typeof handler.incrementConsultationMessageCount === 'function') {
+                    messageCount = handler.incrementConsultationMessageCount();
+                } else {
+                    // 通常のカウントを取得
+                    messageCount = ChatData.getGuestMessageCount(character);
                 }
-            } else {
-                console.log('[メッセージ送信] メッセージを送信しました:', {
-                    character,
-                    message: message.substring(0, 50) + '...',
-                    beforeCount: currentCount,
-                    afterCount: messageCount,
-                    historyLength: savedHistory.length
-                });
-            }
-            
-            // reading-animation.htmlでAPIリクエスト時にメッセージカウントを送信できるように、sessionStorageに保存
-            // この時点で、会話履歴にメッセージが追加されていることを確認済み
-            sessionStorage.setItem('lastGuestMessageCount', String(messageCount));
-            console.log('[メッセージ送信] sessionStorageにメッセージカウントを保存:', {
-                key: 'lastGuestMessageCount',
-                value: messageCount,
-                historyKey: `guestConversationHistory_${character}`,
-                historyExists: !!sessionStorage.getItem(`guestConversationHistory_${character}`)
-            });
-            
-                    // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
-                    if (window.parent && window.parent !== window) {
-                        try {
-                            window.parent.postMessage({
-                                type: 'CHAT_MESSAGE_SENT',
-                                character: character,
-                                messageCount: messageCount,
-                                timestamp: Date.now()
-                            }, '*');
-                            console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
-                                character,
-                                messageCount
-                            });
-                        } catch (error) {
-                            console.error('[iframe] メッセージ送信通知エラー:', error);
-                        }
-                    }
+                
+                const isFirstMessage = currentCount === 0;
+                if (isFirstMessage) {
+                    console.log('[メッセージ送信] 🎯 最初のメッセージを送信しました（カウント=1からスタート）:', {
+                        character,
+                        message: message.substring(0, 50) + '...',
+                        messageCount: messageCount,
+                        historyLength: savedHistory.length
+                    });
                     
-                    // 管理者モードの分析パネルを更新（自分自身のウィンドウ）
-                    if (typeof window.updateAdminAnalysisPanel === 'function') {
-                        setTimeout(() => {
-                            window.updateAdminAnalysisPanel();
-                        }, 300);
-                    } else {
-                        // カスタムイベントを発火
-                        document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
+                    // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
+                    if (character === 'yukino' && !isTarotExplanationTrigger) {
+                        sessionStorage.setItem('yukinoFirstMessageInSession', message);
+                        console.log('[メッセージ送信] 雪乃のセッション最初のメッセージを記録:', message.substring(0, 50));
                     }
-            
+                } else {
+                    console.log('[メッセージ送信] メッセージを送信しました:', {
+                        character,
+                        message: message.substring(0, 50) + '...',
+                        beforeCount: currentCount,
+                        afterCount: messageCount,
+                        historyLength: savedHistory.length
+                    });
+                }
+                
+                // reading-animation.htmlでAPIリクエスト時にメッセージカウントを送信できるように、sessionStorageに保存
+                // この時点で、会話履歴にメッセージが追加されていることを確認済み
+                sessionStorage.setItem('lastGuestMessageCount', String(messageCount));
+                console.log('[メッセージ送信] sessionStorageにメッセージカウントを保存:', {
+                    key: 'lastGuestMessageCount',
+                    value: messageCount,
+                    historyKey: `guestConversationHistory_${character}`,
+                    historyExists: !!sessionStorage.getItem(`guestConversationHistory_${character}`)
+                });
+                
+                // メッセージ送信直後に親ウィンドウに通知（分析パネル更新用）
+                if (window.parent && window.parent !== window) {
+                    try {
+                        window.parent.postMessage({
+                            type: 'CHAT_MESSAGE_SENT',
+                            character: character,
+                            messageCount: messageCount,
+                            timestamp: Date.now()
+                        }, '*');
+                        console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
+                            character,
+                            messageCount
+                        });
+                    } catch (error) {
+                        console.error('[iframe] メッセージ送信通知エラー:', error);
+                    }
+                }
+                
+                // 管理者モードの分析パネルを更新（自分自身のウィンドウ）
+                if (typeof window.updateAdminAnalysisPanel === 'function') {
+                    setTimeout(() => {
+                        window.updateAdminAnalysisPanel();
+                    }, 300);
+                } else {
+                    // カスタムイベントを発火
+                    document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
+                }
+                
                 ChatUI.updateUserStatus(false);
             }
 
@@ -1187,22 +1187,22 @@ const ChatInit = {
             // 【重要】ユーザーメッセージを送信時点で即座に表示（ユーザーが送信を確認できるように）
             // タロットカード解説トリガーマーカーの場合は表示しない
             if (!skipUserMessage && !isTarotExplanationTrigger) {
-            // 【デバッグ】既に同じメッセージが表示されているかチェック
-            const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
-            const messageTexts = Array.from(existingUserMessages).map(msg => {
-                const textDiv = msg.querySelector('div:last-child');
-                return textDiv ? textDiv.textContent.trim() : '';
-            });
-            const messageExists = messageTexts.some(text => text.trim() === messageToSend.trim());
-            
-            if (messageExists) {
-                console.warn('[メッセージ送信] ⚠️ 既に同じユーザーメッセージが表示されています。重複追加をスキップします:', messageToSend.substring(0, 50));
-            } else {
-                console.log('[メッセージ送信] ユーザーメッセージを画面に追加:', messageToSend.substring(0, 50));
-                ChatUI.addMessage('user', messageToSend, 'あなた');
-                await this.delay(100);
-                ChatUI.scrollToLatest();
-            }
+                // 【デバッグ】既に同じメッセージが表示されているかチェック
+                const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+                const messageTexts = Array.from(existingUserMessages).map(msg => {
+                    const textDiv = msg.querySelector('div:last-child');
+                    return textDiv ? textDiv.textContent.trim() : '';
+                });
+                const messageExists = messageTexts.some(text => text.trim() === messageToSend.trim());
+                
+                if (messageExists) {
+                    console.warn('[メッセージ送信] ⚠️ 既に同じユーザーメッセージが表示されています。重複追加をスキップします:', messageToSend.substring(0, 50));
+                } else {
+                    console.log('[メッセージ送信] ユーザーメッセージを画面に追加:', messageToSend.substring(0, 50));
+                    ChatUI.addMessage('user', messageToSend, 'あなた');
+                    await this.delay(100);
+                    ChatUI.scrollToLatest();
+                }
             }
             
             ChatUI.messageInput.value = '';
@@ -1211,22 +1211,22 @@ const ChatInit = {
             
             // タロットカード解説トリガーマーカーの場合は、sessionStorageに保存しない
             if (!skipUserMessage && !isTarotExplanationTrigger) {
-            // メッセージカウントを取得（既にゲストユーザーの場合は上で取得済み）
-            let messageCount = 0;
-            if (isGuest) {
-                messageCount = ChatData.getGuestMessageCount(character);
-            } else {
-                // 登録ユーザーの場合：会話履歴からユーザーメッセージ数を計算
-                const conversationHistory = ChatData.conversationHistory?.recentMessages || [];
-                messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length + 1; // 現在送信中のメッセージを含める
-            }
-            
-            const userMessageData = {
-                message: messageToSend,
-                character: character,
-                timestamp: new Date().toISOString(),
-                messageCount: messageCount // メッセージカウントも含める
-            };
+                // メッセージカウントを取得（既にゲストユーザーの場合は上で取得済み）
+                let messageCount = 0;
+                if (isGuest) {
+                    messageCount = ChatData.getGuestMessageCount(character);
+                } else {
+                    // 登録ユーザーの場合：会話履歴からユーザーメッセージ数を計算
+                    const conversationHistory = ChatData.conversationHistory?.recentMessages || [];
+                    messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length + 1; // 現在送信中のメッセージを含める
+                }
+                
+                const userMessageData = {
+                    message: messageToSend,
+                    character: character,
+                    timestamp: new Date().toISOString(),
+                    messageCount: messageCount // メッセージカウントも含める
+                };
                 sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
             }
             
@@ -1235,7 +1235,7 @@ const ChatInit = {
             const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', 'システム');
             
             try {
-            // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
+                // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
             let conversationHistory = [];
             if (isGuest) {
                 conversationHistory = ChatData.getGuestHistory(character) || [];
