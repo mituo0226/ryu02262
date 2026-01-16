@@ -1493,6 +1493,29 @@ const ChatInit = {
                     return;
                 }
                 
+                // 【重要】守護神の儀式完了直後の最初の会話では、lastUserMessageを表示しない
+                // sendMessage関数で既にユーザーメッセージが表示されているため、重複を防ぐ
+                const ritualJustCompleted = sessionStorage.getItem('ritualCompleted') === 'true';
+                const guardianJustShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+                
+                // 守護神の儀式完了直後（ritualCompletedまたはguardianMessageShownが設定されている）の場合、
+                // かつ、既にユーザーメッセージが表示されている場合は、lastUserMessageを表示しない
+                if (ritualJustCompleted || guardianJustShown) {
+                    const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+                    const messageTexts = Array.from(existingUserMessages).map(msg => {
+                        const textDiv = msg.querySelector('div:last-child');
+                        return textDiv ? textDiv.textContent.trim() : '';
+                    });
+                    
+                    const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
+                    
+                    if (messageExists) {
+                        console.log('[handleReturnFromAnimation] 守護神の儀式完了直後で、既にユーザーメッセージが表示されているため、lastUserMessageをスキップします');
+                        sessionStorage.removeItem('lastUserMessage');
+                        return;
+                    }
+                }
+                
                 const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
                 const messageTexts = Array.from(existingUserMessages).map(msg => {
                     const textDiv = msg.querySelector('div:last-child');
