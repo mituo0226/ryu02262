@@ -244,12 +244,17 @@ const ChatInit = {
                     guestHistory.forEach((entry) => {
                         // システムメッセージ（isSystemMessage: true）は画面に表示しない
                         if (entry.isSystemMessage) {
-                            console.log('[登録完了処理] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                            const content = entry.content || entry.message || '';
+                            if (content) {
+                                console.log('[登録完了処理] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
+                            }
                             return;
                         }
                         const type = entry.role === 'user' ? 'user' : 'character';
                         const sender = entry.role === 'user' ? 'あなた' : info.name;
-                        ChatUI.addMessage(type, entry.content, sender);
+                        // contentを安全に取得（messageプロパティも確認）
+                        const content = entry.content || entry.message || '';
+                        ChatUI.addMessage(type, content, sender);
                     });
                     console.log('[登録完了処理] ゲスト履歴の表示完了');
                     
@@ -545,12 +550,17 @@ const ChatInit = {
                 guestHistory.forEach((entry) => {
                     // システムメッセージ（isSystemMessage: true）は画面に表示しない
                     if (entry.isSystemMessage) {
-                        console.log('[初期化] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                        const content = entry.content || entry.message || '';
+                        if (content) {
+                            console.log('[初期化] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
+                        }
                         return;
                     }
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
-                    ChatUI.addMessage(type, entry.content, sender);
+                    // contentを安全に取得（messageプロパティも確認）
+                    const content = entry.content || entry.message || '';
+                    ChatUI.addMessage(type, content, sender);
                 });
                 
                 // ゲストユーザーの場合、会話履歴からメッセージカウントを再計算して設定
@@ -867,12 +877,17 @@ const ChatInit = {
                 guestHistory.forEach((entry) => {
                     // システムメッセージ（isSystemMessage: true）は画面に表示しない
                     if (entry.isSystemMessage) {
-                        console.log('[初期化エラー時] システムメッセージをスキップ:', entry.content.substring(0, 30) + '...');
+                        const content = entry.content || entry.message || '';
+                        if (content) {
+                            console.log('[初期化エラー時] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
+                        }
                         return;
                     }
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
-                    ChatUI.addMessage(type, entry.content, sender);
+                    // contentを安全に取得（messageプロパティも確認）
+                    const content = entry.content || entry.message || '';
+                    ChatUI.addMessage(type, content, sender);
                 });
                 
                 // ゲストユーザーの場合、会話履歴からメッセージカウントを再計算して設定
