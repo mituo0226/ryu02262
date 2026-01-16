@@ -1161,18 +1161,85 @@ const ChatInit = {
         // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
         
         if (skipAnimation) {
+            // 待機画面に遷移する前に、ハンドラー側でペイロードを準備してsessionStorageに保存
+            // 会話履歴を取得
+            let conversationHistory = [];
+            if (isGuest) {
+                conversationHistory = ChatData.getGuestHistory(character) || [];
+            } else {
+                conversationHistory = ChatData.conversationHistory?.recentMessages || [];
+            }
+            
+            // 会話履歴の形式を変換（ChatAPI.sendMessageと同じ形式）
+            const clientHistory = conversationHistory.map(entry => {
+                if (typeof entry === 'string') {
+                    return { role: 'user', content: entry };
+                }
+                return {
+                    role: entry.role || 'user',
+                    content: entry.content || entry.message || ''
+                };
+            });
+            
+            // ユーザー情報を取得（ChatAPI.sendMessageと同じロジック）
+            const urlParams = new URLSearchParams(window.location.search);
+            let userId = null;
+            const userIdParam = urlParams.get('userId');
+            if (userIdParam) {
+                userId = Number(userIdParam);
+                if (!Number.isFinite(userId) || userId <= 0) {
+                    userId = null;
+                }
+            }
+            
+            // userIdがない場合、ChatData.conversationHistoryから取得
+            if (!userId && ChatData && ChatData.conversationHistory && ChatData.conversationHistory.userId) {
+                userId = ChatData.conversationHistory.userId;
+            }
+            
+            // ペイロードを作成（ChatAPI.sendMessageと同じ形式）
+            const payload = {
+                message: messageToSend,
+                character: character,
+                clientHistory: clientHistory,
+                userId: userId || undefined,
+                nickname: undefined, // userIdがある場合は不要
+                birthYear: undefined,
+                birthMonth: undefined,
+                birthDay: undefined
+            };
+            
+            // ゲストメタデータを追加（必要な場合）
+            if (isGuest) {
+                const handler = CharacterRegistry.get(character);
+                let messageCountForAPI = 0;
+                
+                if (handler && typeof handler.isConsultationMode === 'function' && handler.isConsultationMode()) {
+                    if (handler && typeof handler.getConsultationMessageCount === 'function') {
+                        messageCountForAPI = handler.getConsultationMessageCount();
+                    } else {
+                        messageCountForAPI = ChatData.getGuestMessageCount(character);
+                    }
+                } else {
+                    messageCountForAPI = ChatData.getGuestMessageCount(character);
+                    if (handler && typeof handler.calculateMessageCount === 'function') {
+                        messageCountForAPI = handler.calculateMessageCount(messageCountForAPI);
+                    }
+                }
+                
+                payload.guestMetadata = { messageCount: messageCountForAPI };
+            }
+            
+            // ペイロードをsessionStorageに保存（待機画面で使用）
+            sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));
+            
             // 現在のURLからuserIdを取得して、returnUrlに含める（データベースIDのみを使用）
-            const currentUrlObj = new URL(window.location.href);
-            const currentUserId = currentUrlObj.searchParams.get('userId');
             let returnUrl = window.location.pathname + window.location.search;
             
-            // userIdがURLに含まれていない場合、AuthStateから取得
-            if (!currentUserId && window.AuthState && typeof window.AuthState.getUserId === 'function') {
-                const authUserId = window.AuthState.getUserId();
-                if (authUserId) {
-                    const separator = returnUrl.includes('?') ? '&' : '?';
-                    returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(authUserId))}`;
-                }
+            // userIdがURLに含まれていない場合、準備したペイロードから取得
+            if (!userIdParam && userId) {
+                const separator = returnUrl.includes('?') ? '&' : '?';
+                returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(userId))}`;
             }
             
             const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(messageToSend)}`;

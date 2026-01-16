@@ -272,7 +272,7 @@
             }, 50);
         };
 
-        // API呼び出し
+        // API呼び出し（シンプルな実装：ハンドラー側で準備されたペイロードを使用）
         function startApiCall() {
             if (!message) {
                 apiCompleted = true;
@@ -284,51 +284,24 @@
 
             return (async () => {
                 try {
-                    if (window.AuthState && typeof window.AuthState.init === 'function') {
-                        window.AuthState.init();
-                    }
-
-                    const isFromChatExample = returnUrl.includes('chat-example.html');
-                    const decodedMessage = decodeURIComponent(message);
-                    const payload = { message: decodedMessage, character };
-                        const pendingMigration = sessionStorage.getItem('pendingGuestHistoryMigration');
-                        if (pendingMigration) {
-                            try {
-                                const migrationData = JSON.parse(pendingMigration);
-                                if (migrationData.character === character && migrationData.history && migrationData.history.length > 0) {
-                                    payload.migrateHistory = true;
-                                    payload.clientHistory = migrationData.history.map((entry) => ({
-                                        role: entry.role,
-                                        content: entry.content,
-                                    }));
-                                }
-                            } catch (error) {
-                                console.error('Error parsing pending guest history migration:', error);
-                            }
+                    // ハンドラー側で準備されたペイロードを取得
+                    // ハンドラーが準備していない場合は、最小限のペイロードを作成
+                    let payloadStr = sessionStorage.getItem('tarotWaitingPayload');
+                    let payload;
+                    
+                    if (payloadStr) {
+                        try {
+                            payload = JSON.parse(payloadStr);
+                            // 使用後は削除
+                            sessionStorage.removeItem('tarotWaitingPayload');
+                        } catch (e) {
+                            console.error('[待機画面] ペイロードの解析に失敗:', e);
+                            // フォールバック：最小限のペイロード
+                            payload = { message, character };
                         }
                     } else {
-                        // まず、chat-example.htmlで保存されたカウントを確認
-                        const lastGuestMessageCount = sessionStorage.getItem('lastGuestMessageCount');
-                        let guestCount = 0;
-                        
-                        if (lastGuestMessageCount !== null) {
-                            // chat-example.htmlで保存されたカウントを使用
-                            guestCount = Number.parseInt(lastGuestMessageCount, 10);
-                            // 使用後は削除
-                            sessionStorage.removeItem('lastGuestMessageCount');
-                        } else {
-                            // フォールバック：sessionStorageから取得
-                            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
-                            const key = GUEST_COUNT_KEY_PREFIX + character;
-                            const characterSpecificCount = sessionStorage.getItem(key);
-                            const guestCountForCharacter = characterSpecificCount ? Number.parseInt(characterSpecificCount, 10) : 0;
-                            guestCount = guestCountForCharacter > 0 
-                                ? guestCountForCharacter 
-                                : ((window.AuthState && typeof window.AuthState.getGuestMessageCount === 'function') 
-                                    ? window.AuthState.getGuestMessageCount() 
-                                    : 0);
-                        }
-                        payload.guestMetadata = { messageCount: guestCount };
+                        // ハンドラーがペイロードを準備していない場合は最小限のペイロード
+                        payload = { message, character };
                     }
 
                     const timeoutPromise = new Promise((_, reject) => {
@@ -365,7 +338,7 @@
                         sessionStorage.setItem('lastConsultResponse', JSON.stringify(data));
                     }
                 } catch (error) {
-                    console.error('Error calling API:', error);
+                    console.error('[待機画面] API呼び出しエラー:', error);
                     const errorMessage = error instanceof Error ? error.message : '通信エラーが発生しました';
                     sessionStorage.setItem('lastConsultError', errorMessage);
                 } finally {

@@ -566,71 +566,83 @@ ${cardNames}
 
 過去、現在、未来の流れを踏まえて、今のあなたへの具体的なアドバイスと励ましの言葉をください。最後に「それでは、もし私に相談したいことがあれば、いつでもどうぞ」と締めくくってください。`;
             
-            // ペイロードを作成（chat-api.jsのsendMessageと同じ形式）
-            const payload = {
-                message,
-                character,
-                nickname,
-                birthYear,
-                birthMonth,
-                birthDay
-            };
+            console.log('[タロットまとめ] 待機画面に遷移:', { character, cardCount: currentState.cards.length });
             
-            console.log('[タロットまとめ] APIリクエスト送信:', { character, cardCount: currentState.cards.length });
+            // ハンドラー側でペイロードを準備（ChatAPI.sendMessageと同じロジック）
+            let conversationHistory = [];
+            if (window.ChatData) {
+                const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
+                if (isGuest) {
+                    conversationHistory = window.ChatData.getGuestHistory ? window.ChatData.getGuestHistory(character) || [] : [];
+                } else {
+                    conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
+                }
+            }
             
-            const response = await fetch('/api/consult', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            // 会話履歴の形式を変換
+            const clientHistory = conversationHistory.map(entry => {
+                if (typeof entry === 'string') {
+                    return { role: 'user', content: entry };
+                }
+                return {
+                    role: entry.role || 'user',
+                    content: entry.content || entry.message || ''
+                };
             });
             
-            if (!response.ok) {
-                // エラーレスポンスの詳細を取得
-                let errorMessage = `APIエラー (${response.status})`;
-                try {
-                    const errorText = await response.text();
-                    if (errorText) {
-                        const errorData = JSON.parse(errorText);
-                        errorMessage = errorData.error || errorData.message || errorMessage;
-                    }
-                } catch (e) {
-                    console.error('[タロットまとめ] エラーレスポンスの解析に失敗:', e);
+            // ユーザー情報を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            let userId = null;
+            const userIdParam = urlParams.get('userId');
+            if (userIdParam) {
+                userId = Number(userIdParam);
+                if (!Number.isFinite(userId) || userId <= 0) {
+                    userId = null;
                 }
-                throw new Error(errorMessage);
             }
             
-            const data = await response.json();
-            
-            // エラーレスポンスのチェック
-            if (data.error && !data.message) {
-                throw new Error(data.error || 'まとめの取得に失敗しました');
+            if (!userId && window.ChatData && window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId) {
+                userId = window.ChatData.conversationHistory.userId;
             }
             
-            // タイマーをクリア（APIレスポンスが返ってきたら即座に非表示）
-            clearTimeout(message2Timeout);
-            clearTimeout(message3Timeout);
-            hideLoadingOverlay();
+            // ペイロードを作成
+            const payload = {
+                message: message,
+                character: character,
+                clientHistory: clientHistory,
+                userId: userId || undefined
+            };
             
-            if (window.ChatUI && window.ChatUI.addMessage) {
-                window.ChatUI.addMessage('character', data.message, '笹岡雪乃');
-                window.ChatUI.scrollToLatest();
+            // ゲストメタデータを追加（必要な場合）
+            if (window.ChatData && window.ChatData.getGuestMessageCount) {
+                const messageCount = window.ChatData.getGuestMessageCount(character);
+                payload.guestMetadata = { messageCount: messageCount };
             }
             
-            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
-                window.ChatData.addToHistory(character, 'user', message);
-                window.ChatData.addToHistory(character, 'assistant', data.message);
+            // ペイロードをsessionStorageに保存
+            sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));
+            
+            // 待機画面に遷移
+            let returnUrl = window.location.pathname + window.location.search;
+            if (userId && !userIdParam) {
+                const separator = returnUrl.includes('?') ? '&' : '?';
+                returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(userId))}`;
             }
             
-            // タロット占い完了 - 定型文とシステムメッセージを送信
-            console.log('[タロット占い] 完了しました');
-            await sendCompletionMessages(character);
+            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(message)}`;
+            
+            // まとめ鑑定であることを示すフラグをsessionStorageに保存
+            sessionStorage.setItem('yukinoTarotSummaryRequest', 'true');
+            
+            // フェードアウトして遷移
+            document.body.style.transition = 'opacity 0.5s ease';
+            document.body.style.opacity = '0';
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            window.location.href = waitingUrl;
             
         } catch (error) {
-            // タイマーをクリア（エラー時もクリア）
-            clearTimeout(message2Timeout);
-            clearTimeout(message3Timeout);
             console.error('[タロットまとめ] エラー:', error);
-            hideLoadingOverlay();
             const errorMessage = error instanceof Error ? error.message : 'まとめの取得に失敗しました。もう一度お試しください。';
             alert(errorMessage);
             
