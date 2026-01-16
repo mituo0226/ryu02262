@@ -29,6 +29,11 @@ interface RequestBody {
   migrateHistory?: boolean;
   guestMetadata?: GuestMetadata;
   ritualStart?: boolean; // 守護神の儀式開始通知フラグ
+  guardianFirstMessage?: boolean; // 守護神からの最初のメッセージ生成フラグ
+  kaedeFollowUp?: boolean; // 楓からの追加メッセージ生成フラグ（guardianFirstMessageの後に呼ばれる）
+  guardianName?: string; // 守護神の名前（guardianFirstMessageまたはkaedeFollowUpがtrueの場合に必要）
+  guardianMessage?: string; // 守護神からのメッセージ（kaedeFollowUpがtrueの場合に必要）
+  firstQuestion?: string | null; // ユーザーの最初の質問
   userId?: number; // ユーザー識別用（優先的に使用）
   nickname?: string; // ユーザー識別用（後方互換性のため）
   birthYear?: number; // ユーザー識別用（後方互換性のため）

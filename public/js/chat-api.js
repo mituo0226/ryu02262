@@ -211,6 +211,20 @@ const ChatAPI = {
             }
         }
 
+        // 楓からの追加メッセージ生成フラグ
+        if (options.kaedeFollowUp) {
+            payload.kaedeFollowUp = true;
+            if (options.guardianName) {
+                payload.guardianName = options.guardianName;
+            }
+            if (options.guardianMessage) {
+                payload.guardianMessage = options.guardianMessage;
+            }
+            if (options.firstQuestion !== undefined) {
+                payload.firstQuestion = options.firstQuestion;
+            }
+        }
+
         try {
             const response = await fetch('/api/consult', {
                 method: 'POST',
