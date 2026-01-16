@@ -136,25 +136,18 @@ const ChatUI = {
      * @returns {string} メッセージ要素のID
      */
     addMessage(type, text, sender, options = {}) {
-        // textパラメータが文字列でない場合、安全に文字列に変換
+        // デバッグ: オブジェクトが渡されている場合、詳細ログを出力
         if (typeof text !== 'string') {
-            if (text === null || text === undefined) {
-                console.warn('[ChatUI.addMessage] textがnullまたはundefinedです。空文字列を使用します。', { type, sender });
-                text = '';
-            } else if (typeof text === 'object') {
-                // オブジェクトや配列の場合
-                console.warn('[ChatUI.addMessage] textがオブジェクトまたは配列です。JSON文字列に変換します。', { type, sender, text });
-                try {
-                    // messageプロパティがあればそれを使用、なければJSON文字列化
-                    text = text.message || text.content || JSON.stringify(text);
-                } catch (e) {
-                    console.error('[ChatUI.addMessage] オブジェクトの文字列化に失敗しました。', e);
-                    text = 'メッセージの表示に失敗しました';
-                }
-            } else {
-                // その他の型（数値など）の場合
-                text = String(text);
-            }
+            console.error('[ChatUI.addMessage] ⚠️ オブジェクトが渡されています！', {
+                type,
+                sender,
+                textType: typeof text,
+                textValue: text,
+                textStringified: JSON.stringify(text),
+                stackTrace: new Error().stack
+            });
+            // エラーとして処理（対処療法ではなく、根本原因を特定するため）
+            debugger; // 開発者ツールで停止
         }
         
         // #region agent log

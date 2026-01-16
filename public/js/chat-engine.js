@@ -1517,6 +1517,17 @@ const ChatInit = {
             try {
                 const data = JSON.parse(consultResponse);
                 
+                // デバッグ: data.messageの型を確認
+                if (data.message && typeof data.message !== 'string') {
+                    console.error('[handleReturnFromAnimation] ⚠️ data.messageが文字列ではありません！', {
+                        messageType: typeof data.message,
+                        messageValue: data.message,
+                        fullData: data,
+                        consultResponse: consultResponse
+                    });
+                    debugger; // 開発者ツールで停止
+                }
+                
                 // 【新仕様】userTokenは不要。エラーハンドリングを簡素化
                 if (data.error && (data.error.includes('user not found') || data.error.includes('session'))) {
                     // 【変更】localStorageからの削除を削除（データベースベースの判断）
@@ -1533,7 +1544,9 @@ const ChatInit = {
                 } else if (data.isInappropriate) {
                     ChatUI.addMessage('warning', data.message, data.characterName);
                 } else if (data.message) {
-                    ChatUI.addMessage('character', data.message, data.characterName);
+                    // data.messageが文字列であることを確認
+                    const messageText = typeof data.message === 'string' ? data.message : String(data.message);
+                    ChatUI.addMessage('character', messageText, data.characterName);
                     
                     // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
                     const character = ChatData?.currentCharacter || 'unknown';
