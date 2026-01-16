@@ -657,9 +657,21 @@ ${cardNames}
 
 過去、現在、未来の流れを踏まえて、今のあなたへの具体的なアドバイスと励ましの言葉をください。最後に「それでは、もし私に相談したいことがあれば、いつでもどうぞ」と締めくくってください。`;
             
-            console.log('[タロットまとめ] 待機画面に遷移:', { character, cardCount: currentState.cards.length });
+            // 動的メッセージリスト（待機中のメッセージ）
+            const waitingMessages = [
+                { text: 'タロットカードのまとめを作成しています', delay: 0 },
+                { text: '過去・現在・未来の流れを読み解いています', delay: 4000 },
+                { text: '総合的な鑑定を作成しています', delay: 9000 },
+                { text: 'あなたへのアドバイスをまとめています', delay: 15000 },
+                { text: 'もうすぐ完了します', delay: 22000 }
+            ];
             
-            // ハンドラー側でペイロードを準備（ChatAPI.sendMessageと同じロジック）
+            // ローディングオーバーレイを表示
+            showLoadingOverlay(waitingMessages);
+            
+            console.log('[タロットまとめ] APIリクエスト送信:', { character, cardCount: currentState.cards.length });
+            
+            // 会話履歴を取得
             let conversationHistory = [];
             if (window.ChatData) {
                 const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
@@ -710,27 +722,50 @@ ${cardNames}
                 payload.guestMetadata = { messageCount: messageCount };
             }
             
-            // ペイロードをsessionStorageに保存
-            sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));
+            // APIリクエストを送信
+            const response = await fetch('/api/consult', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             
-            // 待機画面に遷移
-            let returnUrl = window.location.pathname + window.location.search;
-            if (userId && !userIdParam) {
-                const separator = returnUrl.includes('?') ? '&' : '?';
-                returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(userId))}`;
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `APIエラー (${response.status})`;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch {}
+                throw new Error(errorMessage);
             }
             
-            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(message)}`;
+            const data = await response.json();
             
-            // まとめ鑑定であることを示すフラグをsessionStorageに保存
-            sessionStorage.setItem('yukinoTarotSummaryRequest', 'true');
+            // エラーレスポンスのチェック
+            if (data.error && !data.message) {
+                throw new Error(data.error || 'まとめの取得に失敗しました');
+            }
             
-            // フェードアウトして遷移
-            document.body.style.transition = 'opacity 0.5s ease';
-            document.body.style.opacity = '0';
+            // ローディングオーバーレイを非表示
+            hideLoadingOverlay();
             
-            await new Promise(resolve => setTimeout(resolve, 500));
-            window.location.href = waitingUrl;
+            // 雪乃のまとめを表示
+            if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                window.ChatUI.addMessage('character', data.message, '笹岡雪乃');
+                window.ChatUI.scrollToLatest();
+            }
+            
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'user', message);
+                window.ChatData.addToHistory(character, 'assistant', data.message);
+            }
+            
+            // タロット占い完了 - 定型文とシステムメッセージを送信
+            console.log('[タロット占い] 完了しました');
+            await sendCompletionMessages(character);
             
         } catch (error) {
             console.error('[タロットまとめ] エラー:', error);

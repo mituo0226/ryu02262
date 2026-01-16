@@ -17,3 +17,8 @@ desktop.ini
 # ログファイル
 *.log
 
+# Cloudflare Pages / Wrangler
+.wrangler/
+.wrangler/tmp/
+.wrangler/**/*
+
