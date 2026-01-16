@@ -1236,261 +1236,261 @@ const ChatInit = {
             
             try {
                 // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
-            let conversationHistory = [];
-            if (isGuest) {
-                conversationHistory = ChatData.getGuestHistory(character) || [];
-            } else {
-                conversationHistory = ChatData.conversationHistory?.recentMessages || [];
-                
-                // 守護神の儀式完了後、会話履歴に守護神確認メッセージが含まれているか確認
-                // 含まれていない場合は追加（APIが儀式完了を認識できるように）
-                const ritualCompleted = sessionStorage.getItem('ritualCompleted');
-                if (ritualCompleted === 'true') {
-                    const hasGuardianMessage = conversationHistory.some(msg => 
-                        msg.role === 'assistant' && msg.content && msg.content.includes('の守護神は')
-                    );
+                let conversationHistory = [];
+                if (isGuest) {
+                    conversationHistory = ChatData.getGuestHistory(character) || [];
+                } else {
+                    conversationHistory = ChatData.conversationHistory?.recentMessages || [];
                     
-                    if (!hasGuardianMessage) {
-                        // 【変更】localStorageから取得しない（データベースベースの判断）
-                        // 守護神情報はhistoryDataから取得
-                        const assignedDeity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || null;
-                        const userNickname = ChatData.userNickname || 'あなた';
+                    // 守護神の儀式完了後、会話履歴に守護神確認メッセージが含まれているか確認
+                    // 含まれていない場合は追加（APIが儀式完了を認識できるように）
+                    const ritualCompleted = sessionStorage.getItem('ritualCompleted');
+                    if (ritualCompleted === 'true') {
+                        const hasGuardianMessage = conversationHistory.some(msg => 
+                            msg.role === 'assistant' && msg.content && msg.content.includes('の守護神は')
+                        );
                         
-                        if (assignedDeity) {
-                            // 守護神名（データベースに日本語で保存されているのでそのまま使用）
-                            const guardianName = assignedDeity;
-                            const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                        if (!hasGuardianMessage) {
+                            // 【変更】localStorageから取得しない（データベースベースの判断）
+                            // 守護神情報はhistoryDataから取得
+                            const assignedDeity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || null;
+                            const userNickname = ChatData.userNickname || 'あなた';
                             
-                            conversationHistory.push({
-                                role: 'assistant',
-                                content: guardianConfirmationMessage
-                            });
-                            
-                            // ChatData.conversationHistoryも更新
-                            if (ChatData.conversationHistory) {
-                                if (!ChatData.conversationHistory.recentMessages) {
-                                    ChatData.conversationHistory.recentMessages = [];
-                                }
-                                ChatData.conversationHistory.recentMessages.push({
+                            if (assignedDeity) {
+                                // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+                                const guardianName = assignedDeity;
+                                const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+                                
+                                conversationHistory.push({
                                     role: 'assistant',
                                     content: guardianConfirmationMessage
                                 });
+                                
+                                // ChatData.conversationHistoryも更新
+                                if (ChatData.conversationHistory) {
+                                    if (!ChatData.conversationHistory.recentMessages) {
+                                        ChatData.conversationHistory.recentMessages = [];
+                                    }
+                                    ChatData.conversationHistory.recentMessages.push({
+                                        role: 'assistant',
+                                        content: guardianConfirmationMessage
+                                    });
+                                }
+                                
+                                console.log('[メッセージ送信] 守護神確認メッセージを会話履歴に追加しました（API送信前）');
                             }
-                            
-                            console.log('[メッセージ送信] 守護神確認メッセージを会話履歴に追加しました（API送信前）');
                         }
                     }
                 }
-            }
-            
-            // メッセージカウントを取得
-            // API側では guestMetadata.messageCount を「これまでのメッセージ数（今回送信するメッセージを含まない）」として扱い、
-            // 内部で +1 して計算するため、ここでは「これまでのメッセージ数」を送信する必要がある
-            let messageCountForAPI = 0;
-            if (isGuest) {
-                // 個別相談モードのチェック（ハンドラーに委譲）
-                const handler = CharacterRegistry.get(character);
-                const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
-                    ? handler.isConsultationMode() 
-                    : false;
                 
-                let currentCount;
-                if (isConsultationMode) {
-                    // 個別相談モードの場合、ハンドラーから専用のカウントを取得
-                    if (handler && typeof handler.getConsultationMessageCount === 'function') {
-                        currentCount = handler.getConsultationMessageCount();
-                        messageCountForAPI = currentCount;
-                        console.log('[個別相談] APIに送信するメッセージカウント:', {
-                            鑑定士: character,
-                            現在の個別相談カウント: currentCount,
-                            APIに送信する値: messageCountForAPI,
-                        });
+                // メッセージカウントを取得
+                // API側では guestMetadata.messageCount を「これまでのメッセージ数（今回送信するメッセージを含まない）」として扱い、
+                // 内部で +1 して計算するため、ここでは「これまでのメッセージ数」を送信する必要がある
+                let messageCountForAPI = 0;
+                if (isGuest) {
+                    // 個別相談モードのチェック（ハンドラーに委譲）
+                    const handler = CharacterRegistry.get(character);
+                    const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
+                        ? handler.isConsultationMode() 
+                        : false;
+                    
+                    let currentCount;
+                    if (isConsultationMode) {
+                        // 個別相談モードの場合、ハンドラーから専用のカウントを取得
+                        if (handler && typeof handler.getConsultationMessageCount === 'function') {
+                            currentCount = handler.getConsultationMessageCount();
+                            messageCountForAPI = currentCount;
+                            console.log('[個別相談] APIに送信するメッセージカウント:', {
+                                鑑定士: character,
+                                現在の個別相談カウント: currentCount,
+                                APIに送信する値: messageCountForAPI,
+                            });
+                        } else {
+                            // ハンドラーがgetConsultationMessageCountを実装していない場合は通常のカウントを使用
+                            currentCount = ChatData.getGuestMessageCount(character);
+                            if (handler && typeof handler.calculateMessageCount === 'function') {
+                                messageCountForAPI = handler.calculateMessageCount(currentCount);
+                            } else {
+                                messageCountForAPI = currentCount;
+                            }
+                        }
                     } else {
-                        // ハンドラーがgetConsultationMessageCountを実装していない場合は通常のカウントを使用
+                        // 通常のゲストメッセージカウントを使用
                         currentCount = ChatData.getGuestMessageCount(character);
+                        
+                        // メッセージカウントを計算（ハンドラーに委譲）
+                        // 注意: handlerは上で既に宣言されているため、再宣言しない
                         if (handler && typeof handler.calculateMessageCount === 'function') {
                             messageCountForAPI = handler.calculateMessageCount(currentCount);
                         } else {
+                            // ハンドラーがない場合はそのまま使用
                             messageCountForAPI = currentCount;
+                        }
+                        
+                        console.log('[メッセージ送信] APIに送信するメッセージカウント:', {
+                            鑑定士: character,
+                            送信メッセージ: messageToSend.substring(0, 50),
+                            タロット解説トリガー: isTarotExplanationTrigger,
+                            会話履歴のユーザーメッセージ数: currentCount,
+                            'メッセージカウント計算': 'ハンドラーで処理',
+                            APIに送信する値: messageCountForAPI,
+                            API側で計算される最終値: messageCountForAPI + 1
+                        });
+                    }
+                } else {
+                    // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
+                    messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
+                    
+                    // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
+                    // セッション最初のメッセージを記録（ハンドラーに委譲）
+                    if (!isTarotExplanationTrigger) {
+                        const handler = CharacterRegistry.get(character);
+                        if (handler && typeof handler.recordFirstMessageInSession === 'function') {
+                            handler.recordFirstMessageInSession(messageToSend);
+                        }
+                    }
+                }
+                
+                // APIリクエストのオプション
+                const options = {};
+                
+                // APIリクエストを送信
+                const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
+                
+                // 待機メッセージを削除
+                if (waitingMessageId) {
+                    const waitingElement = document.getElementById(waitingMessageId);
+                    if (waitingElement) {
+                        waitingElement.remove();
+                    }
+                }
+                
+                // 応答を処理
+                if (response.error) {
+                    const errorMessage = response.message || response.error || 'エラーが発生しました';
+                    console.error('[ChatEngine] APIエラー:', { error: response.error, message: response.message, fullResponse: response });
+                    ChatUI.addMessage('error', `エラーが発生しました: ${errorMessage}`, 'システム');
+                    if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+                    return;
+                }
+
+                // 汎用的なリダイレクト指示をチェック（特定のページへの依存を避ける）
+                if (response.redirect && response.redirectUrl) {
+                    console.log('[ChatEngine] リダイレクト指示を受信:', response.redirectUrl);
+                    window.location.href = response.redirectUrl;
+                    return;
+                }
+                
+                // 応答メッセージを表示
+                const characterName = ChatData.characterInfo[character]?.name || character;
+                const responseText = response.message || response.response || '応答を取得できませんでした';
+                
+                // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
+                let shouldShowUserMessage = !skipUserMessage;
+                if (!skipUserMessage) {
+                    const handler = CharacterRegistry.get(character);
+                    if (handler && typeof handler.shouldShowUserMessage === 'function') {
+                        shouldShowUserMessage = handler.shouldShowUserMessage(responseText, isGuest);
+                    }
+                }
+                
+                // ユーザーメッセージは既に送信時に表示済み（588行目付近）
+                // 「ニックネームと生年月日を入力」が含まれる場合は、表示されたユーザーメッセージを削除
+                if (!shouldShowUserMessage && !skipUserMessage) {
+                    // 最後のユーザーメッセージを削除
+                    const userMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+                    if (userMessages.length > 0) {
+                        const lastUserMessage = userMessages[userMessages.length - 1];
+                        const messageText = lastUserMessage.querySelector('div:last-child')?.textContent?.trim();
+                        if (messageText === messageToSend) {
+                            lastUserMessage.remove();
+                            console.log('[楓専用処理] ユーザーメッセージを削除しました:', messageToSend);
+                        }
+                    }
+                }
+                
+                const messageId = ChatUI.addMessage('character', responseText, characterName);
+                ChatUI.scrollToLatest();
+                
+                // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
+                if (character === 'yukino') {
+                    const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
+                    if (cardInfoStr) {
+                        try {
+                            const card = JSON.parse(cardInfoStr);
+                            console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
+                                position: card.position,
+                                name: card.name
+                            });
+                            
+                            // sessionStorageをクリア
+                            sessionStorage.removeItem('yukinoTarotCardForExplanation');
+                            
+                            // メッセージコンテナを取得
+                            const messagesDiv = document.getElementById('messages');
+                            if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
+                                // 少し待ってからボタンを表示（AI応答が完全に表示された後）
+                                setTimeout(() => {
+                                    window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
+                                }, 500);
+                            }
+                        } catch (error) {
+                            console.error('[タロットボタン表示] カード情報の解析エラー:', error);
+                        }
+                    }
+                }
+                
+                // 会話履歴を更新
+                if (isGuest) {
+                    ChatData.addToGuestHistory(character, 'assistant', responseText);
+                    const guestMessageCount = ChatData.getGuestMessageCount(character);
+                    
+                    // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
+                    const handler = CharacterRegistry.get(character);
+                    if (handler && typeof handler.handleResponse === 'function') {
+                        handlerProcessed = await handler.handleResponse(response, character);
+                        
+                        // ハンドラーで処理された場合は、以降の処理をスキップ
+                        if (handlerProcessed) {
+                            console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
+                            // 送信ボタンを再有効化はハンドラー側で行う
+                            return;
                         }
                     }
                 } else {
-                    // 通常のゲストメッセージカウントを使用
-                    currentCount = ChatData.getGuestMessageCount(character);
-                    
-                    // メッセージカウントを計算（ハンドラーに委譲）
-                    // 注意: handlerは1017行目で既に宣言されているため、再宣言しない
-                    if (handler && typeof handler.calculateMessageCount === 'function') {
-                        messageCountForAPI = handler.calculateMessageCount(currentCount);
-                    } else {
-                        // ハンドラーがない場合はそのまま使用
-                        messageCountForAPI = currentCount;
-                    }
-                    
-                    console.log('[メッセージ送信] APIに送信するメッセージカウント:', {
-                        鑑定士: character,
-                        送信メッセージ: messageToSend.substring(0, 50),
-                        タロット解説トリガー: isTarotExplanationTrigger,
-                        会話履歴のユーザーメッセージ数: currentCount,
-                        'メッセージカウント計算': 'ハンドラーで処理',
-                        APIに送信する値: messageCountForAPI,
-                        API側で計算される最終値: messageCountForAPI + 1
-                    });
+                    // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
+                    // 必要に応じて、会話履歴を再読み込み
                 }
-            } else {
-                // 登録ユーザーの場合、会話履歴から計算（今回送信するメッセージは含まれていない）
-                messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
                 
-                // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
-                // セッション最初のメッセージを記録（ハンドラーに委譲）
-                if (!isTarotExplanationTrigger) {
-                    const handler = CharacterRegistry.get(character);
-                    if (handler && typeof handler.recordFirstMessageInSession === 'function') {
-                        handler.recordFirstMessageInSession(messageToSend);
-                    }
-                }
-            }
-            
-            // APIリクエストのオプション
-            const options = {};
-            
-            // APIリクエストを送信
-            const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
-            
-            // 待機メッセージを削除
-            if (waitingMessageId) {
-                const waitingElement = document.getElementById(waitingMessageId);
-                if (waitingElement) {
-                    waitingElement.remove();
-                }
-            }
-            
-            // 応答を処理
-            if (response.error) {
-                const errorMessage = response.message || response.error || 'エラーが発生しました';
-                console.error('[ChatEngine] APIエラー:', { error: response.error, message: response.message, fullResponse: response });
-                ChatUI.addMessage('error', `エラーが発生しました: ${errorMessage}`, 'システム');
+                // 送信ボタンを再有効化
                 if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
-                return;
-            }
-
-            // 汎用的なリダイレクト指示をチェック（特定のページへの依存を避ける）
-            if (response.redirect && response.redirectUrl) {
-                console.log('[ChatEngine] リダイレクト指示を受信:', response.redirectUrl);
-                window.location.href = response.redirectUrl;
-                return;
-            }
-            
-            // 応答メッセージを表示
-            const characterName = ChatData.characterInfo[character]?.name || character;
-            const responseText = response.message || response.response || '応答を取得できませんでした';
-            
-            // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
-            let shouldShowUserMessage = !skipUserMessage;
-            if (!skipUserMessage) {
-                const handler = CharacterRegistry.get(character);
-                if (handler && typeof handler.shouldShowUserMessage === 'function') {
-                    shouldShowUserMessage = handler.shouldShowUserMessage(responseText, isGuest);
-                }
-            }
-            
-            // ユーザーメッセージは既に送信時に表示済み（588行目付近）
-            // 「ニックネームと生年月日を入力」が含まれる場合は、表示されたユーザーメッセージを削除
-            if (!shouldShowUserMessage && !skipUserMessage) {
-                // 最後のユーザーメッセージを削除
-                const userMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
-                if (userMessages.length > 0) {
-                    const lastUserMessage = userMessages[userMessages.length - 1];
-                    const messageText = lastUserMessage.querySelector('div:last-child')?.textContent?.trim();
-                    if (messageText === messageToSend) {
-                        lastUserMessage.remove();
-                        console.log('[楓専用処理] ユーザーメッセージを削除しました:', messageToSend);
-                    }
-                }
-            }
-            
-            const messageId = ChatUI.addMessage('character', responseText, characterName);
-            ChatUI.scrollToLatest();
-            
-            // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
-            if (character === 'yukino') {
-                const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
-                if (cardInfoStr) {
-                    try {
-                        const card = JSON.parse(cardInfoStr);
-                        console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
-                            position: card.position,
-                            name: card.name
-                        });
-                        
-                        // sessionStorageをクリア
-                        sessionStorage.removeItem('yukinoTarotCardForExplanation');
-                        
-                        // メッセージコンテナを取得
-                        const messagesDiv = document.getElementById('messages');
-                        if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
-                            // 少し待ってからボタンを表示（AI応答が完全に表示された後）
-                            setTimeout(() => {
-                                window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
-                            }, 500);
-                        }
-                    } catch (error) {
-                        console.error('[タロットボタン表示] カード情報の解析エラー:', error);
-                    }
-                }
-            }
-            
-            // 会話履歴を更新
-            if (isGuest) {
-                ChatData.addToGuestHistory(character, 'assistant', responseText);
-                const guestMessageCount = ChatData.getGuestMessageCount(character);
                 
-                // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
-                const handler = CharacterRegistry.get(character);
-                if (handler && typeof handler.handleResponse === 'function') {
-                    handlerProcessed = await handler.handleResponse(response, character);
-                    
-                    // ハンドラーで処理された場合は、以降の処理をスキップ
-                    if (handlerProcessed) {
-                        console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
-                        // 送信ボタンを再有効化はハンドラー側で行う
-                        return;
+                // 管理者モードの分析パネルを更新
+                if (typeof window.updateAdminAnalysisPanel === 'function') {
+                    setTimeout(() => {
+                        window.updateAdminAnalysisPanel();
+                    }, 300);
+                } else {
+                    document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
+                }
+                
+            } catch (error) {
+                console.error('メッセージ送信エラー:', error);
+                
+                // 待機メッセージを削除
+                if (waitingMessageId) {
+                    const waitingElement = document.getElementById(waitingMessageId);
+                    if (waitingElement) {
+                        waitingElement.remove();
                     }
                 }
-            } else {
-                // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
-                // 必要に応じて、会話履歴を再読み込み
+                
+                ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
+                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+            } finally {
+                // 送信中フラグをリセット
+                this._sendingMessage = false;
             }
-            
-            // 送信ボタンを再有効化
-            if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
-            
-            // 管理者モードの分析パネルを更新
-            if (typeof window.updateAdminAnalysisPanel === 'function') {
-                setTimeout(() => {
-                    window.updateAdminAnalysisPanel();
-                }, 300);
-            } else {
-                document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
-            }
-            
-        } catch (error) {
-            console.error('メッセージ送信エラー:', error);
-            
-            // 待機メッセージを削除
-            if (waitingMessageId) {
-                const waitingElement = document.getElementById(waitingMessageId);
-                if (waitingElement) {
-                    waitingElement.remove();
-                }
-            }
-            
-            ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
-            if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
-        } finally {
-            // 送信中フラグをリセット
-            this._sendingMessage = false;
-        }
     },
 
     /**
