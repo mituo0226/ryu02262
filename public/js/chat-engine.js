@@ -1038,6 +1038,16 @@ const ChatInit = {
             return;
         }
         
+        // 【デバッグ】sendMessageの呼び出しを追跡
+        const callStack = new Error().stack;
+        console.log('[メッセージ送信] sendMessage呼び出し:', {
+            message: message.substring(0, 50),
+            character,
+            skipUserMessage,
+            skipAnimation,
+            callStack: callStack?.split('\n').slice(0, 5).join(' | ')
+        });
+        
         // 【変更】isGuestをhistoryDataの存在で判定（データベースベースの判断）
         // 会話履歴から最新のユーザー情報を取得して判定
         // ただし、メッセージ送信時には既に初期化が完了しているため、ChatDataから取得可能
@@ -1166,9 +1176,22 @@ const ChatInit = {
         // 【重要】ユーザーメッセージを送信時点で即座に表示（ユーザーが送信を確認できるように）
         // タロットカード解説トリガーマーカーの場合は表示しない
         if (!skipUserMessage && !isTarotExplanationTrigger) {
-            ChatUI.addMessage('user', messageToSend, 'あなた');
-            await this.delay(100);
-            ChatUI.scrollToLatest();
+            // 【デバッグ】既に同じメッセージが表示されているかチェック
+            const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
+            const messageTexts = Array.from(existingUserMessages).map(msg => {
+                const textDiv = msg.querySelector('div:last-child');
+                return textDiv ? textDiv.textContent.trim() : '';
+            });
+            const messageExists = messageTexts.some(text => text.trim() === messageToSend.trim());
+            
+            if (messageExists) {
+                console.warn('[メッセージ送信] ⚠️ 既に同じユーザーメッセージが表示されています。重複追加をスキップします:', messageToSend.substring(0, 50));
+            } else {
+                console.log('[メッセージ送信] ユーザーメッセージを画面に追加:', messageToSend.substring(0, 50));
+                ChatUI.addMessage('user', messageToSend, 'あなた');
+                await this.delay(100);
+                ChatUI.scrollToLatest();
+            }
         }
         
         ChatUI.messageInput.value = '';
@@ -1464,11 +1487,34 @@ const ChatInit = {
         const consultResponse = sessionStorage.getItem('lastConsultResponse');
         const consultError = sessionStorage.getItem('lastConsultError');
         
+        // 【デバッグ】handleReturnFromAnimationの呼び出しを追跡
+        const callStack = new Error().stack;
+        console.log('[handleReturnFromAnimation] 関数呼び出し:', {
+            hasLastUserMessage: !!lastUserMessage,
+            hasConsultResponse: !!consultResponse,
+            hasConsultError: !!consultError,
+            callStack: callStack?.split('\n').slice(0, 5).join(' | ')
+        });
+        
         // 【重要】守護神の儀式完了後（guardianMessageShownフラグが設定されている場合）は、lastUserMessageを表示しない
         const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
-        if (guardianMessageShown && lastUserMessage) {
-            console.log('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを表示しません。');
+        const ritualCompleted = sessionStorage.getItem('ritualCompleted') === 'true';
+        
+        console.log('[handleReturnFromAnimation] フラグ確認:', {
+            guardianMessageShown,
+            ritualCompleted,
+            hasLastUserMessage: !!lastUserMessage
+        });
+        
+        // 【修正】守護神の儀式完了直後（ritualCompletedまたはguardianMessageShown）の場合は、lastUserMessageを完全に無視
+        if ((guardianMessageShown || ritualCompleted) && lastUserMessage) {
+            console.log('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを表示しません。', {
+                guardianMessageShown,
+                ritualCompleted,
+                lastUserMessage: lastUserMessage.substring(0, 50)
+            });
             sessionStorage.removeItem('lastUserMessage');
+            // ここでreturnしない（consultResponseの処理を続行するため）
         }
 
         if (consultError) {
@@ -1478,7 +1524,15 @@ const ChatInit = {
             return;
         }
 
-        if (lastUserMessage && !guardianMessageShown) {
+        // 【重要】guardianMessageShownまたはritualCompletedが設定されている場合、lastUserMessageは完全に無視
+        // （上で既に削除済みだが、念のため再度チェック）
+        if (lastUserMessage && (guardianMessageShown || ritualCompleted)) {
+            console.log('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを完全に無視します（2回目のチェック）');
+            sessionStorage.removeItem('lastUserMessage');
+            lastUserMessage = null; // 後続の処理で使用されないようにする
+        }
+        
+        if (lastUserMessage && !guardianMessageShown && !ritualCompleted) {
             try {
                 const userMsgData = JSON.parse(lastUserMessage);
                 const messageToCheck = userMsgData.message.trim();
@@ -1493,29 +1547,7 @@ const ChatInit = {
                     return;
                 }
                 
-                // 【重要】守護神の儀式完了直後の最初の会話では、lastUserMessageを表示しない
-                // sendMessage関数で既にユーザーメッセージが表示されているため、重複を防ぐ
-                const ritualJustCompleted = sessionStorage.getItem('ritualCompleted') === 'true';
-                const guardianJustShown = sessionStorage.getItem('guardianMessageShown') === 'true';
-                
-                // 守護神の儀式完了直後（ritualCompletedまたはguardianMessageShownが設定されている）の場合、
-                // かつ、既にユーザーメッセージが表示されている場合は、lastUserMessageを表示しない
-                if (ritualJustCompleted || guardianJustShown) {
-                    const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
-                    const messageTexts = Array.from(existingUserMessages).map(msg => {
-                        const textDiv = msg.querySelector('div:last-child');
-                        return textDiv ? textDiv.textContent.trim() : '';
-                    });
-                    
-                    const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
-                    
-                    if (messageExists) {
-                        console.log('[handleReturnFromAnimation] 守護神の儀式完了直後で、既にユーザーメッセージが表示されているため、lastUserMessageをスキップします');
-                        sessionStorage.removeItem('lastUserMessage');
-                        return;
-                    }
-                }
-                
+                // 既に同じメッセージが表示されているかチェック（重複防止）
                 const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
                 const messageTexts = Array.from(existingUserMessages).map(msg => {
                     const textDiv = msg.querySelector('div:last-child');
@@ -1525,14 +1557,18 @@ const ChatInit = {
                 const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
                 
                 if (!messageExists) {
+                    console.log('[handleReturnFromAnimation] lastUserMessageからユーザーメッセージを表示:', messageToCheck.substring(0, 50));
                     ChatUI.addMessage('user', userMsgData.message, 'あなた');
                     if (ChatUI.messageInput) ChatUI.messageInput.blur();
                     setTimeout(() => ChatUI.scrollToLatest(), 200);
+                } else {
+                    console.log('[handleReturnFromAnimation] 既に同じメッセージが表示されているため、スキップします:', messageToCheck.substring(0, 50));
                 }
                 
                 sessionStorage.removeItem('lastUserMessage');
             } catch (error) {
                 console.error('Error parsing user message:', error);
+                sessionStorage.removeItem('lastUserMessage');
             }
         }
 
