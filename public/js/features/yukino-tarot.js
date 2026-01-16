@@ -181,18 +181,41 @@
         } 
         // メッセージが配列の場合（動的メッセージ）
         else if (Array.isArray(message) && message.length > 0) {
+            // 最初のメッセージを即座に表示（delayが0の場合）
+            const firstMessage = message[0];
+            const firstMessageText = typeof firstMessage === 'string' ? firstMessage : (firstMessage?.text || '');
+            const firstDelay = typeof firstMessage === 'object' && firstMessage.delay !== undefined ? firstMessage.delay : 0;
+            
+            // 最初のメッセージを即座に表示
+            if (firstDelay === 0) {
+                const loadingDotsHtml = '<span style="display: inline-block; margin-left: 8px;"><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span></span>';
+                textElement.innerHTML = firstMessageText + loadingDotsHtml;
+                textElement.style.opacity = '1';
+                textElement.style.transition = 'none'; // 最初の表示は即座に
+            }
+            
             let currentIndex = 0;
             const showMessage = (index) => {
                 if (index >= message.length || !textElement) return;
                 const messageItem = message[index];
-                const messageText = typeof messageItem === 'string' ? messageItem : messageItem.text;
-                const delay = typeof messageItem === 'object' && messageItem.delay ? messageItem.delay : (index === 0 ? startDelay : 4000);
+                const messageText = typeof messageItem === 'string' ? messageItem : (messageItem?.text || '');
+                const delay = typeof messageItem === 'object' && messageItem.delay !== undefined ? messageItem.delay : (index === 0 ? startDelay : 4000);
+                
+                // 最初のメッセージは既に表示済みなのでスキップ
+                if (index === 0 && firstDelay === 0) {
+                    if (message.length > 1) {
+                        showMessage(1);
+                    }
+                    return;
+                }
                 
                 const timeoutId = setTimeout(() => {
                     textElement.style.opacity = '0';
+                    textElement.style.transition = 'opacity 0.3s ease-out';
                     setTimeout(() => {
                         const loadingDotsHtml = '<span style="display: inline-block; margin-left: 8px;"><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span></span>';
                         textElement.innerHTML = messageText + loadingDotsHtml;
+                        textElement.style.transition = 'opacity 0.3s ease-in';
                         setTimeout(() => {
                             textElement.style.opacity = '1';
                         }, 10);
@@ -203,7 +226,14 @@
                 }, delay);
                 overlay._loadingTimeouts.push(timeoutId);
             };
-            showMessage(0);
+            
+            // 最初のメッセージがdelay=0でない場合のみ、showMessage(0)を呼ぶ
+            if (firstDelay !== 0) {
+                showMessage(0);
+            } else if (message.length > 1) {
+                // 最初のメッセージは既に表示済み、次のメッセージから開始
+                showMessage(1);
+            }
         } else {
             // その他の場合（オブジェクトなど）は文字列に変換
             const defaultMessage = typeof message === 'object' && message !== null ? JSON.stringify(message) : String(message);
