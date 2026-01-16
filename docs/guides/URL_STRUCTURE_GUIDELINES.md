@@ -23,70 +23,120 @@
 
 ### 3. 待機画面への遷移
 
-#### 正しい実装例
-```javascript
-// 現在のURLからuserIdを取得
-const currentUrlObj = new URL(window.location.href);
-const currentUserId = currentUrlObj.searchParams.get('userId');
-let returnUrl = window.location.pathname + window.location.search;
+#### 重要な原則
+- **待機画面（`tarot-waiting.html`）は単なる表示用ページ**
+- **全ての処理はハンドラー側で行う**
+- **ハンドラー側でペイロードを準備し、`sessionStorage`に保存**
 
-// userIdがURLに含まれていない場合、AuthStateから取得
-if (!currentUserId && window.AuthState && typeof window.AuthState.getUserId === 'function') {
-    const authUserId = window.AuthState.getUserId();
-    if (authUserId) {
-        const separator = returnUrl.includes('?') ? '&' : '?';
-        returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(authUserId))}`;
+#### 正しい実装例（ハンドラー側）
+```javascript
+// ハンドラー側（chat-engine.js、yukino-tarot.jsなど）でペイロードを準備
+let conversationHistory = [];
+if (isGuest) {
+    conversationHistory = ChatData.getGuestHistory(character) || [];
+} else {
+    conversationHistory = ChatData.conversationHistory?.recentMessages || [];
+}
+
+const clientHistory = conversationHistory.map(entry => ({
+    role: entry.role || 'user',
+    content: entry.content || entry.message || ''
+}));
+
+// ユーザー情報を取得
+const urlParams = new URLSearchParams(window.location.search);
+let userId = null;
+const userIdParam = urlParams.get('userId');
+if (userIdParam) {
+    userId = Number(userIdParam);
+    if (!Number.isFinite(userId) || userId <= 0) {
+        userId = null;
     }
 }
 
-const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(message)}`;
+if (!userId && ChatData?.conversationHistory?.userId) {
+    userId = ChatData.conversationHistory.userId;
+}
+
+// ペイロードを作成
+const payload = {
+    message: messageToSend,
+    character: character,
+    clientHistory: clientHistory,
+    userId: userId || undefined
+};
+
+// ゲストメタデータを追加（必要な場合）
+if (isGuest && ChatData.getGuestMessageCount) {
+    const messageCount = ChatData.getGuestMessageCount(character);
+    payload.guestMetadata = { messageCount: messageCount };
+}
+
+// ペイロードをsessionStorageに保存（待機画面で使用）
+sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));
+
+// returnUrlにuserIdを確実に含める
+let returnUrl = window.location.pathname + window.location.search;
+if (userId && !userIdParam) {
+    const separator = returnUrl.includes('?') ? '&' : '?';
+    returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(userId))}`;
+}
+
+const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(messageToSend)}`;
 ```
 
 #### 間違った実装例（禁止）
 ```javascript
+// ❌ 待機画面でユーザー情報を取得しようとする
+// tarot-waiting.htmlでnickname、birthYearなどを取得
+
+// ❌ 待機画面でメッセージカウントを計算する
+// tarot-waiting.htmlでguestMessageCountを取得
+
 // ❌ 個人情報をURLに含める
-const waitingUrl = `tarot-waiting.html?character=${character}&nickname=${nickname}&birthYear=${birthYear}&birthMonth=${birthMonth}&birthDay=${birthDay}&message=${message}`;
+const waitingUrl = `tarot-waiting.html?character=${character}&nickname=${nickname}&birthYear=${birthYear}...`;
 
 // ❌ 現在のURLをそのまま使用（userIdが含まれていない可能性がある）
-const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(window.location.href)}&message=${message}`;
+const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(window.location.href)}...`;
 ```
 
-### 4. 待機画面からの復帰
+### 4. 待機画面の実装
 
-#### 正しい実装例
+#### 正しい実装（待機画面側）
 ```javascript
-// returnUrlからuserIdを抽出
-let userIdFromReturn = null;
-try {
-    const returnUrlObj = new URL(returnUrl, window.location.origin);
-    userIdFromReturn = returnUrlObj.searchParams.get('userId');
-} catch (e) {
-    // 相対URLの場合は、現在のURLからuserIdを取得
-    const currentUrlParams = new URLSearchParams(window.location.search);
-    userIdFromReturn = currentUrlParams.get('userId');
-}
+// tarot-waiting.html - 最小限の実装
 
-// returnUrlにuserIdが含まれていない場合、sessionStorageやAuthStateから取得
-if (!userIdFromReturn) {
-    if (window.AuthState && typeof window.AuthState.getUserId === 'function') {
-        const authUserId = window.AuthState.getUserId();
-        if (authUserId) {
-            userIdFromReturn = String(authUserId);
+// URLパラメータから取得（最小限の情報のみ）
+const urlParams = new URLSearchParams(window.location.search);
+const character = urlParams.get('character') || 'yukino';
+const returnUrl = urlParams.get('return') || '../chat/chat.html';
+const message = urlParams.get('message') ? decodeURIComponent(urlParams.get('message')) : '';
+
+// API呼び出し
+function startApiCall() {
+    // ハンドラー側で準備されたペイロードを取得
+    let payloadStr = sessionStorage.getItem('tarotWaitingPayload');
+    let payload;
+    
+    if (payloadStr) {
+        try {
+            payload = JSON.parse(payloadStr);
+            sessionStorage.removeItem('tarotWaitingPayload');
+        } catch (e) {
+            // フォールバック：最小限のペイロード
+            payload = { message, character };
         }
+    } else {
+        // ハンドラーがペイロードを準備していない場合
+        payload = { message, character };
     }
-}
-
-// returnUrlにuserIdを確実に含める
-if (userIdFromReturn) {
-    try {
-        const returnUrlObj = new URL(returnUrl, window.location.origin);
-        returnUrlObj.searchParams.set('userId', userIdFromReturn);
-        returnUrl = returnUrlObj.pathname + returnUrlObj.search;
-    } catch (e) {
-        // 相対URLの場合は、手動で追加
-        const separator = returnUrl.includes('?') ? '&' : '?';
-        returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(userIdFromReturn)}`;
-    }
+    
+    // APIに送信
+    fetch('/api/consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(/* ... */);
 }
 ```
 
@@ -99,6 +149,9 @@ if (userIdFromReturn) {
 - [ ] 待機画面への遷移時に`userId`が適切に引き継がれているか
 - [ ] 待機画面から戻る際に`userId`が確実に含まれているか
 - [ ] `AuthState.getUserId()`を使用して`userId`を取得しているか
+- [ ] 待機画面（`tarot-waiting.html`）でユーザー情報を取得しようとしていないか
+- [ ] 待機画面への遷移前に、ハンドラー側でペイロードを準備しているか
+- [ ] 待機画面は`sessionStorage`からペイロードを取得するだけになっているか
 
 ## 関連ファイル
 
