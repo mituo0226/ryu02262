@@ -1030,22 +1030,25 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // 楓の完全版プロンプトは長いため、maxTokensを増やす
     const maxTokensForCharacter = characterId === 'kaede' ? 2000 : 800;
+    const temperatureForCharacter = characterId === 'kaede' ? 0.7 : 0.5; // 楓の完全版では少し高い温度で神秘性を出す
+    const topPForCharacter = characterId === 'kaede' ? 0.9 : 0.8;
     
     console.log('[consult] LLM API呼び出し準備:', {
       characterId,
       systemPromptLength: systemPrompt.length,
       conversationHistoryLength: conversationHistory.length,
       maxTokens: maxTokensForCharacter,
-      temperature: 0.5,
+      temperature: temperatureForCharacter,
+      topP: topPForCharacter,
     });
     
     const llmResult = await getLLMResponse({
       systemPrompt,
       conversationHistory,
       userMessage: trimmedMessage,
-      temperature: 0.7, // 楓の完全版では少し高い温度で神秘性を出す
+      temperature: temperatureForCharacter,
       maxTokens: maxTokensForCharacter,
-      topP: 0.9,
+      topP: topPForCharacter,
       deepseekApiKey: apiKey,
       fallbackApiKey,
       fallbackModel,
