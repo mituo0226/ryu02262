@@ -54,6 +54,71 @@
         }
 
         /* ============================================
+           守護神のメッセージ待機中のローディングアニメーション
+           ============================================ */
+        @keyframes guardian-breathe {
+            0%, 100% {
+                transform: scale(0.9);
+                opacity: 0.75;
+                box-shadow: 
+                    0 0 12px rgba(138, 43, 226, 0.4),
+                    inset 0 0 12px rgba(138, 43, 226, 0.6);
+            }
+            50% {
+                transform: scale(1.08);
+                opacity: 1;
+                box-shadow: 
+                    0 0 24px rgba(255, 215, 0, 0.8),
+                    0 0 40px rgba(138, 43, 226, 0.6),
+                    inset 0 0 20px rgba(255, 215, 0, 0.4);
+            }
+        }
+
+        @keyframes guardian-mystic-glow-text {
+            0%, 100% {
+                text-shadow: 
+                    0 0 10px rgba(255, 215, 0, 0.8),
+                    0 0 20px rgba(138, 43, 226, 0.6),
+                    0 0 30px rgba(255, 107, 157, 0.4);
+                opacity: 0.85;
+            }
+            50% {
+                text-shadow: 
+                    0 0 20px rgba(255, 215, 0, 1),
+                    0 0 40px rgba(138, 43, 226, 0.9),
+                    0 0 60px rgba(255, 107, 157, 0.7),
+                    0 0 80px rgba(196, 69, 105, 0.5);
+                opacity: 1;
+                color: #ffed4e;
+            }
+        }
+
+        @keyframes guardian-mystic-shimmer {
+            0%, 100% {
+                color: #ffd700;
+            }
+            33% {
+                color: #ff6b9d;
+            }
+            66% {
+                color: #c44569;
+            }
+        }
+
+        .message.loading-message {
+            animation: guardian-mystic-float-message 4s ease-in-out infinite;
+        }
+
+        @keyframes guardian-mystic-float-message {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* ============================================
            待機画面（データベース接続中）
            ============================================ */
         .waiting-overlay {

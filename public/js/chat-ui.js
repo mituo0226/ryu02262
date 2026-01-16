@@ -191,6 +191,33 @@ const ChatUI = {
             messageDiv.style.boxShadow = 'none';
         }
 
+        // loadingタイプのメッセージの特別な処理
+        if (type === 'loading') {
+            messageDiv.className = 'message loading-message';
+            messageDiv.style.background = 'rgba(75, 0, 130, 0.95)';
+            messageDiv.style.color = '#ffd700';
+            messageDiv.style.border = 'none';
+            messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
+            messageDiv.style.position = 'relative';
+            messageDiv.style.overflow = 'visible';
+            
+            // ローディングアイコンを追加
+            const loadingIcon = document.createElement('div');
+            loadingIcon.className = 'guardian-loading-icon';
+            loadingIcon.style.cssText = `
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: 2px solid rgba(255, 215, 0, 0.6);
+                box-shadow: 
+                    0 0 12px rgba(138, 43, 226, 0.4),
+                    inset 0 0 12px rgba(138, 43, 226, 0.6);
+                animation: guardian-breathe 1.8s ease-in-out infinite;
+                margin: 0 auto 12px;
+            `;
+            messageDiv.appendChild(loadingIcon);
+        }
+
         if (sender) {
             const headerDiv = document.createElement('div');
             headerDiv.className = 'message-header';
@@ -198,6 +225,10 @@ const ChatUI = {
             
             if (type === 'character') {
                 headerDiv.style.color = 'rgba(255, 255, 255, 0.9)';
+            }
+            else if (type === 'loading') {
+                headerDiv.style.color = '#ffd700';
+                headerDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6)';
             }
             else if (type === 'user') {
                 headerDiv.style.color = '#b794ff';
@@ -217,6 +248,18 @@ const ChatUI = {
         
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
+        if (type === 'loading') {
+            textDiv.style.cssText = `
+                color: #ffd700;
+                text-shadow: 
+                    0 0 10px rgba(255, 215, 0, 0.8),
+                    0 0 20px rgba(138, 43, 226, 0.6),
+                    0 0 30px rgba(255, 107, 157, 0.4);
+                animation: guardian-mystic-glow-text 3s ease-in-out infinite;
+                text-align: center;
+                line-height: 1.8;
+            `;
+        }
         textDiv.textContent = displayText;
         messageDiv.appendChild(textDiv);
 

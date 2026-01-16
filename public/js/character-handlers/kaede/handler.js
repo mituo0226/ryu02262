@@ -482,7 +482,8 @@ const KaedeHandler = {
         if (!kaedeMessage) {
             // 待機中の表示を出す（ユーザーを安心させる）
             const characterName = ChatData.characterInfo[character]?.name || '楓';
-            const waitingMessageId = ChatUI.addMessage('loading', '守護神の言葉を受けて、あなたの心の状態を読み取っています。もう少しお待ちください...', characterName);
+            const waitingMessageText = `守護神${guardianConfirmationData.guardianName}の言葉を呼び出していますので、お待ちください...\nあなたの心の状態を読み取っています。`;
+            const waitingMessageId = ChatUI.addMessage('loading', waitingMessageText, characterName);
             
             try {
                 // まず守護神のメッセージを内部で生成（楓のメッセージ生成のコンテキストとして使用）
