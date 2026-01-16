@@ -1234,8 +1234,7 @@ const ChatInit = {
             // 待機メッセージを表示
             const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', 'システム');
             
-            try {
-                // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
+            // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
                 let conversationHistory = [];
                 if (isGuest) {
                     conversationHistory = ChatData.getGuestHistory(character) || [];
@@ -1474,23 +1473,23 @@ const ChatInit = {
                     document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
                 }
                 
-            } catch (error) {
-                console.error('メッセージ送信エラー:', error);
+        } catch (error) {
+            console.error('メッセージ送信エラー:', error);
                 
-                // 待機メッセージを削除
-                if (waitingMessageId) {
-                    const waitingElement = document.getElementById(waitingMessageId);
-                    if (waitingElement) {
-                        waitingElement.remove();
-                    }
+            // 待機メッセージを削除
+            if (waitingMessageId) {
+                const waitingElement = document.getElementById(waitingMessageId);
+                if (waitingElement) {
+                    waitingElement.remove();
                 }
-                
-                ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
-                if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
-            } finally {
-                // 送信中フラグをリセット
-                this._sendingMessage = false;
             }
+            
+            ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
+            if (ChatUI.sendButton) ChatUI.sendButton.disabled = false;
+        } finally {
+            // 送信中フラグをリセット
+            this._sendingMessage = false;
+        }
     },
 
     /**
