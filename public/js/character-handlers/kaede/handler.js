@@ -464,12 +464,24 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         console.log('[楓専用処理] 送信ボタンの状態を更新しました（文字入力時に表示されます）');
 
         // 【重要】入力イベントリスナーを常に再設定（守護神の儀式完了後は確実に動作させるため）
-        // 注意: 複数のリスナーが追加される可能性があるが、同じ処理を実行するだけなので問題ない
+        // 【修正】既存のリスナーを削除してから追加することで、重複実行を防ぐ
         if (ChatUI.messageInput) {
-            // Enterキーのイベントリスナーを追加（chat-engine.jsで既に設定されている可能性があるが、念のため再設定）
+            // 既存のリスナーを削除するため、cloneして置き換える（リスナーは削除される）
+            const oldInput = ChatUI.messageInput;
+            const newInput = oldInput.cloneNode(true);
+            oldInput.parentNode.replaceChild(newInput, oldInput);
+            ChatUI.messageInput = newInput;
+            
+            // Enterキーのイベントリスナーを追加
             ChatUI.messageInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
+                    // 【デバッグ】重複実行を防ぐためのチェック
+                    if (ChatUI.messageInput && ChatUI.messageInput.disabled) {
+                        console.log('[楓専用処理] メッセージ入力欄が無効化されているため、送信をスキップします');
+                        return;
+                    }
+                    console.log('[楓専用処理] Enterキーが押されました。sendMessageを呼び出します');
                     window.sendMessage();
                 }
             });
