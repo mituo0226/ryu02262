@@ -435,9 +435,68 @@
             
             console.log('[タロット解説] 待機画面に遷移:', { character, cardName: card.name, position: card.position });
             
-            // 待機画面に遷移（chat-engine.jsと同じ処理）
-            const currentUrl = window.location.href;
-            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(currentUrl)}&message=${encodeURIComponent(message)}`;
+            // ハンドラー側でペイロードを準備（ChatAPI.sendMessageと同じロジック）
+            let conversationHistory = [];
+            if (window.ChatData) {
+                const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
+                if (isGuest) {
+                    conversationHistory = window.ChatData.getGuestHistory ? window.ChatData.getGuestHistory(character) || [] : [];
+                } else {
+                    conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
+                }
+            }
+            
+            // 会話履歴の形式を変換
+            const clientHistory = conversationHistory.map(entry => {
+                if (typeof entry === 'string') {
+                    return { role: 'user', content: entry };
+                }
+                return {
+                    role: entry.role || 'user',
+                    content: entry.content || entry.message || ''
+                };
+            });
+            
+            // ユーザー情報を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            let userId = null;
+            const userIdParam = urlParams.get('userId');
+            if (userIdParam) {
+                userId = Number(userIdParam);
+                if (!Number.isFinite(userId) || userId <= 0) {
+                    userId = null;
+                }
+            }
+            
+            if (!userId && window.ChatData && window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId) {
+                userId = window.ChatData.conversationHistory.userId;
+            }
+            
+            // ペイロードを作成
+            const payload = {
+                message: message,
+                character: character,
+                clientHistory: clientHistory,
+                userId: userId || undefined
+            };
+            
+            // ゲストメタデータを追加（必要な場合）
+            if (window.ChatData && window.ChatData.getGuestMessageCount) {
+                const messageCount = window.ChatData.getGuestMessageCount(character);
+                payload.guestMetadata = { messageCount: messageCount };
+            }
+            
+            // ペイロードをsessionStorageに保存（待機画面で使用）
+            sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));
+            
+            // 待機画面に遷移
+            let returnUrl = window.location.pathname + window.location.search;
+            if (userId && !userIdParam) {
+                const separator = returnUrl.includes('?') ? '&' : '?';
+                returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(userId))}`;
+            }
+            
+            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(message)}`;
             
             // カード情報をsessionStorageに保存（待機画面から戻った時に使用）
             sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify({
