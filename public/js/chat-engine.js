@@ -1059,18 +1059,17 @@ const ChatInit = {
         
         // エラー時にもフラグをリセットするためにtry-finallyを使用
         try {
-        
-        // 【変更】isGuestをhistoryDataの存在で判定（データベースベースの判断）
-        // 会話履歴から最新のユーザー情報を取得して判定
-        // ただし、メッセージ送信時には既に初期化が完了しているため、ChatDataから取得可能
-        const historyData = ChatData.conversationHistory;
-        const isGuest = !(historyData && historyData.nickname);
-        
-        // タロットカード解説トリガーマーカーを検出
-        const isTarotExplanationTrigger = message.includes('[TAROT_EXPLANATION_TRIGGER:');
-        
-        // メッセージ送信ボタンを押した時点で、即座にカウントを開始
-        if (isGuest && !isTarotExplanationTrigger) {
+            // 【変更】isGuestをhistoryDataの存在で判定（データベースベースの判断）
+            // 会話履歴から最新のユーザー情報を取得して判定
+            // ただし、メッセージ送信時には既に初期化が完了しているため、ChatDataから取得可能
+            const historyData = ChatData.conversationHistory;
+            const isGuest = !(historyData && historyData.nickname);
+            
+            // タロットカード解説トリガーマーカーを検出
+            const isTarotExplanationTrigger = message.includes('[TAROT_EXPLANATION_TRIGGER:');
+            
+            // メッセージ送信ボタンを押した時点で、即座にカウントを開始
+            if (isGuest && !isTarotExplanationTrigger) {
             // 個別相談モードのチェック（ハンドラーに委譲）
             const handler = CharacterRegistry.get(character);
             const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
@@ -1178,16 +1177,16 @@ const ChatInit = {
                         document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
                     }
             
-            ChatUI.updateUserStatus(false);
-        }
+                ChatUI.updateUserStatus(false);
+            }
 
-        // ユーザーメッセージの追加は、API応答を確認してから行う（楓の場合の条件分岐のため）
-        // ただし、会話履歴には先に追加する必要がある（APIが認識できるように）
-        const messageToSend = message;
-        
-        // 【重要】ユーザーメッセージを送信時点で即座に表示（ユーザーが送信を確認できるように）
-        // タロットカード解説トリガーマーカーの場合は表示しない
-        if (!skipUserMessage && !isTarotExplanationTrigger) {
+            // ユーザーメッセージの追加は、API応答を確認してから行う（楓の場合の条件分岐のため）
+            // ただし、会話履歴には先に追加する必要がある（APIが認識できるように）
+            const messageToSend = message;
+            
+            // 【重要】ユーザーメッセージを送信時点で即座に表示（ユーザーが送信を確認できるように）
+            // タロットカード解説トリガーマーカーの場合は表示しない
+            if (!skipUserMessage && !isTarotExplanationTrigger) {
             // 【デバッグ】既に同じメッセージが表示されているかチェック
             const existingUserMessages = ChatUI.messagesDiv.querySelectorAll('.message.user');
             const messageTexts = Array.from(existingUserMessages).map(msg => {
@@ -1204,14 +1203,14 @@ const ChatInit = {
                 await this.delay(100);
                 ChatUI.scrollToLatest();
             }
-        }
-        
-        ChatUI.messageInput.value = '';
-        ChatUI.updateSendButtonVisibility();
-        // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
-        
-        // タロットカード解説トリガーマーカーの場合は、sessionStorageに保存しない
-        if (!skipUserMessage && !isTarotExplanationTrigger) {
+            }
+            
+            ChatUI.messageInput.value = '';
+            ChatUI.updateSendButtonVisibility();
+            // 注意：updateSendButtonVisibility()内でdisabledが設定されるため、ここでの設定は不要
+            
+            // タロットカード解説トリガーマーカーの場合は、sessionStorageに保存しない
+            if (!skipUserMessage && !isTarotExplanationTrigger) {
             // メッセージカウントを取得（既にゲストユーザーの場合は上で取得済み）
             let messageCount = 0;
             if (isGuest) {
@@ -1228,14 +1227,14 @@ const ChatInit = {
                 timestamp: new Date().toISOString(),
                 messageCount: messageCount // メッセージカウントも含める
             };
-            sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
-        }
-        
-        // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
-        // 待機メッセージを表示
-        const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', 'システム');
-        
-        try {
+                sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
+            }
+            
+            // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
+            // 待機メッセージを表示
+            const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', 'システム');
+            
+            try {
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
             let conversationHistory = [];
             if (isGuest) {
