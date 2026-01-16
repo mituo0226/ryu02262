@@ -183,6 +183,11 @@
         } 
         // メッセージが配列の場合（動的メッセージ）
         else if (Array.isArray(message) && message.length > 0) {
+            // overlay._loadingTimeoutsを確実に初期化（配列処理の前に必須）
+            if (!overlay._loadingTimeouts || !Array.isArray(overlay._loadingTimeouts)) {
+                overlay._loadingTimeouts = [];
+            }
+            
             // 最初のメッセージを即座に表示（delayが0の場合）
             const firstMessage = message[0];
             const firstMessageText = typeof firstMessage === 'string' ? firstMessage : (firstMessage?.text || '');
@@ -198,7 +203,13 @@
             
             let currentIndex = 0;
             const showMessage = (index) => {
-                if (index >= message.length || !textElement) return;
+                if (index >= message.length || !textElement || !overlay) return;
+                
+                // overlay._loadingTimeoutsが存在することを確認（念のための防御コード）
+                if (!overlay._loadingTimeouts || !Array.isArray(overlay._loadingTimeouts)) {
+                    overlay._loadingTimeouts = [];
+                }
+                
                 const messageItem = message[index];
                 const messageText = typeof messageItem === 'string' ? messageItem : (messageItem?.text || '');
                 const delay = typeof messageItem === 'object' && messageItem.delay !== undefined ? messageItem.delay : (index === 0 ? startDelay : 4000);
@@ -212,21 +223,32 @@
                 }
                 
                 const timeoutId = setTimeout(() => {
+                    // overlayとtextElementがまだ存在するか確認
+                    if (!overlay || !textElement) return;
+                    
                     textElement.style.opacity = '0';
                     textElement.style.transition = 'opacity 0.3s ease-out';
                     setTimeout(() => {
+                        if (!overlay || !textElement) return;
+                        
                         const loadingDotsHtml = '<span style="display: inline-block; margin-left: 8px;"><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.32s;"></span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #fff; margin: 0 3px; animation: loadingDot 1.4s infinite ease-in-out both; animation-delay: -0.16s;"></span></span>';
                         textElement.innerHTML = messageText + loadingDotsHtml;
                         textElement.style.transition = 'opacity 0.3s ease-in';
                         setTimeout(() => {
-                            textElement.style.opacity = '1';
+                            if (textElement) {
+                                textElement.style.opacity = '1';
+                            }
                         }, 10);
-                        if (index + 1 < message.length) {
+                        if (index + 1 < message.length && overlay && overlay._loadingTimeouts) {
                             showMessage(index + 1);
                         }
                     }, 300);
                 }, delay);
-                overlay._loadingTimeouts.push(timeoutId);
+                
+                // overlay._loadingTimeoutsが存在することを再度確認してからpush
+                if (overlay._loadingTimeouts && Array.isArray(overlay._loadingTimeouts)) {
+                    overlay._loadingTimeouts.push(timeoutId);
+                }
             };
             
             // 最初のメッセージがdelay=0でない場合のみ、showMessage(0)を呼ぶ
