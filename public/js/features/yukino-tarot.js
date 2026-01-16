@@ -1211,6 +1211,24 @@ ${cardNames}
                 throw new Error(data.error || 'カードの解説の取得に失敗しました');
             }
             
+            // デバッグ: APIレスポンスの構造を確認
+            console.log('[タロット解説（個別）] APIレスポンス:', {
+                hasMessage: 'message' in data,
+                messageType: typeof data.message,
+                messageValue: data.message,
+                fullData: data
+            });
+            
+            // data.messageが文字列でない場合の処理
+            if (!data.message || typeof data.message !== 'string') {
+                console.error('[タロット解説（個別）] ⚠️ data.messageが文字列ではありません！', {
+                    messageType: typeof data.message,
+                    messageValue: data.message,
+                    fullData: data
+                });
+                throw new Error('APIレスポンスの形式が不正です。');
+            }
+            
             // タイマーをクリア（APIレスポンスが返ってきたら即座に非表示）
             clearTimeout(message2Timeout);
             clearTimeout(message3Timeout);
