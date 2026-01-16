@@ -200,6 +200,17 @@ const ChatAPI = {
             payload.ritualStart = true;
         }
 
+        // 守護神からの最初のメッセージ生成フラグ
+        if (options.guardianFirstMessage) {
+            payload.guardianFirstMessage = true;
+            if (options.guardianName) {
+                payload.guardianName = options.guardianName;
+            }
+            if (options.firstQuestion !== undefined) {
+                payload.firstQuestion = options.firstQuestion;
+            }
+        }
+
         try {
             const response = await fetch('/api/consult', {
                 method: 'POST',

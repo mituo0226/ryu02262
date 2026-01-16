@@ -448,20 +448,67 @@ const KaedeHandler = {
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 定型文を構築して表示
+        // APIを呼び出して守護神からのメッセージを生成
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const characterName = ChatData.characterInfo[character]?.name || '楓';
-        const welcomeMessage = `儀式により${guardianConfirmationData.userNickname}様の守護神の${guardianConfirmationData.guardianName}を呼び出すことができました。
+        console.log('[楓専用処理] 守護神からの最初のメッセージをAPIで生成します');
+        
+        try {
+            // APIを呼び出して守護神からのメッセージを生成
+            const response = await ChatAPI.sendMessage(
+                '守護神の儀式完了', // ダミーメッセージ（API側で特別処理される）
+                character,
+                [], // 会話履歴は空（守護神の最初のメッセージのため）
+                {
+                    guardianFirstMessage: true,
+                    guardianName: guardianConfirmationData.guardianName,
+                    firstQuestion: firstQuestion || null
+                }
+            );
 
-今後は私と${guardianConfirmationData.guardianName}であなたの運命を導いてまいります。
-
-鑑定を続けてまいりましょう。${firstQuestion ? `\n\n「${firstQuestion}」` : ''}
-
-${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guardianName}と共に掘り下げましょうか、それとも他のテーマで鑑定を進めますか？` : 'どのようなことについて鑑定を進めますか？'}`;
-
-        // APIの指示によりチャットをクリアした後、定型文のみを表示（会話はゼロからスタート）
-        console.log('[楓専用処理] 守護神の儀式完了メッセージを表示します（会話はゼロからスタート）');
-        ChatUI.addMessage('character', welcomeMessage, characterName);
+            if (response.error) {
+                console.error('[楓専用処理] 守護神メッセージ生成エラー:', response.error);
+                // エラーの場合はフォールバックメッセージを使用
+                const fallbackMessage = `${guardianConfirmationData.userNickname}さん、私は${guardianConfirmationData.guardianName}。あなたを、前世からずっと守り続けてきました。今、${guardianConfirmationData.userNickname}さんの心の奥底には、何か感じるものがありますね。${guardianConfirmationData.userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
+                const guardianName = guardianConfirmationData.guardianName;
+                ChatUI.addMessage('character', fallbackMessage, guardianName);
+                
+                // 会話履歴に追加
+                if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                    ChatData.conversationHistory.recentMessages.push({
+                        role: 'assistant',
+                        content: fallbackMessage
+                    });
+                }
+            } else {
+                // APIから生成されたメッセージを表示（守護神の名前を使用）
+                const guardianMessage = response.message || '';
+                const guardianName = guardianConfirmationData.guardianName;
+                console.log('[楓専用処理] 守護神からのメッセージを表示します（守護神名:', guardianName, ')');
+                ChatUI.addMessage('character', guardianMessage, guardianName);
+                
+                // 会話履歴に追加
+                if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                    ChatData.conversationHistory.recentMessages.push({
+                        role: 'assistant',
+                        content: guardianMessage
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('[楓専用処理] 守護神メッセージ生成時のエラー:', error);
+            // エラーの場合はフォールバックメッセージを使用
+            const fallbackMessage = `${guardianConfirmationData.userNickname}さん、私は${guardianConfirmationData.guardianName}。あなたを、前世からずっと守り続けてきました。今、${guardianConfirmationData.userNickname}さんの心の奥底には、何か感じるものがありますね。${guardianConfirmationData.userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
+            const guardianName = guardianConfirmationData.guardianName;
+            ChatUI.addMessage('character', fallbackMessage, guardianName);
+            
+            // 会話履歴に追加
+            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                ChatData.conversationHistory.recentMessages.push({
+                    role: 'assistant',
+                    content: fallbackMessage
+                });
+            }
+        }
 
         // 会話履歴に追加
         if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
