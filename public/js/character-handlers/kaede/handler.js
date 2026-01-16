@@ -228,10 +228,28 @@ const KaedeHandler = {
             // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
             // 会話履歴がある場合は、それを守護神の儀式に渡す
             setTimeout(async () => {
+                console.log('[楓専用処理] 守護神の儀式開始チェック:', {
+                    hasChatInit: !!window.ChatInit,
+                    hasStartGuardianRitual: !!(window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function'),
+                    character: this.characterId,
+                    guestHistoryLength: guestHistory.length
+                });
+                
                 if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
                     // ゲスト履歴がある場合は、それを儀式に渡す
                     const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
-                    await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                    console.log('[楓専用処理] 守護神の儀式を開始します');
+                    try {
+                        await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                        console.log('[楓専用処理] 守護神の儀式開始処理が完了しました');
+                    } catch (error) {
+                        console.error('[楓専用処理] 守護神の儀式開始エラー:', error);
+                    }
+                } else {
+                    console.error('[楓専用処理] ⚠️ window.ChatInit.startGuardianRitualが見つかりません', {
+                        hasChatInit: !!window.ChatInit,
+                        ChatInitKeys: window.ChatInit ? Object.keys(window.ChatInit) : []
+                    });
                 }
             }, 2000); // 2秒後に儀式を開始
             
