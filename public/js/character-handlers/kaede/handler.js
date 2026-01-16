@@ -464,37 +464,39 @@ ${firstQuestion ? `この質問を再度深く、${guardianConfirmationData.guar
         console.log('[楓専用処理] 送信ボタンの状態を更新しました（文字入力時に表示されます）');
 
         // 【重要】入力イベントリスナーを常に再設定（守護神の儀式完了後は確実に動作させるため）
-        // 【修正】既存のリスナーを削除してから追加することで、重複実行を防ぐ
+        // 【修正】イベントリスナーの重複登録を防ぐため、既存のリスナーを削除せずに追加する方法に変更
+        // （cloneNode/replaceChildは、他の処理に影響を与える可能性があるため避ける）
         if (ChatUI.messageInput) {
-            // 既存のリスナーを削除するため、cloneして置き換える（リスナーは削除される）
-            const oldInput = ChatUI.messageInput;
-            const newInput = oldInput.cloneNode(true);
-            oldInput.parentNode.replaceChild(newInput, oldInput);
-            ChatUI.messageInput = newInput;
+            // 既にリスナーが設定されている場合は、data属性で確認してスキップ
+            const hasListenerSet = ChatUI.messageInput.getAttribute('data-kaede-listener-set') === 'true';
             
-            // Enterキーのイベントリスナーを追加
-            ChatUI.messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    // 【デバッグ】重複実行を防ぐためのチェック
-                    if (ChatUI.messageInput && ChatUI.messageInput.disabled) {
-                        console.log('[楓専用処理] メッセージ入力欄が無効化されているため、送信をスキップします');
-                        return;
+            if (!hasListenerSet) {
+                // Enterキーのイベントリスナーを追加
+                ChatUI.messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        // 【デバッグ】重複実行を防ぐためのチェック
+                        if (ChatUI.messageInput && ChatUI.messageInput.disabled) {
+                            console.log('[楓専用処理] メッセージ入力欄が無効化されているため、送信をスキップします');
+                            return;
+                        }
+                        console.log('[楓専用処理] Enterキーが押されました。sendMessageを呼び出します');
+                        window.sendMessage();
                     }
-                    console.log('[楓専用処理] Enterキーが押されました。sendMessageを呼び出します');
-                    window.sendMessage();
-                }
-            });
-            
-            // inputイベントリスナーを追加
-            ChatUI.messageInput.addEventListener('input', () => {
-                if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
-                    window.ChatUI.updateSendButtonVisibility();
-                }
-            });
-            
-            ChatUI.messageInput.setAttribute('data-input-listener-set', 'true');
-            console.log('[楓専用処理] 入力イベントリスナー（keydown/input）を再設定しました（守護神の儀式完了後）');
+                });
+                
+                // inputイベントリスナーを追加
+                ChatUI.messageInput.addEventListener('input', () => {
+                    if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
+                        window.ChatUI.updateSendButtonVisibility();
+                    }
+                });
+                
+                ChatUI.messageInput.setAttribute('data-kaede-listener-set', 'true');
+                console.log('[楓専用処理] 入力イベントリスナー（keydown/input）を追加しました（守護神の儀式完了後）');
+            } else {
+                console.log('[楓専用処理] 入力イベントリスナーは既に設定されています（スキップ）');
+            }
         }
 
         // 守護神の儀式完了フラグをクリア
