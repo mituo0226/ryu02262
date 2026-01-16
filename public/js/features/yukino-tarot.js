@@ -419,9 +419,21 @@
     }
 
     /**
-     * AI解説をリクエスト
+     * AI解説をリクエスト（オーバーレイ方式）
      */
     async function requestExplanation(card) {
+        // 動的メッセージリスト（待機中のメッセージ）
+        const waitingMessages = [
+            { text: 'タロットカードの解説を作成しています', delay: 0 },
+            { text: 'あなたの運勢を読み解いています', delay: 4000 },
+            { text: 'カードの意味を詳しく鑑定しています', delay: 9000 },
+            { text: '詳しい解説を作成しています', delay: 15000 },
+            { text: 'もうすぐ完了します', delay: 22000 }
+        ];
+        
+        // ローディングオーバーレイを表示
+        showLoadingOverlay(waitingMessages);
+        
         try {
             const character = 'yukino';
             
@@ -433,9 +445,9 @@
 
 このカードが示す${card.position}の意味、私の状況にどのように関連しているか、そして私の状況に合わせた具体的なアドバイスをお願いします。`;
             
-            console.log('[タロット解説] 待機画面に遷移:', { character, cardName: card.name, position: card.position });
+            console.log('[タロット解説] APIリクエスト送信:', { character, cardName: card.name, position: card.position });
             
-            // ハンドラー側でペイロードを準備（ChatAPI.sendMessageと同じロジック）
+            // 会話履歴を取得
             let conversationHistory = [];
             if (window.ChatData) {
                 const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
@@ -486,36 +498,56 @@
                 payload.guestMetadata = { messageCount: messageCount };
             }
             
-            // ペイロードをsessionStorageに保存（待機画面で使用）
-            sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));
+            // APIリクエストを送信
+            const response = await fetch('/api/consult', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             
-            // 待機画面に遷移
-            let returnUrl = window.location.pathname + window.location.search;
-            if (userId && !userIdParam) {
-                const separator = returnUrl.includes('?') ? '&' : '?';
-                returnUrl = `${returnUrl}${separator}userId=${encodeURIComponent(String(userId))}`;
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `APIエラー (${response.status})`;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch {}
+                throw new Error(errorMessage);
             }
             
-            const waitingUrl = `tarot-waiting.html?character=${character}&return=${encodeURIComponent(returnUrl)}&message=${encodeURIComponent(message)}`;
+            const data = await response.json();
             
-            // カード情報をsessionStorageに保存（待機画面から戻った時に使用）
-            sessionStorage.setItem('yukinoTarotCardForExplanation', JSON.stringify({
-                name: card.name,
-                position: card.position,
-                image: card.image
-            }));
+            // エラーレスポンスのチェック
+            if (data.error && !data.message) {
+                throw new Error(data.error || '解説の取得に失敗しました');
+            }
             
-            // フェードアウトして遷移
-            document.body.style.transition = 'opacity 0.5s ease';
-            document.body.style.opacity = '0';
+            // ローディングオーバーレイを非表示
+            hideLoadingOverlay();
             
-            await new Promise(resolve => setTimeout(resolve, 500));
-            window.location.href = waitingUrl;
+            // 雪乃の解説を表示
+            if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                window.ChatUI.addMessage('character', data.message, '笹岡雪乃');
+                window.ChatUI.scrollToLatest();
+            }
+            
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'user', message);
+                window.ChatData.addToHistory(character, 'assistant', data.message);
+            }
+            
+            // 「次のカードの鑑定」ボタンを表示
+            displayNextStepButton();
             
         } catch (error) {
+            hideLoadingOverlay();
             console.error('[タロット解説] エラー:', error);
             const errorMessage = error instanceof Error ? error.message : '解説の取得に失敗しました。もう一度お試しください。';
             alert(errorMessage);
+            enableMessageInput();
         }
     }
 
