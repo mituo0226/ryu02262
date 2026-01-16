@@ -448,16 +448,16 @@ const KaedeHandler = {
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // APIを呼び出して守護神からのメッセージを生成
+        // APIを呼び出して楓からのメッセージを生成（守護神の言葉を受けて）
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        console.log('[楓専用処理] 守護神からの最初のメッセージをAPIで生成します');
+        console.log('[楓専用処理] 守護神の儀式完了後の楓からのメッセージをAPIで生成します');
         
         try {
-            // APIを呼び出して守護神からのメッセージを生成
-            const response = await ChatAPI.sendMessage(
+            // まず守護神のメッセージを内部で生成（楓のメッセージ生成のコンテキストとして使用）
+            const guardianResponse = await ChatAPI.sendMessage(
                 '守護神の儀式完了', // ダミーメッセージ（API側で特別処理される）
                 character,
-                [], // 会話履歴は空（守護神の最初のメッセージのため）
+                [], // 会話履歴は空
                 {
                     guardianFirstMessage: true,
                     guardianName: guardianConfirmationData.guardianName,
@@ -465,13 +465,34 @@ const KaedeHandler = {
                 }
             );
 
-            if (response.error) {
-                console.error('[楓専用処理] 守護神メッセージ生成エラー:', response.error);
+            let guardianMessage = '';
+            if (guardianResponse.error || !guardianResponse.message) {
+                console.warn('[楓専用処理] 守護神メッセージ生成エラー、フォールバックを使用:', guardianResponse.error);
                 // エラーの場合はフォールバックメッセージを使用
-                const fallbackMessage = `${guardianConfirmationData.userNickname}さん、私は${guardianConfirmationData.guardianName}。あなたを、前世からずっと守り続けてきました。今、${guardianConfirmationData.userNickname}さんの心の奥底には、何か感じるものがありますね。${guardianConfirmationData.userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
-                const guardianName = guardianConfirmationData.guardianName;
-                // 表示名は「守護神：XXX」
-                ChatUI.addMessage('character', fallbackMessage, `守護神：${guardianName}`);
+                guardianMessage = `${guardianConfirmationData.userNickname}さん、私は${guardianConfirmationData.guardianName}。あなたを、前世からずっと守り続けてきました。今、${guardianConfirmationData.userNickname}さんの心の奥底には、何か感じるものがありますね。${guardianConfirmationData.userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
+            } else {
+                guardianMessage = guardianResponse.message;
+            }
+
+            // 守護神のメッセージをコンテキストとして、楓からのメッセージを生成
+            const kaedeResponse = await ChatAPI.sendMessage(
+                '守護神のメッセージを受けて', // ダミーメッセージ（API側で特別処理される）
+                character,
+                [], // 会話履歴は空
+                {
+                    kaedeFollowUp: true,
+                    guardianName: guardianConfirmationData.guardianName,
+                    guardianMessage: guardianMessage,
+                    firstQuestion: firstQuestion || null
+                }
+            );
+
+            if (kaedeResponse.error) {
+                console.error('[楓専用処理] 楓メッセージ生成エラー:', kaedeResponse.error);
+                // エラーの場合はフォールバックメッセージを使用（守護神のメッセージを基に生成）
+                const fallbackMessage = `守護神${guardianConfirmationData.guardianName}の言葉を聞いて、私も深く感じることがあります。${guardianConfirmationData.userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianConfirmationData.guardianName}で、${guardianConfirmationData.userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
+                const characterName = ChatData.characterInfo[character]?.name || '楓';
+                ChatUI.addMessage('character', fallbackMessage, characterName);
                 
                 // 会話履歴に追加
                 if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
@@ -480,34 +501,27 @@ const KaedeHandler = {
                         content: fallbackMessage
                     });
                 }
-                
-                // フォールバックメッセージの場合も楓のメッセージを生成
-                await this.generateKaedeFollowUpMessage(character, guardianName, fallbackMessage, guardianConfirmationData.userNickname, firstQuestion);
             } else {
-                // APIから生成されたメッセージを表示（表示名は「守護神：XXX」）
-                const guardianMessage = response.message || '';
-                const guardianName = guardianConfirmationData.guardianName;
-                console.log('[楓専用処理] 守護神からのメッセージを表示します（守護神名:', guardianName, ')');
-                ChatUI.addMessage('character', guardianMessage, `守護神：${guardianName}`);
+                // APIから生成されたメッセージを表示（表示名は「楓」）
+                const kaedeMessage = kaedeResponse.message || '';
+                const characterName = ChatData.characterInfo[character]?.name || '楓';
+                console.log('[楓専用処理] 楓からのメッセージを表示します（表示名:', characterName, ')');
+                ChatUI.addMessage('character', kaedeMessage, characterName);
                 
                 // 会話履歴に追加
                 if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
                     ChatData.conversationHistory.recentMessages.push({
                         role: 'assistant',
-                        content: guardianMessage
+                        content: kaedeMessage
                     });
                 }
-                
-                // 守護神のメッセージの後に、楓からの追加メッセージを生成
-                await this.generateKaedeFollowUpMessage(character, guardianName, guardianMessage, guardianConfirmationData.userNickname, firstQuestion);
             }
         } catch (error) {
-            console.error('[楓専用処理] 守護神メッセージ生成時のエラー:', error);
+            console.error('[楓専用処理] メッセージ生成時のエラー:', error);
             // エラーの場合はフォールバックメッセージを使用
-            const fallbackMessage = `${guardianConfirmationData.userNickname}さん、私は${guardianConfirmationData.guardianName}。あなたを、前世からずっと守り続けてきました。今、${guardianConfirmationData.userNickname}さんの心の奥底には、何か感じるものがありますね。${guardianConfirmationData.userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
-            const guardianName = guardianConfirmationData.guardianName;
-            // 表示名は「守護神：XXX」
-            ChatUI.addMessage('character', fallbackMessage, `守護神：${guardianName}`);
+            const fallbackMessage = `守護神${guardianConfirmationData.guardianName}の言葉を聞いて、私も深く感じることがあります。${guardianConfirmationData.userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianConfirmationData.guardianName}で、${guardianConfirmationData.userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
+            const characterName = ChatData.characterInfo[character]?.name || '楓';
+            ChatUI.addMessage('character', fallbackMessage, characterName);
             
             // 会話履歴に追加
             if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
@@ -516,9 +530,6 @@ const KaedeHandler = {
                     content: fallbackMessage
                 });
             }
-            
-            // フォールバックメッセージの場合も楓のメッセージを生成
-            await this.generateKaedeFollowUpMessage(character, guardianName, fallbackMessage, guardianConfirmationData.userNickname, firstQuestion);
         }
 
         // この部分は削除（上記のtry-catchブロック内で既に会話履歴に追加済み）
@@ -581,79 +592,6 @@ const KaedeHandler = {
         return true; // 処理完了
     },
 
-    /**
-     * 守護神のメッセージを受けて、楓からの追加メッセージを生成
-     * @param {string} character - キャラクターID
-     * @param {string} guardianName - 守護神の名前
-     * @param {string} guardianMessage - 守護神からのメッセージ
-     * @param {string} userNickname - ユーザーのニックネーム
-     * @param {string|null} firstQuestion - ユーザーの最初の質問
-     */
-    async generateKaedeFollowUpMessage(character, guardianName, guardianMessage, userNickname, firstQuestion) {
-        console.log('[楓専用処理] 楓からの追加メッセージを生成します');
-        
-        try {
-            // 少し待ってから楓のメッセージを表示（守護神のメッセージを読む時間を与える）
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // APIを呼び出して楓からの追加メッセージを生成
-            const response = await ChatAPI.sendMessage(
-                '守護神のメッセージを受けて', // ダミーメッセージ（API側で特別処理される）
-                character,
-                [], // 会話履歴は空
-                {
-                    kaedeFollowUp: true,
-                    guardianName: guardianName,
-                    guardianMessage: guardianMessage,
-                    firstQuestion: firstQuestion || null
-                }
-            );
-
-            if (response.error) {
-                console.error('[楓専用処理] 楓メッセージ生成エラー:', response.error);
-                // エラーの場合はフォールバックメッセージを使用
-                const fallbackMessage = `守護神${guardianName}の言葉を聞いて、私も深く感じることがあります。${userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianName}で、${userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
-                const characterName = ChatData.characterInfo[character]?.name || '楓';
-                ChatUI.addMessage('character', fallbackMessage, characterName);
-                
-                // 会話履歴に追加
-                if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                    ChatData.conversationHistory.recentMessages.push({
-                        role: 'assistant',
-                        content: fallbackMessage
-                    });
-                }
-            } else {
-                // APIから生成されたメッセージを表示（表示名は「楓」）
-                const kaedeMessage = response.message || '';
-                const characterName = ChatData.characterInfo[character]?.name || '楓';
-                console.log('[楓専用処理] 楓からのメッセージを表示します');
-                ChatUI.addMessage('character', kaedeMessage, characterName);
-                
-                // 会話履歴に追加
-                if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                    ChatData.conversationHistory.recentMessages.push({
-                        role: 'assistant',
-                        content: kaedeMessage
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('[楓専用処理] 楓メッセージ生成時のエラー:', error);
-            // エラーの場合はフォールバックメッセージを使用
-            const fallbackMessage = `守護神${guardianName}の言葉を聞いて、私も深く感じることがあります。${userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianName}で、${userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
-            const characterName = ChatData.characterInfo[character]?.name || '楓';
-            ChatUI.addMessage('character', fallbackMessage, characterName);
-            
-            // 会話履歴に追加
-            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                ChatData.conversationHistory.recentMessages.push({
-                    role: 'assistant',
-                    content: fallbackMessage
-                });
-            }
-        }
-    },
 
     /**
      * 登録完了時の守護神の儀式チェック（楓専用）
