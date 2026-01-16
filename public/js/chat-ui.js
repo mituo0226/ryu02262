@@ -146,8 +146,15 @@ const ChatUI = {
                 textStringified: JSON.stringify(text),
                 stackTrace: new Error().stack
             });
-            // エラーとして処理（対処療法ではなく、根本原因を特定するため）
-            debugger; // 開発者ツールで停止
+            // エラーとして処理：オブジェクトを文字列に変換
+            if (Array.isArray(text)) {
+                console.error('[ChatUI.addMessage] 配列が渡されました。最初の要素を表示します。', text);
+                text = text.map(item => typeof item === 'object' ? JSON.stringify(item) : String(item)).join(', ');
+            } else if (text && typeof text === 'object') {
+                text = text.message || text.content || JSON.stringify(text);
+            } else {
+                text = String(text);
+            }
         }
         
         // #region agent log
