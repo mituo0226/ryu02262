@@ -92,12 +92,18 @@ export function generateSystemPrompt(characterId, options = {}) {
 
   const generator = promptGenerators[characterId] || promptGenerators.kaede;
   // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定だけを守らせる
+  // 楓の完全版プロンプトに必要な全てのパラメータを渡す
   const characterPrompt = generator({
     userNickname: options.userNickname,
     hasPreviousConversation: options.hasPreviousConversation,
     nicknameContext,
     conversationContext,
     guestUserContext,
+    guardian: options.guardian || null,
+    isRitualStart: options.isRitualStart || false,
+    userMessageCount: options.userMessageCount || 0,
+    userGender: options.userGender || null,
+    userBirthDate: options.userBirthDate || null,
   });
 
   // キャラクターの機能制約を生成（ポジティブアプローチ：利用可能な機能のみを明示）

@@ -947,6 +947,32 @@ export const onRequestPost: PagesFunction = async (context) => {
     });
     
     // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定に必要な情報だけ
+    // ユーザーの性別と生年月日を取得（楓の完全版プロンプトに必要）
+    let userGender: string | null = null;
+    let userBirthDate: string | null = null;
+    
+    if (user) {
+      try {
+        const userInfo = await env.DB.prepare<{ gender: string | null; birth_year: number | null; birth_month: number | null; birth_day: number | null }>(
+          'SELECT gender, birth_year, birth_month, birth_day FROM users WHERE id = ?'
+        )
+          .bind(user.id)
+          .first();
+        
+        if (userInfo) {
+          userGender = userInfo.gender || null;
+          if (userInfo.birth_year && userInfo.birth_month && userInfo.birth_day) {
+            const yearStr = String(userInfo.birth_year).padStart(4, '0');
+            const monthStr = String(userInfo.birth_month).padStart(2, '0');
+            const dayStr = String(userInfo.birth_day).padStart(2, '0');
+            userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
+          }
+        }
+      } catch (error) {
+        console.error('[consult] ユーザー情報取得エラー:', error);
+      }
+    }
+    
     const systemPrompt = generateSystemPrompt(characterId, {
       userNickname: user?.nickname,
       hasPreviousConversation: hasPreviousConversation,
@@ -955,6 +981,9 @@ export const onRequestPost: PagesFunction = async (context) => {
       isRitualStart: isRitualStart,
       isJustRegistered: isJustRegistered,
       lastGuestMessage: lastGuestMessage,
+      userMessageCount: userMessageCount,
+      userGender: userGender,
+      userBirthDate: userBirthDate,
     });
 
     console.log('[consult] システムプロンプト生成:', {
