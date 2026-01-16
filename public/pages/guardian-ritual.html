@@ -417,10 +417,10 @@
           
           await new Promise(resolve => setTimeout(resolve, 4000));
 
-          // フェーズ4: 選ばれた守護神の登場（守護神情報がない場合、この時点で決定）
+          // フェーズ4: 選ばれた守護神の登場（守護神情報は既に決定済み）
           let finalGuardian = guardian;
           if (!finalGuardian) {
-            // 守護神情報が提供されていない場合、生年月日から決定
+            // 守護神情報が提供されていない場合、生年月日から決定（フォールバック）
             const GUARDIANS = [
               { id: '天照大神', name: '天照大神', image: 'amaterasu.png', message: 'あなたは天照大神に守られています。太陽のように明るく、前向きな力を授かっています。' },
               { id: '大国主命', name: '大国主命', image: 'okuni-nushi.png', message: 'あなたは大国主命に守られています。豊かさと調和の力を授かっています。' },
@@ -436,7 +436,7 @@
             const remainder = numericDate % 5;
             finalGuardian = GUARDIANS[remainder];
 
-            console.log('[守護神の儀式] アニメーション終了時に守護神を決定しました:', finalGuardian);
+            console.log('[守護神の儀式] アニメーション中に守護神を決定しました（フォールバック）:', finalGuardian);
           } else {
             console.log('[守護神の儀式] 既に決定済みの守護神情報を使用:', finalGuardian);
           }
@@ -650,6 +650,87 @@
 
 
     /**
+     * バックグラウンドでメッセージ生成を実行（アニメーション中に実行）
+     * @param {number} userId - ユーザーID
+     * @param {string} userNickname - ユーザーのニックネーム
+     * @param {string} guardianName - 守護神の名前
+     */
+    async function generateMessageInBackground(userId, userNickname, guardianName) {
+      try {
+        console.log('[守護神の儀式] バックグラウンドでメッセージ生成を開始:', { userId, userNickname, guardianName });
+        
+        // まず守護神のメッセージを生成
+        const guardianResponse = await fetch('/api/consult', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: '守護神の儀式完了',
+            character: 'kaede',
+            clientHistory: [],
+            guardianFirstMessage: true,
+            guardianName: guardianName,
+            firstQuestion: null,
+            userId: userId
+          })
+        });
+
+        let guardianMessage = '';
+        if (guardianResponse.ok) {
+          const guardianData = await guardianResponse.json();
+          guardianMessage = guardianData.message || '';
+        } else {
+          console.warn('[守護神の儀式] 守護神メッセージ生成エラー');
+          guardianMessage = `${userNickname}さん、私は${guardianName}。あなたを、前世からずっと守り続けてきました。今、${userNickname}さんの心の奥底には、何か感じるものがありますね。${userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
+        }
+
+        // 守護神のメッセージをコンテキストとして、楓のメッセージを生成
+        const kaedeResponse = await fetch('/api/consult', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: '守護神のメッセージを受けて',
+            character: 'kaede',
+            clientHistory: [],
+            kaedeFollowUp: true,
+            guardianName: guardianName,
+            guardianMessage: guardianMessage,
+            firstQuestion: null,
+            userId: userId
+          })
+        });
+
+        if (kaedeResponse.ok) {
+          const kaedeData = await kaedeResponse.json();
+          const kaedeMessage = kaedeData.message || '';
+          
+          // sessionStorageに保存（チャット画面で使用）
+          sessionStorage.setItem('preGeneratedKaedeMessage', JSON.stringify({
+            message: kaedeMessage,
+            guardianName: guardianName,
+            timestamp: Date.now()
+          }));
+          
+          console.log('[守護神の儀式] ✅ メッセージ生成完了（アニメーション中）');
+        } else {
+          console.warn('[守護神の儀式] 楓メッセージ生成エラー');
+          // フォールバックメッセージを保存
+          const fallbackMessage = `守護神${guardianName}の言葉を聞いて、私も深く感じることがあります。${userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianName}で、${userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
+          sessionStorage.setItem('preGeneratedKaedeMessage', JSON.stringify({
+            message: fallbackMessage,
+            guardianName: guardianName,
+            timestamp: Date.now()
+          }));
+        }
+      } catch (error) {
+        console.error('[守護神の儀式] メッセージ生成処理エラー:', error);
+      }
+    }
+
+    /**
      * 守護神をデータベースに保存
      * @param {number} userId - ユーザーID
      * @param {string} guardianId - 守護神ID
@@ -739,27 +820,55 @@
           }
         }
         
-        // 生年月日が取得できた場合のみ、アニメーションを再生（アニメーション終了時に守護神を決定）
+        // 生年月日が取得できた場合のみ、アニメーションを再生
         if (userBirthYear && userBirthMonth && userBirthDay) {
-          guardian = await playRitualAnimation(null, userBirthYear, userBirthMonth, userBirthDay);
+          // 【改善】アニメーション開始時に守護神を決定（アニメーション中にメッセージ生成を開始するため）
+          const GUARDIANS = [
+            { id: '天照大神', name: '天照大神', image: 'amaterasu.png', message: 'あなたは天照大神に守られています。太陽のように明るく、前向きな力を授かっています。' },
+            { id: '大国主命', name: '大国主命', image: 'okuni-nushi.png', message: 'あなたは大国主命に守られています。豊かさと調和の力を授かっています。' },
+            { id: '大日如来', name: '大日如来', image: 'dainithi-nyorai.png', message: 'あなたは大日如来に守られています。智慧と光明の力を授かっています。' },
+            { id: '千手観音', name: '千手観音', image: 'senju.png', message: 'あなたは千手観音に守られています。慈悲と救済の力を授かっています。' },
+            { id: '不動明王', name: '不動明王', image: 'fudo.png', message: 'あなたは不動明王に守られています。不動の意志と守護の力を授かっています。' }
+          ];
           
-          // アニメーション終了後、守護神をデータベースに保存
-          if (needToSaveGuardian && userId && guardian) {
-            console.log('[守護神の儀式] アニメーション終了後、守護神をデータベースに保存します:', guardian);
-            try {
-              const saveSuccess = await saveGuardianToDatabase(Number(userId), guardian.id);
+          const yearStr = String(userBirthYear).padStart(4, '0');
+          const monthStr = String(userBirthMonth).padStart(2, '0');
+          const dayStr = String(userBirthDay).padStart(2, '0');
+          const numericDate = parseInt(`${yearStr}${monthStr}${dayStr}`, 10);
+          const remainder = numericDate % 5;
+          const determinedGuardian = GUARDIANS[remainder];
+          
+          console.log('[守護神の儀式] アニメーション開始時に守護神を決定しました:', determinedGuardian);
+          
+          // 守護神をデータベースに保存（アニメーション中に実行）
+          if (needToSaveGuardian && userId && determinedGuardian) {
+            saveGuardianToDatabase(Number(userId), determinedGuardian.id).then(saveSuccess => {
               if (!saveSuccess) {
                 console.warn('[守護神の儀式] ⚠️ データベース保存に失敗しました');
+              } else {
+                console.log('[守護神の儀式] ✅ 守護神をデータベースに保存しました（アニメーション中）');
               }
-            } catch (error) {
+            }).catch(error => {
               console.error('[守護神の儀式] データベース保存エラー:', error);
-            }
+            });
           }
+          
+          // アニメーション中にメッセージ生成を開始（バックグラウンドで実行）
+          if (userId && userNickname && determinedGuardian) {
+            console.log('[守護神の儀式] アニメーション中にメッセージ生成を開始します');
+            generateMessageInBackground(userId, userNickname, determinedGuardian.name).catch(error => {
+              console.error('[守護神の儀式] メッセージ生成エラー:', error);
+            });
+          }
+          
+          // アニメーションを再生（既に決定済みの守護神情報を使用）
+          guardian = await playRitualAnimation(determinedGuardian, null, null, null);
         } else {
           // 生年月日が取得できない場合でも、アニメーションを表示（デフォルトの守護神を使用）
           console.warn('[守護神の儀式] 生年月日情報が取得できませんでした。デフォルト値でアニメーションを表示します');
           // デフォルトの生年月日を使用（2000年1月1日）
-          guardian = await playRitualAnimation(null, 2000, 1, 1);
+          const defaultGuardian = { id: '天照大神', name: '天照大神', image: 'amaterasu.png', message: 'あなたは天照大神に守られています。太陽のように明るく、前向きな力を授かっています。' };
+          guardian = await playRitualAnimation(defaultGuardian, null, null, null);
         }
       } else {
         // URLパラメータから守護神情報を取得（既に決定済み、ハンドラー側からリダイレクトされた場合）
