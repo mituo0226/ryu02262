@@ -31,12 +31,7 @@
 #### 正しい実装例（ハンドラー側）
 ```javascript
 // ハンドラー側（chat-engine.js、yukino-tarot.jsなど）でペイロードを準備
-let conversationHistory = [];
-if (isGuest) {
-    conversationHistory = ChatData.getGuestHistory(character) || [];
-} else {
-    conversationHistory = ChatData.conversationHistory?.recentMessages || [];
-}
+let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
 
 const clientHistory = conversationHistory.map(entry => ({
     role: entry.role || 'user',
@@ -65,12 +60,6 @@ const payload = {
     clientHistory: clientHistory,
     userId: userId || undefined
 };
-
-// ゲストメタデータを追加（必要な場合）
-if (isGuest && ChatData.getGuestMessageCount) {
-    const messageCount = ChatData.getGuestMessageCount(character);
-    payload.guestMetadata = { messageCount: messageCount };
-}
 
 // ペイロードをsessionStorageに保存（待機画面で使用）
 sessionStorage.setItem('tarotWaitingPayload', JSON.stringify(payload));

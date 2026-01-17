@@ -11,8 +11,7 @@
 1. [概要](#概要)
 2. [キャラクター設定](#キャラクター設定)
 3. [システムアーキテクチャ](#システムアーキテクチャ)
-4. [ゲストモードフロー](#ゲストモードフロー)
-5. [登録ユーザーフロー](#登録ユーザーフロー)
+4. [登録ユーザーフロー](#登録ユーザーフロー)
 6. [タロット占いシステム](#タロット占いシステム)
 7. [データベーススキーマ](#データベーススキーマ)
 8. [フロントエンド実装](#フロントエンド実装)
@@ -29,14 +28,10 @@
 
 - **タロット占い**: 初回訪問時に3枚のカード鑑定（過去・現在・未来）
 - **個別相談**: タロット終了後、通常の会話モード
-- **9通制限**: ゲストモードは9通まで、以降は登録必須
-- **ゲスト再訪問制御**: 一度会話したゲストは再訪問時に強制登録
-- **履歴引用**: 登録後、毎回ゲストモード時の最後のメッセージを引用
-
 ### キーコンセプト
 
 ```
-ゲスト体験 → 登録促進 → 継続的エンゲージメント
+タロット占い → 個別相談 → 継続的エンゲージメント
 ```
 
 ---
@@ -91,20 +86,19 @@ functions/
        │
        ▼
 ┌─────────────────┐
-│ yukino-handler  │ ← ゲスト再訪問チェック
-│   .js           │ ← 9通目登録確認
+│ yukino-handler  │
+│   .js           │
 └──────┬──────────┘
        │
        ▼
 ┌─────────────────┐
 │ consult.ts API  │ ← 履歴取得（DB）
-│                 │ ← ゲストメッセージ抽出
 └──────┬──────────┘
        │
        ▼
 ┌─────────────────┐
 │ yukino.js       │ ← AIプロンプト生成
-│ (プロンプト)     │ ← ゲストメッセージ引用
+│ (プロンプト)     │
 └──────┬──────────┘
        │
        ▼
@@ -120,242 +114,15 @@ functions/
 
 ---
 
-## ゲストモードフロー
+## 登録ユーザーフロー
 
 ### 1. 初回訪問
 
-```mermaid
-graph TD
-    A[ゲストでアクセス] --> B[タロット占い自動開始]
-    B --> C[3枚のカード: 過去・現在・未来]
-    C --> D[各カードをめくる]
-    D --> E[雪乃の解説]
-    E --> F[まとめ鑑定]
-    F --> G[個別相談ボタン]
-    G --> H[チャット入力有効化]
-    H --> I[通常会話開始]
-```
+- タロット占い（3枚カード鑑定）
+- 通常の会話モード
+- 相談への回答
 
-### 2. 会話制限（9通目）
-
-#### カウント方式
-
-```javascript
-// sessionStorage でカウント
-yukinoConsultationMessageCount = 0
-
-// ユーザーメッセージごとに +1
-count++
-
-// 9通目（count === 8）でneedsRegistration = true
-```
-
-#### 9通目の動作
-
-```javascript
-// 1. ゲスト履歴を仮保存
-sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
-    character: 'yukino',
-    history: guestHistory
-}));
-
-// 2. 入力欄を無効化
-messageInput.disabled = true;
-sendButton.disabled = true;
-
-// 3. 「はい」「いいえ」ボタン表示
-ChatUI.showYukinoRegistrationButtons();
-```
-
-### 3. 登録確認ボタン
-
-#### 「はい」をクリック
-
-```javascript
-handleRegistrationConsent(true) {
-    // ゲスト履歴は既に保存済み
-    
-    // 1秒後に登録画面へ
-    setTimeout(() => {
-        window.location.href = '../auth/register.html?redirect=' + 
-            encodeURIComponent(window.location.href);
-    }, 1000);
-}
-```
-
-#### 「いいえ」をクリック
-
-```javascript
-handleRegistrationConsent(false) {
-    // 1. お別れメッセージ表示
-    const farewellMessage = 'わかりました。それではまた何かあったら連絡ください。これまでの会話の中身は私は忘れてしまうと思うので、今度来た時にはゼロから話をしてくださいね。お待ちしています。';
-    ChatUI.addMessage('character', farewellMessage, '笹岡雪乃');
-    
-    // 2. 全履歴クリア
-    this.clearGuestHistory();
-    
-    // 3. 3秒後にmain.htmlへ
-    setTimeout(() => {
-        window.location.href = '../main.html';
-    }, 3000);
-}
-```
-
-### 4. ゲスト再訪問制御 🆕
-
-#### フラグ管理
-
-```javascript
-// localStorage で永続化
-localStorage.setItem('yukinoGuestConversed', 'true');
-```
-
-#### 再訪問時の動作
-
-```javascript
-checkGuestRevisit() {
-    // 登録済みユーザーはスキップ
-    if (AuthState.isRegistered()) return;
-    
-    // フラグチェック
-    const hasConversedAsGuest = localStorage.getItem('yukinoGuestConversed');
-    
-    if (hasConversedAsGuest === 'true') {
-        // システムメッセージ表示
-        ChatUI.addMessage('character', 
-            '前回はゲストモードでお話しいただきましたが、続きをお話しするにはユーザー登録が必要です。生年月日とニックネームを登録してください。お金がかかったりはしませんから、安心してくださいね。', 
-            '笹岡雪乃'
-        );
-        
-        // 入力欄を無効化
-        messageInput.disabled = true;
-        sendButton.disabled = true;
-        
-        // 3秒後に登録画面へ強制リダイレクト
-        setTimeout(() => {
-            window.location.href = '../auth/register.html?redirect=' + 
-                encodeURIComponent(window.location.href);
-        }, 3000);
-    }
-}
-```
-
----
-
-## 登録ユーザーフロー
-
-### 1. 登録完了直後（初回のみ）
-
-#### データベース保存
-
-```javascript
-// pendingGuestHistoryMigration から取得
-const guestHistory = JSON.parse(sessionStorage.getItem('pendingGuestHistoryMigration'));
-
-// データベースに保存（is_guest_message = 1）
-await env.DB.prepare(
-    `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-     VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
-).bind(user.id, 'yukino', entry.role, entry.content).run();
-```
-
-#### 画面表示
-
-```
-1. チャット画面がクリーン（過去のメッセージなし）
-2. 雪乃が「おかえりなさい」メッセージ
-3. ゲストモード時の最後のメッセージを引用
-4. 会話継続可能
-```
-
-#### AIプロンプト（登録直後）
-
-```javascript
-if (isJustRegistered) {
-    yukinoSpecificInstruction = `
-========================================
-【【最重要・絶対遵守】ユーザー登録直後の初回メッセージ】
-========================================
-
-相談者「${userNickname}さん」は、ゲストモードでお話をした後、ユーザー登録を完了したばかりです。
-
-【必須の対応】：
-1. **「おかえりなさい」と迎える**
-   - 例：「${userNickname}さん、おかえりなさい」
-
-2. **ユーザーの最後のメッセージを引用する**
-   - 会話履歴の最後にあるユーザーの発言内容を、そのまま引用してください
-   - 例：「ユーザー登録する前のメッセージは、『（ユーザーの最後のメッセージ）』でしたよね」
-
-3. **会話を続けるか確認する**
-   - 例：「どんな話をしましょうか？」
-
-【返答の例】：
-「${userNickname}さん、おかえりなさい。ユーザー登録する前のメッセージは、『（ユーザーの最後のメッセージ）』でしたよね。どんな話をしましょうか？」
-========================================
-`;
-}
-```
-
-### 2. 再訪問時（毎回）🆕
-
-#### データベースからゲストメッセージを抽出
-
-```javascript
-// consult.ts
-if (user && characterId === 'yukino') {
-    // is_guest_message = 1 のメッセージを抽出
-    const guestUserMessages = conversationHistory
-        .filter((msg) => msg.role === 'user' && msg.isGuestMessage === true)
-        .map((msg) => msg.content);
-    
-    if (guestUserMessages.length > 0) {
-        lastGuestMessage = guestUserMessages[guestUserMessages.length - 1];
-        console.log('[consult] ゲストモード時の最後のメッセージを抽出:', lastGuestMessage);
-    }
-}
-
-// プロンプトに渡す
-const systemPrompt = generateSystemPrompt(characterId, {
-    // ...
-    lastGuestMessage: lastGuestMessage,
-});
-```
-
-#### AIプロンプト（再訪問時）
-
-```javascript
-if (userNickname && hasPreviousConversation && lastGuestMessage) {
-    yukinoSpecificInstruction = `
-========================================
-【【最重要・絶対遵守】登録済みユーザーの再訪問メッセージ】
-========================================
-
-相談者「${userNickname}さん」は既にユーザー登録を完了しており、再訪問されました。
-ゲストモードで会話していた時の最後のメッセージは以下です：
-
-**ゲストモード時の最後のメッセージ：**
-「${lastGuestMessage}」
-
-【必須の対応】：
-1. **「おかえりなさい」と迎える**
-   - 例：「${userNickname}さん、おかえりなさい」
-
-2. **ゲストモード時の最後のメッセージを引用する**
-   - 上記の「ゲストモード時の最後のメッセージ」を**そのまま引用**してください
-   - 例：「ユーザー登録する前のメッセージは、『${lastGuestMessage}』でしたよね」
-
-3. **会話を促す**
-   - 例：「どんな話をしましょうか？」
-
-【返答の例】：
-「${userNickname}さん、おかえりなさい。ユーザー登録する前のメッセージは、『${lastGuestMessage}』でしたよね。どんな話をしましょうか？」
-========================================
-`;
-}
-```
-
-### 3. 通常の会話
+### 2. 再訪問時
 
 - タロット占いの提案（必要に応じて）
 - 1枚カード鑑定
@@ -370,7 +137,7 @@ if (userNickname && hasPreviousConversation && lastGuestMessage) {
 #### フロー
 
 ```
-1. ゲストモードでアクセス
+1. ユーザー登録後、チャット画面にアクセス
 2. 自動的にタロット占い開始
 3. 「過去」「現在」「未来」の3枚
 4. 各カードをめくる → 雪乃の解説
@@ -424,31 +191,12 @@ CREATE TABLE IF NOT EXISTS conversations (
   content TEXT NOT NULL,
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
   message_type TEXT DEFAULT 'normal' CHECK(message_type IN ('normal', 'system', 'warning')),
-  is_guest_message BOOLEAN DEFAULT 0,  -- ★ ゲストモード時のメッセージフラグ
+  is_guest_message BOOLEAN DEFAULT 0,  -- （現在は使用されていない）
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### is_guest_message の使い方
-
-| 値 | 意味 | 用途 |
-|---|------|------|
-| `1` | ゲストモード時のメッセージ | 登録後に引用するため |
-| `0` | 登録ユーザーのメッセージ | 通常の会話履歴 |
-
-### クエリ例
-
-```sql
--- ゲストモード時の最後のユーザーメッセージを取得
-SELECT message
-FROM conversations
-WHERE user_id = ? 
-  AND character_id = 'yukino'
-  AND role = 'user'
-  AND is_guest_message = 1
-ORDER BY timestamp DESC
-LIMIT 1;
-```
+**注意**: `is_guest_message`カラムは現在使用されていません（常に0が設定されます）。
 
 ---
 

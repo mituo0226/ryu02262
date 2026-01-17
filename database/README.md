@@ -21,7 +21,7 @@ Cloudflare D1データベースを使用した会話履歴管理システムの�
 | content | TEXT | NOT NULL | メッセージ内容 |
 | timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | メッセージ送信日時 |
 | message_type | TEXT | DEFAULT 'normal', CHECK | メッセージタイプ（'normal', 'system', 'warning'） |
-| is_guest_message | BOOLEAN | DEFAULT 0 | ゲストメッセージフラグ |
+| is_guest_message | BOOLEAN | DEFAULT 0 | ゲストメッセージフラグ（現在は使用されていない。常に0を設定） |
 | created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | レコード作成日時 |
 
 #### インデックス
@@ -52,9 +52,7 @@ Cloudflare D1データベースを使用した会話履歴管理システムの�
 
 ### ゲストメッセージ
 
-- ゲストユーザーのメッセージは`is_guest_message = 1`で保存
-- ユーザー登録後、ゲストメッセージを通常メッセージに変換可能
-- 変換処理は`UPDATE`クエリで実行
+**注意**: 現在は最初からユーザー登録が必要なため、`is_guest_message`カラムは使用されていません。常に`0`が設定されます。
 
 ## API仕様
 
@@ -69,8 +67,7 @@ Cloudflare D1データベースを使用した会話履歴管理システムの�
   "character": "kaede",
   "role": "user",
   "content": "メッセージ内容",
-  "messageType": "normal",
-  "isGuestMessage": false
+  "messageType": "normal"
 }
 ```
 
@@ -102,8 +99,7 @@ Cloudflare D1データベースを使用した会話履歴管理システムの�
       "role": "user",
       "content": "メッセージ内容",
       "timestamp": "2024-01-01T00:00:00Z",
-      "message_type": "normal",
-      "is_guest_message": 0
+      "message_type": "normal"
     }
   ],
   "character": "kaede",
