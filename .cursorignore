@@ -1,0 +1,31 @@
+# Cursor が読み込まないようにするファイル・ディレクトリ
+
+# Wrangler の作業用ディレクトリ（無限に増える可能性がある）
+.wrangler/
+**/.wrangler/
+C:\Users\mituo\.wrangler/
+
+# ワークツリー（誤認識を防ぐ）
+.cursor/worktrees/
+C:\Users\mituo\.cursor\worktrees/
+
+# ビルド成果物
+node_modules/
+dist/
+build/
+.wrangler/
+.wrangler/tmp/
+.wrangler/**/*
+
+# ログファイル
+*.log
+
+# 一時ファイル
+*.tmp
+*.temp
+.cache/
+
+# システムファイル
+.DS_Store
+Thumbs.db
+desktop.ini

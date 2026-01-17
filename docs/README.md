@@ -30,6 +30,7 @@
 
 ### guides/
 ガイド・参考資料
+- `WORKDIR_GUIDE.md` - **作業用フォルダー管理ガイド**（作業ディレクトリ確認、ワークツリー対策、.wrangler クリーンアップ）
 - `YUKINO_CHAT_SYSTEM.md` - 雪乃チャットシステム
 - `YUKINO_TAROT_SYSTEM.md` - 雪乃タロットシステム
 - `GUEST_HISTORY_FLOW.md` - ゲスト履歴フロー
@@ -40,6 +41,9 @@
 - `GUEST_CHAT_FLOW_DIAGRAM.md` - ゲストチャットフロー図
 - `GUARDIAN_RITUAL_WELCOME_MESSAGE_ANALYSIS.md` - 守護神の儀式ウェルカムメッセージの分析
 - `DEVELOPMENT_GUIDE.md` - 開発ガイド
+- `CURSOR_IGNORE_SETTINGS.md` - Cursor の除外設定
+- `WRANGLER_CLEANUP.md` - Wrangler クリーンアップ
+- `WRANGLER_CLEANUP_CONDITIONS.md` - クリーンアップ条件
 - `ファイル構成_簡易版.md` - ファイル構成（簡易版）
 - `ファイル構成図_最新版.md` - ファイル構成図（最新版）
 - `プロジェクト構成図.txt` - プロジェクト構成図
@@ -49,5 +53,4 @@
 
 以下のドキュメントはルートディレクトリに残しています：
 - `README.md` - プロジェクトの概要
-- `README_WORKTREE.md` - ワークツリーの説明
-- `WORKTREE_WARNING.md` - ワークツリーの警告
+- `README_WORKTREE.md` - ワークツリーの説明（簡潔版、詳細は `guides/WORKDIR_GUIDE.md` を参照）

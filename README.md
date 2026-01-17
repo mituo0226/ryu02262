@@ -11,19 +11,11 @@ C:\Users\mituo\Desktop\kaede
 
 **❌ ワークツリー (`C:\Users\mituo\.cursor\worktrees\kaede\*`) で作業しないでください！**
 
-ワークツリーで修正しても、実際のサーバーには反映されません。
+作業ディレクトリの確認方法、ワークツリー対策など、詳細は [WORKDIR_GUIDE.md](docs/guides/WORKDIR_GUIDE.md) を参照してください。
 
-#### 確認方法
-
-PowerShellで以下のコマンドを実行：
+**クイック確認**:
 ```powershell
 .\scripts\check-workdir.ps1
-```
-
-または、手動で確認：
-```powershell
-Get-Location
-# 結果が C:\Users\mituo\Desktop\kaede であることを確認
 ```
 
 ---
@@ -134,6 +126,18 @@ kaede/
   - `ADMIN_TOKEN` : 管理者専用トークン。Cloudflare Pages ダッシュボード  
     `Settings > Functions > Add Variable` から `ADMIN_TOKEN` を追加し、任意の安全な値を設定してください。
   - 管理画面で同じトークンを入力するとユーザー情報・会話履歴の参照／編集／退会が行えます。
+
+## 作業用フォルダーの管理
+
+作業ディレクトリの確認、ワークツリーの禁止、`.wrangler` ディレクトリのクリーンアップなど、作業用フォルダーに関する詳細な情報は以下を参照してください：
+
+**詳細ガイド**: [WORKDIR_GUIDE.md](docs/guides/WORKDIR_GUIDE.md)
+
+### クイックリファレンス
+
+- **作業ディレクトリ確認**: `.\scripts\check-workdir.ps1`
+- **Wrangler クリーンアップ**: `.\scripts\auto-cleanup-wrangler-silent.ps1`
+- **自動クリーンアップ設定**: `.\scripts\setup-auto-cleanup-task.ps1`
 
 ## 注意事項
 

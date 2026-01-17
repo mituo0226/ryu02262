@@ -4,37 +4,7 @@
 
 **すべてのファイル編集・Git操作は、必ずローカルプロジェクト（`C:\Users\mituo\Desktop\kaede`）で行うこと。**
 
-### 🚨 作業開始前の必須確認手順（毎回実行）
-1. **作業ディレクトリを確認**: 
-   ```powershell
-   cd C:\Users\mituo\Desktop\kaede
-   .\scripts\check-workdir.ps1
-   ```
-   このスクリプトが成功することを確認してから作業を開始
-
-2. **ワークツリー（`.cursor\worktrees\kaede\*`）での作業は絶対禁止**
-   - ワークツリーで変更しても、ローカルプロジェクトに反映されない
-   - ワークツリーでコミットしても、GitHubにプッシュしても意味がない
-
-3. **Git操作前の確認**: 
-   ```powershell
-   git status
-   pwd  # または Get-Location
-   ```
-   現在のディレクトリが `C:\Users\mituo\Desktop\kaede` であることを確認
-
-4. **コミット前の確認**: 
-   - コミットするファイルがローカルプロジェクトにあることを確認
-   - pre-commitフックが自動的にチェックします（ワークツリーでのコミットはブロックされます）
-
-### ワークツリーとローカルプロジェクトの違い
-- **ローカルプロジェクト**: `C:\Users\mituo\Desktop\kaede` ← **常にここで作業**
-- **ワークツリー**: `C:\Users\mituo\.cursor\worktrees\kaede\*` ← **使用禁止**
-
-### Git操作のルール
-- **コミット**: 必ず `C:\Users\mituo\Desktop\kaede` で実行
-- **プッシュ**: 必ず `C:\Users\mituo\Desktop\kaede` で実行
-- **変更確認**: `git status`で作業ディレクトリを確認してから実行
+**詳細**: [WORKDIR_GUIDE.md](docs/guides/WORKDIR_GUIDE.md) を参照してください。
 
 ## ページ制作の順序（重要）
 
@@ -85,3 +55,12 @@ index-no-css.html   # CSSなし版（ルート）
 - 既存のファイルを修正する場合は、複製を作らずに、必ずそのファイル自体を編集してください。
 - コードを提案する際は、そのファイルがプロジェクト内のどこにあるか（ファイルパス）を常に意識してください。
 - ユーザーの「作業ファイル」ではなく、常に「プロジェクトルート」を基準に行動してください。
+
+## ⚠️ 作業用フォルダーの除外（重要）
+
+**メインプロジェクトフォルダー（`C:\Users\mituo\Desktop\kaede`）で作業する際は、作業用フォルダー（`.wrangler`、ワークツリー）のファイルを読み込まないでください。**
+
+- `.cursorignore` ファイルに記載されているパターンに従う
+- メインプロジェクトフォルダー内のファイルのみを読み込む
+
+**詳細**: [WORKDIR_GUIDE.md](docs/guides/WORKDIR_GUIDE.md) を参照してください。
