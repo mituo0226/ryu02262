@@ -609,10 +609,12 @@ const KaedeHandler = {
         // この関数は登録完了時に呼ばれるため、historyDataが利用可能な場合がある
         // ただし、この関数の呼び出し元でhistoryDataが渡されていない場合は、ChatData.conversationHistoryから取得
         const assignedDeity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || null;
-        console.log('[楓専用処理] ritualCompletedフラグをチェック:', ritualCompleted, 'assignedDeity:', assignedDeity);
+        const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+        console.log('[楓専用処理] ritualCompletedフラグをチェック:', ritualCompleted, 'assignedDeity:', assignedDeity, 'guardianMessageShown:', guardianMessageShown);
 
         // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
-        if ((ritualCompleted === 'true' || assignedDeity) && sessionStorage.getItem('guardianMessageShown') !== 'true') {
+        // 【修正】guardianMessageShownがtrueでも、assignedDeityが存在する場合はメッセージを表示する（再訪問時など）
+        if ((ritualCompleted === 'true' || assignedDeity) && !guardianMessageShown) {
             console.log('[楓専用処理] 守護神の儀式は既に完了しています。会話履歴読み込み後に定型文を表示します。');
             // 【変更】userNicknameをhistoryDataまたはChatDataから取得（データベースベースの判断）
             const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || ChatData.userNickname || 'あなた';

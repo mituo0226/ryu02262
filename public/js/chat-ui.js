@@ -92,39 +92,36 @@ const ChatUI = {
     updateUserStatus(isRegistered, userData = null) {
         if (!this.userStatus) return;
         
-        if (isRegistered) {
-            // 【変更】userDataからのみ取得（localStorageは使用しない）
-            if (!userData) {
-                console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
-                return;
-            }
-            
-            const nickname = userData.nickname || '鑑定者';
-            const deityId = userData.assignedDeity || '未割当';
-            const birthYear = userData.birthYear || null;
-            const birthMonth = userData.birthMonth || null;
-            const birthDay = userData.birthDay || null;
-            
-            // 守護神名（データベースに日本語で保存されているのでそのまま使用）
-            const deity = deityId;
-            
-            let statusText = `鑑定名義: ${nickname}`;
-            
-            if (birthYear && birthMonth && birthDay) {
-                statusText += ` ｜ 生年月日: ${birthYear}年${birthMonth}月${birthDay}日`;
-            }
-            
-            if (deity && deity !== '未割当') {
-                statusText += ` ｜ 守護: ${deity}`;
-            }
-            
-            this.userStatus.textContent = statusText;
+        // 【変更】現在はすべて登録済みユーザーのみなので、常に登録済みとして扱う
+        // userDataが提供されていない場合は、デフォルト値を表示
+        if (!userData) {
+            console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
+            this.userStatus.textContent = '鑑定名義: 鑑定者';
             this.userStatus.className = 'user-status registered';
-        } else {
-            const statusText = `ゲストモード`;
-            this.userStatus.textContent = statusText;
-            this.userStatus.className = 'user-status guest';
+            return;
         }
+        
+        const nickname = userData.nickname || '鑑定者';
+        const deityId = userData.assignedDeity || '未割当';
+        const birthYear = userData.birthYear || null;
+        const birthMonth = userData.birthMonth || null;
+        const birthDay = userData.birthDay || null;
+        
+        // 守護神名（データベースに日本語で保存されているのでそのまま使用）
+        const deity = deityId;
+        
+        let statusText = `鑑定名義: ${nickname}`;
+        
+        if (birthYear && birthMonth && birthDay) {
+            statusText += ` ｜ 生年月日: ${birthYear}年${birthMonth}月${birthDay}日`;
+        }
+        
+        if (deity && deity !== '未割当') {
+            statusText += ` ｜ 守護: ${deity}`;
+        }
+        
+        this.userStatus.textContent = statusText;
+        this.userStatus.className = 'user-status registered';
     },
 
     /**

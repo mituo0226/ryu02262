@@ -599,16 +599,14 @@ const ChatInit = {
                     }
                 }
                 
-                // ユーザーデータを更新
-                if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
-                    ChatUI.updateUserStatus(true, {
-                        nickname: historyData.nickname,
-                        birthYear: historyData.birthYear,
-                        birthMonth: historyData.birthMonth,
-                        birthDay: historyData.birthDay,
-                        assignedDeity: historyData.assignedDeity
-                    });
-                }
+                // ユーザーデータを更新（historyDataから生年月日を取得して表示）
+                ChatUI.updateUserStatus(true, {
+                    nickname: historyData.nickname || '鑑定者',
+                    birthYear: historyData.birthYear || null,
+                    birthMonth: historyData.birthMonth || null,
+                    birthDay: historyData.birthDay || null,
+                    assignedDeity: historyData.assignedDeity || '未割当'
+                });
                 
                 // 登録済みユーザーの特殊処理（ハンドラーに委譲）
                 // 例: 楓の守護神判定などはハンドラーのinitPageで処理される
@@ -641,26 +639,14 @@ const ChatInit = {
                 ChatData.conversationHistory = historyData;
                 ChatData.userNickname = historyData.nickname;
                 
-                // ユーザーデータを更新（会話履歴がある場合でも、生年月日が取得できる場合は更新）
-                if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
-                    ChatUI.updateUserStatus(true, {
-                        nickname: historyData.nickname,
-                        birthYear: historyData.birthYear,
-                        birthMonth: historyData.birthMonth,
-                        birthDay: historyData.birthDay,
-                        assignedDeity: historyData.assignedDeity
-                    });
-                } else if (historyData && historyData.nickname) {
-                    // 【変更】登録済みユーザーで会話履歴に生年月日がない場合でも、historyDataからのみ取得
-                    // （データベースベースの判断のため、localStorageは使用しない）
-                    ChatUI.updateUserStatus(true, {
-                        nickname: historyData.nickname || '鑑定者',
-                        birthYear: historyData.birthYear || null,
-                        birthMonth: historyData.birthMonth || null,
-                        birthDay: historyData.birthDay || null,
-                        assignedDeity: historyData.assignedDeity || '未割当'
-                    });
-                }
+                // ユーザーデータを更新（historyDataから生年月日を取得して表示）
+                ChatUI.updateUserStatus(true, {
+                    nickname: historyData.nickname || '鑑定者',
+                    birthYear: historyData.birthYear || null,
+                    birthMonth: historyData.birthMonth || null,
+                    birthDay: historyData.birthDay || null,
+                    assignedDeity: historyData.assignedDeity || '未割当'
+                });
                 
                 // ハンドラーのinitPageを呼び出す（通常の初期化フロー）
                 // ハンドラーが読み込まれるのを待つ（最大5秒）
@@ -965,7 +951,8 @@ const ChatInit = {
                     document.dispatchEvent(new CustomEvent('adminPanelUpdate'));
                 }
                 
-                ChatUI.updateUserStatus(false);
+                // 【削除】ゲストモードは廃止されたため、updateUserStatus(false)の呼び出しを削除
+                // 登録済みユーザーのみなので、userDataがない場合は何も表示しない
             }
 
             // ユーザーメッセージの追加は、API応答を確認してから行う（楓の場合の条件分岐のため）
@@ -1435,7 +1422,8 @@ const ChatInit = {
                         }
                     }
                     
-                    ChatUI.updateUserStatus(false);
+                    // 【削除】ゲストモードは廃止されたため、updateUserStatus(false)の呼び出しを削除
+                // 登録済みユーザーのみなので、userDataがない場合は何も表示しない
                     
                     if (ChatUI.messageInput) ChatUI.messageInput.blur();
                     setTimeout(() => ChatUI.scrollToLatest(), 100);
