@@ -1420,9 +1420,18 @@
                            }
                        }
                        
-                      // データベースにユーザー情報が存在するか確認
-                      if (historyData && historyData.nickname) {
-                          console.log('[入口フォーム] データベースにユーザー情報が存在するため、ユーザー情報確認画面を表示します');
+                      // 【重要】userIdが指定されている場合、historyDataが存在すればチャットに入室可能
+                      // nicknameの有無に関わらず、userIdが存在すればユーザーは特定できる
+                      if (historyData) {
+                          console.log('[入口フォーム] データベースからユーザー情報を取得しました。ユーザー情報確認画面を表示します', {
+                              nickname: historyData.nickname,
+                              birthYear: historyData.birthYear,
+                              birthMonth: historyData.birthMonth,
+                              birthDay: historyData.birthDay,
+                              gender: historyData.gender,
+                              hasHistory: historyData.hasHistory,
+                              userId: userId
+                          });
                           
                           // エントリーフォームとチャット画面を非表示
                           entryFormContainer.classList.add('entry-form-hidden');
@@ -1445,8 +1454,12 @@
                                   confirmNickname.textContent = historyData.nickname || '-';
                               }
                               
-                              if (confirmBirthDate && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
-                                  confirmBirthDate.textContent = `${historyData.birthYear}年${historyData.birthMonth}月${historyData.birthDay}日`;
+                              if (confirmBirthDate) {
+                                  if (historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
+                                      confirmBirthDate.textContent = `${historyData.birthYear}年${historyData.birthMonth}月${historyData.birthDay}日`;
+                                  } else {
+                                      confirmBirthDate.textContent = '-';
+                                  }
                               }
                               
                               // 性別が存在する場合は表示（APIから取得できない場合は非表示のまま）
@@ -1501,17 +1514,6 @@
                                   }
                               };
                               
-                              // ボタンにイベントリスナーを設定（先に設定しておく）
-                              const confirmSubmit = document.getElementById('userInfoConfirmSubmit');
-                              if (confirmSubmit) {
-                                  // 既存のイベントリスナーを削除してから追加
-                                  confirmSubmit.removeEventListener('click', handleConfirmSubmit);
-                                  confirmSubmit.addEventListener('click', handleConfirmSubmit);
-                                  console.log('[ユーザー情報確認] 「鑑定を始める」ボタンのイベントリスナーを設定しました');
-                              } else {
-                                  console.error('[ユーザー情報確認] 「鑑定を始める」ボタンが見つかりません');
-                              }
-                              
                               // ローディング後、内容を表示（0.5秒後）
                               setTimeout(() => {
                                   const loadingElement = userInfoConfirmContainer.querySelector('.user-info-confirm-loading');
@@ -1520,6 +1522,25 @@
                                   }
                                   userInfoConfirmContent.style.display = 'block';
                                   console.log('[ユーザー情報確認] ユーザー情報確認画面を表示しました');
+                                  
+                                  // ボタンにイベントリスナーを設定（表示後に設定）
+                                  const confirmSubmit = document.getElementById('userInfoConfirmSubmit');
+                                  if (confirmSubmit) {
+                                      // 既存のイベントリスナーを削除してから追加
+                                      confirmSubmit.removeEventListener('click', handleConfirmSubmit);
+                                      confirmSubmit.addEventListener('click', handleConfirmSubmit);
+                                      console.log('[ユーザー情報確認] 「鑑定を始める」ボタンのイベントリスナーを設定しました', {
+                                          buttonId: confirmSubmit.id,
+                                          buttonExists: !!confirmSubmit,
+                                          handleConfirmSubmitExists: typeof handleConfirmSubmit === 'function'
+                                      });
+                                      
+                                      // ボタンがクリック可能か確認
+                                      confirmSubmit.style.cursor = 'pointer';
+                                      confirmSubmit.disabled = false;
+                                  } else {
+                                      console.error('[ユーザー情報確認] 「鑑定を始める」ボタンが見つかりません');
+                                  }
                               }, 500);
                           } else {
                               // ユーザー情報確認画面の要素が見つからない場合は、直接チャット画面を表示（フォールバック）
@@ -1541,14 +1562,30 @@
                           return;
                       }
                        
-                      // データベースにユーザー情報が存在しない場合は入口フォームを表示
-                      console.log('[入口フォーム] データベースにユーザー情報が存在しないため、入口フォームを表示します');
-                      // loadingクラスを削除してから表示
-                      entryFormContainer.classList.remove('loading');
-                      entryFormContainer.classList.remove('entry-form-hidden');
-                      chatContainer.classList.add('entry-form-hidden');
-                      if (userInfoConfirmContainer) {
-                          userInfoConfirmContainer.classList.add('entry-form-hidden');
+                      // 【重要】historyDataが存在しない場合
+                      // userIdが指定されているのにhistoryDataがnullの場合、エラー（404）として扱う
+                      // userIdが指定されていない場合は、入口フォームを表示
+                      if (userId) {
+                          // userIdが指定されているのにデータが取得できなかった場合はエラー
+                          console.error('[入口フォーム] userIdが指定されているのに、データベースからユーザー情報を取得できませんでした', {
+                              userId: userId,
+                              character: character,
+                              historyData: historyData
+                          });
+                          // エラー時は入口フォームを表示（登録が必要）
+                          alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
+                          window.location.href = '../auth/register.html';
+                          return;
+                      } else {
+                          // userIdが指定されていない場合は入口フォームを表示
+                          console.log('[入口フォーム] データベースにユーザー情報が存在しないため、入口フォームを表示します');
+                          // loadingクラスを削除してから表示
+                          entryFormContainer.classList.remove('loading');
+                          entryFormContainer.classList.remove('entry-form-hidden');
+                          chatContainer.classList.add('entry-form-hidden');
+                          if (userInfoConfirmContainer) {
+                              userInfoConfirmContainer.classList.add('entry-form-hidden');
+                          }
                       }
                   } catch (error) {
                       console.error('[入口フォーム] データベース読み込みエラー:', error);
