@@ -448,10 +448,174 @@ const KaedeHandler = {
         
         // 事前生成されたメッセージがない場合、または古い場合はAPIで生成
         if (!kaedeMessage) {
-            // 待機中の表示を出す（ユーザーを安心させる）
+            // 段階的な待機メッセージを表示（ユーザーを安心させ、待機時間を感じさせない）
             const characterName = ChatData.characterInfo[character]?.name || '楓';
-            const waitingMessageText = `守護神${guardianConfirmationData.guardianName}の言葉を呼び出していますので、お待ちください...\nあなたの心の状態を読み取っています。`;
-            const waitingMessageId = ChatUI.addMessage('loading', waitingMessageText, characterName);
+            const guardianName = guardianConfirmationData.guardianName;
+            const userNickname = guardianConfirmationData.userNickname;
+            
+            // 段階的な待機メッセージのリスト
+            const waitingMessages = [
+                {
+                    text: `守護神${guardianName}の言葉を呼び出しています...\n${userNickname}さんの魂の波動を感じ取っています。`,
+                    delay: 0
+                },
+                {
+                    text: `守護神${guardianName}の気配が、この場に満ちてきました...\n${userNickname}さんの心の奥底を、深く読み取っています。`,
+                    delay: 15000 // 15秒後
+                },
+                {
+                    text: `守護神${guardianName}が、${userNickname}さんに語りかける言葉を紡いでいます...\n前世からの記憶を辿りながら、魂の声を聞いています。`,
+                    delay: 30000 // 30秒後
+                },
+                {
+                    text: `守護神${guardianName}の言葉が、次第に形を成してきました...\n${userNickname}さんの運命を導く、特別なメッセージを準備しています。`,
+                    delay: 45000 // 45秒後
+                }
+            ];
+            
+            // 最初の待機メッセージを表示
+            let waitingMessageId = ChatUI.addMessage('loading', waitingMessages[0].text, characterName);
+            let currentMessageIndex = 0;
+            
+            // 楓専用の神秘的なローディングアイコンを追加（chat.htmlに影響を与えないように、動的にスタイルを注入）
+            if (waitingMessageId) {
+                setTimeout(() => {
+                    const waitingElement = document.getElementById(waitingMessageId);
+                    if (waitingElement) {
+                        const loadingIcon = waitingElement.querySelector('.guardian-loading-icon');
+                        if (loadingIcon) {
+                            // 動的にスタイルシートを追加（chat.htmlに影響を与えない）
+                            if (!document.getElementById('kaede-loading-styles')) {
+                                const style = document.createElement('style');
+                                style.id = 'kaede-loading-styles';
+                                style.textContent = `
+                                    @keyframes kaede-guardian-pulse {
+                                        0%, 100% {
+                                            box-shadow: 
+                                                0 0 12px rgba(138, 43, 226, 0.4),
+                                                inset 0 0 12px rgba(138, 43, 226, 0.6),
+                                                0 0 24px rgba(255, 215, 0, 0.3);
+                                        }
+                                        50% {
+                                            box-shadow: 
+                                                0 0 24px rgba(255, 215, 0, 0.8),
+                                                0 0 40px rgba(138, 43, 226, 0.6),
+                                                inset 0 0 20px rgba(255, 215, 0, 0.4),
+                                                0 0 48px rgba(255, 215, 0, 0.5);
+                                        }
+                                    }
+                                    @keyframes kaede-guardian-inner-glow {
+                                        0%, 100% {
+                                            opacity: 0.6;
+                                            transform: translate(-50%, -50%) scale(0.8);
+                                        }
+                                        50% {
+                                            opacity: 1;
+                                            transform: translate(-50%, -50%) scale(1.2);
+                                        }
+                                    }
+                                    @keyframes kaede-guardian-particle-rotate {
+                                        0% {
+                                            transform: translate(-50%, -50%) translate(25px, 0) rotate(0deg);
+                                            opacity: 0.8;
+                                        }
+                                        50% {
+                                            opacity: 1;
+                                        }
+                                        100% {
+                                            transform: translate(-50%, -50%) translate(25px, 0) rotate(360deg);
+                                            opacity: 0.8;
+                                        }
+                                    }
+                                `;
+                                document.head.appendChild(style);
+                            }
+                            
+                            // 既存のローディングアイコンを楓専用のものに置き換え
+                            const enhancedIcon = document.createElement('div');
+                            enhancedIcon.className = 'kaede-guardian-loading-icon';
+                            enhancedIcon.style.cssText = `
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 50%;
+                                border: 2px solid rgba(255, 215, 0, 0.6);
+                                box-shadow: 
+                                    0 0 12px rgba(138, 43, 226, 0.4),
+                                    inset 0 0 12px rgba(138, 43, 226, 0.6),
+                                    0 0 24px rgba(255, 215, 0, 0.3);
+                                animation: guardian-breathe 1.8s ease-in-out infinite, kaede-guardian-pulse 2.5s ease-in-out infinite;
+                                margin: 0 auto 12px;
+                                position: relative;
+                            `;
+                            
+                            // 内側の光る円を追加（神秘的な演出）
+                            const innerGlow = document.createElement('div');
+                            innerGlow.style.cssText = `
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                width: 20px;
+                                height: 20px;
+                                border-radius: 50%;
+                                background: radial-gradient(circle, rgba(255, 215, 0, 0.8), rgba(138, 43, 226, 0.4));
+                                box-shadow: 0 0 16px rgba(255, 215, 0, 0.6);
+                                animation: kaede-guardian-inner-glow 2s ease-in-out infinite;
+                            `;
+                            enhancedIcon.appendChild(innerGlow);
+                            
+                            // 外側の光る粒子を追加（神秘的な演出）
+                            for (let i = 0; i < 6; i++) {
+                                const particle = document.createElement('div');
+                                const angle = (i * 60) * (Math.PI / 180);
+                                const radius = 25;
+                                particle.style.cssText = `
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    width: 4px;
+                                    height: 4px;
+                                    border-radius: 50%;
+                                    background: rgba(255, 215, 0, 0.8);
+                                    box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
+                                    transform: translate(-50%, -50%) translate(${Math.cos(angle) * radius}px, ${Math.sin(angle) * radius}px);
+                                    animation: kaede-guardian-particle-rotate 3s linear infinite;
+                                    animation-delay: ${i * 0.5}s;
+                                `;
+                                enhancedIcon.appendChild(particle);
+                            }
+                            
+                            // 既存のアイコンを置き換え
+                            loadingIcon.replaceWith(enhancedIcon);
+                        }
+                    }
+                }, 100);
+            }
+            
+            // 段階的なメッセージ更新のタイマーを設定（スコープを確保）
+            const messageUpdateTimers = [];
+            for (let i = 1; i < waitingMessages.length; i++) {
+                const timer = setTimeout(() => {
+                    if (waitingMessageId) {
+                        const waitingElement = document.getElementById(waitingMessageId);
+                        if (waitingElement) {
+                            const textDiv = waitingElement.querySelector('.message-text');
+                            if (textDiv) {
+                                // フェードアウト → テキスト更新 → フェードイン
+                                textDiv.style.transition = 'opacity 0.5s ease-in-out';
+                                textDiv.style.opacity = '0';
+                                
+                                setTimeout(() => {
+                                    textDiv.textContent = waitingMessages[i].text;
+                                    textDiv.style.opacity = '1';
+                                    currentMessageIndex = i;
+                                }, 500);
+                            }
+                        }
+                    }
+                }, waitingMessages[i].delay);
+                messageUpdateTimers.push(timer);
+            }
             
             try {
                 // まず守護神のメッセージを内部で生成（楓のメッセージ生成のコンテキストとして使用）
@@ -488,11 +652,23 @@ const KaedeHandler = {
                     }
                 );
 
-                // 待機中のメッセージを削除
+                // 段階的なメッセージ更新のタイマーをクリア
+                if (typeof messageUpdateTimers !== 'undefined' && Array.isArray(messageUpdateTimers)) {
+                    messageUpdateTimers.forEach(timer => clearTimeout(timer));
+                }
+                
+                // 待機中のメッセージを削除（フェードアウト演出付き）
                 if (waitingMessageId) {
                     const waitingElement = document.getElementById(waitingMessageId);
                     if (waitingElement) {
-                        waitingElement.remove();
+                        // フェードアウトしてから削除
+                        waitingElement.style.transition = 'opacity 0.5s ease-in-out';
+                        waitingElement.style.opacity = '0';
+                        setTimeout(() => {
+                            if (waitingElement.parentNode) {
+                                waitingElement.remove();
+                            }
+                        }, 500);
                     }
                 }
 
@@ -524,11 +700,23 @@ const KaedeHandler = {
                     userNickname: guardianConfirmationData.userNickname
                 });
                 
-                // 待機中のメッセージを削除
+                // 段階的なメッセージ更新のタイマーをクリア
+                if (typeof messageUpdateTimers !== 'undefined' && Array.isArray(messageUpdateTimers)) {
+                    messageUpdateTimers.forEach(timer => clearTimeout(timer));
+                }
+                
+                // 待機中のメッセージを削除（フェードアウト演出付き）
                 if (waitingMessageId) {
                     const waitingElement = document.getElementById(waitingMessageId);
                     if (waitingElement) {
-                        waitingElement.remove();
+                        // フェードアウトしてから削除
+                        waitingElement.style.transition = 'opacity 0.5s ease-in-out';
+                        waitingElement.style.opacity = '0';
+                        setTimeout(() => {
+                            if (waitingElement.parentNode) {
+                                waitingElement.remove();
+                            }
+                        }, 500);
                     }
                 }
                 
