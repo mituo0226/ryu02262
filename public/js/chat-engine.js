@@ -1062,7 +1062,7 @@ const ChatInit = {
                 let messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
                 
                 // 個別相談モードのチェック（ハンドラーに委譲）
-                const handler = CharacterRegistry.get(character);
+                let handler = CharacterRegistry.get(character);
                 const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
                     ? handler.isConsultationMode() 
                     : false;
@@ -1124,7 +1124,8 @@ const ChatInit = {
                 // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
                 let shouldShowUserMessage = !skipUserMessage;
                 if (!skipUserMessage) {
-                    const handler = CharacterRegistry.get(character);
+                    // handlerは既に宣言済みなので、再取得のみ
+                    handler = handler || CharacterRegistry.get(character);
                     if (handler && typeof handler.shouldShowUserMessage === 'function') {
                         shouldShowUserMessage = handler.shouldShowUserMessage(responseText, false);
                     }
@@ -1177,7 +1178,8 @@ const ChatInit = {
                 }
                 
                 // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
-                const handler = CharacterRegistry.get(character);
+                // handlerは既に宣言済みなので、再取得のみ
+                handler = handler || CharacterRegistry.get(character);
                 if (handler && typeof handler.handleResponse === 'function') {
                     handlerProcessed = await handler.handleResponse(response, character);
                     
