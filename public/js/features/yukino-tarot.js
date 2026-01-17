@@ -631,12 +631,6 @@
                 userId: userId || undefined
             };
             
-            // ゲストメタデータを追加（必要な場合）
-            if (window.ChatData && window.ChatData.getGuestMessageCount) {
-                const messageCount = window.ChatData.getGuestMessageCount(character);
-                payload.guestMetadata = { messageCount: messageCount };
-            }
-            
             // APIリクエストを送信
             const response = await fetch('/api/consult', {
                 method: 'POST',
@@ -854,12 +848,6 @@ ${cardNames}
                 clientHistory: clientHistory,
                 userId: userId || undefined
             };
-            
-            // ゲストメタデータを追加（必要な場合）
-            if (window.ChatData && window.ChatData.getGuestMessageCount) {
-                const messageCount = window.ChatData.getGuestMessageCount(character);
-                payload.guestMetadata = { messageCount: messageCount };
-            }
             
             // APIリクエストを送信
             const response = await fetch('/api/consult', {

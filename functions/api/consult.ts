@@ -16,11 +16,6 @@ type ConversationRole = 'user' | 'assistant';
 interface ClientHistoryEntry {
   role: ConversationRole;
   content: string;
-  isGuestMessage?: boolean;
-}
-
-interface GuestMetadata {
-  messageCount?: number;
 }
 
 interface RequestBody {
@@ -28,7 +23,6 @@ interface RequestBody {
   character?: string;
   clientHistory?: ClientHistoryEntry[];
   migrateHistory?: boolean;
-  guestMetadata?: GuestMetadata;
   ritualStart?: boolean; // 守護神の儀式開始通知フラグ
   guardianFirstMessage?: boolean; // 守護神からの最初のメッセージ生成フラグ
   kaedeFollowUp?: boolean; // 楓からの追加メッセージ生成フラグ（guardianFirstMessageの後に呼ばれる）
@@ -146,27 +140,7 @@ function isServiceBusyError(status: number, errorText: string): boolean {
  */
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// ===== ゲストセッション管理 =====
-
-
-/**
- * ユーザーの総メッセージ数を取得（全キャラクター合計）
- */
-async function getTotalGuestMessageCount(
-  db: D1Database,
-  guestUserId: number
-): Promise<number> {
-  // user_idのみで検索
-  const result = await db
-    .prepare(
-      `SELECT COUNT(*) as count 
-       FROM conversations c
-       WHERE c.user_id = ? AND c.role = 'user'`
-    )
-    .bind(guestUserId)
-    .first<{ count: number }>();
-  return result?.count || 0;
-}
+// ===== 会話履歴管理 =====
 
 /**
  * 会話履歴を取得（共通関数）
@@ -189,7 +163,6 @@ async function getConversationHistory(
   return historyResults.results?.slice().reverse().map((row) => ({
     role: row.role,
     content: row.content || row.message || '',
-    isGuestMessage: false,
   })) ?? [];
 }
 
@@ -799,34 +772,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         const dbHistory = await getConversationHistory(env.DB, user.id, characterId);
         dbHistoryOnly = dbHistory; // データベース履歴を保存
-        // 移行後は、is_guest_message = 1として保存し、登録ユーザーの履歴として扱う
-        if (body.migrateHistory && sanitizedHistory.length > 0) {
-          console.log('[consult] ゲスト履歴を登録ユーザーに移行します:', sanitizedHistory.length, '件');
-          for (const entry of sanitizedHistory) {
-            try {
-              await env.DB.prepare(
-                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-                 VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
-              )
-                .bind(user.id, characterId, entry.role, entry.content)
-                .run();
-            } catch (error) {
-              // timestampカラムが存在しない場合はcreated_atのみを使用
-              await env.DB.prepare(
-                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-                 VALUES (?, ?, ?, ?, 'normal', 1, CURRENT_TIMESTAMP)`
-              )
-                .bind(user.id, characterId, entry.role, entry.content)
-                .run();
-            }
-          }
-          // 移行した履歴とDB履歴をマージ（LLMへの入力用）
-          conversationHistory = [...sanitizedHistory, ...dbHistory];
-          // 移行後は、データベース履歴に移行した履歴も含まれるため、dbHistoryOnlyも更新
-          dbHistoryOnly = [...sanitizedHistory, ...dbHistory];
-        } else {
-          conversationHistory = dbHistory;
-        }
+        conversationHistory = dbHistory;
       } catch (error) {
         console.error('[consult] 登録ユーザーの履歴取得エラー:', error);
         // エラーが発生した場合はクライアントから送られてきた履歴を使用（LLMへの入力用）
@@ -930,8 +876,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // ===== 10. 最後のメッセージを抽出 =====
-    // 【新仕様】すべてのユーザーを'registered'として扱うため、この処理は不要
-    let lastGuestMessage: string | null = null;
+    // 【新仕様】すべてのユーザーを登録ユーザーとして扱うため、ゲストメッセージの処理は不要
 
     // ===== 11. 守護神からの最初のメッセージ生成処理 =====
     const isGuardianFirstMessage = body.guardianFirstMessage === true;
@@ -1148,7 +1093,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       guardian: user?.guardian || null,
       isRitualStart: isRitualStart,
       isJustRegistered: isJustRegistered,
-      lastGuestMessage: lastGuestMessage,
       userMessageCount: userMessageCount,
       userGender: userGender,
       userBirthDate: userBirthDate,
@@ -1305,7 +1249,6 @@ export const onRequestPost: PagesFunction = async (context) => {
           characterName,
           isInappropriate: false,
           detectedKeywords: [],
-          guestMode: false,
           showTarotCard: false,
           provider: llmResult.provider,
           clearChat: false,
@@ -1323,7 +1266,6 @@ export const onRequestPost: PagesFunction = async (context) => {
         characterName,
         isInappropriate: false,
         detectedKeywords: [],
-        guestMode: false, // 【新仕様】すべてのユーザーを登録ユーザーとして扱う
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示

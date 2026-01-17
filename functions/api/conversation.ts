@@ -30,7 +30,6 @@ interface RequestBody {
   role: 'user' | 'assistant';
   content: string;
   messageType?: 'normal' | 'system' | 'warning';
-  isGuestMessage?: boolean;
 }
 
 interface ResponseBody {
@@ -108,26 +107,6 @@ export const onRequestPost: PagesFunction = async (context) => {
         );
       }
       userId = user.id;
-    } else if (!body.isGuestMessage) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'nickname and birth date are required',
-        } as ResponseBody),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // ゲストユーザーの場合は一時的なuser_idを使用（登録後に移行）
-    if (body.isGuestMessage && !userId) {
-      // ゲストメッセージは別途管理（既存のAuthStateを使用）
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Guest messages should be handled by client-side storage',
-        } as ResponseBody),
-        { status: 400, headers: corsHeaders }
-      );
     }
 
     if (!userId) {
@@ -170,7 +149,8 @@ export const onRequestPost: PagesFunction = async (context) => {
 
     // メッセージを追加
     const messageType = body.messageType || 'normal';
-    const isGuestMessage = body.isGuestMessage ? 1 : 0;
+    // 【新仕様】すべてのユーザーを登録ユーザーとして扱うため、is_guest_messageは常に0
+    const isGuestMessage = 0;
 
     // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
     const result = await env.DB.prepare(

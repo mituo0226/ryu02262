@@ -1283,8 +1283,6 @@ const ChatInit = {
                 }
                 
                 // メッセージカウントを取得
-                // API側では guestMetadata.messageCount を「これまでのメッセージ数（今回送信するメッセージを含まない）」として扱い、
-                // 内部で +1 して計算するため、ここでは「これまでのメッセージ数」を送信する必要がある
                 let messageCountForAPI = 0;
                 if (isGuest) {
                     // 個別相談モードのチェック（ハンドラーに委譲）

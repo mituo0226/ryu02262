@@ -34,7 +34,7 @@ const ChatAPI = {
         // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
         // nickname+生年月日によるユーザー確認は行わない
         if (!userId) {
-            console.log('[loadConversationHistory] userIdが指定されていません（ゲストユーザーの可能性があります）');
+            console.log('[loadConversationHistory] userIdが指定されていません');
             return null;
         }
         
