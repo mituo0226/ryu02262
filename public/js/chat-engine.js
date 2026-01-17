@@ -756,13 +756,17 @@ const ChatInit = {
             this._initPageRunning = false;
             this._initPageCompleted = true;
         } catch (error) {
+            // エラーが発生した場合、character変数がまだ定義されていない可能性があるため、
+            // URLパラメータまたはChatData.currentCharacterから取得
+            const urlParams = new URLSearchParams(window.location.search);
+            let character = ChatData?.currentCharacter || urlParams.get('character') || 'kaede';
+            
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:825',message:'initPage関数エラー',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // #endregion
             this._initPageRunning = false;
             this._initPageCompleted = true;
             console.error('Error loading conversation history:', error);
-            const character = ChatData.currentCharacter;
             const info = ChatData.characterInfo[character];
             
             // エラー時はハンドラーのinitPageを呼び出す
