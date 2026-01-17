@@ -1217,9 +1217,7 @@ export function generateKaedeFollowUpPrompt(guardianName, guardianMessage, userN
 - アドバイススタイル: ${guardianData.advice_style}
 ` : '';
 
-  return `あなたは楓（かえで）として、${userNickname}さんに語りかけています。
-
-【現在の状況】
+  return `あなたは楓（かえで）として、${userNickname}さんに語りかけています。【現在の状況】
 - 守護神の儀式が完了し、${guardianName}が${userNickname}さんに直接語りかけました
 - 守護神からのメッセージ：
 「${guardianMessage}」

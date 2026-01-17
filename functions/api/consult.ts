@@ -1,6 +1,7 @@
 // Cloudflare Pages Functions の型定義
 import { generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
 import { isValidCharacter } from '../_lib/character-loader.js';
+import { generateGuardianFirstMessagePrompt, generateKaedeFollowUpPrompt } from '../_lib/characters/kaede.js';
 
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
@@ -1020,7 +1021,81 @@ export const onRequestPost: PagesFunction = async (context) => {
       }
     }
 
-    // ===== 12. システムプロンプトの生成 =====
+    // ===== 12. 楓からの追加メッセージ生成処理（守護神のメッセージの後）=====
+    const isKaedeFollowUp = body.kaedeFollowUp === true;
+    if (isKaedeFollowUp && characterId === 'kaede' && body.guardianName && body.guardianMessage) {
+      try {
+        const guardianName = body.guardianName;
+        const guardianMessage = body.guardianMessage;
+        const userNickname = user?.nickname || 'あなた';
+        const firstQuestion = body.firstQuestion || null;
+
+        console.log('[consult] 楓からの追加メッセージを生成します（守護神のメッセージの後）:', {
+          guardianName,
+          userNickname,
+          hasGuardianMessage: !!guardianMessage,
+          hasFirstQuestion: !!firstQuestion,
+        });
+
+        // 楓専用のシステムプロンプトを生成
+        const kaedeSystemPrompt = generateKaedeFollowUpPrompt(
+          guardianName,
+          guardianMessage,
+          userNickname,
+          firstQuestion
+        );
+
+        // 会話履歴は空（楓の最初のメッセージのため）
+        const kaedeConversationHistory: ClientHistoryEntry[] = [];
+
+        // LLMにリクエストを送信
+        const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
+        const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+        const kaedeLLMResult = await getLLMResponse({
+          systemPrompt: kaedeSystemPrompt,
+          conversationHistory: kaedeConversationHistory,
+          userMessage: `守護神${guardianName}のメッセージを聞いた後、楓として${userNickname}さんに語りかけてください。`,
+          temperature: 0.8,
+          maxTokens: 500,
+          topP: 0.9,
+          deepseekApiKey: apiKey,
+          fallbackApiKey: fallbackApiKey,
+          fallbackModel: fallbackModel,
+        });
+
+        if (kaedeLLMResult.success && kaedeLLMResult.message) {
+          console.log('[consult] ✅ 楓からの追加メッセージを生成しました');
+
+          // 生成されたメッセージを会話履歴に保存
+          if (user) {
+            await saveAssistantMessage(env.DB, user.id, characterId, kaedeLLMResult.message);
+          }
+
+          return new Response(
+            JSON.stringify({
+              message: kaedeLLMResult.message,
+              character: characterId,
+              characterName: getCharacterName(characterId),
+              isInappropriate: false,
+              detectedKeywords: [],
+              provider: kaedeLLMResult.provider,
+              clearChat: false,
+            } as ResponseBody),
+            { status: 200, headers: corsHeaders }
+          );
+        } else {
+          console.error('[consult] ❌ 楓メッセージ生成エラー:', kaedeLLMResult.error);
+          // エラーの場合、通常の処理にフォールバック
+        }
+      } catch (error) {
+        console.error('[consult] ❌ 楓メッセージ生成処理エラー:', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // エラーが発生した場合、通常の処理にフォールバック
+      }
+    }
+
+    // ===== 13. システムプロンプトの生成 =====
     // 【改善】システムプロンプトをシンプルに：各鑑定士の性格設定だけを守らせる
     // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、登録したばかり
     // 【新仕様】すべてのユーザーを'registered'として扱う
@@ -1168,7 +1243,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       messageLength: responseMessage.length,
     });
 
-    // ===== 12. タロットカード検出（笹岡雪乃の場合のみ）=====
+    // ===== 14. タロットカード検出（笹岡雪乃の場合のみ）=====
     const tarotKeywords = [
       'タロット',
       'タロットカード',
