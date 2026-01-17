@@ -1001,7 +1001,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           conversationHistory: kaedeConversationHistory,
           userMessage: `守護神${guardianName}のメッセージを聞いた後、楓として${userNickname}さんに語りかけてください。`,
           temperature: 0.8,
-          maxTokens: 500,
+          maxTokens: 2000,
           topP: 0.9,
           deepseekApiKey: apiKey,
           fallbackApiKey: fallbackApiKey,
