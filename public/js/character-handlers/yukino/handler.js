@@ -148,6 +148,46 @@ const YukinoHandler = {
     },
 
     /**
+     * 新規会話開始時にフラグをクリアする処理
+     * @param {Array} conversationHistory - 会話履歴
+     * @param {*} tempCardInfo - 一時保存されたカード情報（存在する場合、現在は使用しない）
+     */
+    clearFlagsOnNewConversation(conversationHistory, tempCardInfo) {
+        // 会話履歴が空の場合、タロット関連フラグをクリア（新規会話として扱う）
+        // ⚠️ ただし、yukinoTarotCardForExplanationは解説後のボタン表示で使うため、クリアしない
+        if (conversationHistory.length === 0) {
+            // sessionStorageから直接カード情報を確認（解説待ち状態かどうか）
+            const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
+            const cardInfoExists = cardInfoStr !== null;
+            
+            if (!cardInfoExists) {
+                // 新規会話なので、タロット関連フラグをクリア
+                sessionStorage.removeItem('yukinoThreeCardsPrepared');
+                sessionStorage.removeItem('yukinoAllThreeCards');
+                sessionStorage.removeItem('yukinoRemainingCards');
+                sessionStorage.removeItem('yukinoSummaryShown');
+                sessionStorage.removeItem('yukinoFirstMessageInSession');
+                console.log('[雪乃ハンドラー] 新規会話：タロット関連フラグをクリアしました');
+            } else {
+                console.log('[雪乃ハンドラー] カード解説待ち状態を検出。フラグクリアをスキップします。');
+            }
+        }
+    },
+
+    /**
+     * セッション最初のメッセージを記録する処理
+     * @param {string} message - メッセージテキスト
+     * @param {boolean} isTarotExplanationTrigger - タロット解説トリガーかどうか
+     */
+    onFirstMessageInSession(message, isTarotExplanationTrigger) {
+        // タロット解説トリガーでない場合のみ記録
+        if (!isTarotExplanationTrigger) {
+            sessionStorage.setItem('yukinoFirstMessageInSession', message);
+            console.log('[雪乃ハンドラー] セッション最初のメッセージを記録:', message.substring(0, 50));
+        }
+    },
+
+    /**
      * 登録後の定型文を取得
      * @param {string} userNickname - ユーザーのニックネーム
      * @param {string} lastGuestUserMessage - 最後のゲストユーザーメッセージ
@@ -207,12 +247,21 @@ const YukinoHandler = {
         const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
         if (cardInfoStr) {
             try {
-                const cardInfo = JSON.parse(cardInfoStr);
+                const card = JSON.parse(cardInfoStr);
+                console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
+                    position: card.position,
+                    name: card.name
+                });
+                
+                // sessionStorageをクリア
+                sessionStorage.removeItem('yukinoTarotCardForExplanation');
+                
+                // メッセージコンテナを取得
                 const messagesDiv = document.getElementById('messages');
                 if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
                     // 少し待ってからボタンを表示（AI応答が完全に表示された後）
                     setTimeout(() => {
-                        window.YukinoTarot.displayNextCardButton(cardInfo.position, messagesDiv);
+                        window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
                     }, 500);
                 }
             } catch (error) {

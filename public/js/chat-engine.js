@@ -411,8 +411,13 @@ const ChatInit = {
                 // 【重要】守護神が既に決定されている場合は、firstTimeGuestメッセージを表示しない
                 // 楓の場合は、守護神が決定されている場合、ハンドラーで守護神確認メッセージが表示される
                 // ただし、三崎花音や水野ソラなど、他のキャラクターの場合は守護神の有無に関係なく初回メッセージを表示する
-                const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
-                const shouldSkipFirstMessageForDeity = hasAssignedDeity && character === 'kaede'; // 楓のみ守護神がある場合はスキップ
+                // 【スケーラビリティ改善】守護神が既に決定されている場合の判定をハンドラーに委譲
+                const handlerForFirstMessage = CharacterRegistry.get(character);
+                let shouldSkipFirstMessageForDeity = false;
+                
+                if (handlerForFirstMessage && typeof handlerForFirstMessage.shouldSkipFirstMessageForDeity === 'function') {
+                    shouldSkipFirstMessageForDeity = handlerForFirstMessage.shouldSkipFirstMessageForDeity(historyData);
+                }
                 
                 if (!shouldSkipFirstMessageForDeity) {
                     // #region agent log
@@ -431,14 +436,15 @@ const ChatInit = {
                     // #endregion
                     ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                     return true;
-                } else if (hasAssignedDeity && character === 'kaede' && !guardianMessageShown && !handlerSkippedFirstMessage) {
-                    // 【重要】楓で守護神が既に決定されている場合、守護神確認メッセージを表示（楓専用の特別処理）
-                    console.log('[初期化] 楓で守護神が既に決定されているため、守護神確認メッセージを表示します');
+                } else if (handlerForFirstMessage && typeof handlerForFirstMessage.getGuardianConfirmationMessage === 'function' && !guardianMessageShown && !handlerSkippedFirstMessage) {
+                    // 【スケーラビリティ改善】守護神確認メッセージの取得をハンドラーに委譲
                     const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
-                    const guardianName = historyData.assignedDeity;
-                    const guardianConfirmationMessage = `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
-                    ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
-                    return true;
+                    const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
+                    if (guardianConfirmationMessage) {
+                        console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
+                        ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                        return true;
+                    }
                 }
                 
                 return false;
@@ -464,26 +470,12 @@ const ChatInit = {
                 conversationHistory = historyData.recentMessages;
             }
             
-            // 会話履歴が空の場合、雪乃のタロット関連フラグもクリア（新規会話として扱う）
-            // ⚠️ ただし、yukinoTarotCardForExplanationは解説後のボタン表示で使うため、クリアしない
-            if (conversationHistory.length === 0 && character === 'yukino') {
-                // tempCardInfoが存在する場合は、解説待ち状態なのでクリアしない
-                const cardInfoExists = tempCardInfo !== null;
-                
-                if (!cardInfoExists) {
-                    // 新規会話なので、タロット関連フラグをクリア
-                    sessionStorage.removeItem('yukinoThreeCardsPrepared');
-                    sessionStorage.removeItem('yukinoAllThreeCards');
-                    sessionStorage.removeItem('yukinoRemainingCards');
-                    sessionStorage.removeItem('yukinoSummaryShown');
-                    sessionStorage.removeItem('yukinoFirstMessageInSession');
-                    console.log('[初期化] 雪乃の新規会話：タロット関連フラグをクリアしました');
-                } else {
-                    console.log('[初期化] カード解説待ち状態を検出。フラグクリアをスキップします。');
-                    // 一時保存していたカード情報を復元
-                    sessionStorage.setItem('yukinoTarotCardForExplanation', tempCardInfo);
-                    console.log('[初期化] カード情報を復元しました:', tempCardInfo);
-                }
+            // 【スケーラビリティ改善】新規会話時のフラグクリアをハンドラーに委譲
+            // 注意: tempCardInfoはこのコードブロック内で定義されていない可能性があるため、
+            // ハンドラー内でsessionStorageから直接取得して処理する
+            const handlerForClearFlags = CharacterRegistry.get(character);
+            if (handlerForClearFlags && typeof handlerForClearFlags.clearFlagsOnNewConversation === 'function') {
+                handlerForClearFlags.clearFlagsOnNewConversation(conversationHistory, null);
             }
             
             // 会話履歴を表示
@@ -900,10 +892,10 @@ const ChatInit = {
                         historyLength: savedHistory.length
                     });
                     
-                    // 雪乃の場合、そのセッションで最初のメッセージを記録（まとめ鑑定で使用）
-                    if (character === 'yukino' && !isTarotExplanationTrigger) {
-                        sessionStorage.setItem('yukinoFirstMessageInSession', message);
-                        console.log('[メッセージ送信] 雪乃のセッション最初のメッセージを記録:', message.substring(0, 50));
+                    // 【スケーラビリティ改善】セッション最初のメッセージ記録をハンドラーに委譲
+                    const handlerForFirstMessage2 = CharacterRegistry.get(character);
+                    if (handlerForFirstMessage2 && typeof handlerForFirstMessage2.onFirstMessageInSession === 'function') {
+                        handlerForFirstMessage2.onFirstMessageInSession(message, isTarotExplanationTrigger);
                     }
                 } else {
                     console.log('[メッセージ送信] メッセージを送信しました:', {
@@ -1136,32 +1128,10 @@ const ChatInit = {
                 const messageId = ChatUI.addMessage('character', responseText, characterName);
                 ChatUI.scrollToLatest();
                 
-                // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
-                if (character === 'yukino') {
-                    const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
-                    if (cardInfoStr) {
-                        try {
-                            const card = JSON.parse(cardInfoStr);
-                            console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
-                                position: card.position,
-                                name: card.name
-                            });
-                            
-                            // sessionStorageをクリア
-                            sessionStorage.removeItem('yukinoTarotCardForExplanation');
-                            
-                            // メッセージコンテナを取得
-                            const messagesDiv = document.getElementById('messages');
-                            if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
-                                // 少し待ってからボタンを表示（AI応答が完全に表示された後）
-                                setTimeout(() => {
-                                    window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
-                                }, 500);
-                            }
-                        } catch (error) {
-                            console.error('[タロットボタン表示] カード情報の解析エラー:', error);
-                        }
-                    }
+                // 【スケーラビリティ改善】レスポンス表示後の処理をハンドラーに委譲
+                const handlerForResponseDisplay = CharacterRegistry.get(character);
+                if (handlerForResponseDisplay && typeof handlerForResponseDisplay.handleAfterResponseDisplay === 'function') {
+                    handlerForResponseDisplay.handleAfterResponseDisplay(messageId);
                 }
                 
                 // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
@@ -1340,33 +1310,13 @@ const ChatInit = {
                     const messageText = typeof data.message === 'string' ? data.message : String(data.message);
                     ChatUI.addMessage('character', messageText, data.characterName);
                     
-                    // 雪乃のタロット：カード解説後に「次のカードの鑑定」ボタンを表示
-                    const character = ChatData?.currentCharacter || 'unknown';
-                    if (character === 'yukino') {
-                        const cardInfoStr = sessionStorage.getItem('yukinoTarotCardForExplanation');
-                        if (cardInfoStr) {
-                            try {
-                                const card = JSON.parse(cardInfoStr);
-                                console.log('[タロットボタン表示] カード解説後、次のステップボタンを表示:', {
-                                    position: card.position,
-                                    name: card.name
-                                });
-                                
-                                // sessionStorageをクリア
-                                sessionStorage.removeItem('yukinoTarotCardForExplanation');
-                                
-                                // メッセージコンテナを取得
-                                const messagesDiv = document.getElementById('messages');
-                                if (messagesDiv && window.YukinoTarot && window.YukinoTarot.displayNextCardButton) {
-                                    // 少し待ってからボタンを表示（AI応答が完全に表示された後）
-                                    setTimeout(() => {
-                                        window.YukinoTarot.displayNextCardButton(card.position, messagesDiv);
-                                    }, 500);
-                                }
-                            } catch (error) {
-                                console.error('[タロットボタン表示] カード情報の解析エラー:', error);
-                            }
-                        }
+                    // 【スケーラビリティ改善】レスポンス表示後の処理をハンドラーに委譲
+                    const characterForResponseDisplay = ChatData?.currentCharacter || 'unknown';
+                    const handlerForResponseDisplay2 = CharacterRegistry.get(characterForResponseDisplay);
+                    if (handlerForResponseDisplay2 && typeof handlerForResponseDisplay2.handleAfterResponseDisplay === 'function') {
+                        // メッセージIDを生成（既存のロジックに合わせる）
+                        const messageIdForHandler = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                        handlerForResponseDisplay2.handleAfterResponseDisplay(messageIdForHandler);
                     }
                     
                     // 親ウィンドウにメッセージ送信完了を通知（分析パネル更新用）

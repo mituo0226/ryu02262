@@ -1347,6 +1347,31 @@ const KaedeHandler = {
                 ritualBtn.textContent = '🔮 守護神の儀式を再発動';
             }
         }
+    },
+
+    /**
+     * 守護神が既に決定されている場合、firstTimeGuestメッセージをスキップするかどうかを判定
+     * @param {Object} historyData - 会話履歴データ
+     * @returns {boolean} スキップするかどうか
+     */
+    shouldSkipFirstMessageForDeity(historyData) {
+        const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+        return hasAssignedDeity;
+    },
+
+    /**
+     * 守護神確認メッセージを取得
+     * @param {Object} historyData - 会話履歴データ
+     * @param {string} userNickname - ユーザーのニックネーム
+     * @returns {string|null} 守護神確認メッセージ（表示しない場合はnull）
+     */
+    getGuardianConfirmationMessage(historyData, userNickname) {
+        const hasAssignedDeity = historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '';
+        if (hasAssignedDeity) {
+            const guardianName = historyData.assignedDeity;
+            return `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
+        }
+        return null;
     }
 };
 
