@@ -164,7 +164,10 @@ const ChatUI = {
                 return textDiv && textDiv.textContent === text;
             });
             
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-ui.js:138',message:'addMessage welcome呼び出し',data:{type,sender,textLength:text.length,textPreview:text.substring(0,200),containsReturningMessage:text.includes('また私に会いに来てくれてありがとう'),isDuplicate,existingWelcomeCount:existingMessages.length,stackTrace:stackTrace?.split('\n').slice(0,10).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
+            // ロギングサーバーへの接続は開発環境でのみ有効（コメントアウト）
+            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-ui.js:138',message:'addMessage welcome呼び出し',data:{type,sender,textLength:text.length,textPreview:text.substring(0,200),containsReturningMessage:text.includes('また私に会いに来てくれてありがとう'),isDuplicate,existingWelcomeCount:existingMessages.length,stackTrace:stackTrace?.split('\n').slice(0,10).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
+            // }
             
             if (isDuplicate) {
                 console.warn('[ChatUI] 重複したwelcomeメッセージを検出しました。スキップします。', text.substring(0, 100));

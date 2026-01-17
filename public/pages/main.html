@@ -49,8 +49,10 @@
     </main>
 
     <script>
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.html:52',message:'ページ読み込み完了',data:{url:window.location.href,userAgent:navigator.userAgent},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #region agent log (開発環境のみ - コメントアウト)
+        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.html:52',message:'ページ読み込み完了',data:{url:window.location.href,userAgent:navigator.userAgent},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // }
         // #endregion
         
         // 【追加】URLパラメータからuserIdを取得して、プロフィールページへのリンクに追加
@@ -87,12 +89,14 @@
 
         cards.forEach(card => observer.observe(card));
         
-        // #region agent log
-        document.querySelectorAll('.consult-button').forEach((btn, idx) => {
-            btn.addEventListener('click', (e) => {
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.html:click',message:'鑑定士選択ボタンクリック',data:{href:btn.href,text:btn.textContent,index:idx},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            });
-        });
+        // #region agent log (開発環境のみ - コメントアウト)
+        // document.querySelectorAll('.consult-button').forEach((btn, idx) => {
+        //     btn.addEventListener('click', (e) => {
+        //         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        //             fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.html:click',message:'鑑定士選択ボタンクリック',data:{href:btn.href,text:btn.textContent,index:idx},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        //         }
+        //     });
+        // });
         // #endregion
     </script>
 </body>
