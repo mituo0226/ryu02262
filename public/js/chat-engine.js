@@ -795,19 +795,18 @@ const ChatInit = {
                 const handlerResult = await handler.initPage(urlParams, null, justRegistered, shouldTriggerRegistrationFlow, {
                     guardianMessageShown
                 });
-                    if (handlerResult && handlerResult.completed) {
-                        console.log('[初期化] ハンドラーで処理完了（エラー分岐）。処理を終了します。');
-                        return; // 処理終了
-                    }
-                    if (handlerResult && handlerResult.skip) {
-                        console.log('[初期化] ハンドラーで処理スキップ（エラー分岐）。共通処理をスキップします。');
-                        handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
-                    }
+                if (handlerResult && handlerResult.completed) {
+                    console.log('[初期化] ハンドラーで処理完了（エラー分岐）。処理を終了します。');
+                    return; // 処理終了
                 }
-                
-                // 【統一化】共通の初回メッセージ表示ロジックを使用
-                showInitialMessage({ handlerSkippedFirstMessage });
+                if (handlerResult && handlerResult.skip) {
+                    console.log('[初期化] ハンドラーで処理スキップ（エラー分岐）。共通処理をスキップします。');
+                    handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
+                }
             }
+            
+            // 【統一化】共通の初回メッセージ表示ロジックを使用
+            showInitialMessage({ handlerSkippedFirstMessage });
         }
 
         // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない
