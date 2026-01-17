@@ -1464,6 +1464,54 @@
                                   }
                               }
                               
+                              // 「鑑定を始める」ボタンのイベントハンドラー（先に定義）
+                              const handleConfirmSubmit = async () => {
+                                  console.log('[ユーザー情報確認] チャット画面を表示します');
+                                  
+                                  // ユーザー情報確認画面を非表示
+                                  userInfoConfirmContainer.classList.add('entry-form-hidden');
+                                  
+                                  // チャット画面を表示
+                                  chatContainer.classList.remove('entry-form-hidden');
+                                  
+                                  // 【重要】チャット画面を表示した後、chat-engine.jsの初期化を実行
+                                  // ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
+                                  if (window.ChatData) {
+                                      window.ChatData.conversationHistory = historyData;
+                                      window.ChatData.userNickname = historyData.nickname;
+                                  }
+                                  
+                                  // chat-engine.jsの初期化を実行
+                                  if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                      console.log('[ユーザー情報確認] chat-engine.jsの初期化を実行します');
+                                      await window.ChatInit.initPage();
+                                  } else {
+                                      console.warn('[ユーザー情報確認] ChatInit.initPageが見つかりません。後で再試行します。');
+                                      // ChatInitが読み込まれるのを待つ（最大5秒）
+                                      let attempts = 0;
+                                      const maxAttempts = 50; // 5秒間待機（100ms × 50）
+                                      while (!window.ChatInit && attempts < maxAttempts) {
+                                          await new Promise(resolve => setTimeout(resolve, 100));
+                                          attempts++;
+                                      }
+                                      if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                          console.log('[ユーザー情報確認] ChatInit.initPageを実行します（再試行）');
+                                          await window.ChatInit.initPage();
+                                      }
+                                  }
+                              };
+                              
+                              // ボタンにイベントリスナーを設定（先に設定しておく）
+                              const confirmSubmit = document.getElementById('userInfoConfirmSubmit');
+                              if (confirmSubmit) {
+                                  // 既存のイベントリスナーを削除してから追加
+                                  confirmSubmit.removeEventListener('click', handleConfirmSubmit);
+                                  confirmSubmit.addEventListener('click', handleConfirmSubmit);
+                                  console.log('[ユーザー情報確認] 「鑑定を始める」ボタンのイベントリスナーを設定しました');
+                              } else {
+                                  console.error('[ユーザー情報確認] 「鑑定を始める」ボタンが見つかりません');
+                              }
+                              
                               // ローディング後、内容を表示（0.5秒後）
                               setTimeout(() => {
                                   const loadingElement = userInfoConfirmContainer.querySelector('.user-info-confirm-loading');
@@ -1471,47 +1519,8 @@
                                       loadingElement.style.display = 'none';
                                   }
                                   userInfoConfirmContent.style.display = 'block';
+                                  console.log('[ユーザー情報確認] ユーザー情報確認画面を表示しました');
                               }, 500);
-                              
-                              // 「鑑定を始める」ボタンの処理
-                              const confirmSubmit = document.getElementById('userInfoConfirmSubmit');
-                              if (confirmSubmit) {
-                                  confirmSubmit.onclick = async () => {
-                                      console.log('[ユーザー情報確認] チャット画面を表示します');
-                                      
-                                      // ユーザー情報確認画面を非表示
-                                      userInfoConfirmContainer.classList.add('entry-form-hidden');
-                                      
-                                      // チャット画面を表示
-                                      chatContainer.classList.remove('entry-form-hidden');
-                                      
-                                      // 【重要】チャット画面を表示した後、chat-engine.jsの初期化を実行
-                                      // ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
-                                      if (window.ChatData) {
-                                          window.ChatData.conversationHistory = historyData;
-                                          window.ChatData.userNickname = historyData.nickname;
-                                      }
-                                      
-                                      // chat-engine.jsの初期化を実行
-                                      if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                                          console.log('[ユーザー情報確認] chat-engine.jsの初期化を実行します');
-                                          await window.ChatInit.initPage();
-                                      } else {
-                                          console.warn('[ユーザー情報確認] ChatInit.initPageが見つかりません。後で再試行します。');
-                                          // ChatInitが読み込まれるのを待つ（最大5秒）
-                                          let attempts = 0;
-                                          const maxAttempts = 50; // 5秒間待機（100ms × 50）
-                                          while (!window.ChatInit && attempts < maxAttempts) {
-                                              await new Promise(resolve => setTimeout(resolve, 100));
-                                              attempts++;
-                                          }
-                                          if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                                              console.log('[ユーザー情報確認] ChatInit.initPageを実行します（再試行）');
-                                              await window.ChatInit.initPage();
-                                          }
-                                      }
-                                  };
-                              }
                           } else {
                               // ユーザー情報確認画面の要素が見つからない場合は、直接チャット画面を表示（フォールバック）
                               console.warn('[入口フォーム] ユーザー情報確認画面の要素が見つかりません。直接チャット画面を表示します。');
