@@ -159,7 +159,7 @@ const KaonHandler = {
         sessionStorage.removeItem('pendingGuestHistoryMigration');
 
         // メッセージカウントをリセット
-        ChatData.setGuestMessageCount(character, 0);
+        ChatData.setUserMessageCount(character, 0);
 
         console.log('[三崎花音ハンドラー] ゲスト履歴をクリアしました');
     },

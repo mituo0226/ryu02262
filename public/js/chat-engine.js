@@ -319,7 +319,7 @@ const ChatInit = {
                 const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
                 sessionStorage.removeItem(historyKey);
                 sessionStorage.removeItem('pendingGuestHistoryMigration');
-                ChatData.setGuestMessageCount(character, 0);
+                ChatData.setUserMessageCount(character, 0);
                 
                 // 【重要】登録後のイベントリスナーを設定
                 console.log('[登録完了処理] イベントリスナーを設定します');
@@ -505,7 +505,7 @@ const ChatInit = {
             let guestHistory = this.getGuestHistoryForMigration(character);
             
             if (guestHistory.length === 0 && isGuestMode) {
-                guestHistory = ChatData.getGuestHistory(character);
+                guestHistory = ChatData.getConversationHistory(character);
                 
                 // 会話履歴が空の場合、雪乃のタロット関連フラグもクリア（新規会話として扱う）
                 // ⚠️ ただし、yukinoTarotCardForExplanationは解説後のボタン表示で使うため、クリアしない
@@ -566,7 +566,7 @@ const ChatInit = {
                 // ゲストユーザーの場合、会話履歴からメッセージカウントを再計算して設定
                 if (isGuestMode) {
                     const historyUserMessages = guestHistory.filter(msg => msg && msg.role === 'user').length;
-                    const currentCount = ChatData.getGuestMessageCount(character);
+                    const currentCount = ChatData.getUserMessageCount(character);
                     
                     console.log('[初期化] ゲスト履歴からメッセージカウントを再計算:', {
                         character,
@@ -582,7 +582,7 @@ const ChatInit = {
                             newCount: historyUserMessages,
                             reason: currentCount === 0 ? 'カウントが0のため' : '履歴の方が大きいため'
                         });
-                        ChatData.setGuestMessageCount(character, historyUserMessages);
+                        ChatData.setUserMessageCount(character, historyUserMessages);
                     }
                 }
             }
@@ -870,7 +870,7 @@ const ChatInit = {
             let guestHistory = this.getGuestHistoryForMigration(character);
             
             if (guestHistory.length === 0 && isGuestMode) {
-                guestHistory = ChatData.getGuestHistory(character);
+                guestHistory = ChatData.getConversationHistory(character);
             }
             
             if (guestHistory.length > 0) {
@@ -893,7 +893,7 @@ const ChatInit = {
                 // ゲストユーザーの場合、会話履歴からメッセージカウントを再計算して設定
                 if (isGuestMode) {
                     const historyUserMessages = guestHistory.filter(msg => msg && msg.role === 'user').length;
-                    const currentCount = ChatData.getGuestMessageCount(character);
+                    const currentCount = ChatData.getUserMessageCount(character);
                     
                     console.log('[初期化] エラー時: ゲスト履歴からメッセージカウントを再計算:', {
                         character,
@@ -908,7 +908,7 @@ const ChatInit = {
                             oldCount: currentCount,
                             newCount: historyUserMessages
                         });
-                        ChatData.setGuestMessageCount(character, historyUserMessages);
+                        ChatData.setUserMessageCount(character, historyUserMessages);
                     }
                 }
             } else {
@@ -1082,7 +1082,7 @@ const ChatInit = {
                     currentCount = handler.getConsultationMessageCount();
                 } else {
                     // 通常のゲストメッセージカウントを使用
-                    currentCount = ChatData.getGuestMessageCount(character);
+                    currentCount = ChatData.getUserMessageCount(character);
                 }
                 
                 // 【削除】10通制限チェックは削除されました（入口フォームで登録済みのため不要）
@@ -1098,7 +1098,7 @@ const ChatInit = {
                 }
                 
                 // 会話履歴が正しく保存されたことを確認
-                const savedHistory = ChatData.getGuestHistory(character);
+                const savedHistory = ChatData.getConversationHistory(character);
                 console.log('[メッセージ送信] 会話履歴に追加後の確認:', {
                     character,
                     historyLength: savedHistory.length,
@@ -1112,7 +1112,7 @@ const ChatInit = {
                     messageCount = handler.incrementConsultationMessageCount();
                 } else {
                     // 通常のカウントを取得
-                    messageCount = ChatData.getGuestMessageCount(character);
+                    messageCount = ChatData.getUserMessageCount(character);
                 }
                 
                 const isFirstMessage = currentCount === 0;
@@ -1214,7 +1214,7 @@ const ChatInit = {
                 // メッセージカウントを取得（既にゲストユーザーの場合は上で取得済み）
                 let messageCount = 0;
                 if (isGuest) {
-                    messageCount = ChatData.getGuestMessageCount(character);
+                    messageCount = ChatData.getUserMessageCount(character);
                 } else {
                     // 登録ユーザーの場合：会話履歴からユーザーメッセージ数を計算
                     const conversationHistory = ChatData.conversationHistory?.recentMessages || [];
@@ -1237,7 +1237,7 @@ const ChatInit = {
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
                 let conversationHistory = [];
                 if (isGuest) {
-                    conversationHistory = ChatData.getGuestHistory(character) || [];
+                    conversationHistory = ChatData.getConversationHistory(character) || [];
                 } else {
                     conversationHistory = ChatData.conversationHistory?.recentMessages || [];
                     
@@ -1304,7 +1304,7 @@ const ChatInit = {
                             });
                         } else {
                             // ハンドラーがgetConsultationMessageCountを実装していない場合は通常のカウントを使用
-                            currentCount = ChatData.getGuestMessageCount(character);
+                            currentCount = ChatData.getUserMessageCount(character);
                             if (handler && typeof handler.calculateMessageCount === 'function') {
                                 messageCountForAPI = handler.calculateMessageCount(currentCount);
                             } else {
@@ -1313,7 +1313,7 @@ const ChatInit = {
                         }
                     } else {
                         // 通常のゲストメッセージカウントを使用
-                        currentCount = ChatData.getGuestMessageCount(character);
+                        currentCount = ChatData.getUserMessageCount(character);
                         
                         // メッセージカウントを計算（ハンドラーに委譲）
                         // 注意: handlerは上で既に宣言されているため、再宣言しない
@@ -1440,7 +1440,7 @@ const ChatInit = {
                 // 会話履歴を更新
                 if (isGuest) {
                     ChatData.addToGuestHistory(character, 'assistant', responseText);
-                    const guestMessageCount = ChatData.getGuestMessageCount(character);
+                    const guestMessageCount = ChatData.getUserMessageCount(character);
                     
                     // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
                     const handler = CharacterRegistry.get(character);
@@ -1652,7 +1652,7 @@ const ChatInit = {
                         try {
                             const character = ChatData?.currentCharacter || 'unknown';
                             const isRegistered = window.AuthState?.isRegistered() || false;
-                            const messageCount = ChatData?.getGuestMessageCount(character) || 0;
+                            const messageCount = ChatData?.getUserMessageCount(character) || 0;
                             
                             console.log('[応答受信] 親ウィンドウに通知:', {
                                 character,
@@ -1679,10 +1679,10 @@ const ChatInit = {
                         ChatData.addToGuestHistory(ChatData.currentCharacter, 'assistant', data.message);
                         
                         // アニメーション画面から戻ってきた時、会話履歴からメッセージ数を再計算して保存
-                        const history = ChatData.getGuestHistory(ChatData.currentCharacter);
+                        const history = ChatData.getConversationHistory(ChatData.currentCharacter);
                         if (history && Array.isArray(history)) {
                             const historyUserMessages = history.filter(msg => msg && msg.role === 'user').length;
-                            const currentCount = ChatData.getGuestMessageCount(ChatData.currentCharacter);
+                            const currentCount = ChatData.getUserMessageCount(ChatData.currentCharacter);
                             
                             console.log('[応答受信] メッセージカウントを再確認:', {
                                 character: ChatData.currentCharacter,
@@ -1697,7 +1697,7 @@ const ChatInit = {
                                     oldCount: currentCount,
                                     newCount: historyUserMessages
                                 });
-                                ChatData.setGuestMessageCount(ChatData.currentCharacter, historyUserMessages);
+                                ChatData.setUserMessageCount(ChatData.currentCharacter, historyUserMessages);
                             }
                         }
                         
@@ -1803,7 +1803,7 @@ const ChatInit = {
         // 【重要】登録画面に遷移する前に、ゲスト会話履歴を保存
         const character = ChatData.currentCharacter;
         if (character) {
-            const guestHistory = ChatData.getGuestHistory(character) || [];
+            const guestHistory = ChatData.getConversationHistory(character) || [];
             console.log('[登録画面遷移] ゲスト履歴を保存:', {
                 character: character,
                 historyLength: guestHistory.length,
@@ -1837,7 +1837,7 @@ const ChatInit = {
             
             // ゲスト会話履歴を保存
             if (!guestHistory || guestHistory.length === 0) {
-                guestHistory = ChatData.getGuestHistory(character) || [];
+                guestHistory = ChatData.getConversationHistory(character) || [];
             }
             
             if (guestHistory.length > 0) {
@@ -2088,7 +2088,7 @@ const ChatInit = {
                 console.log('[守護神の儀式] ゲスト履歴を再取得（再表示）');
                 ritualGuestHistory = this.getGuestHistoryForMigration(character);
                 if (ritualGuestHistory.length === 0) {
-                    ritualGuestHistory = ChatData.getGuestHistory(character) || [];
+                    ritualGuestHistory = ChatData.getConversationHistory(character) || [];
                 }
             }
             
@@ -2116,7 +2116,7 @@ const ChatInit = {
             sessionStorage.removeItem('pendingGuestHistoryMigration');
             sessionStorage.removeItem('pendingRitualGuestHistory');
             sessionStorage.removeItem('acceptedGuardianRitual'); // フラグをクリア
-            ChatData.setGuestMessageCount(character, 0);
+            ChatData.setUserMessageCount(character, 0);
         });
     }
 };
@@ -2477,7 +2477,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             try {
                 const character = ChatData?.currentCharacter || 'unknown';
                 const isRegistered = window.AuthState?.isRegistered() || false;
-                const messageCount = ChatData?.getGuestMessageCount(character) || 0;
+                const messageCount = ChatData?.getUserMessageCount(character) || 0;
                 
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
@@ -2528,8 +2528,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             try {
                 const character = ChatData?.currentCharacter || new URLSearchParams(window.location.search).get('character') || 'unknown';
                 const isRegistered = (hasAuthState && window.AuthState?.isRegistered()) || false;
-                const messageCount = (hasChatData && typeof ChatData?.getGuestMessageCount === 'function') 
-                    ? (ChatData.getGuestMessageCount(character) || 0) 
+                const messageCount = (hasChatData && typeof ChatData?.getUserMessageCount === 'function') 
+                    ? (ChatData.getUserMessageCount(character) || 0) 
                     : 0;
                 
                 window.parent.postMessage({
@@ -2674,7 +2674,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 // 会話をリセット
                 if (character && ChatData) {
                     ChatData.setGuestHistory(character, []);
-                    ChatData.setGuestMessageCount(character, 0);
+                    ChatData.setUserMessageCount(character, 0);
                 }
                 if (window.AuthState) {
                     window.AuthState.resetGuestProgress({ keepHistory: false });
@@ -2692,7 +2692,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             case 'ADMIN_RESET_PHASE':
                 // フェーズをリセット（メッセージカウントを0に）
                 if (character && ChatData) {
-                    ChatData.setGuestMessageCount(character, 0);
+                    ChatData.setUserMessageCount(character, 0);
                 }
                 if (window.AuthState) {
                     window.AuthState.setGuestMessageCount(0);
@@ -2768,26 +2768,26 @@ window.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else {
                         // ゲストユーザーの場合
-                        if (typeof ChatData?.getGuestMessageCount === 'function') {
-                            messageCount = ChatData.getGuestMessageCount(character) || 0;
+                        if (typeof ChatData?.getUserMessageCount === 'function') {
+                            messageCount = ChatData.getUserMessageCount(character) || 0;
                             console.log('[iframe] ゲストメッセージ数を取得:', {
                                 character,
                                 messageCount,
                                 method: 'getGuestMessageCount'
                             });
                         } else {
-                            console.warn('[iframe] ChatData.getGuestMessageCountが関数ではありません');
+                            console.warn('[iframe] ChatData.getUserMessageCountが関数ではありません');
                         }
                         
-                        if (typeof ChatData?.getGuestHistory === 'function') {
-                            conversationHistory = ChatData.getGuestHistory(character) || [];
+                        if (typeof ChatData?.getConversationHistory === 'function') {
+                            conversationHistory = ChatData.getConversationHistory(character) || [];
                             console.log('[iframe] ゲスト会話履歴を取得:', {
                                 character,
                                 historyLength: conversationHistory.length,
                                 userMessages: conversationHistory.filter(msg => msg && msg.role === 'user').length
                             });
                         } else {
-                            console.warn('[iframe] ChatData.getGuestHistoryが関数ではありません');
+                            console.warn('[iframe] ChatData.getConversationHistoryが関数ではありません');
                         }
                         
                         // 会話履歴からもメッセージ数を計算（フォールバック）
@@ -2811,7 +2811,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                                 
                                 // 修正した値をsessionStorageに保存（次回から正しい値が取得できるように）
                                 if (typeof ChatData?.setGuestMessageCount === 'function') {
-                                    ChatData.setGuestMessageCount(character, historyUserMessages);
+                                    ChatData.setUserMessageCount(character, historyUserMessages);
                                     console.log('[iframe] ✅ 修正したメッセージ数をsessionStorageに保存しました');
                                 }
                             }
@@ -2894,7 +2894,7 @@ function showYukinoRegistrationButtons() {
     const info = ChatData.characterInfo[character];
     
     // ゲスト履歴を保存（「はい」をクリックした場合に使用）
-    const guestHistory = ChatData.getGuestHistory(character) || [];
+    const guestHistory = ChatData.getConversationHistory(character) || [];
     if (guestHistory.length > 0) {
         sessionStorage.setItem('pendingGuestHistoryMigration', JSON.stringify({
             character: character,
@@ -3034,7 +3034,7 @@ function showYukinoRegistrationButtons() {
         // ゲスト履歴とカウントをクリア
         sessionStorage.removeItem(`guestConversationHistory_${character}`);
         sessionStorage.removeItem('pendingGuestHistoryMigration');
-        ChatData.setGuestMessageCount(character, 0);
+        ChatData.setUserMessageCount(character, 0);
         
         // 雪乃のタロット関連フラグをクリア
         sessionStorage.removeItem('yukinoThreeCardsPrepared');

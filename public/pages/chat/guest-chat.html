@@ -963,10 +963,10 @@
                            }
                        } else {
                            // ゲストユーザーの場合
-                           if (typeof ChatData?.getGuestMessageCount === 'function') {
-                               messageCount = ChatData.getGuestMessageCount(character) || 0;
+                           if (typeof ChatData?.getUserMessageCount === 'function') {
+                               messageCount = ChatData.getUserMessageCount(character) || 0;
                            }
-                           if (typeof ChatData?.getGuestHistory === 'function') {
+                           if (typeof ChatData?.getConversationHistory === 'function') {
                                conversationHistory = ChatData.getGuestHistory(character) || [];
                            }
                            

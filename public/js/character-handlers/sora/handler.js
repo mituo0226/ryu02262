@@ -188,7 +188,7 @@ const SoraHandler = {
         sessionStorage.removeItem('pendingGuestHistoryMigration');
 
         // メッセージカウントをリセット
-        ChatData.setGuestMessageCount(character, 0);
+        ChatData.setUserMessageCount(character, 0);
 
         console.log('[水野ソラハンドラー] ゲスト履歴をクリアしました');
     },

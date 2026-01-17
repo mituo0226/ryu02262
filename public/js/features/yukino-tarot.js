@@ -591,7 +591,7 @@
             if (window.ChatData) {
                 const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
                 if (isGuest) {
-                    conversationHistory = window.ChatData.getGuestHistory ? window.ChatData.getGuestHistory(character) || [] : [];
+                    conversationHistory = window.ChatData.getConversationHistory ? window.ChatData.getConversationHistory(character) || [] : [];
                 } else {
                     conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
                 }
@@ -809,7 +809,7 @@ ${cardNames}
             if (window.ChatData) {
                 const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
                 if (isGuest) {
-                    conversationHistory = window.ChatData.getGuestHistory ? window.ChatData.getGuestHistory(character) || [] : [];
+                    conversationHistory = window.ChatData.getConversationHistory ? window.ChatData.getConversationHistory(character) || [] : [];
                 } else {
                     conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
                 }

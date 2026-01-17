@@ -72,21 +72,21 @@ const ChatData = {
     },
 
     /**
-     * ゲストメッセージカウントを取得
+     * ユーザーメッセージカウントを取得
      * @param {string} character - キャラクターID
      * @returns {number} メッセージカウント
      */
-    getGuestMessageCount(character) {
+    getUserMessageCount(character) {
         // 会話履歴が唯一の真実の源（single source of truth）
         // 会話履歴からユーザーメッセージ数を直接数える
-        const history = this.getGuestHistory(character);
+        const history = this.getConversationHistory(character);
         
         if (history && Array.isArray(history)) {
             const userMessageCount = history.filter(msg => msg && msg.role === 'user').length;
-            console.log(`[ChatData] getGuestMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
+            console.log(`[ChatData] getUserMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
             
             // sessionStorageの値と一致するか確認（デバッグ用）
-            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
             const key = GUEST_COUNT_KEY_PREFIX + character;
             const storedCount = sessionStorage.getItem(key);
             if (storedCount !== null) {
@@ -94,32 +94,50 @@ const ChatData = {
                 if (storedCountNum !== userMessageCount) {
                     console.warn(`[ChatData] ⚠️ カウントの不一致を検出: sessionStorage=${storedCountNum}, 履歴=${userMessageCount}。履歴を優先します。`);
                     // 履歴の値をsessionStorageに同期
-                    this.setGuestMessageCount(character, userMessageCount);
+                    this.setUserMessageCount(character, userMessageCount);
                 }
             } else {
                 // sessionStorageにない場合は、計算した値を保存（補助的な用途）
-                this.setGuestMessageCount(character, userMessageCount);
+                this.setUserMessageCount(character, userMessageCount);
             }
             
             return userMessageCount;
         }
         
         // 会話履歴が存在しない場合のみ0を返す
-        console.log(`[ChatData] getGuestMessageCount(${character}): 0 (会話履歴が空)`);
+        console.log(`[ChatData] getUserMessageCount(${character}): 0 (会話履歴が空)`);
         return 0;
     },
 
     /**
-     * ゲストメッセージカウントを設定
+     * 【後方互換性】getGuestMessageCount → getUserMessageCount のエイリアス
+     * @deprecated getUserMessageCountを使用してください
+     */
+    getGuestMessageCount(character) {
+        console.warn('[ChatData] getGuestMessageCountは非推奨です。getUserMessageCountを使用してください。');
+        return this.getUserMessageCount(character);
+    },
+
+    /**
+     * ユーザーメッセージカウントを設定
      * @param {string} character - キャラクターID
      * @param {number} count - カウント
      */
-    setGuestMessageCount(character, count) {
-        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
+    setUserMessageCount(character, count) {
+        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
         const key = GUEST_COUNT_KEY_PREFIX + character;
         sessionStorage.setItem(key, String(count));
         sessionStorage.setItem('lastGuestMessageCount', String(count - 1));
-        console.log(`[ChatData] setGuestMessageCount(${character}, ${count})`);
+        console.log(`[ChatData] setUserMessageCount(${character}, ${count})`);
+    },
+
+    /**
+     * 【後方互換性】setGuestMessageCount → setUserMessageCount のエイリアス
+     * @deprecated setUserMessageCountを使用してください
+     */
+    setGuestMessageCount(character, count) {
+        console.warn('[ChatData] setGuestMessageCountは非推奨です。setUserMessageCountを使用してください。');
+        return this.setUserMessageCount(character, count);
     },
 
     /**
@@ -127,8 +145,8 @@ const ChatData = {
      * @param {string} character - キャラクターID
      * @returns {Array} 会話履歴
      */
-    getGuestHistory(character) {
-        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+    getConversationHistory(character) {
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         const storedHistory = sessionStorage.getItem(historyKey);
         
@@ -136,7 +154,7 @@ const ChatData = {
             try {
                 return JSON.parse(storedHistory);
             } catch (error) {
-                console.error('Error parsing guest history:', error);
+                console.error('Error parsing conversation history:', error);
                 return [];
             }
         }
@@ -150,26 +168,53 @@ const ChatData = {
     },
 
     /**
-     * ゲスト会話履歴を設定
+     * 【後方互換性】getGuestHistory → getConversationHistory のエイリアス
+     * @deprecated getConversationHistoryを使用してください
+     */
+    getGuestHistory(character) {
+        console.warn('[ChatData] getGuestHistoryは非推奨です。getConversationHistoryを使用してください。');
+        return this.getConversationHistory(character);
+    },
+
+    /**
+     * 会話履歴を設定
      * @param {string} character - キャラクターID
      * @param {Array} history - 会話履歴
      */
-    setGuestHistory(character, history) {
-        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+    setConversationHistory(character, history) {
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         sessionStorage.setItem(historyKey, JSON.stringify(history));
     },
 
     /**
-     * ゲスト会話履歴にメッセージを追加
+     * 【後方互換性】setGuestHistory → setConversationHistory のエイリアス
+     * @deprecated setConversationHistoryを使用してください
+     */
+    setGuestHistory(character, history) {
+        console.warn('[ChatData] setGuestHistoryは非推奨です。setConversationHistoryを使用してください。');
+        return this.setConversationHistory(character, history);
+    },
+
+    /**
+     * 会話履歴にメッセージを追加
      * @param {string} character - キャラクターID
      * @param {string} role - 'user' または 'assistant'
      * @param {string} content - メッセージ内容
      */
-    addToGuestHistory(character, role, content) {
-        const history = this.getGuestHistory(character);
+    addToConversationHistory(character, role, content) {
+        const history = this.getConversationHistory(character);
         history.push({ role, content });
-        this.setGuestHistory(character, history);
+        this.setConversationHistory(character, history);
+    },
+
+    /**
+     * 【後方互換性】addToGuestHistory → addToConversationHistory のエイリアス
+     * @deprecated addToConversationHistoryを使用してください
+     */
+    addToGuestHistory(character, role, content) {
+        console.warn('[ChatData] addToGuestHistoryは非推奨です。addToConversationHistoryを使用してください。');
+        return this.addToConversationHistory(character, role, content);
     },
 
     /**

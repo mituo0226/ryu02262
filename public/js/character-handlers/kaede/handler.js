@@ -332,7 +332,7 @@ const KaedeHandler = {
         sessionStorage.removeItem('pendingGuestHistoryMigration');
 
         // メッセージカウントをリセット
-        ChatData.setGuestMessageCount(character, 0);
+        ChatData.setUserMessageCount(character, 0);
 
         console.log('[楓ハンドラー] ゲスト履歴をクリアしました');
     },
@@ -385,7 +385,7 @@ const KaedeHandler = {
             const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
             sessionStorage.removeItem(historyKey);
             sessionStorage.removeItem('pendingGuestHistoryMigration');
-            ChatData.setGuestMessageCount(character, 0);
+            ChatData.setUserMessageCount(character, 0);
             console.log('[楓専用処理] ✓ ゲスト履歴をクリアしました');
         }
 
@@ -670,8 +670,8 @@ const KaedeHandler = {
                 
                 if (guestHistory.length === 0) {
                     // フォールバック: ChatDataから取得
-                    guestHistory = (window.ChatData && typeof window.ChatData.getGuestHistory === 'function')
-                        ? window.ChatData.getGuestHistory(character) || []
+                    guestHistory = (window.ChatData && typeof window.ChatData.getConversationHistory === 'function')
+                        ? window.ChatData.getConversationHistory(character) || []
                         : [];
                 }
                 
@@ -856,7 +856,7 @@ const KaedeHandler = {
             if (guestHistory.length === 0) {
                 // フォールバック: ChatDataから直接取得
                 console.log('[楓専用処理] ChatDataから直接取得を試行');
-                guestHistory = ChatData.getGuestHistory(character) || [];
+                guestHistory = ChatData.getConversationHistory(character) || [];
             }
 
             // ゲスト会話履歴を一時的に保存（守護神の儀式で使用するため）
@@ -990,7 +990,7 @@ const KaedeHandler = {
             const characterName = ChatData.characterInfo[character]?.name || '楓';
 
             // ゲスト会話履歴を取得
-            const guestHistory = ChatData.getGuestHistory(character) || [];
+            const guestHistory = ChatData.getConversationHistory(character) || [];
             const conversationHistory = guestHistory.map(entry => ({
                 role: entry.role || 'user',
                 content: entry.content || entry.message || ''
@@ -1049,7 +1049,7 @@ const KaedeHandler = {
             return false;
         }
 
-        const messageCount = ChatData.getGuestMessageCount(character);
+        const messageCount = ChatData.getUserMessageCount(character);
 
         // 【削除】10通制限チェックは削除されました
 
@@ -1174,7 +1174,7 @@ const KaedeHandler = {
                 if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
                     console.log('[楓ハンドラー] 守護神の儀式を自動開始します');
                     // ゲスト履歴を取得（存在する場合）
-                    const guestHistory = ChatData.getGuestHistory(this.characterId) || [];
+                    const guestHistory = ChatData.getConversationHistory(this.characterId) || [];
                     const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
                     await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
                 } else {
@@ -1183,7 +1183,7 @@ const KaedeHandler = {
                     setTimeout(async () => {
                         if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
                             console.log('[楓ハンドラー] 守護神の儀式を自動開始します（リトライ）');
-                            const guestHistory = ChatData.getGuestHistory(this.characterId) || [];
+                            const guestHistory = ChatData.getConversationHistory(this.characterId) || [];
                             const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
                             await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
                         } else {
