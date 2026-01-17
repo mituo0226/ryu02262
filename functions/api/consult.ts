@@ -975,11 +975,32 @@ export const onRequestPost: PagesFunction = async (context) => {
         const userNickname = user?.nickname || 'あなた';
         const firstQuestion = body.firstQuestion || null;
 
+        // 【重要】データベースから守護神情報を再取得して確認
+        // guardian-ritual.htmlで保存された守護神がデータベースに反映されているか確認
+        let dbGuardian = user?.guardian;
+        if (user && (!dbGuardian || dbGuardian.trim() === '')) {
+          // データベースから再取得を試みる（guardian-ritual.htmlで保存された可能性があるため）
+          const refreshedUser = await env.DB.prepare<{ guardian: string | null }>(
+            'SELECT guardian FROM users WHERE id = ?'
+          )
+            .bind(user.id)
+            .first();
+          
+          if (refreshedUser && refreshedUser.guardian && refreshedUser.guardian.trim() !== '') {
+            dbGuardian = refreshedUser.guardian;
+            // userオブジェクトも更新
+            user.guardian = dbGuardian;
+            console.log('[consult] データベースから守護神情報を再取得しました:', dbGuardian);
+          }
+        }
+
         console.log('[consult] 楓からの追加メッセージを生成します（守護神のメッセージの後）:', {
           guardianName,
+          dbGuardian,
           userNickname,
           hasGuardianMessage: !!guardianMessage,
           hasFirstQuestion: !!firstQuestion,
+          guardianMatches: guardianName === dbGuardian,
         });
 
         // 楓専用のシステムプロンプトを生成
@@ -1029,14 +1050,46 @@ export const onRequestPost: PagesFunction = async (context) => {
             { status: 200, headers: corsHeaders }
           );
         } else {
-          console.error('[consult] ❌ 楓メッセージ生成エラー:', kaedeLLMResult.error);
-          // エラーの場合、通常の処理にフォールバック
+          console.error('[consult] ❌ 楓メッセージ生成エラー:', {
+            error: kaedeLLMResult.error,
+            guardianName,
+            userNickname,
+            hasGuardianMessage: !!guardianMessage,
+          });
+          
+          // エラーの場合、適切なエラーレスポンスを返す（通常の処理にフォールバックしない）
+          return new Response(
+            JSON.stringify({
+              error: kaedeLLMResult.error || '楓メッセージの生成に失敗しました',
+              message: '',
+              character: characterId,
+              characterName: getCharacterName(characterId),
+              isInappropriate: false,
+              detectedKeywords: [],
+            } as ResponseBody),
+            { status: 500, headers: corsHeaders }
+          );
         }
       } catch (error) {
         console.error('[consult] ❌ 楓メッセージ生成処理エラー:', {
           error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          guardianName: body.guardianName,
+          userNickname: user?.nickname,
         });
-        // エラーが発生した場合、通常の処理にフォールバック
+        
+        // エラーが発生した場合、適切なエラーレスポンスを返す（通常の処理にフォールバックしない）
+        return new Response(
+          JSON.stringify({
+            error: error instanceof Error ? error.message : '楓メッセージの生成処理でエラーが発生しました',
+            message: '',
+            character: characterId,
+            characterName: getCharacterName(characterId),
+            isInappropriate: false,
+            detectedKeywords: [],
+          } as ResponseBody),
+          { status: 500, headers: corsHeaders }
+        );
       }
     }
 

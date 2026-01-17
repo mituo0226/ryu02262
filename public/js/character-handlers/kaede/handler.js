@@ -496,15 +496,34 @@ const KaedeHandler = {
                     }
                 }
 
-                if (kaedeResponse.error) {
-                    console.error('[楓専用処理] 楓メッセージ生成エラー:', kaedeResponse.error);
-                    // エラーの場合はフォールバックメッセージを使用（守護神のメッセージを基に生成）
-                    kaedeMessage = `守護神${guardianConfirmationData.guardianName}の言葉を聞いて、私も深く感じることがあります。${guardianConfirmationData.userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianConfirmationData.guardianName}で、${guardianConfirmationData.userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
+                if (kaedeResponse.error || !kaedeResponse.message) {
+                    console.error('[楓専用処理] ❌ 楓メッセージ生成エラー:', {
+                        error: kaedeResponse.error,
+                        hasMessage: !!kaedeResponse.message,
+                        guardianName: guardianConfirmationData.guardianName,
+                        userNickname: guardianConfirmationData.userNickname
+                    });
+                    
+                    // エラーの場合は、フォールバックメッセージを使用せず、再試行を促すメッセージを表示
+                    // または、API呼び出しを再試行する
+                    throw new Error(kaedeResponse.error || '楓メッセージの生成に失敗しました');
                 } else {
                     kaedeMessage = kaedeResponse.message || '';
+                    
+                    // メッセージが空の場合はエラーとして扱う
+                    if (!kaedeMessage || kaedeMessage.trim() === '') {
+                        console.error('[楓専用処理] ❌ 楓メッセージが空です');
+                        throw new Error('メッセージが空です');
+                    }
                 }
             } catch (error) {
-                console.error('[楓専用処理] メッセージ生成時のエラー:', error);
+                console.error('[楓専用処理] ❌ メッセージ生成時のエラー:', {
+                    error: error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : undefined,
+                    guardianName: guardianConfirmationData.guardianName,
+                    userNickname: guardianConfirmationData.userNickname
+                });
+                
                 // 待機中のメッセージを削除
                 if (waitingMessageId) {
                     const waitingElement = document.getElementById(waitingMessageId);
@@ -512,15 +531,21 @@ const KaedeHandler = {
                         waitingElement.remove();
                     }
                 }
-                // エラーの場合はフォールバックメッセージを使用
-                kaedeMessage = `守護神${guardianConfirmationData.guardianName}の言葉を聞いて、私も深く感じることがあります。${guardianConfirmationData.userNickname}さんの心の奥底には、何か大切な気持ちがあるようですね。その気持ち、もっと聞かせていただけますか？私と守護神${guardianConfirmationData.guardianName}で、${guardianConfirmationData.userNickname}さんの運命を導いていきます。何かご相談があれば、いつでもお聞かせください。一緒に深く見ていきましょう。`;
+                
+                // エラーが発生した場合は、フォールバックメッセージを使用せず、エラーメッセージを表示
+                // フォールバックメッセージは楓の設定を反映していないため使用しない
+                const errorMessage = `申し訳ございません。メッセージの生成に失敗しました。もう一度お試しください。`;
+                ChatUI.addMessage('error', errorMessage, 'システム');
+                
+                // kaedeMessageをnullのままにして、後続処理でエラーとして扱う
+                kaedeMessage = null;
             }
         }
         
         // メッセージを表示（表示名は「楓」）
-        if (kaedeMessage) {
+        if (kaedeMessage && kaedeMessage.trim() !== '') {
             const characterName = ChatData.characterInfo[character]?.name || '楓';
-            console.log('[楓専用処理] 楓からのメッセージを表示します（表示名:', characterName, ', ソース:', messageSource, ')');
+            console.log('[楓専用処理] 楓からのメッセージを表示します（表示名:', characterName, ', ソース:', messageSource, ', 長さ:', kaedeMessage.length, ')');
             ChatUI.addMessage('character', kaedeMessage, characterName);
             
             // 会話履歴に追加
@@ -530,6 +555,11 @@ const KaedeHandler = {
                     content: kaedeMessage
                 });
             }
+        } else {
+            console.error('[楓専用処理] ❌ 楓メッセージが取得できませんでした。メッセージを表示できません。');
+            // メッセージが取得できなかった場合は、エラーメッセージを表示
+            const errorMessage = `申し訳ございません。メッセージの生成に失敗しました。ページをリロードしてお試しください。`;
+            ChatUI.addMessage('error', errorMessage, 'システム');
         }
 
         // この部分は削除（上記のtry-catchブロック内で既に会話履歴に追加済み）
