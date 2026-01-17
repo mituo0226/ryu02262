@@ -17,16 +17,44 @@ const ChatAPI = {
         // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
         // nickname+生年月日によるユーザー確認は行わない
         
-        if (userInfo) {
-            userId = userInfo.userId || null;
-        } else {
-            // URLパラメータから取得（ログイン成功時にリダイレクトURLに含まれる）
+        console.log('[loadConversationHistory] 呼び出し:', {
+            characterId,
+            hasUserInfo: !!userInfo,
+            userInfoUserId: userInfo?.userId,
+            userInfoUserIdType: typeof userInfo?.userId
+        });
+        
+        if (userInfo && userInfo.userId) {
+            // userInfoからuserIdを取得（優先）
+            const userIdFromUserInfo = userInfo.userId;
+            if (typeof userIdFromUserInfo === 'number' && Number.isFinite(userIdFromUserInfo) && userIdFromUserInfo > 0) {
+                userId = userIdFromUserInfo;
+                console.log('[loadConversationHistory] userInfoからuserIdを取得（数値）:', userId);
+            } else if (typeof userIdFromUserInfo === 'string' && userIdFromUserInfo.trim() !== '') {
+                const parsedUserId = Number(userIdFromUserInfo);
+                if (Number.isFinite(parsedUserId) && parsedUserId > 0) {
+                    userId = parsedUserId;
+                    console.log('[loadConversationHistory] userInfoからuserIdを取得（文字列から数値に変換）:', userId);
+                } else {
+                    console.warn('[loadConversationHistory] userInfo.userIdが無効な値です:', userIdFromUserInfo);
+                }
+            } else {
+                console.warn('[loadConversationHistory] userInfo.userIdが無効な型または値です:', userIdFromUserInfo, typeof userIdFromUserInfo);
+            }
+        }
+        
+        // userInfoから取得できない場合、URLパラメータから取得（フォールバック）
+        if (!userId) {
             const urlParams = new URLSearchParams(window.location.search);
             const userIdParam = urlParams.get('userId');
-            if (userIdParam) {
-                userId = Number(userIdParam);
-                if (!Number.isFinite(userId) || userId <= 0) {
-                    userId = null;
+            console.log('[loadConversationHistory] URLパラメータからuserIdを取得（フォールバック）:', userIdParam);
+            if (userIdParam && userIdParam.trim() !== '') {
+                const parsedUserId = Number(userIdParam);
+                if (Number.isFinite(parsedUserId) && parsedUserId > 0) {
+                    userId = parsedUserId;
+                    console.log('[loadConversationHistory] URLパラメータからuserIdを取得（数値に変換）:', userId);
+                } else {
+                    console.warn('[loadConversationHistory] URLパラメータのuserIdが無効な値です:', userIdParam);
                 }
             }
         }
@@ -34,9 +62,17 @@ const ChatAPI = {
         // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
         // nickname+生年月日によるユーザー確認は行わない
         if (!userId) {
-            console.log('[loadConversationHistory] userIdが指定されていません');
+            console.error('[loadConversationHistory] userIdが指定されていません（nullを返します）:', {
+                userInfoProvided: !!userInfo,
+                userInfoUserId: userInfo?.userId,
+                userInfoUserIdType: typeof userInfo?.userId,
+                urlParams: new URLSearchParams(window.location.search).get('userId'),
+                locationHref: window.location.href
+            });
             return null;
         }
+        
+        console.log('[loadConversationHistory] userIdを確認しました（データベース検索を開始）:', userId);
         
         try {
             // userIdのみを使用してAPIを呼び出し

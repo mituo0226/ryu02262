@@ -445,6 +445,123 @@
         }
 
         /* ============================================
+           ユーザー情報確認画面
+           ============================================ */
+        .user-info-confirm-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 20px;
+        }
+
+        .user-info-confirm-card {
+            background: rgba(75, 0, 130, 0.4);
+            border: 2px solid rgba(139, 61, 255, 0.5);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-info-confirm-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .user-info-confirm-loading {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .user-info-confirm-spinner {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            border: 4px solid rgba(139, 61, 255, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .user-info-confirm-loading-text {
+            color: var(--text-light);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .user-info-confirm-message {
+            color: var(--text-light);
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .user-info-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(139, 61, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .user-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(139, 61, 255, 0.2);
+        }
+
+        .user-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .user-info-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .user-info-confirm-submit {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: var(--text-on-primary);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-info-confirm-submit:hover {
+            background: #7a2fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.4);
+        }
+
+        .user-info-confirm-submit:active {
+            transform: translateY(0);
+        }
+
+        /* ============================================
            メッセージエリア
            ============================================ */
         .messages {
@@ -997,6 +1114,37 @@
             </form>
         </div>
         
+        <!-- ユーザー情報確認画面（userIdがある場合、チャット開始前に表示） -->
+        <div class="user-info-confirm-container entry-form-hidden" id="userInfoConfirmContainer">
+            <div class="user-info-confirm-card">
+                <h2 class="user-info-confirm-title">鑑定士が情報を取得中</h2>
+                <div class="user-info-confirm-loading">
+                    <div class="user-info-confirm-spinner"></div>
+                    <p class="user-info-confirm-loading-text">あなたの情報を確認しています...</p>
+                </div>
+                <div class="user-info-confirm-content" id="userInfoConfirmContent" style="display: none;">
+                    <p class="user-info-confirm-message">鑑定士があなたの情報を確認しました</p>
+                    <div class="user-info-display">
+                        <div class="user-info-item">
+                            <span class="user-info-label">ニックネーム</span>
+                            <span class="user-info-value" id="confirmNickname">-</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">生年月日</span>
+                            <span class="user-info-value" id="confirmBirthDate">-</span>
+                        </div>
+                        <div class="user-info-item" id="confirmGenderItem" style="display: none;">
+                            <span class="user-info-label">性別</span>
+                            <span class="user-info-value" id="confirmGender">-</span>
+                        </div>
+                    </div>
+                    <button type="button" class="user-info-confirm-submit" id="userInfoConfirmSubmit">
+                        鑑定を始める
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- チャットコンテナ（初期状態では非表示） -->
         <div class="chat-container entry-form-hidden" id="chatContainer">
             <!-- PC版キャラクターヘッダー -->
@@ -1087,12 +1235,13 @@
                
                // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
                // 【変更】データベースから直接読み込んで、その結果に基づいて表示を決定
-               async function initEntryForm() {
-                   const entryFormContainer = document.getElementById('entryFormContainer');
-                   const chatContainer = document.getElementById('chatContainer');
-                   const entryForm = document.getElementById('entryForm');
-                   const entryFormError = document.getElementById('entryFormError');
-                   const entryFormSubmit = document.getElementById('entryFormSubmit');
+              async function initEntryForm() {
+                  const entryFormContainer = document.getElementById('entryFormContainer');
+                  const chatContainer = document.getElementById('chatContainer');
+                  const userInfoConfirmContainer = document.getElementById('userInfoConfirmContainer');
+                  const entryForm = document.getElementById('entryForm');
+                  const entryFormError = document.getElementById('entryFormError');
+                  const entryFormSubmit = document.getElementById('entryFormSubmit');
                    
                    if (!entryFormContainer || !chatContainer || !entryForm) {
                        console.error('[入口フォーム] DOM要素が見つかりません');
@@ -1148,21 +1297,66 @@
                        
                        // 事前取得データがない場合、APIから取得
                        if (!historyData) {
-                           console.log('[入口フォーム] データベースからユーザー情報を読み込み中...');
+                           console.log('[入口フォーム] データベースからユーザー情報を読み込み中...', {
+                               character,
+                               userId,
+                               userIdType: typeof userId,
+                               userIdExists: !!userId,
+                               userIdNumber: userId ? Number(userId) : null
+                           });
+                           
+                          // 【重要】userIdが指定されていない場合はエントリーフォームを表示
+                          if (!userId) {
+                              console.warn('[入口フォーム] userIdが指定されていません。エントリーフォームを表示します。');
+                              entryFormContainer.classList.remove('loading');
+                              entryFormContainer.classList.remove('entry-form-hidden');
+                              chatContainer.classList.add('entry-form-hidden');
+                              if (userInfoConfirmContainer) {
+                                  userInfoConfirmContainer.classList.add('entry-form-hidden');
+                              }
+                              return;
+                          }
+                           
                            try {
                                if (window.ChatAPI && typeof window.ChatAPI.loadConversationHistory === 'function') {
+                                   // userIdを数値に変換（文字列の場合は数値に変換）
+                                   const userIdNumber = userId ? Number(userId) : null;
+                                  if (!userIdNumber || !Number.isFinite(userIdNumber) || userIdNumber <= 0) {
+                                      console.error('[入口フォーム] userIdが無効です:', userId);
+                                      entryFormContainer.classList.remove('loading');
+                                      entryFormContainer.classList.remove('entry-form-hidden');
+                                      chatContainer.classList.add('entry-form-hidden');
+                                      if (userInfoConfirmContainer) {
+                                          userInfoConfirmContainer.classList.add('entry-form-hidden');
+                                      }
+                                      return;
+                                  }
+                                   
                                    // userIdを引数として渡す
-                                   historyData = await window.ChatAPI.loadConversationHistory(character, { userId: userId ? Number(userId) : null });
+                                   const userInfoParam = { userId: userIdNumber };
+                                   console.log('[入口フォーム] ChatAPI.loadConversationHistory()を呼び出します:', {
+                                       character,
+                                       userInfo: userInfoParam
+                                   });
+                                   historyData = await window.ChatAPI.loadConversationHistory(character, userInfoParam);
+                                   console.log('[入口フォーム] ChatAPI.loadConversationHistory()の結果:', {
+                                       hasHistoryData: !!historyData,
+                                       hasNickname: !!(historyData && historyData.nickname),
+                                       nickname: historyData?.nickname
+                                   });
                                } else {
                                    // ChatAPIが読み込まれていない場合、直接APIを呼び出す（userIdのみを使用）
-                                   if (!userId) {
-                                       console.warn('[入口フォーム] userIdが指定されていません');
-                                       // userIdがない場合はエントリーフォームを表示
-                                       entryFormContainer.classList.remove('loading');
-                                       entryFormContainer.classList.remove('entry-form-hidden');
-                                       chatContainer.classList.add('entry-form-hidden');
-                                       return;
-                                   }
+                                      if (!userId) {
+                                          console.warn('[入口フォーム] userIdが指定されていません');
+                                          // userIdがない場合はエントリーフォームを表示
+                                          entryFormContainer.classList.remove('loading');
+                                          entryFormContainer.classList.remove('entry-form-hidden');
+                                          chatContainer.classList.add('entry-form-hidden');
+                                          if (userInfoConfirmContainer) {
+                                              userInfoConfirmContainer.classList.add('entry-form-hidden');
+                                          }
+                                          return;
+                                      }
                                    
                                    const apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(character)}`;
                                    const response = await fetch(apiUrl);
@@ -1201,73 +1395,163 @@
                                        window.location.href = '../auth/register.html';
                                        return;
                                    } else if (error.message === 'NETWORK_ERROR') {
-                                       // ネットワーク接続エラーの場合
-                                       entryFormContainer.classList.remove('loading');
-                                       entryFormContainer.classList.remove('entry-form-hidden');
-                                       chatContainer.classList.add('entry-form-hidden');
-                                       const errorMsg = document.createElement('div');
-                                       errorMsg.className = 'result-message error';
-                                       errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
-                                       entryFormContainer.appendChild(errorMsg);
-                                       return;
+                                      // ネットワーク接続エラーの場合
+                                      entryFormContainer.classList.remove('loading');
+                                      entryFormContainer.classList.remove('entry-form-hidden');
+                                      chatContainer.classList.add('entry-form-hidden');
+                                      if (userInfoConfirmContainer) {
+                                          userInfoConfirmContainer.classList.add('entry-form-hidden');
+                                      }
+                                      const errorMsg = document.createElement('div');
+                                      errorMsg.className = 'result-message error';
+                                      errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
+                                      entryFormContainer.appendChild(errorMsg);
+                                      return;
                                    }
                                }
-                               // その他のエラー
-                               entryFormContainer.classList.remove('loading');
-                               entryFormContainer.classList.remove('entry-form-hidden');
-                               chatContainer.classList.add('entry-form-hidden');
-                               return;
+                              // その他のエラー
+                              entryFormContainer.classList.remove('loading');
+                              entryFormContainer.classList.remove('entry-form-hidden');
+                              chatContainer.classList.add('entry-form-hidden');
+                              if (userInfoConfirmContainer) {
+                                  userInfoConfirmContainer.classList.add('entry-form-hidden');
+                              }
+                              return;
                            }
                        }
                        
-                       // データベースにユーザー情報が存在するか確認
-                       if (historyData && historyData.nickname) {
-                           console.log('[入口フォーム] データベースにユーザー情報が存在するため、チャット画面を表示します');
-                           entryFormContainer.classList.add('entry-form-hidden');
-                           chatContainer.classList.remove('entry-form-hidden');
-                           
-                           // 【重要】チャット画面を表示した後、chat-engine.jsの初期化を実行
-                           // ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
-                           if (window.ChatData) {
-                               window.ChatData.conversationHistory = historyData;
-                               window.ChatData.userNickname = historyData.nickname;
-                           }
-                           
-                           // chat-engine.jsの初期化を実行
-                           if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                               console.log('[入口フォーム] chat-engine.jsの初期化を実行します');
-                               await window.ChatInit.initPage();
-                           } else {
-                               console.warn('[入口フォーム] ChatInit.initPageが見つかりません。後で再試行します。');
-                               // ChatInitが読み込まれるのを待つ（最大5秒）
-                               let attempts = 0;
-                               const maxAttempts = 50; // 5秒間待機（100ms × 50）
-                               while (!window.ChatInit && attempts < maxAttempts) {
-                                   await new Promise(resolve => setTimeout(resolve, 100));
-                                   attempts++;
-                               }
-                               if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                                   console.log('[入口フォーム] ChatInit.initPageを実行します（再試行）');
-                                   await window.ChatInit.initPage();
-                               }
-                           }
-                           return;
-                       }
+                      // データベースにユーザー情報が存在するか確認
+                      if (historyData && historyData.nickname) {
+                          console.log('[入口フォーム] データベースにユーザー情報が存在するため、ユーザー情報確認画面を表示します');
+                          
+                          // エントリーフォームとチャット画面を非表示
+                          entryFormContainer.classList.add('entry-form-hidden');
+                          chatContainer.classList.add('entry-form-hidden');
+                          
+                          // ユーザー情報確認画面を表示
+                          const userInfoConfirmContainer = document.getElementById('userInfoConfirmContainer');
+                          const userInfoConfirmContent = document.getElementById('userInfoConfirmContent');
+                          const confirmNickname = document.getElementById('confirmNickname');
+                          const confirmBirthDate = document.getElementById('confirmBirthDate');
+                          const confirmGenderItem = document.getElementById('confirmGenderItem');
+                          const confirmGender = document.getElementById('confirmGender');
+                          
+                          if (userInfoConfirmContainer && userInfoConfirmContent) {
+                              // ローディング状態を表示（少し遅延してから内容を表示）
+                              userInfoConfirmContainer.classList.remove('entry-form-hidden');
+                              
+                              // ユーザー情報を表示
+                              if (confirmNickname) {
+                                  confirmNickname.textContent = historyData.nickname || '-';
+                              }
+                              
+                              if (confirmBirthDate && historyData.birthYear && historyData.birthMonth && historyData.birthDay) {
+                                  confirmBirthDate.textContent = `${historyData.birthYear}年${historyData.birthMonth}月${historyData.birthDay}日`;
+                              }
+                              
+                              // 性別が存在する場合は表示（APIから取得できない場合は非表示のまま）
+                              if (historyData.gender) {
+                                  if (confirmGenderItem) {
+                                      confirmGenderItem.style.display = 'flex';
+                                  }
+                                  if (confirmGender) {
+                                      const genderMap = {
+                                          'male': '男性',
+                                          'female': '女性',
+                                          'other': 'その他'
+                                      };
+                                      confirmGender.textContent = genderMap[historyData.gender] || historyData.gender;
+                                  }
+                              }
+                              
+                              // ローディング後、内容を表示（0.5秒後）
+                              setTimeout(() => {
+                                  const loadingElement = userInfoConfirmContainer.querySelector('.user-info-confirm-loading');
+                                  if (loadingElement) {
+                                      loadingElement.style.display = 'none';
+                                  }
+                                  userInfoConfirmContent.style.display = 'block';
+                              }, 500);
+                              
+                              // 「鑑定を始める」ボタンの処理
+                              const confirmSubmit = document.getElementById('userInfoConfirmSubmit');
+                              if (confirmSubmit) {
+                                  confirmSubmit.onclick = async () => {
+                                      console.log('[ユーザー情報確認] チャット画面を表示します');
+                                      
+                                      // ユーザー情報確認画面を非表示
+                                      userInfoConfirmContainer.classList.add('entry-form-hidden');
+                                      
+                                      // チャット画面を表示
+                                      chatContainer.classList.remove('entry-form-hidden');
+                                      
+                                      // 【重要】チャット画面を表示した後、chat-engine.jsの初期化を実行
+                                      // ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
+                                      if (window.ChatData) {
+                                          window.ChatData.conversationHistory = historyData;
+                                          window.ChatData.userNickname = historyData.nickname;
+                                      }
+                                      
+                                      // chat-engine.jsの初期化を実行
+                                      if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                          console.log('[ユーザー情報確認] chat-engine.jsの初期化を実行します');
+                                          await window.ChatInit.initPage();
+                                      } else {
+                                          console.warn('[ユーザー情報確認] ChatInit.initPageが見つかりません。後で再試行します。');
+                                          // ChatInitが読み込まれるのを待つ（最大5秒）
+                                          let attempts = 0;
+                                          const maxAttempts = 50; // 5秒間待機（100ms × 50）
+                                          while (!window.ChatInit && attempts < maxAttempts) {
+                                              await new Promise(resolve => setTimeout(resolve, 100));
+                                              attempts++;
+                                          }
+                                          if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                              console.log('[ユーザー情報確認] ChatInit.initPageを実行します（再試行）');
+                                              await window.ChatInit.initPage();
+                                          }
+                                      }
+                                  };
+                              }
+                          } else {
+                              // ユーザー情報確認画面の要素が見つからない場合は、直接チャット画面を表示（フォールバック）
+                              console.warn('[入口フォーム] ユーザー情報確認画面の要素が見つかりません。直接チャット画面を表示します。');
+                              chatContainer.classList.remove('entry-form-hidden');
+                              
+                              // ChatDataを設定
+                              if (window.ChatData) {
+                                  window.ChatData.conversationHistory = historyData;
+                                  window.ChatData.userNickname = historyData.nickname;
+                              }
+                              
+                              // chat-engine.jsの初期化を実行
+                              if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                  await window.ChatInit.initPage();
+                              }
+                          }
+                          
+                          return;
+                      }
                        
-                       // データベースにユーザー情報が存在しない場合は入口フォームを表示
-                       console.log('[入口フォーム] データベースにユーザー情報が存在しないため、入口フォームを表示します');
-                       // loadingクラスを削除してから表示
-                       entryFormContainer.classList.remove('loading');
-                       entryFormContainer.classList.remove('entry-form-hidden');
-                       chatContainer.classList.add('entry-form-hidden');
-                   } catch (error) {
-                       console.error('[入口フォーム] データベース読み込みエラー:', error);
-                       // エラー時は入口フォームを表示
-                       // loadingクラスを削除してから表示
-                       entryFormContainer.classList.remove('loading');
-                       entryFormContainer.classList.remove('entry-form-hidden');
-                       chatContainer.classList.add('entry-form-hidden');
-                   }
+                      // データベースにユーザー情報が存在しない場合は入口フォームを表示
+                      console.log('[入口フォーム] データベースにユーザー情報が存在しないため、入口フォームを表示します');
+                      // loadingクラスを削除してから表示
+                      entryFormContainer.classList.remove('loading');
+                      entryFormContainer.classList.remove('entry-form-hidden');
+                      chatContainer.classList.add('entry-form-hidden');
+                      if (userInfoConfirmContainer) {
+                          userInfoConfirmContainer.classList.add('entry-form-hidden');
+                      }
+                  } catch (error) {
+                      console.error('[入口フォーム] データベース読み込みエラー:', error);
+                      // エラー時は入口フォームを表示
+                      // loadingクラスを削除してから表示
+                      entryFormContainer.classList.remove('loading');
+                      entryFormContainer.classList.remove('entry-form-hidden');
+                      chatContainer.classList.add('entry-form-hidden');
+                      if (userInfoConfirmContainer) {
+                          userInfoConfirmContainer.classList.add('entry-form-hidden');
+                      }
+                  }
                
                    // 入口フォームの送信処理（ユーザー情報が存在しない場合のみ設定）
                    entryForm.addEventListener('submit', async (e) => {
