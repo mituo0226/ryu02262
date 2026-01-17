@@ -30,8 +30,6 @@ const YukinoHandler = {
             console.error('[雪乃ハンドラー] init()でエラーが発生しました:', error);
         }
         
-        // ゲストモード再訪問のチェック
-        this.checkGuestRevisit();
     },
 
     /**
@@ -83,25 +81,6 @@ const YukinoHandler = {
 
     // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
 
-    /**
-     * ゲストモード再訪問のチェック
-     * 一度ゲストで会話した後、再度ゲストで訪問した場合は強制的にユーザー登録画面へ
-     */
-    checkGuestRevisit() {
-        // 【変更】データベースベースの判断に移行
-        // ゲストユーザーの会話状態はデータベースから判断するため、この関数は削除または空実装に変更
-        // ゲストユーザーの再訪問チェックは、会話履歴の読み込み時に実行される
-        console.log('[雪乃ハンドラー] checkGuestRevisit: データベースベースの判断に移行したため、この関数は使用されません');
-    },
-
-    /**
-     * ゲストモードで会話したことを記録
-     * 【変更】データベースベースの判断に移行
-     * ゲストユーザーの会話状態はデータベースで管理されるため、この関数は削除または空実装に変更
-     */
-    markGuestConversed() {
-        console.log('[雪乃ハンドラー] markGuestConversed: データベースベースの判断に移行したため、この関数は使用されません');
-    },
 
     /**
      * メッセージ送信前の処理
@@ -126,17 +105,6 @@ const YukinoHandler = {
             return false; // 雪乃以外は処理しない
         }
         
-        // ゲストモードの場合、10通到達時のチェックを実行
-        if (window.AuthState && !window.AuthState.isRegistered()) {
-            // 【削除】10通制限チェックは削除されました
-            if (false && window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
-                const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
-                if (limitHandled) {
-                    console.log('[雪乃ハンドラー] 10通到達時の処理が完了しました');
-                }
-            }
-        }
-        
         return false; // 共通処理を続行
     },
 
@@ -146,7 +114,7 @@ const YukinoHandler = {
      * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData, guestHistory = []) {
+    async handlePostRegistration(historyData) {
         console.log('[雪乃ハンドラー] 登録完了後の処理');
 
         // 【変更】localStorageからのフラグ削除を削除（データベースベースの判断）

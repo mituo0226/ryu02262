@@ -14,31 +14,10 @@ const SoraHandler = {
     init() {
         console.log('[水野ソラハンドラー] 初期化');
         
-        // ゲストモード再訪問のチェック
-        this.checkGuestRevisit();
     },
 
     // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
 
-    /**
-     * ゲストモード再訪問のチェック
-     * 一度ゲストで会話した後、再度ゲストで訪問した場合は強制的にユーザー登録画面へ
-     */
-    checkGuestRevisit() {
-        // 【変更】データベースベースの判断に移行
-        // ゲストユーザーの会話状態はデータベースから判断するため、この関数は削除または空実装に変更
-        // ゲストユーザーの再訪問チェックは、会話履歴の読み込み時に実行される
-        console.log('[水野ソラハンドラー] checkGuestRevisit: データベースベースの判断に移行したため、この関数は使用されません');
-    },
-
-    /**
-     * ゲストモードで会話したことを記録
-     * 【変更】データベースベースの判断に移行
-     * ゲストユーザーの会話状態はデータベースで管理されるため、この関数は削除または空実装に変更
-     */
-    markGuestConversed() {
-        console.log('[水野ソラハンドラー] markGuestConversed: データベースベースの判断に移行したため、この関数は使用されません');
-    },
 
     /**
      * メッセージ送信前の処理
@@ -65,17 +44,6 @@ const SoraHandler = {
 
         console.log('[水野ソラハンドラー] レスポンス処理:', response);
 
-        // ゲストモードの場合、10通到達時のチェックを実行
-        if (window.AuthState && !window.AuthState.isRegistered()) {
-            // 【削除】10通制限チェックは削除されました
-            if (false && window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
-                const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
-                if (limitHandled) {
-                    console.log('[水野ソラハンドラー] 10通到達時の処理が完了しました');
-                }
-            }
-        }
-
         // 現在は特殊な処理なし、共通処理を続行
         return false;
     },
@@ -86,7 +54,7 @@ const SoraHandler = {
      * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData, guestHistory = []) {
+    async handlePostRegistration(historyData) {
         console.log('[水野ソラハンドラー] 登録完了後の処理');
 
         // 【変更】localStorageからのフラグ削除を削除（データベースベースの判断）
@@ -185,7 +153,6 @@ const SoraHandler = {
         const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         sessionStorage.removeItem(historyKey);
-        sessionStorage.removeItem('pendingGuestHistoryMigration');
 
         // メッセージカウントをリセット
         ChatData.setUserMessageCount(character, 0);

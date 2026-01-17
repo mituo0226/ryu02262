@@ -76,17 +76,6 @@ const KaedeHandler = {
 
         console.log('[楓ハンドラー] レスポンス処理:', response);
 
-        // ゲストモードの場合、10通到達時のチェックを実行
-        if (window.AuthState && !window.AuthState.isRegistered()) {
-            // 【削除】10通制限チェックは削除されました
-            if (false && window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
-                const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
-                if (limitHandled) {
-                    console.log('[楓ハンドラー] 10通到達時の処理が完了しました');
-                }
-            }
-        }
-
         // 現在は特殊な処理なし、共通処理を続行
         // 守護神の儀式は別の箇所で処理される
         return false;
@@ -95,10 +84,9 @@ const KaedeHandler = {
     /**
      * 登録完了後の処理
      * @param {Object} historyData - 会話履歴データ
-     * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData, guestHistory = []) {
+    async handlePostRegistration(historyData) {
         console.log('[楓ハンドラー] 登録完了後の処理');
 
         // 守護神の儀式が必要な場合は handleGuardianRitualCompletion で処理
@@ -111,18 +99,16 @@ const KaedeHandler = {
      * @param {Object} historyData - 会話履歴データ
      * @param {boolean} justRegistered - 登録直後かどうか
      * @param {boolean} shouldTriggerRegistrationFlow - 登録フローをトリガーするか
-     * @param {Object} options - 追加オプション（isGuestMode, guestHistory, guardianMessageShownなど）
+     * @param {Object} options - 追加オプション（guardianMessageShownなど）
      * @returns {Object|null} 処理結果（guardianConfirmationDataなど）
      */
     async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, options = {}) {
-        const { isGuestMode = false, guestHistory = [], guardianMessageShown = false } = options;
+        const { guardianMessageShown = false } = options;
         
         console.log('[楓専用処理] initPage呼び出し:', {
             hasHistoryData: !!historyData,
             justRegistered,
             shouldTriggerRegistrationFlow,
-            isGuestMode,
-            guestHistoryLength: guestHistory.length,
             guardianMessageShown
         });
         
@@ -148,10 +134,9 @@ const KaedeHandler = {
             );
             // handlePostRegistrationRitualStartがtrueを返した場合でも、守護神の確認は続行する
             // （儀式を開始しない場合でも、守護神が未登録なら儀式を開始する必要があるため）
-        } else if (!isGuestMode) {
-            // historyDataが存在しない場合でも、登録済みユーザーの場合は守護神の儀式開始チェックを実行
+        } else {
+            // historyDataが存在しない場合でも、守護神の儀式開始チェックを実行
             // （historyDataが取得できない場合でも、守護神が未登録なら儀式を開始する必要があるため）
-            // handlePostRegistrationRitualStartにnullを渡すことで、localStorageから守護神を確認する処理を実行
             const ritualHandled = await this.handlePostRegistrationRitualStart(
                 this.characterId,
                 null,
@@ -164,8 +149,6 @@ const KaedeHandler = {
         console.log('[楓専用処理] 守護神の確認を開始:', {
             hasHistoryData: !!historyData,
             historyDataAssignedDeity: historyData?.assignedDeity,
-            isGuestMode,
-            guestHistoryLength: guestHistory.length,
             guardianMessageShown
         });
         
@@ -181,7 +164,7 @@ const KaedeHandler = {
         }
         
         // 2. historyDataが取得できなかった場合、会話履歴を再取得して確認（データベースから再取得）
-        if (!hasAssignedDeity && !historyData && !isGuestMode) {
+        if (!hasAssignedDeity && !historyData) {
             try {
                 console.log('[楓専用処理] 会話履歴を再取得して守護神を確認します');
                 const recheckHistoryData = await ChatAPI.loadConversationHistory(this.characterId);
@@ -202,7 +185,6 @@ const KaedeHandler = {
         
         console.log('[楓専用処理] 守護神確認結果:', {
             hasAssignedDeity,
-            guestHistoryLength: guestHistory.length,
             guardianMessageShown,
             hasHistoryData: !!historyData,
             shouldStartRitual: !hasAssignedDeity && !guardianMessageShown
@@ -213,34 +195,28 @@ const KaedeHandler = {
         // （会話履歴がある場合は、儀式開始時に会話履歴をデータベースに移行する）
         // 守護神の儀式でトラブルが発生して守護神が決定されなかった場合も、次回入室時にここで自動的に儀式が開始される
         if (!hasAssignedDeity && !guardianMessageShown) {
-            const userType = isGuestMode ? 'ゲストユーザー' : '登録済みユーザー';
+            const userType = '登録済みユーザー';
             console.log(`[楓専用処理] ${userType}が楓にアクセス。守護神が未登録のため、挨拶メッセージを表示し、自動的に儀式を開始します。`);
             // 【変更】nicknameをhistoryDataから取得（データベースベースの判断）
             const nickname = (historyData && historyData.nickname) || ChatData.userNickname || 'あなた';
             const info = ChatData.characterInfo[this.characterId];
             
             // 会話履歴がある場合は、それを考慮したメッセージを表示
-            const greetingMessage = guestHistory.length > 0
-                ? `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`
-                : `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
+            const greetingMessage = `${nickname}さん、訪問していただいてありがとうございます。まずは、${nickname}さんの守護神を導き出す儀式を行い、守護神を降臨させてから、守護神と共に鑑定を進めてまいりますので、よろしくお願いします。`;
             ChatUI.addMessage('welcome', greetingMessage, info.name);
             
             // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-            // 会話履歴がある場合は、それを守護神の儀式に渡す
             setTimeout(async () => {
                 console.log('[楓専用処理] 守護神の儀式開始チェック:', {
                     hasChatInit: !!window.ChatInit,
                     hasStartGuardianRitual: !!(window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function'),
-                    character: this.characterId,
-                    guestHistoryLength: guestHistory.length
+                    character: this.characterId
                 });
                 
                 if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                    // ゲスト履歴がある場合は、それを儀式に渡す
-                    const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
                     console.log('[楓専用処理] 守護神の儀式を開始します');
                     try {
-                        await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                        await window.ChatInit.startGuardianRitual(this.characterId);
                         console.log('[楓専用処理] 守護神の儀式開始処理が完了しました');
                     } catch (error) {
                         console.error('[楓専用処理] 守護神の儀式開始エラー:', error);
@@ -325,11 +301,7 @@ const KaedeHandler = {
             AuthState.clearGuestHistory(character);
         }
 
-        // sessionStorageから直接削除
-        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-        const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-        sessionStorage.removeItem(historyKey);
-        sessionStorage.removeItem('pendingGuestHistoryMigration');
+        // 会話履歴はデータベースで管理されるため、sessionStorageのクリアは不要
 
         // メッセージカウントをリセット
         ChatData.setUserMessageCount(character, 0);
@@ -384,7 +356,6 @@ const KaedeHandler = {
             const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
             const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
             sessionStorage.removeItem(historyKey);
-            sessionStorage.removeItem('pendingGuestHistoryMigration');
             ChatData.setUserMessageCount(character, 0);
             console.log('[楓専用処理] ✓ ゲスト履歴をクリアしました');
         }
@@ -412,15 +383,12 @@ const KaedeHandler = {
         }
         // 優先順位3: ゲスト履歴から取得
         else {
-            console.log('[楓専用処理] APIからfirstQuestionが取得できませんでした。ゲスト履歴を確認します。');
-            const guestHistory = (window.ChatInit && typeof window.ChatInit.getGuestHistoryForMigration === 'function') 
-                ? window.ChatInit.getGuestHistoryForMigration(character)
-                : [];
-            if (guestHistory && guestHistory.length > 0) {
-                const firstUserMessage = guestHistory.find(msg => msg && msg.role === 'user');
+            console.log('[楓専用処理] APIからfirstQuestionが取得できませんでした。会話履歴を確認します。');
+            if (historyData && historyData.recentMessages) {
+                const firstUserMessage = historyData.recentMessages.find(msg => msg && msg.role === 'user');
                 if (firstUserMessage && firstUserMessage.content) {
                     firstQuestion = firstUserMessage.content.trim();
-                    console.log('[楓専用処理] ✓ ゲスト履歴からfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
+                    console.log('[楓専用処理] ✓ 会話履歴からfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
                 }
             }
         }
@@ -650,58 +618,7 @@ const KaedeHandler = {
             const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || ChatData.userNickname || 'あなた';
             const guardianName = assignedDeity;
 
-            // 【重要】ゲスト履歴をデータベースに移行（登録直後の場合）
-            // この処理は非同期なので、awaitせずにバックグラウンドで実行
-            const acceptedRitual = sessionStorage.getItem('acceptedGuardianRitual') === 'true';
-            if (acceptedRitual) {
-                console.log('[楓専用処理] ゲスト履歴のデータベース移行を開始します');
-                
-                // ゲスト履歴を取得
-                let guestHistory = [];
-                const pendingHistory = sessionStorage.getItem('pendingRitualGuestHistory');
-                if (pendingHistory) {
-                    try {
-                        const data = JSON.parse(pendingHistory);
-                        guestHistory = data.history || [];
-                    } catch (e) {
-                        console.error('[楓専用処理] pendingRitualGuestHistory解析エラー:', e);
-                    }
-                }
-                
-                if (guestHistory.length === 0) {
-                    // フォールバック: ChatDataから取得
-                    guestHistory = (window.ChatData && typeof window.ChatData.getConversationHistory === 'function')
-                        ? window.ChatData.getConversationHistory(character) || []
-                        : [];
-                }
-                
-                if (guestHistory.length > 0) {
-                    const conversationHistory = guestHistory.map(entry => ({
-                        role: entry.role || 'user',
-                        content: entry.content || entry.message || ''
-                    }));
-                    
-                    console.log('[楓専用処理] ゲスト履歴をデータベースに移行:', conversationHistory.length, '件');
-                    
-                    // 非同期でAPI呼び出し（処理を待たない）
-                    (async () => {
-                        try {
-                            await window.ChatAPI.sendMessage(
-                                '守護神の儀式を開始します',
-                                character,
-                                conversationHistory,
-                                {
-                                    migrateHistory: true,
-                                    ritualStart: true
-                                }
-                            );
-                            console.log('[楓専用処理] ゲスト履歴のデータベース移行が完了しました');
-                        } catch (error) {
-                            console.error('[楓専用処理] ゲスト履歴のデータベース移行に失敗:', error);
-                        }
-                    })();
-                }
-            }
+            // 会話履歴はデータベースで管理されるため、移行処理は不要
 
             // 【重要】guardianMessageShownフラグは、handleGuardianRitualCompletionで定型文表示後に設定される
             // ここで先に設定すると、他の処理で「既に表示済み」と誤判定される可能性があるため削除
@@ -846,38 +763,7 @@ const KaedeHandler = {
                 console.log('[楓専用処理] 守護神の鑑定を受け入れているため、儀式を準備します');
             }
 
-            // 【重要】ゲスト会話履歴を取得して保存（守護神の儀式で使用するため）
-            console.log('[楓専用処理] ゲスト履歴取得を開始:', character);
-
-            let guestHistory = (window.ChatInit && typeof window.ChatInit.getGuestHistoryForMigration === 'function')
-                ? window.ChatInit.getGuestHistoryForMigration(character)
-                : [];
-
-            if (guestHistory.length === 0) {
-                // フォールバック: ChatDataから直接取得
-                console.log('[楓専用処理] ChatDataから直接取得を試行');
-                guestHistory = ChatData.getConversationHistory(character) || [];
-            }
-
-            // ゲスト会話履歴を一時的に保存（守護神の儀式で使用するため）
-            const guestHistoryForRitual = JSON.parse(JSON.stringify(guestHistory));
-
-            // 会話履歴をクリア（新規登録なので空から始める）
-            ChatData.conversationHistory = null;
-
-            // ゲスト会話履歴を一時的に保存（守護神の儀式で使用するため）
-            const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-            const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-            if (guestHistoryForRitual.length > 0) {
-                sessionStorage.setItem('pendingRitualGuestHistory', JSON.stringify({
-                    character: character,
-                    history: guestHistoryForRitual
-                }));
-                console.log('[楓専用処理] ゲスト履歴をpendingRitualGuestHistoryに保存:', {
-                    historyLength: guestHistoryForRitual.length,
-                    userMessages: guestHistoryForRitual.filter(msg => msg && msg.role === 'user').length
-                });
-            }
+            // 会話履歴はデータベースで管理されるため、取得は不要（守護神の儀式で直接使用）
 
             // URLパラメータからjustRegisteredを削除
             urlParams.delete('justRegistered');
@@ -989,9 +875,8 @@ const KaedeHandler = {
             // 「はい」を押した場合 - APIに守護神の儀式の開催を通知
             const characterName = ChatData.characterInfo[character]?.name || '楓';
 
-            // ゲスト会話履歴を取得
-            const guestHistory = ChatData.getConversationHistory(character) || [];
-            const conversationHistory = guestHistory.map(entry => ({
+            // 会話履歴を取得（データベースから取得）
+            const conversationHistory = (ChatData.conversationHistory?.recentMessages || []).map(entry => ({
                 role: entry.role || 'user',
                 content: entry.content || entry.message || ''
             }));
@@ -1038,10 +923,8 @@ const KaedeHandler = {
             return false; // 楓以外は処理しない
         }
 
-        const isGuest = !AuthState.isRegistered();
-        if (!isGuest) {
-            return false; // 登録ユーザーは対象外
-        }
+        // 現在は最初からユーザー登録が必要なため、この関数は使用されない
+        return false;
 
         // 儀式済み・表示済みの場合は何もしない
         const ritualAlreadyDone = sessionStorage.getItem('ritualCompleted') === 'true' || sessionStorage.getItem('guardianMessageShown') === 'true';
@@ -1173,19 +1056,14 @@ const KaedeHandler = {
             setTimeout(async () => {
                 if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
                     console.log('[楓ハンドラー] 守護神の儀式を自動開始します');
-                    // ゲスト履歴を取得（存在する場合）
-                    const guestHistory = ChatData.getConversationHistory(this.characterId) || [];
-                    const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
-                    await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                    await window.ChatInit.startGuardianRitual(this.characterId);
                 } else {
                     console.error('[楓ハンドラー] ChatInit.startGuardianRitualが見つかりません');
                     // ChatInitが読み込まれていない場合、少し待ってから再試行
                     setTimeout(async () => {
                         if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
                             console.log('[楓ハンドラー] 守護神の儀式を自動開始します（リトライ）');
-                            const guestHistory = ChatData.getConversationHistory(this.characterId) || [];
-                            const ritualGuestHistory = guestHistory.length > 0 ? guestHistory : null;
-                            await window.ChatInit.startGuardianRitual(this.characterId, ritualGuestHistory);
+                            await window.ChatInit.startGuardianRitual(this.characterId);
                         } else {
                             console.error('[楓ハンドラー] ChatInit.startGuardianRitualが見つかりません（リトライ失敗）');
                             // リトライ失敗時はフラグをクリア
@@ -1234,9 +1112,9 @@ const KaedeHandler = {
             // 1秒待機後、守護神の儀式を開始
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 登録済みユーザーの場合、会話履歴はAPIから取得されるため、nullを渡す
+            // 会話履歴はAPIから取得されるため、パラメータは不要
             if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                await window.ChatInit.startGuardianRitual(character, null);
+                await window.ChatInit.startGuardianRitual(character);
             } else {
                 alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
             }

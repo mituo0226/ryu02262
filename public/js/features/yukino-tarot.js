@@ -589,12 +589,7 @@
             // 会話履歴を取得
             let conversationHistory = [];
             if (window.ChatData) {
-                const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
-                if (isGuest) {
-                    conversationHistory = window.ChatData.getConversationHistory ? window.ChatData.getConversationHistory(character) || [] : [];
-                } else {
-                    conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
-                }
+                conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
             }
             
             // 会話履歴の形式を変換
@@ -807,12 +802,7 @@ ${cardNames}
             // 会話履歴を取得
             let conversationHistory = [];
             if (window.ChatData) {
-                const isGuest = !(window.ChatData.conversationHistory && window.ChatData.conversationHistory.userId);
-                if (isGuest) {
-                    conversationHistory = window.ChatData.getConversationHistory ? window.ChatData.getConversationHistory(character) || [] : [];
-                } else {
-                    conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
-                }
+                conversationHistory = window.ChatData.conversationHistory?.recentMessages || [];
             }
             
             // 会話履歴の形式を変換

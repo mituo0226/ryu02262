@@ -42,17 +42,6 @@ const KaonHandler = {
 
         console.log('[三崎花音ハンドラー] レスポンス処理:', response);
 
-        // ゲストモードの場合、10通到達時のチェックを実行
-        if (window.AuthState && !window.AuthState.isRegistered()) {
-            // 【削除】10通制限チェックは削除されました
-            if (false && window.GuestLimitManager && typeof window.GuestLimitManager.checkAndHandleGuestLimit === 'function') {
-                const limitHandled = window.GuestLimitManager.checkAndHandleGuestLimit(character, response);
-                if (limitHandled) {
-                    console.log('[三崎花音ハンドラー] 10通到達時の処理が完了しました');
-                }
-            }
-        }
-
         // 現在は特殊な処理なし、共通処理を続行
         return false;
     },
@@ -63,7 +52,7 @@ const KaonHandler = {
      * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
-    async handlePostRegistration(historyData, guestHistory = []) {
+    async handlePostRegistration(historyData) {
         console.log('[三崎花音ハンドラー] 登録完了後の処理');
 
         // 【重要】送信ボタンの表示状態を更新
@@ -156,7 +145,6 @@ const KaonHandler = {
         const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         sessionStorage.removeItem(historyKey);
-        sessionStorage.removeItem('pendingGuestHistoryMigration');
 
         // メッセージカウントをリセット
         ChatData.setUserMessageCount(character, 0);
