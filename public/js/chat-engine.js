@@ -416,14 +416,57 @@ const ChatInit = {
                     // }
                     // #endregion
                     console.log('[初期化] 再訪問ユーザー。returningメッセージを生成します');
-                    const initialMessage = ChatData.generateInitialMessage(character, historyData);
-                    // #region agent log (開発環境のみ - コメントアウト)
-                    // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'returningメッセージ生成完了',data:{character,messagePreview:initialMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    // }
-                    // #endregion
-                    ChatUI.addMessage('welcome', initialMessage, info.name);
-                    return true;
+                    
+                    // 【楓専用処理】楓の場合は、APIが最後の履歴を確認して返答を生成する
+                    if (character === 'kaede') {
+                        try {
+                            // 会話履歴をAPIに送信して返答を生成
+                            const conversationHistory = historyData.recentMessages || [];
+                            const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').slice(-1)[0];
+                            const messageText = lastUserMessage?.content || '再訪問しました';
+                            
+                            console.log('[初期化] 楓の再訪問時：APIから返答を生成します', {
+                                hasHistory: true,
+                                conversationHistoryLength: conversationHistory.length,
+                                lastUserMessage: lastUserMessage?.content?.substring(0, 50)
+                            });
+                            
+                            const response = await ChatAPI.sendMessage(
+                                messageText,
+                                character,
+                                conversationHistory,
+                                {}
+                            );
+                            
+                            if (response && response.message) {
+                                ChatUI.addMessage('welcome', response.message, info.name);
+                                console.log('[初期化] 楓の再訪問時：APIから返答を取得しました');
+                                return true;
+                            } else {
+                                console.warn('[初期化] 楓の再訪問時：APIから返答を取得できませんでした。定型文を使用します');
+                                // APIから返答を取得できなかった場合は、定型文を使用
+                                const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                                ChatUI.addMessage('welcome', initialMessage, info.name);
+                                return true;
+                            }
+                        } catch (error) {
+                            console.error('[初期化] 楓の再訪問時：API呼び出しエラー:', error);
+                            // エラーの場合は、定型文を使用
+                            const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                            ChatUI.addMessage('welcome', initialMessage, info.name);
+                            return true;
+                        }
+                    } else {
+                        // 楓以外のキャラクターは従来通り定型文を使用
+                        const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                        // #region agent log (開発環境のみ - コメントアウト)
+                        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'returningメッセージ生成完了',data:{character,messagePreview:initialMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                        // }
+                        // #endregion
+                        ChatUI.addMessage('welcome', initialMessage, info.name);
+                        return true;
+                    }
                 }
                 
                 // 会話履歴がない場合：firstTimeGuestメッセージを表示
@@ -462,11 +505,56 @@ const ChatInit = {
                 } else if (handlerForFirstMessage && typeof handlerForFirstMessage.getGuardianConfirmationMessage === 'function' && !guardianMessageShown && !handlerSkippedFirstMessage) {
                     // 【スケーラビリティ改善】守護神確認メッセージの取得をハンドラーに委譲
                     const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
-                    const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
-                    if (guardianConfirmationMessage) {
-                        console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
-                        ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
-                        return true;
+                    
+                    // 【楓専用処理】楓の場合は、APIが守護神情報を確認して返答を生成する
+                    if (character === 'kaede' && historyData && historyData.assignedDeity) {
+                        try {
+                            console.log('[初期化] 楓の再訪問時（履歴なし）：APIから返答を生成します', {
+                                hasHistory: false,
+                                assignedDeity: historyData.assignedDeity,
+                                userNickname
+                            });
+                            
+                            // 守護神情報を使用してAPIから返答を生成
+                            const response = await ChatAPI.sendMessage(
+                                '再訪問しました',
+                                character,
+                                [], // 会話履歴は空
+                                {}
+                            );
+                            
+                            if (response && response.message) {
+                                ChatUI.addMessage('welcome', response.message, info.name);
+                                console.log('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得しました');
+                                return true;
+                            } else {
+                                console.warn('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得できませんでした。ハンドラーのメッセージを使用します');
+                                // APIから返答を取得できなかった場合は、ハンドラーのメッセージを使用
+                                const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
+                                if (guardianConfirmationMessage) {
+                                    console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
+                                    ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                                    return true;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('[初期化] 楓の再訪問時（履歴なし）：API呼び出しエラー:', error);
+                            // エラーの場合は、ハンドラーのメッセージを使用
+                            const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
+                            if (guardianConfirmationMessage) {
+                                console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
+                                ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                                return true;
+                            }
+                        }
+                    } else {
+                        // 楓以外のキャラクターまたは守護神が決定されていない場合は、従来通りハンドラーのメッセージを使用
+                        const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
+                        if (guardianConfirmationMessage) {
+                            console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
+                            ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                            return true;
+                        }
                     }
                 }
                 
