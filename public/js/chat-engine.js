@@ -738,7 +738,7 @@ const ChatInit = {
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
-                showInitialMessage({ handlerSkippedFirstMessage });
+                await showInitialMessage({ handlerSkippedFirstMessage });
             } else if (historyData && historyData.nickname) {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -802,7 +802,7 @@ const ChatInit = {
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
-                showInitialMessage({ handlerSkippedFirstMessage });
+                await showInitialMessage({ handlerSkippedFirstMessage });
             } else {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -863,7 +863,7 @@ const ChatInit = {
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
-                showInitialMessage({ handlerSkippedFirstMessage });
+                await showInitialMessage({ handlerSkippedFirstMessage });
             }
             
             // 守護神確認メッセージを表示した場合は、フラグをクリア
