@@ -201,21 +201,252 @@ const ChatUI = {
             messageDiv.style.position = 'relative';
             messageDiv.style.overflow = 'visible';
             
-            // ローディングアイコンを追加
+            // 神秘的なローディングアニメーションコンテナを作成
+            const loadingContainer = document.createElement('div');
+            loadingContainer.className = 'kaede-mystic-loading-container';
+            loadingContainer.style.cssText = `
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0 auto 12px;
+                position: relative;
+                width: 60px;
+                height: 60px;
+            `;
+            
+            // アニメーションスタイルを動的に追加（まだ存在しない場合）
+            if (!document.getElementById('kaede-mystic-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'kaede-mystic-loading-styles';
+                style.textContent = `
+                    @keyframes kaede-mystic-pattern1 {
+                        0%, 100% {
+                            transform: scale(0.9);
+                            opacity: 0.75;
+                            box-shadow: 
+                                0 0 12px rgba(138, 43, 226, 0.4),
+                                inset 0 0 12px rgba(138, 43, 226, 0.6),
+                                0 0 24px rgba(255, 215, 0, 0.3);
+                        }
+                        50% {
+                            transform: scale(1.08);
+                            opacity: 1;
+                            box-shadow: 
+                                0 0 24px rgba(255, 215, 0, 0.8),
+                                0 0 40px rgba(138, 43, 226, 0.6),
+                                inset 0 0 20px rgba(255, 215, 0, 0.4),
+                                0 0 48px rgba(255, 215, 0, 0.5);
+                        }
+                    }
+                    @keyframes kaede-mystic-pattern2 {
+                        0% {
+                            transform: rotate(0deg) scale(0.8);
+                            opacity: 0.6;
+                            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(138, 43, 226, 0.3);
+                        }
+                        50% {
+                            transform: rotate(180deg) scale(1.1);
+                            opacity: 1;
+                            box-shadow: 0 0 30px rgba(255, 107, 157, 0.6), 0 0 60px rgba(138, 43, 226, 0.5), 0 0 80px rgba(255, 215, 0, 0.4);
+                        }
+                        100% {
+                            transform: rotate(360deg) scale(0.8);
+                            opacity: 0.6;
+                            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(138, 43, 226, 0.3);
+                        }
+                    }
+                    @keyframes kaede-mystic-pattern3 {
+                        0%, 100% {
+                            transform: scale(1);
+                            border-radius: 50%;
+                            box-shadow: 
+                                0 0 15px rgba(255, 215, 0, 0.5),
+                                0 0 30px rgba(138, 43, 226, 0.4),
+                                inset 0 0 15px rgba(255, 107, 157, 0.3);
+                        }
+                        33% {
+                            transform: scale(1.1);
+                            border-radius: 40%;
+                            box-shadow: 
+                                0 0 25px rgba(255, 107, 157, 0.7),
+                                0 0 50px rgba(138, 43, 226, 0.6),
+                                inset 0 0 20px rgba(255, 215, 0, 0.5);
+                        }
+                        66% {
+                            transform: scale(0.95);
+                            border-radius: 30%;
+                            box-shadow: 
+                                0 0 20px rgba(138, 43, 226, 0.6),
+                                0 0 40px rgba(255, 215, 0, 0.5),
+                                inset 0 0 18px rgba(255, 107, 157, 0.4);
+                        }
+                    }
+                    @keyframes kaede-mystic-pattern4 {
+                        0% {
+                            transform: rotate(0deg) scale(0.9);
+                            filter: hue-rotate(0deg);
+                            box-shadow: 
+                                0 0 12px rgba(255, 215, 0, 0.4),
+                                0 0 24px rgba(138, 43, 226, 0.3);
+                        }
+                        25% {
+                            transform: rotate(90deg) scale(1.05);
+                            filter: hue-rotate(90deg);
+                            box-shadow: 
+                                0 0 20px rgba(255, 107, 157, 0.5),
+                                0 0 40px rgba(255, 215, 0, 0.4);
+                        }
+                        50% {
+                            transform: rotate(180deg) scale(1.1);
+                            filter: hue-rotate(180deg);
+                            box-shadow: 
+                                0 0 25px rgba(138, 43, 226, 0.6),
+                                0 0 50px rgba(255, 107, 157, 0.5);
+                        }
+                        75% {
+                            transform: rotate(270deg) scale(1.05);
+                            filter: hue-rotate(270deg);
+                            box-shadow: 
+                                0 0 20px rgba(255, 215, 0, 0.5),
+                                0 0 40px rgba(138, 43, 226, 0.4);
+                        }
+                        100% {
+                            transform: rotate(360deg) scale(0.9);
+                            filter: hue-rotate(360deg);
+                            box-shadow: 
+                                0 0 12px rgba(255, 215, 0, 0.4),
+                                0 0 24px rgba(138, 43, 226, 0.3);
+                        }
+                    }
+                    @keyframes kaede-mystic-inner-glow {
+                        0%, 100% {
+                            opacity: 0.6;
+                            transform: translate(-50%, -50%) scale(0.8);
+                        }
+                        50% {
+                            opacity: 1;
+                            transform: translate(-50%, -50%) scale(1.2);
+                        }
+                    }
+                    @keyframes kaede-mystic-particle-rotate {
+                        0% {
+                            transform: translate(-50%, -50%) translate(25px, 0) rotate(0deg);
+                            opacity: 0.8;
+                        }
+                        50% {
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translate(-50%, -50%) translate(25px, 0) rotate(360deg);
+                            opacity: 0.8;
+                        }
+                    }
+                    @keyframes kaede-mystic-wave {
+                        0%, 100% {
+                            transform: translate(-50%, -50%) scale(1);
+                            opacity: 0.4;
+                        }
+                        50% {
+                            transform: translate(-50%, -50%) scale(1.5);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // メインのローディングアイコンを作成
             const loadingIcon = document.createElement('div');
-            loadingIcon.className = 'guardian-loading-icon';
+            loadingIcon.className = 'kaede-mystic-loading-icon';
             loadingIcon.style.cssText = `
-                width: 36px;
-                height: 36px;
+                width: 40px;
+                height: 40px;
                 border-radius: 50%;
                 border: 2px solid rgba(255, 215, 0, 0.6);
                 box-shadow: 
                     0 0 12px rgba(138, 43, 226, 0.4),
-                    inset 0 0 12px rgba(138, 43, 226, 0.6);
-                animation: guardian-breathe 1.8s ease-in-out infinite;
-                margin: 0 auto 12px;
+                    inset 0 0 12px rgba(138, 43, 226, 0.6),
+                    0 0 24px rgba(255, 215, 0, 0.3);
+                animation: kaede-mystic-pattern1 2s ease-in-out infinite;
+                margin: 0 auto;
+                position: relative;
             `;
-            messageDiv.appendChild(loadingIcon);
+            
+            // 内側の光る円
+            const innerGlow = document.createElement('div');
+            innerGlow.className = 'kaede-mystic-inner-glow';
+            innerGlow.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(255, 215, 0, 0.8), rgba(138, 43, 226, 0.4));
+                box-shadow: 0 0 16px rgba(255, 215, 0, 0.6);
+                animation: kaede-mystic-inner-glow 2s ease-in-out infinite;
+                transform: translate(-50%, -50%);
+            `;
+            loadingIcon.appendChild(innerGlow);
+            
+            // 外側の粒子（6個）
+            for (let i = 0; i < 6; i++) {
+                const particle = document.createElement('div');
+                const angle = (i * 60) * (Math.PI / 180);
+                const radius = 25;
+                particle.className = `kaede-mystic-particle-${i}`;
+                particle.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 4px;
+                    height: 4px;
+                    border-radius: 50%;
+                    background: rgba(255, 215, 0, 0.8);
+                    box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
+                    transform: translate(-50%, -50%) translate(${Math.cos(angle) * radius}px, ${Math.sin(angle) * radius}px);
+                    animation: kaede-mystic-particle-rotate 3s linear infinite;
+                    animation-delay: ${i * 0.5}s;
+                `;
+                loadingIcon.appendChild(particle);
+            }
+            
+            // 波動エフェクト（外側の輪）
+            for (let i = 0; i < 2; i++) {
+                const wave = document.createElement('div');
+                wave.className = `kaede-mystic-wave-${i}`;
+                wave.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    border: 1px solid rgba(255, 215, 0, 0.3);
+                    transform: translate(-50%, -50%);
+                    animation: kaede-mystic-wave 2s ease-out infinite;
+                    animation-delay: ${i * 1}s;
+                `;
+                loadingContainer.appendChild(wave);
+            }
+            
+            loadingContainer.appendChild(loadingIcon);
+            messageDiv.appendChild(loadingContainer);
+            
+            // 数秒ごとにアニメーションパターンを変更（4秒ごと）
+            let currentPattern = 1;
+            const patternInterval = setInterval(() => {
+                if (!messageDiv.parentNode) {
+                    clearInterval(patternInterval);
+                    return;
+                }
+                
+                currentPattern = (currentPattern % 4) + 1;
+                loadingIcon.style.animation = `kaede-mystic-pattern${currentPattern} 2s ease-in-out infinite`;
+            }, 4000); // 4秒ごとに変更
+            
+            // メッセージが削除されたらタイマーをクリア
+            messageDiv.dataset.animationInterval = patternInterval;
         }
 
         if (sender) {

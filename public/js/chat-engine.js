@@ -1121,8 +1121,8 @@ const ChatInit = {
             }
             
             // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
-            // 待機メッセージを表示
-            const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', 'システム');
+            // 待機メッセージを表示（送信者名は表示しない）
+            const waitingMessageId = ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', null);
             
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];

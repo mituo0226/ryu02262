@@ -473,8 +473,8 @@ const KaedeHandler = {
                 }
             ];
             
-            // 最初の待機メッセージを表示
-            let waitingMessageId = ChatUI.addMessage('loading', waitingMessages[0].text, characterName);
+            // 最初の待機メッセージを表示（送信者名は表示しない）
+            let waitingMessageId = ChatUI.addMessage('loading', waitingMessages[0].text, null);
             let currentMessageIndex = 0;
             
             // 楓専用の神秘的なローディングアイコンを追加（chat.htmlに影響を与えないように、動的にスタイルを注入）
