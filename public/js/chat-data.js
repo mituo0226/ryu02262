@@ -95,12 +95,23 @@ const ChatData = {
     getCharacterFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const character = urlParams.get('character');
-        const validCharacters = Object.keys(this.characterInfo);
+        
+        // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
+        // 有効なキャラクターIDのリスト
+        const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
         
         if (character && validCharacters.includes(character)) {
             return character;
         }
-        return validCharacters[0] || 'kaede';
+        
+        // characterInfoが読み込まれている場合は、その中から取得
+        const loadedCharacters = Object.keys(this.characterInfo);
+        if (loadedCharacters.length > 0) {
+            return loadedCharacters[0] || 'kaede';
+        }
+        
+        // フォールバック
+        return 'kaede';
     },
 
     /**
