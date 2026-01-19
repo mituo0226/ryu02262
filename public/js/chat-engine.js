@@ -401,7 +401,9 @@ const ChatInit = {
                 }
                 // その他のエラー
                 console.error('[初期化] 会話履歴の取得エラー:', error);
-                window.ChatUI.addMessage('error', '会話履歴の取得に失敗しました。時間を置いて再度お試しください。', 'システム');
+                if (window.ChatUI) {
+                    window.ChatUI.addMessage('error', '会話履歴の取得に失敗しました。時間を置いて再度お試しください。', 'システム');
+                }
                 return;
             }
             
