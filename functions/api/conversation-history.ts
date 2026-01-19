@@ -411,7 +411,8 @@ async function generateReturningMessage({
     }
   } catch (error) {
     console.error('[conversation-history] returningMessage生成エラー:', error);
-    return null;
+    // エラー時もフォールバックメッセージを返す
+    return getFallbackReturningMessage(characterId);
   }
 }
 
@@ -480,7 +481,8 @@ async function generateWelcomeMessage({
     const apiKey = env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       console.error('[conversation-history] DEEPSEEK_API_KEYが設定されていません');
-      return null;
+      // APIキーがない場合もフォールバックメッセージを返す
+      return getFallbackWelcomeMessage(characterId);
     }
 
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
@@ -516,7 +518,8 @@ async function generateWelcomeMessage({
     }
   } catch (error) {
     console.error('[conversation-history] welcomeMessage生成エラー:', error);
-    return null;
+    // エラー時もフォールバックメッセージを返す
+    return getFallbackWelcomeMessage(characterId);
   }
 }
 
@@ -825,7 +828,8 @@ export const onRequestGet: PagesFunction = async (context) => {
       });
     } catch (error) {
       console.error('[conversation-history] returningMessage生成エラー:', error);
-      // エラーが発生しても続行（returningMessageはnullのまま）
+      // エラー時もフォールバックメッセージを設定
+      returningMessage = getFallbackReturningMessage(characterId);
     }
 
     // 会話の要約を生成（最後の数件のメッセージから）
