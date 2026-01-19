@@ -725,34 +725,60 @@ export const onRequestGet: PagesFunction = async (context) => {
             welcomeMessage = getFallbackWelcomeMessage(characterId);
           }
         } else {
-          // 守護神決定済み: 通常のwelcomeMessageを生成
+          // 守護神決定済み: 通常のwelcomeMessageを生成（タイムアウト付き）
           try {
-            welcomeMessage = await generateWelcomeMessage({
+            const WELCOME_MESSAGE_TIMEOUT = 2000; // 2秒でタイムアウト
+            const messagePromise = generateWelcomeMessage({
               characterId,
               user,
               env,
             });
-            console.log('[conversation-history] welcomeMessage生成結果:', {
-              success: !!welcomeMessage,
-              messageLength: welcomeMessage?.length || 0,
+            
+            const timeoutPromise = new Promise<string | null>((resolve) => {
+              setTimeout(() => resolve(null), WELCOME_MESSAGE_TIMEOUT);
             });
+            
+            welcomeMessage = await Promise.race([messagePromise, timeoutPromise]);
+            
+            if (welcomeMessage) {
+              console.log('[conversation-history] welcomeMessage生成結果:', {
+                success: true,
+                messageLength: welcomeMessage.length,
+              });
+            } else {
+              console.log('[conversation-history] welcomeMessage生成がタイムアウトしました。フォールバックメッセージを使用します');
+              welcomeMessage = getFallbackWelcomeMessage(characterId);
+            }
           } catch (error) {
             console.error('[conversation-history] welcomeMessage生成エラー:', error);
             welcomeMessage = getFallbackWelcomeMessage(characterId);
           }
         }
       } else {
-        // 楓以外: 通常のwelcomeMessageを生成
+        // 楓以外: 通常のwelcomeMessageを生成（タイムアウト付き）
         try {
-          welcomeMessage = await generateWelcomeMessage({
+          const WELCOME_MESSAGE_TIMEOUT = 2000; // 2秒でタイムアウト
+          const messagePromise = generateWelcomeMessage({
             characterId,
             user,
             env,
           });
-          console.log('[conversation-history] welcomeMessage生成結果:', {
-            success: !!welcomeMessage,
-            messageLength: welcomeMessage?.length || 0,
+          
+          const timeoutPromise = new Promise<string | null>((resolve) => {
+            setTimeout(() => resolve(null), WELCOME_MESSAGE_TIMEOUT);
           });
+          
+          welcomeMessage = await Promise.race([messagePromise, timeoutPromise]);
+          
+          if (welcomeMessage) {
+            console.log('[conversation-history] welcomeMessage生成結果:', {
+              success: true,
+              messageLength: welcomeMessage.length,
+            });
+          } else {
+            console.log('[conversation-history] welcomeMessage生成がタイムアウトしました。フォールバックメッセージを使用します');
+            welcomeMessage = getFallbackWelcomeMessage(characterId);
+          }
         } catch (error) {
           console.error('[conversation-history] welcomeMessage生成エラー:', error);
           welcomeMessage = getFallbackWelcomeMessage(characterId);
@@ -812,20 +838,38 @@ export const onRequestGet: PagesFunction = async (context) => {
       isRegisteredUser: !!user.nickname,
     });
 
-    // 再訪問メッセージを生成
+    // 再訪問メッセージを生成（タイムアウト付きで非ブロッキング）
+    // 【改善】ページ読み込みをブロックしないように、タイムアウトを設定
     let returningMessage: string | null = null;
+    const RETURNING_MESSAGE_TIMEOUT = 2000; // 2秒でタイムアウト
+    
     try {
-      returningMessage = await generateReturningMessage({
+      // タイムアウト付きでreturningMessageを生成
+      const messagePromise = generateReturningMessage({
         characterId,
         user,
         conversationHistory: conversationHistoryForLLM,
         lastUserMessage,
         env,
       });
-      console.log('[conversation-history] returningMessage生成結果:', {
-        success: !!returningMessage,
-        messageLength: returningMessage?.length || 0,
+      
+      const timeoutPromise = new Promise<string | null>((resolve) => {
+        setTimeout(() => resolve(null), RETURNING_MESSAGE_TIMEOUT);
       });
+      
+      // タイムアウトまたは完了のどちらかが先に完了した方を採用
+      returningMessage = await Promise.race([messagePromise, timeoutPromise]);
+      
+      if (returningMessage) {
+        console.log('[conversation-history] returningMessage生成結果:', {
+          success: true,
+          messageLength: returningMessage.length,
+        });
+      } else {
+        // タイムアウトした場合はフォールバックメッセージを使用
+        console.log('[conversation-history] returningMessage生成がタイムアウトしました。フォールバックメッセージを使用します');
+        returningMessage = getFallbackReturningMessage(characterId);
+      }
     } catch (error) {
       console.error('[conversation-history] returningMessage生成エラー:', error);
       // エラー時もフォールバックメッセージを設定
