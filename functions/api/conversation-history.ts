@@ -42,486 +42,44 @@ interface ResponseBody {
   requireGuardianConsent?: boolean; // 楓専用: 守護神の儀式同意が必要かどうか（新規追加）
 }
 
-// ===== 定数 =====
-const MAX_DEEPSEEK_RETRIES = 3;
-const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
+// 【削除】LLM API関連の定数・型定義・ユーティリティ関数
+// conversation-history.tsからLLM API呼び出しを完全に除去したため、これらは不要になりました
+// consult.tsでLLM API呼び出しが行われるため、ここでは削除
 
-// ===== 型定義 =====
-interface ClientHistoryEntry {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface LLMRequestParams {
-  systemPrompt: string;
-  conversationHistory: ClientHistoryEntry[];
-  userMessage: string;
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-  deepseekApiKey: string;
-  fallbackApiKey?: string;
-  fallbackModel?: string;
-}
-
-interface LLMResponseResult {
-  success: boolean;
-  message?: string;
-  provider?: 'deepseek' | 'openai';
-  rawResponse?: unknown;
-  error?: string;
-  status?: number;
-}
-
-// ===== ユーティリティ関数 =====
+// 【削除】LLM API呼び出し関数（callDeepSeek, callOpenAI, getLLMResponse）
+// conversation-history.tsからLLM API呼び出しを完全に除去したため、これらの関数は不要になりました
+// consult.tsでLLM API呼び出しが行われるため、ここでは削除
 
 /**
- * エラーメッセージを抽出
+ * 定型文ウェルカムメッセージを取得（LLM API呼び出しなし）
  */
-function extractErrorMessage(text: string, fallback: string): string {
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed?.error?.message) return parsed.error.message as string;
-    if (typeof parsed?.message === 'string') return parsed.message;
-  } catch {
-    // JSON parse エラーは無視
-  }
-  return text || fallback;
-}
-
-/**
- * サービスビジーエラーかどうかを判定
- */
-function isServiceBusyError(status: number, errorText: string): boolean {
-  const normalized = (errorText || '').toLowerCase();
-  return (
-    status === 429 ||
-    status === 503 ||
-    normalized.includes('service is too busy') ||
-    normalized.includes('please try again later') ||
-    normalized.includes('rate limit')
-  );
-}
-
-/**
- * 待機
- */
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// ===== LLM API 呼び出し =====
-
-/**
- * DeepSeek API を呼び出し（リトライ付き）
- */
-async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult> {
-  const {
-    systemPrompt,
-    conversationHistory,
-    userMessage,
-    temperature,
-    maxTokens,
-    topP,
-    deepseekApiKey,
-  } = params;
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...conversationHistory,
-    { role: 'user', content: userMessage },
-  ];
-
-  let lastError = 'DeepSeek API did not respond';
-
-  for (let attempt = 1; attempt <= MAX_DEEPSEEK_RETRIES; attempt++) {
-    try {
-      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${deepseekApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-          top_p: topP,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const message = data?.choices?.[0]?.message?.content;
-        return {
-          success: Boolean(message?.trim()),
-          message: message?.trim(),
-          provider: 'deepseek',
-          rawResponse: data,
-        };
-      }
-
-      const errorText = await response.text();
-      lastError = extractErrorMessage(errorText, 'Failed to get response from DeepSeek API');
-      console.error('DeepSeek API error:', { attempt, status: response.status, errorText });
-
-      // サービスビジーエラー以外は即座にリトライを中止
-      if (!isServiceBusyError(response.status, errorText)) {
-        return { success: false, error: lastError, status: response.status };
-      }
-
-      // リトライ前に待機
-      if (attempt < MAX_DEEPSEEK_RETRIES) {
-        await sleep(300 * attempt * attempt);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown DeepSeek error';
-      lastError = message;
-      console.error('DeepSeek API fetch error:', { attempt, message });
-      if (attempt < MAX_DEEPSEEK_RETRIES) {
-        await sleep(300 * attempt * attempt);
-      }
-    }
-  }
-
-  return { success: false, error: lastError };
-}
-
-/**
- * OpenAI API を呼び出し（フォールバック）
- */
-async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> {
-  const {
-    systemPrompt,
-    conversationHistory,
-    userMessage,
-    temperature,
-    maxTokens,
-    topP,
-    fallbackApiKey,
-    fallbackModel,
-  } = params;
-
-  if (!fallbackApiKey) {
-    return { success: false, error: 'OpenAI API key not configured' };
-  }
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...conversationHistory,
-    { role: 'user', content: userMessage },
-  ];
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${fallbackApiKey}`,
-      },
-      body: JSON.stringify({
-        model: fallbackModel || DEFAULT_FALLBACK_MODEL,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        top_p: topP,
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const message = data?.choices?.[0]?.message?.content;
-      return {
-        success: Boolean(message?.trim()),
-        message: message?.trim(),
-        provider: 'openai',
-        rawResponse: data,
-      };
-    }
-
-    const errorText = await response.text();
-    const errorMessage = extractErrorMessage(errorText, 'Failed to get response from OpenAI API');
-    console.error('OpenAI API error:', { status: response.status, errorText });
-    return { success: false, error: errorMessage, status: response.status };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown OpenAI error';
-    console.error('OpenAI API fetch error:', { message });
-    return { success: false, error: message };
-  }
-}
-
-/**
- * LLM レスポンスを取得（DeepSeek → OpenAI フォールバック）
- */
-async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResult> {
-  console.log('[conversation-history] DeepSeek API を呼び出します...');
-  const deepseekResult = await callDeepSeek(params);
-
-  if (deepseekResult.success) {
-    console.log('[conversation-history] ✅ DeepSeek API から応答を取得しました');
-    return deepseekResult;
-  }
-
-  console.log('[conversation-history] ⚠️ DeepSeek API 失敗、OpenAI にフォールバック:', deepseekResult.error);
-  const openaiResult = await callOpenAI(params);
-
-  if (openaiResult.success) {
-    console.log('[conversation-history] ✅ OpenAI API から応答を取得しました');
-    return openaiResult;
-  }
-
-  console.error('[conversation-history] ❌ 両方の API が失敗しました');
-  return {
-    success: false,
-    error: `DeepSeek: ${deepseekResult.error}, OpenAI: ${openaiResult.error}`,
-    status: openaiResult.status,
+function getWelcomeMessage(characterId: string, userNickname?: string): string {
+  const nickname = userNickname || 'あなた';
+  const messages: Record<string, string> = {
+    kaede: `ようこそ、楓の神社へ。${nickname}さんの守護神を見つけるお手伝いをさせていただきます。`,
+    yukino: `いらっしゃいませ、${nickname}さん。タロットカードであなたの未来を占いましょう。`,
+    sora: `こんにちは、${nickname}さん。どんなお悩みでもお聞きします。一緒に考えましょう。`,
+    kaon: `お待ちしておりました、${nickname}さん。あなたのお悩み、聞かせていただけますか？`,
   };
+  return messages[characterId] || `ようこそ、${nickname}さん。`;
 }
 
 /**
- * フォールバックウェルカムメッセージを取得
+ * 定型文再訪問メッセージを取得（LLM API呼び出しなし）
  */
-function getFallbackWelcomeMessage(characterId: string): string {
-  const fallbacks: Record<string, string> = {
-    kaede: 'ようこそ、楓の神社へ...',
-    yukino: 'いらっしゃいませ...',
-    sora: 'こんにちは...',
-    kaon: 'お待ちしておりました...',
+function getReturningMessage(characterId: string, userNickname?: string): string {
+  const nickname = userNickname || 'あなた';
+  const messages: Record<string, string> = {
+    kaede: `お帰りなさい、${nickname}さん。また会えて嬉しいです。`,
+    yukino: `いらっしゃいませ、${nickname}さん。お待ちしておりました。`,
+    sora: `こんにちは、${nickname}さん。また相談に来てくれたんですね。`,
+    kaon: `お久しぶりです、${nickname}さん。お元気でしたか？`,
   };
-  return fallbacks[characterId] || 'ようこそ、いらっしゃいませ。';
+  return messages[characterId] || `お帰りなさい、${nickname}さん。`;
 }
 
-/**
- * フォールバック再訪問メッセージを取得
- */
-function getFallbackReturningMessage(characterId: string): string {
-  const fallbacks: Record<string, string> = {
-    kaede: 'また会いに来てくれてありがとうございます。',
-    yukino: 'おかえりなさい。',
-    sora: 'また会えて嬉しいです。',
-    kaon: 'また会いに来てくれたのね...',
-  };
-  return fallbacks[characterId] || 'また会いに来てくれてありがとうございます。';
-}
-
-/**
- * 再訪問メッセージを生成
- */
-async function generateReturningMessage({
-  characterId,
-  user,
-  conversationHistory,
-  lastUserMessage,
-  env,
-}: {
-  characterId: string;
-  user: UserRecord;
-  conversationHistory: ClientHistoryEntry[];
-  lastUserMessage: string | null;
-  env: any;
-}): Promise<string | null> {
-  try {
-    // 訪問パターン判定
-    const visitPatternInfo = await detectVisitPattern({
-      userId: user.id,
-      characterId: characterId,
-      database: env.DB,
-      isRegisteredUser: !!user.nickname,
-    });
-
-    // ユーザー情報を取得
-    let userGender: string | null = null;
-    let userBirthDate: string | null = null;
-    
-    try {
-      const userInfo = await env.DB.prepare<{ gender: string | null; birth_year: number | null; birth_month: number | null; birth_day: number | null }>(
-        'SELECT gender, birth_year, birth_month, birth_day FROM users WHERE id = ?'
-      )
-        .bind(user.id)
-        .first();
-      
-      if (userInfo) {
-        userGender = userInfo.gender || null;
-        if (userInfo.birth_year && userInfo.birth_month && userInfo.birth_day) {
-          const yearStr = String(userInfo.birth_year).padStart(4, '0');
-          const monthStr = String(userInfo.birth_month).padStart(2, '0');
-          const dayStr = String(userInfo.birth_day).padStart(2, '0');
-          userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
-        }
-      }
-    } catch (error) {
-      console.error('[conversation-history] ユーザー情報取得エラー:', error);
-    }
-
-    // システムプロンプト生成（再訪問時）
-    const systemPrompt = generateSystemPrompt(characterId, {
-      userNickname: user.nickname,
-      hasPreviousConversation: true,
-      guardian: user.guardian || null,
-      isRitualStart: false,
-      isJustRegistered: false,
-      userMessageCount: conversationHistory.filter(m => m.role === 'user').length,
-      userGender: userGender,
-      userBirthDate: userBirthDate,
-      visitPattern: visitPatternInfo?.pattern || 'returning',
-      conversationHistory: visitPatternInfo?.conversationHistory || conversationHistory,
-      lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
-      sessionContext: visitPatternInfo?.sessionContext || null,
-    });
-
-    // LLM API呼び出し
-    const apiKey = env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      console.error('[conversation-history] DEEPSEEK_API_KEYが設定されていません');
-      return null;
-    }
-
-    const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
-    const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
-
-    // キャラクターに応じたパラメータ設定
-    const maxTokensForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 2000 : 800;
-    const temperatureForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.7 : 0.5;
-    const topPForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.9 : 0.8;
-
-    // 最後のユーザーメッセージを使用（なければデフォルトメッセージ）
-    const userMessage = lastUserMessage || 'また会いに来ました。';
-    
-    // 会話履歴を準備（最後の数件のみ）
-    const recentHistory = conversationHistory.slice(-6);
-
-    const llmResult = await getLLMResponse({
-      systemPrompt,
-      conversationHistory: recentHistory,
-      userMessage,
-      temperature: temperatureForCharacter,
-      maxTokens: maxTokensForCharacter,
-      topP: topPForCharacter,
-      deepseekApiKey: apiKey,
-      fallbackApiKey: fallbackApiKey,
-      fallbackModel: fallbackModel,
-    });
-
-    if (llmResult.success && llmResult.message) {
-      console.log('[conversation-history] ✅ returningMessageを生成しました');
-      return llmResult.message;
-    } else {
-      console.error('[conversation-history] ❌ returningMessage生成に失敗:', llmResult.error);
-      // フォールバックメッセージを返す
-      return getFallbackReturningMessage(characterId);
-    }
-  } catch (error) {
-    console.error('[conversation-history] returningMessage生成エラー:', error);
-    // エラー時もフォールバックメッセージを返す
-    return getFallbackReturningMessage(characterId);
-  }
-}
-
-/**
- * 初回メッセージを生成
- */
-async function generateWelcomeMessage({
-  characterId,
-  user,
-  env,
-}: {
-  characterId: string;
-  user: UserRecord;
-  env: any;
-}): Promise<string | null> {
-  try {
-    // 訪問パターン判定
-    const visitPatternInfo = await detectVisitPattern({
-      userId: user.id,
-      characterId: characterId,
-      database: env.DB,
-      isRegisteredUser: !!user.nickname,
-    });
-
-    // ユーザー情報を取得
-    let userGender: string | null = null;
-    let userBirthDate: string | null = null;
-    
-    try {
-      const userInfo = await env.DB.prepare<{ gender: string | null; birth_year: number | null; birth_month: number | null; birth_day: number | null }>(
-        'SELECT gender, birth_year, birth_month, birth_day FROM users WHERE id = ?'
-      )
-        .bind(user.id)
-        .first();
-      
-      if (userInfo) {
-        userGender = userInfo.gender || null;
-        if (userInfo.birth_year && userInfo.birth_month && userInfo.birth_day) {
-          const yearStr = String(userInfo.birth_year).padStart(4, '0');
-          const monthStr = String(userInfo.birth_month).padStart(2, '0');
-          const dayStr = String(userInfo.birth_day).padStart(2, '0');
-          userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
-        }
-      }
-    } catch (error) {
-      console.error('[conversation-history] ユーザー情報取得エラー:', error);
-    }
-
-    // システムプロンプト生成
-    const systemPrompt = generateSystemPrompt(characterId, {
-      userNickname: user.nickname,
-      hasPreviousConversation: false,
-      guardian: user.guardian || null,
-      isRitualStart: false,
-      isJustRegistered: false,
-      userMessageCount: 0,
-      userGender: userGender,
-      userBirthDate: userBirthDate,
-      visitPattern: visitPatternInfo?.pattern || 'first_visit',
-      conversationHistory: visitPatternInfo?.conversationHistory || [],
-      lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
-      sessionContext: visitPatternInfo?.sessionContext || null,
-    });
-
-    // LLM API呼び出し
-    const apiKey = env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      console.error('[conversation-history] DEEPSEEK_API_KEYが設定されていません');
-      // APIキーがない場合もフォールバックメッセージを返す
-      return getFallbackWelcomeMessage(characterId);
-    }
-
-    const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
-    const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
-
-    // キャラクターに応じたパラメータ設定
-    const maxTokensForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 2000 : 800;
-    const temperatureForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.7 : 0.5;
-    const topPForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.9 : 0.8;
-
-    const userMessage = '初めてお会いします。よろしくお願いします。';
-    const conversationHistory: ClientHistoryEntry[] = [];
-
-    const llmResult = await getLLMResponse({
-      systemPrompt,
-      conversationHistory,
-      userMessage,
-      temperature: temperatureForCharacter,
-      maxTokens: maxTokensForCharacter,
-      topP: topPForCharacter,
-      deepseekApiKey: apiKey,
-      fallbackApiKey: fallbackApiKey,
-      fallbackModel: fallbackModel,
-    });
-
-    if (llmResult.success && llmResult.message) {
-      console.log('[conversation-history] ✅ welcomeMessageを生成しました');
-      return llmResult.message;
-    } else {
-      console.error('[conversation-history] ❌ welcomeMessage生成に失敗:', llmResult.error);
-      // フォールバックメッセージを返す
-      return getFallbackWelcomeMessage(characterId);
-    }
-  } catch (error) {
-    console.error('[conversation-history] welcomeMessage生成エラー:', error);
-    // エラー時もフォールバックメッセージを返す
-    return getFallbackWelcomeMessage(characterId);
-  }
-}
+// 【削除】generateReturningMessage と generateWelcomeMessage 関数
+// LLM API呼び出しを完全に除去し、定型文を使用するため、これらの関数は不要になりました
 
 export const onRequestGet: PagesFunction = async (context) => {
   const { request, env } = context;
@@ -673,116 +231,22 @@ export const onRequestGet: PagesFunction = async (context) => {
               console.error('[conversation-history] ユーザー情報取得エラー:', error);
             }
             
-            const systemPrompt = generateSystemPrompt(characterId, {
-              userNickname: user.nickname,
-              hasPreviousConversation: false,
-              guardian: null, // 守護神未決定
-              isRitualStart: false,
-              isJustRegistered: false,
-              userMessageCount: 0,
-              userGender: userGender,
-              userBirthDate: userBirthDate,
-              visitPattern: visitPatternInfo?.pattern || 'first_visit',
-              conversationHistory: visitPatternInfo?.conversationHistory || [],
-              lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
-              sessionContext: visitPatternInfo?.sessionContext || null,
-            });
-            
-            const apiKey = env.DEEPSEEK_API_KEY;
-            if (apiKey) {
-              const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
-              const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
-              const maxTokensForCharacter = 2000;
-              const temperatureForCharacter = 0.7;
-              const topPForCharacter = 0.9;
-              
-              const userMessage = '初めてお会いします。よろしくお願いします。';
-              const conversationHistory: ClientHistoryEntry[] = [];
-              
-              const llmResult = await getLLMResponse({
-                systemPrompt,
-                conversationHistory,
-                userMessage,
-                temperature: temperatureForCharacter,
-                maxTokens: maxTokensForCharacter,
-                topP: topPForCharacter,
-                deepseekApiKey: apiKey,
-                fallbackApiKey: fallbackApiKey,
-                fallbackModel: fallbackModel,
-              });
-              
-              if (llmResult.success && llmResult.message) {
-                welcomeMessage = llmResult.message;
-                console.log('[conversation-history] ✅ 楓の守護神未決定時のwelcomeMessageを生成しました');
-              } else {
-                welcomeMessage = getFallbackWelcomeMessage(characterId);
-              }
-            } else {
-              welcomeMessage = getFallbackWelcomeMessage(characterId);
-            }
+            // 守護神未決定時も定型文を使用（LLM API呼び出しなし）
+            welcomeMessage = getWelcomeMessage(characterId, user.nickname);
+            console.log('[conversation-history] 定型文で楓の守護神未決定時のwelcomeMessageを生成しました（LLM API呼び出しなし）');
           } catch (error) {
             console.error('[conversation-history] 楓の守護神未決定時のwelcomeMessage生成エラー:', error);
             welcomeMessage = getFallbackWelcomeMessage(characterId);
           }
         } else {
-          // 守護神決定済み: 通常のwelcomeMessageを生成（タイムアウト付き）
-          try {
-            const WELCOME_MESSAGE_TIMEOUT = 2000; // 2秒でタイムアウト
-            const messagePromise = generateWelcomeMessage({
-              characterId,
-              user,
-              env,
-            });
-            
-            const timeoutPromise = new Promise<string | null>((resolve) => {
-              setTimeout(() => resolve(null), WELCOME_MESSAGE_TIMEOUT);
-            });
-            
-            welcomeMessage = await Promise.race([messagePromise, timeoutPromise]);
-            
-            if (welcomeMessage) {
-              console.log('[conversation-history] welcomeMessage生成結果:', {
-                success: true,
-                messageLength: welcomeMessage.length,
-              });
-            } else {
-              console.log('[conversation-history] welcomeMessage生成がタイムアウトしました。フォールバックメッセージを使用します');
-              welcomeMessage = getFallbackWelcomeMessage(characterId);
-            }
-          } catch (error) {
-            console.error('[conversation-history] welcomeMessage生成エラー:', error);
-            welcomeMessage = getFallbackWelcomeMessage(characterId);
-          }
+          // 守護神決定済み: 定型文でwelcomeMessageを生成（LLM API呼び出しなし）
+          welcomeMessage = getWelcomeMessage(characterId, user.nickname);
+          console.log('[conversation-history] 定型文でwelcomeMessageを生成しました（LLM API呼び出しなし）');
         }
       } else {
-        // 楓以外: 通常のwelcomeMessageを生成（タイムアウト付き）
-        try {
-          const WELCOME_MESSAGE_TIMEOUT = 2000; // 2秒でタイムアウト
-          const messagePromise = generateWelcomeMessage({
-            characterId,
-            user,
-            env,
-          });
-          
-          const timeoutPromise = new Promise<string | null>((resolve) => {
-            setTimeout(() => resolve(null), WELCOME_MESSAGE_TIMEOUT);
-          });
-          
-          welcomeMessage = await Promise.race([messagePromise, timeoutPromise]);
-          
-          if (welcomeMessage) {
-            console.log('[conversation-history] welcomeMessage生成結果:', {
-              success: true,
-              messageLength: welcomeMessage.length,
-            });
-          } else {
-            console.log('[conversation-history] welcomeMessage生成がタイムアウトしました。フォールバックメッセージを使用します');
-            welcomeMessage = getFallbackWelcomeMessage(characterId);
-          }
-        } catch (error) {
-          console.error('[conversation-history] welcomeMessage生成エラー:', error);
-          welcomeMessage = getFallbackWelcomeMessage(characterId);
-        }
+        // 楓以外: 定型文でwelcomeMessageを生成（LLM API呼び出しなし）
+        welcomeMessage = getWelcomeMessage(characterId, user.nickname);
+        console.log('[conversation-history] 定型文でwelcomeMessageを生成しました（LLM API呼び出しなし）');
       }
 
       return new Response(
@@ -838,16 +302,10 @@ export const onRequestGet: PagesFunction = async (context) => {
       isRegisteredUser: !!user.nickname,
     });
 
-    // 【改善】再訪問メッセージの生成を非ブロッキング化
-    // ページ読み込みをブロックしないように、returningMessageの生成をスキップ
-    // フロントエンドで非同期に生成するように戻す（元の実装に近い形）
-    // これにより、ページ読み込みが速くなり、ユーザー体験が向上する
-    let returningMessage: string | null = null;
-    
-    // 注意: returningMessageの生成はフロントエンドで非同期に実行されるため、
-    // ここでは生成しない（フォールバックメッセージも返さない）
-    // フロントエンドでreturningMessageがnullの場合、非同期に生成する
-    console.log('[conversation-history] returningMessageの生成をスキップ（フロントエンドで非同期生成）');
+    // 【改善】定型文で再訪問メッセージを生成（LLM API呼び出しなし）
+    // ページ読み込みをブロックしないように、定型文を即座に返す
+    const returningMessage = getReturningMessage(characterId, user.nickname);
+    console.log('[conversation-history] 定型文でreturningMessageを生成しました（LLM API呼び出しなし）');
 
     // 会話の要約を生成（最後の数件のメッセージから）
     // SQLクエリでmessage as contentとしてエイリアスしているため、msg.contentに値が入る
