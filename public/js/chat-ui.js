@@ -573,14 +573,6 @@ const ChatUI = {
         
         return messageId;
     },
-        
-        requestAnimationFrame(() => {
-            this.scrollToLatest();
-        });
-        
-        // メッセージIDを返す（待機メッセージの削除などに使用）
-        return messageId;
-    },
 
     /**
      * スクロールを最新に
