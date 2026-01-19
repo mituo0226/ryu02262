@@ -432,8 +432,9 @@ const ChatInit = {
                 
                 // 会話履歴がある場合：returningメッセージを表示
                 // 【改善】バックエンドで生成されたreturningMessageを使用（二重API呼び出しを削減）
+                // ただし、returningMessageがnullの場合は、フロントエンドで非同期に生成（ページ読み込みをブロックしない）
                 if (historyData && historyData.hasHistory) {
-                    console.log('[初期化] 再訪問ユーザー。バックエンドで生成されたreturningMessageを使用します');
+                    console.log('[初期化] 再訪問ユーザー。returningMessageの状態を確認します');
                     
                     // バックエンドで生成されたreturningMessageを使用
                     if (historyData.returningMessage && historyData.returningMessage.trim()) {
@@ -443,14 +444,53 @@ const ChatInit = {
                         console.log(`[初期化] ${info.name}の再訪問時：バックエンドで生成されたreturningMessageを表示しました`);
                         return true;
                     } else {
-                        // returningMessageが生成されなかった場合のフォールバック
-                        console.warn(`[初期化] ${info.name}の再訪問時：returningMessageが生成されていません。フォールバック処理を実行します`);
-                        const initialMessage = ChatData.generateInitialMessage(character, historyData);
-                        if (initialMessage && initialMessage.trim()) {
+                        // returningMessageが生成されていない場合、フロントエンドで非同期に生成
+                        // ページ読み込みをブロックしないように、非同期で実行
+                        console.log(`[初期化] ${info.name}の再訪問時：returningMessageが生成されていません。フロントエンドで非同期に生成します`);
+                        
+                        // まずフォールバックメッセージを表示（即座に表示）
+                        const fallbackMessage = ChatData.generateInitialMessage(character, historyData);
+                        if (fallbackMessage && fallbackMessage.trim()) {
                             if (window.ChatUI) {
-                                window.ChatUI.addMessage('welcome', initialMessage, info.name);
+                                window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
                             }
                         }
+                        
+                        // その後、非同期に動的メッセージを生成（ページ読み込みをブロックしない）
+                        setTimeout(async () => {
+                            try {
+                                const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';
+                                const lastUserMessage = historyData.recentMessages?.find(m => m.role === 'user')?.content || null;
+                                
+                                const response = await ChatAPI.sendMessage(
+                                    lastUserMessage || 'また会いに来ました。',
+                                    character,
+                                    historyData.recentMessages || [],
+                                    {}
+                                );
+                                
+                                if (response && response.message && response.message.trim()) {
+                                    // フォールバックメッセージを動的メッセージに置き換え
+                                    const messagesDiv = window.ChatUI?.messagesDiv;
+                                    if (messagesDiv) {
+                                        const welcomeMessages = messagesDiv.querySelectorAll('.message.welcome');
+                                        if (welcomeMessages.length > 0) {
+                                            // 最後のwelcomeメッセージを置き換え
+                                            const lastWelcome = welcomeMessages[welcomeMessages.length - 1];
+                                            const textDiv = lastWelcome.querySelector('.message-text');
+                                            if (textDiv) {
+                                                textDiv.textContent = response.message;
+                                                console.log(`[初期化] ${info.name}の再訪問時：フォールバックメッセージを動的メッセージに置き換えました`);
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
+                                // エラー時はフォールバックメッセージのまま
+                            }
+                        }, 100); // 100ms後に非同期実行
+                        
                         return true;
                     }
                 }

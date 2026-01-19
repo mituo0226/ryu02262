@@ -838,43 +838,16 @@ export const onRequestGet: PagesFunction = async (context) => {
       isRegisteredUser: !!user.nickname,
     });
 
-    // 再訪問メッセージを生成（タイムアウト付きで非ブロッキング）
-    // 【改善】ページ読み込みをブロックしないように、タイムアウトを設定
+    // 【改善】再訪問メッセージの生成を非ブロッキング化
+    // ページ読み込みをブロックしないように、returningMessageの生成をスキップ
+    // フロントエンドで非同期に生成するように戻す（元の実装に近い形）
+    // これにより、ページ読み込みが速くなり、ユーザー体験が向上する
     let returningMessage: string | null = null;
-    const RETURNING_MESSAGE_TIMEOUT = 2000; // 2秒でタイムアウト
     
-    try {
-      // タイムアウト付きでreturningMessageを生成
-      const messagePromise = generateReturningMessage({
-        characterId,
-        user,
-        conversationHistory: conversationHistoryForLLM,
-        lastUserMessage,
-        env,
-      });
-      
-      const timeoutPromise = new Promise<string | null>((resolve) => {
-        setTimeout(() => resolve(null), RETURNING_MESSAGE_TIMEOUT);
-      });
-      
-      // タイムアウトまたは完了のどちらかが先に完了した方を採用
-      returningMessage = await Promise.race([messagePromise, timeoutPromise]);
-      
-      if (returningMessage) {
-        console.log('[conversation-history] returningMessage生成結果:', {
-          success: true,
-          messageLength: returningMessage.length,
-        });
-      } else {
-        // タイムアウトした場合はフォールバックメッセージを使用
-        console.log('[conversation-history] returningMessage生成がタイムアウトしました。フォールバックメッセージを使用します');
-        returningMessage = getFallbackReturningMessage(characterId);
-      }
-    } catch (error) {
-      console.error('[conversation-history] returningMessage生成エラー:', error);
-      // エラー時もフォールバックメッセージを設定
-      returningMessage = getFallbackReturningMessage(characterId);
-    }
+    // 注意: returningMessageの生成はフロントエンドで非同期に実行されるため、
+    // ここでは生成しない（フォールバックメッセージも返さない）
+    // フロントエンドでreturningMessageがnullの場合、非同期に生成する
+    console.log('[conversation-history] returningMessageの生成をスキップ（フロントエンドで非同期生成）');
 
     // 会話の要約を生成（最後の数件のメッセージから）
     // SQLクエリでmessage as contentとしてエイリアスしているため、msg.contentに値が入る
