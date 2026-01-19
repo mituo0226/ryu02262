@@ -2,18 +2,20 @@
  * handler.js
  * 三崎花音（kaon）専用のチャットロジック
  * 三崎花音固有の処理を管理
+ * BaseCharacterHandlerを継承
  */
 
-const KaonHandler = {
-    characterId: 'kaon',
-    characterName: '三崎花音',
+class KaonHandler extends BaseCharacterHandler {
+    constructor() {
+        super('kaon', '三崎花音');
+    }
 
     /**
      * 初期化
      */
     init() {
-        console.log('[三崎花音ハンドラー] 初期化');
-    },
+        super.init();
+    }
 
     // 【削除】handleGuestLimit関数は削除されました（10通制限が廃止されたため）
 
@@ -26,8 +28,8 @@ const KaonHandler = {
         console.log('[三崎花音ハンドラー] メッセージ送信前処理:', message);
         
         // 特に変更なし、そのまま送信
-        return { proceed: true };
-    },
+        return super.beforeMessageSent(message);
+    }
 
     /**
      * API レスポンス受信後の処理
@@ -43,13 +45,12 @@ const KaonHandler = {
         console.log('[三崎花音ハンドラー] レスポンス処理:', response);
 
         // 現在は特殊な処理なし、共通処理を続行
-        return false;
-    },
+        return super.handleResponse(response, character);
+    }
 
     /**
      * 登録完了後の処理
      * @param {Object} historyData - 会話履歴データ
-     * @param {Array} guestHistory - ゲスト履歴
      * @returns {boolean} 処理が完了したか
      */
     async handlePostRegistration(historyData) {
@@ -65,33 +66,9 @@ const KaonHandler = {
             }
         }, 100);
 
-        // 三崎花音の場合は共通フローに任せる（履歴表示→定型文表示）
-        return false; // 共通処理を続行
-    },
-
-    /**
-     * ページ初期化処理（initPage関数から呼び出される）
-     * @param {URLSearchParams} urlParams - URLパラメータ
-     * @param {Object} historyData - 会話履歴データ
-     * @param {boolean} justRegistered - 登録直後かどうか
-     * @param {boolean} shouldTriggerRegistrationFlow - 登録フローをトリガーするか
-     * @returns {Object|null} 処理結果
-     */
-    async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow) {
-        // 三崎花音の場合は特別な初期化処理なし
-        return null;
-    },
-
-    /**
-     * 登録後の定型文を取得
-     * @param {string} userNickname - ユーザーのニックネーム
-     * @param {string} lastGuestUserMessage - 最後のゲストユーザーメッセージ
-     * @returns {string} 定型文
-     */
-    getWelcomeBackMessage(userNickname, lastGuestUserMessage) {
-        // 三崎花音の場合は共通処理を使用（特殊な定型文なし）
-        return null; // 共通処理を使用
-    },
+        // 親クラスの処理を呼び出し
+        return super.handlePostRegistration(historyData);
+    }
 
     /**
      * 同意メッセージを取得
@@ -99,7 +76,7 @@ const KaonHandler = {
      */
     getConsentMessage() {
         return 'ユーザー登録への同意が検出されました。ボタンが表示されます。';
-    },
+    }
 
     /**
      * 拒否メッセージを取得
@@ -107,53 +84,8 @@ const KaonHandler = {
      */
     getDeclineMessage() {
         return 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。';
-    },
+    }
+}
 
-    /**
-     * メッセージカウントを計算（API送信用）
-     * @param {number} currentCount - 現在のメッセージカウント
-     * @returns {number} APIに送信するメッセージカウント
-     */
-    calculateMessageCount(currentCount) {
-        // 三崎花音の場合はそのまま使用
-        return currentCount;
-    },
-
-    /**
-     * ユーザーメッセージを表示するかどうかを判定
-     * @param {string} responseText - API応答テキスト
-     * @param {boolean} isGuest - ゲストモードかどうか
-     * @returns {boolean} 表示するかどうか
-     */
-    shouldShowUserMessage(responseText, isGuest) {
-        // 三崎花音の場合は常に表示
-        return true;
-    },
-
-    /**
-     * ゲスト履歴をクリア
-     */
-    clearGuestHistory() {
-        const character = this.characterId;
-
-        // AuthStateを使用してクリア
-        if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-            AuthState.clearGuestHistory(character);
-        }
-
-        // sessionStorageから直接削除
-        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-        const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-        sessionStorage.removeItem(historyKey);
-
-        // メッセージカウントをリセット
-        ChatData.setUserMessageCount(character, 0);
-
-        console.log('[三崎花音ハンドラー] ゲスト履歴をクリアしました');
-    },
-
-    // 【削除】showRegistrationButtons関数は削除されました（10通制限が廃止されたため）
-};
-
-// グローバルスコープに公開
-window.KaonHandler = KaonHandler;
+// グローバルスコープに公開（インスタンスを作成）
+window.KaonHandler = new KaonHandler();

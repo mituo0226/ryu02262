@@ -37,6 +37,9 @@ interface ResponseBody {
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
   firstQuestion?: string; // 最初の質問（儀式完了後の定型文で使用）
   welcomeMessage?: string | null; // 初回訪問時のウェルカムメッセージ（新規追加）
+  returningMessage?: string | null; // 再訪問時のメッセージ（新規追加）
+  visitPattern?: string; // 訪問パターン（新規追加）
+  requireGuardianConsent?: boolean; // 楓専用: 守護神の儀式同意が必要かどうか（新規追加）
 }
 
 // ===== 定数 =====
@@ -275,6 +278,144 @@ async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResu
 }
 
 /**
+ * フォールバックウェルカムメッセージを取得
+ */
+function getFallbackWelcomeMessage(characterId: string): string {
+  const fallbacks: Record<string, string> = {
+    kaede: 'ようこそ、楓の神社へ...',
+    yukino: 'いらっしゃいませ...',
+    sora: 'こんにちは...',
+    kaon: 'お待ちしておりました...',
+  };
+  return fallbacks[characterId] || 'ようこそ、いらっしゃいませ。';
+}
+
+/**
+ * フォールバック再訪問メッセージを取得
+ */
+function getFallbackReturningMessage(characterId: string): string {
+  const fallbacks: Record<string, string> = {
+    kaede: 'また会いに来てくれてありがとうございます。',
+    yukino: 'おかえりなさい。',
+    sora: 'また会えて嬉しいです。',
+    kaon: 'また会いに来てくれたのね...',
+  };
+  return fallbacks[characterId] || 'また会いに来てくれてありがとうございます。';
+}
+
+/**
+ * 再訪問メッセージを生成
+ */
+async function generateReturningMessage({
+  characterId,
+  user,
+  conversationHistory,
+  lastUserMessage,
+  env,
+}: {
+  characterId: string;
+  user: UserRecord;
+  conversationHistory: ClientHistoryEntry[];
+  lastUserMessage: string | null;
+  env: any;
+}): Promise<string | null> {
+  try {
+    // 訪問パターン判定
+    const visitPatternInfo = await detectVisitPattern({
+      userId: user.id,
+      characterId: characterId,
+      database: env.DB,
+      isRegisteredUser: !!user.nickname,
+    });
+
+    // ユーザー情報を取得
+    let userGender: string | null = null;
+    let userBirthDate: string | null = null;
+    
+    try {
+      const userInfo = await env.DB.prepare<{ gender: string | null; birth_year: number | null; birth_month: number | null; birth_day: number | null }>(
+        'SELECT gender, birth_year, birth_month, birth_day FROM users WHERE id = ?'
+      )
+        .bind(user.id)
+        .first();
+      
+      if (userInfo) {
+        userGender = userInfo.gender || null;
+        if (userInfo.birth_year && userInfo.birth_month && userInfo.birth_day) {
+          const yearStr = String(userInfo.birth_year).padStart(4, '0');
+          const monthStr = String(userInfo.birth_month).padStart(2, '0');
+          const dayStr = String(userInfo.birth_day).padStart(2, '0');
+          userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
+        }
+      }
+    } catch (error) {
+      console.error('[conversation-history] ユーザー情報取得エラー:', error);
+    }
+
+    // システムプロンプト生成（再訪問時）
+    const systemPrompt = generateSystemPrompt(characterId, {
+      userNickname: user.nickname,
+      hasPreviousConversation: true,
+      guardian: user.guardian || null,
+      isRitualStart: false,
+      isJustRegistered: false,
+      userMessageCount: conversationHistory.filter(m => m.role === 'user').length,
+      userGender: userGender,
+      userBirthDate: userBirthDate,
+      visitPattern: visitPatternInfo?.pattern || 'returning',
+      conversationHistory: visitPatternInfo?.conversationHistory || conversationHistory,
+      lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
+      sessionContext: visitPatternInfo?.sessionContext || null,
+    });
+
+    // LLM API呼び出し
+    const apiKey = env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      console.error('[conversation-history] DEEPSEEK_API_KEYが設定されていません');
+      return null;
+    }
+
+    const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
+    const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+
+    // キャラクターに応じたパラメータ設定
+    const maxTokensForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 2000 : 800;
+    const temperatureForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.7 : 0.5;
+    const topPForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.9 : 0.8;
+
+    // 最後のユーザーメッセージを使用（なければデフォルトメッセージ）
+    const userMessage = lastUserMessage || 'また会いに来ました。';
+    
+    // 会話履歴を準備（最後の数件のみ）
+    const recentHistory = conversationHistory.slice(-6);
+
+    const llmResult = await getLLMResponse({
+      systemPrompt,
+      conversationHistory: recentHistory,
+      userMessage,
+      temperature: temperatureForCharacter,
+      maxTokens: maxTokensForCharacter,
+      topP: topPForCharacter,
+      deepseekApiKey: apiKey,
+      fallbackApiKey: fallbackApiKey,
+      fallbackModel: fallbackModel,
+    });
+
+    if (llmResult.success && llmResult.message) {
+      console.log('[conversation-history] ✅ returningMessageを生成しました');
+      return llmResult.message;
+    } else {
+      console.error('[conversation-history] ❌ returningMessage生成に失敗:', llmResult.error);
+      // フォールバックメッセージを返す
+      return getFallbackReturningMessage(characterId);
+    }
+  } catch (error) {
+    console.error('[conversation-history] returningMessage生成エラー:', error);
+    return null;
+  }
+}
+
+/**
  * 初回メッセージを生成
  */
 async function generateWelcomeMessage({
@@ -370,7 +511,8 @@ async function generateWelcomeMessage({
       return llmResult.message;
     } else {
       console.error('[conversation-history] ❌ welcomeMessage生成に失敗:', llmResult.error);
-      return null;
+      // フォールバックメッセージを返す
+      return getFallbackWelcomeMessage(characterId);
     }
   } catch (error) {
     console.error('[conversation-history] welcomeMessage生成エラー:', error);
@@ -484,21 +626,134 @@ export const onRequestGet: PagesFunction = async (context) => {
     }
 
     if (conversations.length === 0) {
+      // 訪問パターンを判定（初回訪問時）
+      const visitPatternInfo = await detectVisitPattern({
+        userId: user.id,
+        characterId: characterId,
+        database: env.DB,
+        isRegisteredUser: !!user.nickname,
+      });
+      
       // 履歴がない場合、welcomeMessageを生成
       let welcomeMessage: string | null = null;
-      try {
-        welcomeMessage = await generateWelcomeMessage({
-          characterId,
-          user,
-          env,
-        });
-        console.log('[conversation-history] welcomeMessage生成結果:', {
-          success: !!welcomeMessage,
-          messageLength: welcomeMessage?.length || 0,
-        });
-      } catch (error) {
-        console.error('[conversation-history] welcomeMessage生成エラー:', error);
-        // エラーが発生しても続行（welcomeMessageはnullのまま）
+      let requireGuardianConsent: boolean = false;
+      
+      // 楓専用: 守護神状態を確認
+      if (characterId === 'kaede') {
+        const hasGuardian = !!user.guardian && user.guardian.trim() !== '';
+        
+        if (!hasGuardian) {
+          // 守護神未決定: 儀式同意を促すメッセージを生成
+          requireGuardianConsent = true;
+          try {
+            // 守護神未決定時のシステムプロンプトを生成（訪問パターンは既に取得済み）
+            let userGender: string | null = null;
+            let userBirthDate: string | null = null;
+            
+            try {
+              const userInfo = await env.DB.prepare<{ gender: string | null; birth_year: number | null; birth_month: number | null; birth_day: number | null }>(
+                'SELECT gender, birth_year, birth_month, birth_day FROM users WHERE id = ?'
+              )
+                .bind(user.id)
+                .first();
+              
+              if (userInfo) {
+                userGender = userInfo.gender || null;
+                if (userInfo.birth_year && userInfo.birth_month && userInfo.birth_day) {
+                  const yearStr = String(userInfo.birth_year).padStart(4, '0');
+                  const monthStr = String(userInfo.birth_month).padStart(2, '0');
+                  const dayStr = String(userInfo.birth_day).padStart(2, '0');
+                  userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
+                }
+              }
+            } catch (error) {
+              console.error('[conversation-history] ユーザー情報取得エラー:', error);
+            }
+            
+            const systemPrompt = generateSystemPrompt(characterId, {
+              userNickname: user.nickname,
+              hasPreviousConversation: false,
+              guardian: null, // 守護神未決定
+              isRitualStart: false,
+              isJustRegistered: false,
+              userMessageCount: 0,
+              userGender: userGender,
+              userBirthDate: userBirthDate,
+              visitPattern: visitPatternInfo?.pattern || 'first_visit',
+              conversationHistory: visitPatternInfo?.conversationHistory || [],
+              lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
+              sessionContext: visitPatternInfo?.sessionContext || null,
+            });
+            
+            const apiKey = env.DEEPSEEK_API_KEY;
+            if (apiKey) {
+              const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
+              const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+              const maxTokensForCharacter = 2000;
+              const temperatureForCharacter = 0.7;
+              const topPForCharacter = 0.9;
+              
+              const userMessage = '初めてお会いします。よろしくお願いします。';
+              const conversationHistory: ClientHistoryEntry[] = [];
+              
+              const llmResult = await getLLMResponse({
+                systemPrompt,
+                conversationHistory,
+                userMessage,
+                temperature: temperatureForCharacter,
+                maxTokens: maxTokensForCharacter,
+                topP: topPForCharacter,
+                deepseekApiKey: apiKey,
+                fallbackApiKey: fallbackApiKey,
+                fallbackModel: fallbackModel,
+              });
+              
+              if (llmResult.success && llmResult.message) {
+                welcomeMessage = llmResult.message;
+                console.log('[conversation-history] ✅ 楓の守護神未決定時のwelcomeMessageを生成しました');
+              } else {
+                welcomeMessage = getFallbackWelcomeMessage(characterId);
+              }
+            } else {
+              welcomeMessage = getFallbackWelcomeMessage(characterId);
+            }
+          } catch (error) {
+            console.error('[conversation-history] 楓の守護神未決定時のwelcomeMessage生成エラー:', error);
+            welcomeMessage = getFallbackWelcomeMessage(characterId);
+          }
+        } else {
+          // 守護神決定済み: 通常のwelcomeMessageを生成
+          try {
+            welcomeMessage = await generateWelcomeMessage({
+              characterId,
+              user,
+              env,
+            });
+            console.log('[conversation-history] welcomeMessage生成結果:', {
+              success: !!welcomeMessage,
+              messageLength: welcomeMessage?.length || 0,
+            });
+          } catch (error) {
+            console.error('[conversation-history] welcomeMessage生成エラー:', error);
+            welcomeMessage = getFallbackWelcomeMessage(characterId);
+          }
+        }
+      } else {
+        // 楓以外: 通常のwelcomeMessageを生成
+        try {
+          welcomeMessage = await generateWelcomeMessage({
+            characterId,
+            user,
+            env,
+          });
+          console.log('[conversation-history] welcomeMessage生成結果:', {
+            success: !!welcomeMessage,
+            messageLength: welcomeMessage?.length || 0,
+          });
+        } catch (error) {
+          console.error('[conversation-history] welcomeMessage生成エラー:', error);
+          welcomeMessage = getFallbackWelcomeMessage(characterId);
+        }
       }
 
       return new Response(
@@ -512,6 +767,8 @@ export const onRequestGet: PagesFunction = async (context) => {
           assignedDeity: user.guardian,
           clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
           welcomeMessage: welcomeMessage, // 初回訪問時のウェルカムメッセージ
+          requireGuardianConsent: characterId === 'kaede' ? requireGuardianConsent : undefined, // 楓専用フラグ
+          visitPattern: visitPatternInfo?.pattern || 'first_visit', // 訪問パターン
         } as ResponseBody),
         { status: 200, headers: corsHeaders }
       );
@@ -532,6 +789,44 @@ export const onRequestGet: PagesFunction = async (context) => {
       content: row.content || row.message || '', // SQLエイリアスでcontentに値が入るが、フォールバックとしてmessageも確認
       created_at: row.created_at,
     }));
+
+    // 会話履歴をClientHistoryEntry形式に変換
+    const conversationHistoryForLLM: ClientHistoryEntry[] = sortedConversations.map((row) => ({
+      role: row.role,
+      content: row.content || row.message || '',
+    }));
+
+    // 最後のユーザーメッセージを抽出
+    const lastUserMessage = sortedConversations
+      .filter((msg) => msg.role === 'user')
+      .slice(-1)[0]?.content || null;
+
+    // 訪問パターンを判定
+    const visitPatternInfo = await detectVisitPattern({
+      userId: user.id,
+      characterId: characterId,
+      database: env.DB,
+      isRegisteredUser: !!user.nickname,
+    });
+
+    // 再訪問メッセージを生成
+    let returningMessage: string | null = null;
+    try {
+      returningMessage = await generateReturningMessage({
+        characterId,
+        user,
+        conversationHistory: conversationHistoryForLLM,
+        lastUserMessage,
+        env,
+      });
+      console.log('[conversation-history] returningMessage生成結果:', {
+        success: !!returningMessage,
+        messageLength: returningMessage?.length || 0,
+      });
+    } catch (error) {
+      console.error('[conversation-history] returningMessage生成エラー:', error);
+      // エラーが発生しても続行（returningMessageはnullのまま）
+    }
 
     // 会話の要約を生成（最後の数件のメッセージから）
     // SQLクエリでmessage as contentとしてエイリアスしているため、msg.contentに値が入る
@@ -582,6 +877,8 @@ export const onRequestGet: PagesFunction = async (context) => {
         conversationSummary: conversationText,
         clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
         firstQuestion: firstQuestion, // 最初の質問（儀式完了後の定型文で使用）
+        returningMessage: returningMessage, // 再訪問時のメッセージ
+        visitPattern: visitPatternInfo?.pattern || 'returning', // 訪問パターン
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

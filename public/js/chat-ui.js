@@ -525,6 +525,77 @@ const ChatUI = {
     },
 
     /**
+     * メッセージを先頭に追加（会話履歴の遅延表示用）
+     * @param {string} type - メッセージタイプ ('user', 'character', 'welcome', 'error', 'loading')
+     * @param {string} text - メッセージテキスト
+     * @param {string} sender - 送信者名
+     * @param {Object} options - オプション
+     * @returns {string} メッセージ要素のID
+     */
+    prependMessage(type, text, sender, options = {}) {
+        if (!this.messagesDiv) return null;
+        
+        // addMessageと同じロジックでメッセージ要素を作成（簡略版）
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        
+        // IDを生成（指定されていない場合）
+        const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        messageDiv.id = messageId;
+        
+        if (type === 'character') {
+            messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
+            messageDiv.style.color = '#ffffff';
+            messageDiv.style.border = 'none';
+            messageDiv.style.boxShadow = 'none';
+        }
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        textDiv.textContent = text;
+        messageDiv.appendChild(textDiv);
+        
+        if (sender) {
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'message-sender';
+            senderDiv.textContent = sender;
+            messageDiv.appendChild(senderDiv);
+        }
+        
+        // 先頭に追加（insertBeforeを使用）
+        if (this.messagesDiv.firstChild) {
+            this.messagesDiv.insertBefore(messageDiv, this.messagesDiv.firstChild);
+        } else {
+            this.messagesDiv.appendChild(messageDiv);
+        }
+        
+        // スクロールは行わない（古いメッセージを先頭に追加するため）
+        
+        return messageId;
+    },
+        
+        // メッセージ追加後、ハンドラーのコールバックを呼び出す（鑑定士固有の処理を委譲）
+        // これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
+        if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
+            const handler = CharacterRegistry.get(ChatData.currentCharacter);
+            if (handler && typeof handler.onMessageAdded === 'function') {
+                try {
+                    handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
+                } catch (error) {
+                    console.error(`[chat-ui] ハンドラーのonMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
+                }
+            }
+        }
+        
+        requestAnimationFrame(() => {
+            this.scrollToLatest();
+        });
+        
+        // メッセージIDを返す（待機メッセージの削除などに使用）
+        return messageId;
+    },
+
+    /**
      * スクロールを最新に
      */
     scrollToLatest() {

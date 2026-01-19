@@ -96,38 +96,41 @@ async function getConversationHistory(database, userId, characterId) {
 }
 
 /**
- * 前回の会話を要約
+ * 前回の会話を要約（全キャラクター共通）
  */
 function generateConversationSummary(lastConversation, allHistory) {
-  if (!lastConversation) {
-    return '前回の会話の詳細が見つかりません';
+  if (!lastConversation || !allHistory || allHistory.length === 0) {
+    return null;
   }
 
   try {
-    // 前回の会話から主要なトピックを抽出
-    const userMessage = lastConversation.content || '';
-    const createdAt = lastConversation.created_at || '';
-
-    // トピックを抽出
-    const topic = extractTopicFromMessage(userMessage);
+    // 直近の数メッセージから要点を抽出
+    const recentMessages = allHistory.slice(-6); // 直近6メッセージ
+    const lastUserMessages = recentMessages
+      .filter(m => m.role === 'user')
+      .map(m => m.content || '')
+      .slice(-2); // 最後の2つのユーザーメッセージ
     
-    // 会話の日時を整形
-    const conversationDate = formatDate(createdAt);
-
-    // 花音の最後の応答を探す
-    const lastAssistantMessage = allHistory.find(h => h.role === 'assistant');
-    const lastAdvice = lastAssistantMessage?.content?.substring(0, 150) || '';
-
-    return `
-前回(${conversationDate})の相談:
-${topic}
-
-花音からの言葉:
-「${lastAdvice}${lastAdvice.length > 150 ? '...' : ''}」
-`.trim();
+    // 最後の会話日時を整形
+    const lastDate = new Date(lastConversation.created_at || Date.now());
+    const dateStr = lastDate.toLocaleDateString('ja-JP', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    // 要約を生成
+    const topics = lastUserMessages.filter(msg => msg.trim()).join('、');
+    const messageCount = allHistory.length;
+    
+    return {
+      date: dateStr,
+      topics: topics || '前回の相談内容',
+      messageCount: messageCount
+    };
   } catch (error) {
     console.error('[VisitPatternDetector] 要約生成エラー:', error);
-    return '前回の会話を思い出しています…';
+    return null;
   }
 }
 

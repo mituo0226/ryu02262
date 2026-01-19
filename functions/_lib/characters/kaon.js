@@ -224,6 +224,17 @@ ${astrologyInfo.insightPhrase}
  * 再訪問時の指示生成(履歴あり)
  */
 function generateReturningInstruction(userNickname, lastConversationSummary) {
+  // lastConversationSummaryがオブジェクト形式の場合、文字列に変換
+  let summaryText = '';
+  if (lastConversationSummary) {
+    if (typeof lastConversationSummary === 'object') {
+      // オブジェクト形式の場合
+      summaryText = `前回(${lastConversationSummary.date})の相談: ${lastConversationSummary.topics} (${lastConversationSummary.messageCount}件のメッセージ)`;
+    } else {
+      // 文字列形式の場合（後方互換性）
+      summaryText = lastConversationSummary;
+    }
+  }
   const displayName = userNickname || 'あなた';
   
   return `
@@ -237,7 +248,7 @@ ${displayName}が戻ってきてくれました。
 前回の会話があります。
 
 【前回の会話の概要】
-${lastConversationSummary || '(前回の会話データを参照中)'}
+${summaryText || '(前回の会話データを参照中)'}
 
 【応答の方針】
 

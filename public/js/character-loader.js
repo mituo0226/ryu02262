@@ -66,6 +66,11 @@ const CharacterLoader = {
         }
 
         try {
+            // 0. 基底クラスを読み込む（まだ読み込まれていない場合）
+            if (!window.BaseCharacterHandler) {
+                await this.loadScript(`/js/character-handlers/base-handler.js`);
+            }
+            
             // 1. 設定ファイルを読み込む
             const configResponse = await fetch(`/js/character-handlers/${characterId}/config.json`);
             if (!configResponse.ok) {
