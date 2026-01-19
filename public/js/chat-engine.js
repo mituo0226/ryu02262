@@ -58,8 +58,8 @@ const ChatInit = {
         // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
         
         // ChatUIを初期化
-        if (window.ChatUI && typeof window.window.ChatUI.init === 'function') {
-            window.window.ChatUI.init();
+        if (window.ChatUI && typeof window.ChatUI.init === 'function') {
+            window.ChatUI.init();
         }
         
         // AuthStateを初期化
@@ -124,7 +124,7 @@ const ChatInit = {
         
         ChatData.currentCharacter = character;
         if (window.ChatUI) {
-            window.window.ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
+            window.ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
         }
         
         // 【変更】ユーザー情報の設定はhistoryDataの取得後に実行
@@ -194,7 +194,7 @@ const ChatInit = {
                             // ネットワーク接続エラーの場合
                             console.error('[登録完了処理] ネットワーク接続エラーが発生しました');
                             if (window.ChatUI) {
-                                window.window.ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
+                                window.ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
                             }
                             // エラー時はデフォルト値を使用
                             dbUserNickname = 'あなた';
@@ -261,7 +261,7 @@ const ChatInit = {
                         // contentを安全に取得（messageプロパティも確認）
                         const content = entry.content || entry.message || '';
                         if (window.ChatUI) {
-                            window.window.ChatUI.addMessage(type, content, sender);
+                            window.ChatUI.addMessage(type, content, sender);
                         }
                     });
                     console.log('[登録完了処理] 会話履歴の表示完了');
@@ -291,7 +291,7 @@ const ChatInit = {
                     
                     // 定型文を画面に表示
                     if (window.ChatUI) {
-                        window.window.ChatUI.addMessage('character', welcomeBackMessage, info.name);
+                        window.ChatUI.addMessage('character', welcomeBackMessage, info.name);
                     }
                     console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
                 } else {
@@ -303,7 +303,7 @@ const ChatInit = {
                     // 登録直後のため、他のキャラクターとの会話履歴はないと仮定
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, nicknameForMessage, false, false);
                     if (window.ChatUI) {
-                        window.window.ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                        window.ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                     }
                 }
                 
@@ -351,7 +351,7 @@ const ChatInit = {
             } catch (error) {
                 console.error('[登録完了処理] エラー:', error);
                 if (window.ChatUI) {
-                    window.window.ChatUI.addMessage('error', '登録完了処理中にエラーが発生しました。ページを再読み込みしてください。', 'システム');
+                    window.ChatUI.addMessage('error', '登録完了処理中にエラーが発生しました。ページを再読み込みしてください。', 'システム');
                 }
                 return;
             }
@@ -360,8 +360,8 @@ const ChatInit = {
         try {
             // キャラクターが切り替わった場合のみ、会話履歴を読み込む前にメッセージをクリア
             if (previousCharacter && previousCharacter !== character) {
-                if (window.ChatUI && typeof window.window.ChatUI.clearMessages === 'function') {
-                    window.window.ChatUI.clearMessages();
+                if (window.ChatUI && typeof window.ChatUI.clearMessages === 'function') {
+                    window.ChatUI.clearMessages();
                     console.log('[初期化] キャラクターが切り替わりました。メッセージをクリアしました:', {
                         previousCharacter,
                         newCharacter: character
@@ -394,7 +394,7 @@ const ChatInit = {
                         // ネットワーク接続エラーの場合
                         console.error('[初期化] ネットワーク接続エラーが発生しました');
                         if (window.ChatUI) {
-                            window.window.ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
+                            window.ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
                         }
                         return;
                     }
@@ -436,7 +436,7 @@ const ChatInit = {
                     // バックエンドで生成されたreturningMessageを使用
                     if (historyData.returningMessage && historyData.returningMessage.trim()) {
                         if (window.ChatUI) {
-                            window.window.ChatUI.addMessage('welcome', historyData.returningMessage, info.name);
+                            window.ChatUI.addMessage('welcome', historyData.returningMessage, info.name);
                         }
                         console.log(`[初期化] ${info.name}の再訪問時：バックエンドで生成されたreturningMessageを表示しました`);
                         return true;
@@ -446,7 +446,7 @@ const ChatInit = {
                         const initialMessage = ChatData.generateInitialMessage(character, historyData);
                         if (initialMessage && initialMessage.trim()) {
                             if (window.ChatUI) {
-                                window.window.ChatUI.addMessage('welcome', initialMessage, info.name);
+                                window.ChatUI.addMessage('welcome', initialMessage, info.name);
                             }
                         }
                         return true;
@@ -491,7 +491,7 @@ const ChatInit = {
                                 
                                 if (response && response.message) {
                                     if (window.ChatUI) {
-                                        window.window.ChatUI.addMessage('welcome', response.message, info.name);
+                                        window.ChatUI.addMessage('welcome', response.message, info.name);
                                     }
                                     console.log(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得しました`);
                                     return true;
@@ -501,7 +501,7 @@ const ChatInit = {
                                     const initialMessage = ChatData.generateInitialMessage(character, historyData);
                                     if (initialMessage && initialMessage.trim()) {
                                         if (window.ChatUI) {
-                                window.window.ChatUI.addMessage('welcome', initialMessage, info.name);
+                                window.ChatUI.addMessage('welcome', initialMessage, info.name);
                             }
                                     }
                                     return true;
@@ -512,7 +512,7 @@ const ChatInit = {
                                 const initialMessage = ChatData.generateInitialMessage(character, historyData);
                                 if (initialMessage && initialMessage.trim()) {
                                     if (window.ChatUI) {
-                                window.window.ChatUI.addMessage('welcome', initialMessage, info.name);
+                                window.ChatUI.addMessage('welcome', initialMessage, info.name);
                             }
                                 }
                                 return true;
@@ -525,7 +525,7 @@ const ChatInit = {
                             // APIから返されたwelcomeMessageを使用
                             if (historyData && historyData.welcomeMessage) {
                                 if (window.ChatUI) {
-                                    window.window.ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+                                    window.ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
                                 }
                                 console.log(`[初期化] ${info.name}の初回訪問時：welcomeMessageを使用しました`);
                                 return true;
@@ -541,7 +541,7 @@ const ChatInit = {
                                 );
                                 if (firstTimeMessage && firstTimeMessage.trim()) {
                                     if (window.ChatUI) {
-                        window.window.ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                        window.ChatUI.addMessage('welcome', firstTimeMessage, info.name);
                     }
                                 }
                                 return true;
@@ -575,7 +575,7 @@ const ChatInit = {
                             
                             if (response && response.message) {
                                 if (window.ChatUI) {
-                                    window.window.ChatUI.addMessage('welcome', response.message, info.name);
+                                    window.ChatUI.addMessage('welcome', response.message, info.name);
                                 }
                                 console.log('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得しました');
                                 return true;
@@ -586,7 +586,7 @@ const ChatInit = {
                                 if (guardianConfirmationMessage) {
                                     console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
                                     if (window.ChatUI) {
-                                        window.window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                                        window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                                     }
                                     return true;
                                 }
@@ -598,7 +598,7 @@ const ChatInit = {
                             if (guardianConfirmationMessage) {
                                 console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
                                 if (window.ChatUI) {
-                                window.window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                                window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                             }
                                 return true;
                             }
@@ -609,7 +609,7 @@ const ChatInit = {
                         if (guardianConfirmationMessage) {
                             console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
                             if (window.ChatUI) {
-                                window.window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                                window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                             }
                             return true;
                         }
@@ -678,7 +678,7 @@ const ChatInit = {
                     // contentを安全に取得（messageプロパティも確認）
                     const content = entry.content || entry.message || '';
                     if (window.ChatUI) {
-                        window.window.ChatUI.addMessage(type, content, sender);
+                        window.ChatUI.addMessage(type, content, sender);
                     }
                 });
                 
@@ -700,8 +700,8 @@ const ChatInit = {
                             // contentを安全に取得（messageプロパティも確認）
                             const content = entry.content || entry.message || '';
                             // 古いメッセージは先頭に追加（prependMessageを使用）
-                            if (window.ChatUI && window.window.ChatUI.prependMessage) {
-                                window.window.ChatUI.prependMessage(type, content, sender);
+                            if (window.ChatUI && window.ChatUI.prependMessage) {
+                                window.ChatUI.prependMessage(type, content, sender);
                             }
                         });
                         console.log('[初期化] 遅延表示完了:', olderMessages.length, '件');
@@ -719,7 +719,7 @@ const ChatInit = {
                     const info = ChatData.characterInfo[character];
                     const welcomeMessage = 'あなたの運勢はタロットカードによって導かれました。これから先はあなたが私に相談したいことがあれば語りかけてください。どんな相談でもお答えいたします。';
                     if (window.ChatUI) {
-                        window.window.ChatUI.addMessage('character', welcomeMessage, info.name);
+                        window.ChatUI.addMessage('character', welcomeMessage, info.name);
                     }
                     
                     // メッセージ入力欄を有効化
@@ -1716,7 +1716,7 @@ const ChatInit = {
                         // ネットワーク接続エラーの場合
                         console.error('[守護神の儀式] ネットワーク接続エラーが発生しました');
                         if (window.ChatUI) {
-                            window.window.ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
+                            window.ChatUI.addMessage('error', 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。', 'システム');
                         }
                         if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = false;
                         return;
@@ -2181,8 +2181,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.body.classList.add('fade-in');
     
     // UIを初期化
-    if (window.ChatUI && typeof window.window.ChatUI.init === 'function') {
-        window.window.ChatUI.init();
+    if (window.ChatUI && typeof window.ChatUI.init === 'function') {
+        window.ChatUI.init();
     }
     
     // ページを初期化
@@ -2813,7 +2813,7 @@ function showYukinoRegistrationButtons() {
     container.appendChild(buttonContainer);
     
     // メッセージコンテナに追加
-    if (ChatUI && window.ChatUI.messagesDiv) {
+    if (window.ChatUI && window.ChatUI.messagesDiv) {
         window.ChatUI.messagesDiv.appendChild(container);
         console.log('[雪乃登録ボタン] メッセージコンテナに追加しました');
         
