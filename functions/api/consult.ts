@@ -3,6 +3,7 @@ import { generateSystemPrompt, getCharacterName } from '../_lib/character-system
 import { isValidCharacter } from '../_lib/character-loader.js';
 import { generateGuardianFirstMessagePrompt, generateKaedeFollowUpPrompt } from '../_lib/characters/kaede.js';
 import { detectVisitPattern } from '../_lib/visit-pattern-detector.js';
+import { getHealthChecker } from '../_lib/api-health-checker.js';
 
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
@@ -10,6 +11,8 @@ const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
 const MAX_NORMAL_MESSAGES = 10; // 通常保存する最新メッセージ数
 const MAX_SUMMARY_COUNT = 10; // 保持する要約の最大数
 const MAX_TOTAL_MESSAGES = 100; // 全体の最大メッセージ数（通常 + 要約）
+const CACHE_TTL = 300; // キャッシュの有効期限（5分間、秒単位）
+const API_TIMEOUT = 15000; // API呼び出しのタイムアウト（15秒）
 
 // ===== 型定義 =====
 type ConversationRole = 'user' | 'assistant';
@@ -144,13 +147,34 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // ===== 会話履歴管理 =====
 
 /**
- * 会話履歴を取得（共通関数）
+ * 会話履歴を取得（共通関数、キャッシュ対応）
  */
 async function getConversationHistory(
   db: D1Database,
   userId: number,
-  characterId: string
+  characterId: string,
+  cache?: KVNamespace
 ): Promise<ClientHistoryEntry[]> {
+  // キャッシュキーの生成
+  const cacheKey = `chat_history:${userId}:${characterId}`;
+  
+  // ステップ1: キャッシュから履歴取得を試みる
+  if (cache) {
+    try {
+      const cached = await cache.get(cacheKey);
+      if (cached) {
+        const parsedHistory = JSON.parse(cached) as ClientHistoryEntry[];
+        console.log('[getConversationHistory] キャッシュヒット:', cacheKey);
+        return parsedHistory;
+      }
+    } catch (error) {
+      console.log('[getConversationHistory] キャッシュ読み込みエラー:', error);
+      // キャッシュエラーは無視して続行
+    }
+  }
+  
+  // ステップ2: キャッシュミスの場合、DBから取得
+  console.log('[getConversationHistory] キャッシュミス、DBから取得:', cacheKey);
   const historyResults = await db.prepare<ConversationRow>(
     `SELECT c.role, c.message as content, c.is_guest_message
      FROM conversations c
@@ -161,14 +185,59 @@ async function getConversationHistory(
     .bind(userId, characterId)
     .all();
 
-  return historyResults.results?.slice().reverse().map((row) => ({
+  const history = historyResults.results?.slice().reverse().map((row) => ({
     role: row.role,
     content: row.content || row.message || '',
   })) ?? [];
+  
+  // ステップ3: キャッシュに保存
+  if (cache) {
+    try {
+      await cache.put(
+        cacheKey,
+        JSON.stringify(history),
+        { expirationTtl: CACHE_TTL }
+      );
+      console.log('[getConversationHistory] キャッシュに保存しました:', cacheKey);
+    } catch (error) {
+      console.log('[getConversationHistory] キャッシュ書き込みエラー:', error);
+      // キャッシュエラーは無視して続行
+    }
+  }
+  
+  return history;
 }
 
 /**
- * 100件制限チェックと古いメッセージの削除（共通関数）
+ * 会話履歴をキャッシュに更新
+ */
+async function updateConversationHistoryCache(
+  cache: KVNamespace | undefined,
+  userId: number,
+  characterId: string,
+  history: ClientHistoryEntry[]
+): Promise<void> {
+  if (!cache) {
+    return;
+  }
+  
+  const cacheKey = `chat_history:${userId}:${characterId}`;
+  
+  try {
+    await cache.put(
+      cacheKey,
+      JSON.stringify(history),
+      { expirationTtl: CACHE_TTL }
+    );
+    console.log('[updateConversationHistoryCache] キャッシュを更新しました:', cacheKey);
+  } catch (error) {
+    console.log('[updateConversationHistoryCache] キャッシュ更新エラー:', error);
+    // キャッシュエラーは無視して続行
+  }
+}
+
+/**
+ * 100件制限チェックと古いメッセージの削除（共通関数、重要度フラグ対応）
  */
 async function checkAndCleanupOldMessages(
   db: D1Database,
@@ -185,19 +254,28 @@ async function checkAndCleanupOldMessages(
   const messageCount = messageCountResult?.count || 0;
 
   if (messageCount >= 100) {
+    // 重要でない古いメッセージのみを削除
     const deleteCount = messageCount - 100 + 1; // 1件追加するので、1件削除
     await db.prepare(
       `DELETE FROM conversations
        WHERE user_id = ? AND character_id = ?
+       AND is_important = 0
        AND id IN (
          SELECT id FROM conversations
          WHERE user_id = ? AND character_id = ?
+         AND is_important = 0
          ORDER BY COALESCE(timestamp, created_at) ASC
          LIMIT ?
        )`
     )
       .bind(userId, characterId, userId, characterId, deleteCount)
       .run();
+    
+    console.log('[checkAndCleanupOldMessages] 古いメッセージを削除しました（重要でないメッセージのみ）:', {
+      userId,
+      characterId,
+      deleteCount,
+    });
   }
 }
 
@@ -271,6 +349,35 @@ async function saveUserMessage(
 }
 
 /**
+ * メッセージが重要かどうかを判定
+ */
+function shouldMarkAsImportant(messageCount: number, content: string, role: string): boolean {
+  // アシスタントメッセージのみ判定
+  if (role !== 'assistant') {
+    return false;
+  }
+  
+  // 最初の10通は重要
+  if (messageCount <= 10) {
+    return true;
+  }
+  
+  // キーワードベースの判定
+  const importantKeywords = [
+    '守護神',
+    'タロット',
+    '生年月日',
+    '名前',
+    'ニックネーム',
+    '相性',
+    '運勢',
+    '儀式',
+  ];
+  
+  return importantKeywords.some(keyword => content.includes(keyword));
+}
+
+/**
  * アシスタントメッセージを保存（2段階保存の第2段階）
  * LLM応答後に保存される
  */
@@ -278,7 +385,8 @@ async function saveAssistantMessage(
   db: D1Database,
   userId: number,
   characterId: string,
-  assistantMessage: string
+  assistantMessage: string,
+  messageCount?: number
 ): Promise<void> {
   // is_guest_messageは常に0（使用しない）
   const isGuestMessage = 0;
@@ -293,14 +401,21 @@ async function saveAssistantMessage(
   const assistantMessageCount = assistantMessageCountResult?.count || 0;
   const MAX_ASSISTANT_MESSAGES = 10;
 
+  // 重要度判定（メッセージ数を取得）
+  const totalMessageCount = messageCount !== undefined ? messageCount : assistantMessageCount + 1;
+  const isImportant = shouldMarkAsImportant(totalMessageCount, assistantMessage, 'assistant');
+
   if (assistantMessageCount >= MAX_ASSISTANT_MESSAGES) {
+    // 重要でない古いメッセージのみを削除
     const deleteCount = assistantMessageCount - MAX_ASSISTANT_MESSAGES + 1; // 1件追加するので、1件削除
     await db.prepare(
       `DELETE FROM conversations
        WHERE user_id = ? AND character_id = ? AND role = 'assistant'
+       AND is_important = 0
        AND id IN (
          SELECT id FROM conversations
          WHERE user_id = ? AND character_id = ? AND role = 'assistant'
+         AND is_important = 0
          ORDER BY COALESCE(timestamp, created_at) ASC
          LIMIT ?
        )`
@@ -309,19 +424,20 @@ async function saveAssistantMessage(
       .run();
   }
 
-  // アシスタントメッセージを保存
+  // アシスタントメッセージを保存（重要度フラグを含む）
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
   try {
     const result = await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-       VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, timestamp)
+       VALUES (?, ?, 'assistant', ?, 'normal', ?, ?, CURRENT_TIMESTAMP)`
     )
-      .bind(userId, characterId, assistantMessage, isGuestMessage)
+      .bind(userId, characterId, assistantMessage, isGuestMessage, isImportant ? 1 : 0)
       .run();
     console.log('[saveAssistantMessage] メッセージを保存しました:', {
       userId,
       characterId,
       messageId: result.meta?.last_row_id,
+      isImportant,
     });
   } catch (error) {
     console.error('[saveAssistantMessage] timestampカラムでの保存に失敗、created_atで再試行:', {
@@ -331,15 +447,16 @@ async function saveAssistantMessage(
     });
     try {
       const result = await db.prepare(
-        `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-         VALUES (?, ?, 'assistant', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+        `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, created_at)
+         VALUES (?, ?, 'assistant', ?, 'normal', ?, ?, CURRENT_TIMESTAMP)`
       )
-        .bind(userId, characterId, assistantMessage, isGuestMessage)
+        .bind(userId, characterId, assistantMessage, isGuestMessage, isImportant ? 1 : 0)
         .run();
       console.log('[saveAssistantMessage] created_atカラムでメッセージを保存しました:', {
         userId,
         characterId,
         messageId: result.meta?.last_row_id,
+        isImportant,
       });
     } catch (retryError) {
       console.error('[saveAssistantMessage] メッセージ保存に完全に失敗:', {
@@ -439,7 +556,7 @@ async function saveConversationHistory(
 // ===== LLM API 呼び出し =====
 
 /**
- * DeepSeek API を呼び出し（リトライ付き）
+ * DeepSeek API を呼び出し（リトライ付き、タイムアウト対応）
  */
 async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult> {
   const {
@@ -462,49 +579,70 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
 
   for (let attempt = 1; attempt <= MAX_DEEPSEEK_RETRIES; attempt++) {
     try {
-      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${deepseekApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-          top_p: topP,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-      if (response.ok) {
-        const data = await response.json();
-        const message = data?.choices?.[0]?.message?.content;
-        return {
-          success: Boolean(message?.trim()),
-          message: message?.trim(),
-          provider: 'deepseek',
-          rawResponse: data,
-        };
-      }
+      try {
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${deepseekApiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+            top_p: topP,
+          }),
+          signal: controller.signal,
+        });
 
-      const errorText = await response.text();
-      lastError = extractErrorMessage(errorText, 'Failed to get response from DeepSeek API');
-      console.error('DeepSeek API error:', { attempt, status: response.status, errorText });
+        clearTimeout(timeoutId);
 
-      // サービスビジーエラー以外は即座にリトライを中止
-      if (!isServiceBusyError(response.status, errorText)) {
-        return { success: false, error: lastError, status: response.status };
-      }
+        if (response.ok) {
+          const data = await response.json();
+          const message = data?.choices?.[0]?.message?.content;
+          return {
+            success: Boolean(message?.trim()),
+            message: message?.trim(),
+            provider: 'deepseek',
+            rawResponse: data,
+          };
+        }
 
-      // リトライ前に待機
-      if (attempt < MAX_DEEPSEEK_RETRIES) {
-        await sleep(300 * attempt * attempt);
+        const errorText = await response.text();
+        lastError = extractErrorMessage(errorText, 'Failed to get response from DeepSeek API');
+        console.error('DeepSeek API error:', { attempt, status: response.status, errorText });
+
+        // サービスビジーエラー以外は即座にリトライを中止
+        if (!isServiceBusyError(response.status, errorText)) {
+          return { success: false, error: lastError, status: response.status };
+        }
+
+        // リトライ前に待機
+        if (attempt < MAX_DEEPSEEK_RETRIES) {
+          await sleep(300 * attempt * attempt);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          lastError = 'DeepSeek API timeout';
+          console.error('DeepSeek API timeout:', { attempt });
+        } else {
+          const message = fetchError instanceof Error ? fetchError.message : 'Unknown DeepSeek error';
+          lastError = message;
+          console.error('DeepSeek API fetch error:', { attempt, message });
+        }
+        if (attempt < MAX_DEEPSEEK_RETRIES) {
+          await sleep(300 * attempt * attempt);
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown DeepSeek error';
       lastError = message;
-      console.error('DeepSeek API fetch error:', { attempt, message });
+      console.error('DeepSeek API error:', { attempt, message });
       if (attempt < MAX_DEEPSEEK_RETRIES) {
         await sleep(300 * attempt * attempt);
       }
@@ -515,7 +653,7 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
 }
 
 /**
- * OpenAI API を呼び出し（フォールバック）
+ * OpenAI API を呼び出し（フォールバック、タイムアウト対応）
  */
 async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> {
   const {
@@ -539,6 +677,9 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
     { role: 'user', content: userMessage },
   ];
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -553,7 +694,10 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
         max_tokens: maxTokens,
         top_p: topP,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const data = await response.json();
@@ -571,6 +715,11 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
     console.error('OpenAI API error:', { status: response.status, errorText });
     return { success: false, error: errorMessage, status: response.status };
   } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('OpenAI API timeout');
+      return { success: false, error: 'OpenAI API timeout' };
+    }
     const message = error instanceof Error ? error.message : 'Unknown OpenAI error';
     console.error('OpenAI API fetch error:', { message });
     return { success: false, error: message };
@@ -578,31 +727,96 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
 }
 
 /**
- * LLM レスポンスを取得（DeepSeek → OpenAI フォールバック）
+ * LLM レスポンスを取得（DeepSeek → OpenAI フォールバック、ヘルスチェッカー対応）
  */
 async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResult> {
-  console.log('[LLM] DeepSeek API を呼び出します...');
-  const deepseekResult = await callDeepSeek(params);
+  const healthChecker = getHealthChecker();
+  let aiResponse: LLMResponseResult | null = null;
+  let usedAPI: 'deepseek' | 'openai' | null = null;
 
-  if (deepseekResult.success) {
-    console.log('[LLM] ✅ DeepSeek API から応答を取得しました');
-    return deepseekResult;
+  // DeepSeekを使用すべきか判定
+  if (healthChecker.shouldUseDeepSeek()) {
+    try {
+      console.log('[LLM] Attempting DeepSeek API...');
+      aiResponse = await callDeepSeek(params);
+      
+      if (aiResponse.success) {
+        healthChecker.recordDeepSeekSuccess();
+        usedAPI = 'deepseek';
+        console.log('[LLM] ✅ DeepSeek API から応答を取得しました');
+        return aiResponse;
+      } else {
+        healthChecker.recordDeepSeekFailure();
+        console.log('[LLM] ⚠️ DeepSeek API 失敗、OpenAI にフォールバック:', aiResponse.error);
+        
+        // OpenAIフォールバック
+        try {
+          console.log('[LLM] Falling back to OpenAI...');
+          aiResponse = await callOpenAI(params);
+          
+          if (aiResponse.success) {
+            healthChecker.recordOpenAISuccess();
+            usedAPI = 'openai';
+            console.log('[LLM] ✅ OpenAI API から応答を取得しました');
+            return aiResponse;
+          } else {
+            healthChecker.recordOpenAIFailure();
+            console.error('[LLM] ❌ OpenAI API も失敗しました:', aiResponse.error);
+            throw new Error(`Both DeepSeek and OpenAI APIs failed: DeepSeek: ${aiResponse.error}, OpenAI: ${aiResponse.error}`);
+          }
+        } catch (openaiError) {
+          healthChecker.recordOpenAIFailure();
+          console.error('[LLM] ❌ OpenAI API 呼び出しエラー:', openaiError);
+          throw new Error(`Both DeepSeek and OpenAI APIs failed`);
+        }
+      }
+    } catch (error) {
+      healthChecker.recordDeepSeekFailure();
+      console.error('[LLM] ❌ DeepSeek API 呼び出しエラー:', error);
+      
+      // OpenAIフォールバック
+      try {
+        console.log('[LLM] Falling back to OpenAI after error...');
+        aiResponse = await callOpenAI(params);
+        
+        if (aiResponse.success) {
+          healthChecker.recordOpenAISuccess();
+          usedAPI = 'openai';
+          console.log('[LLM] ✅ OpenAI API から応答を取得しました');
+          return aiResponse;
+        } else {
+          healthChecker.recordOpenAIFailure();
+          console.error('[LLM] ❌ OpenAI API も失敗しました');
+          throw new Error(`Both DeepSeek and OpenAI APIs failed`);
+        }
+      } catch (openaiError) {
+        healthChecker.recordOpenAIFailure();
+        console.error('[LLM] ❌ OpenAI API 呼び出しエラー:', openaiError);
+        throw new Error(`Both DeepSeek and OpenAI APIs failed`);
+      }
+    }
+  } else {
+    // DeepSeekがクールダウン中、直接OpenAIを使用
+    try {
+      console.log('[LLM] Using OpenAI (DeepSeek in cooldown)...');
+      aiResponse = await callOpenAI(params);
+      
+      if (aiResponse.success) {
+        healthChecker.recordOpenAISuccess();
+        usedAPI = 'openai';
+        console.log('[LLM] ✅ OpenAI API から応答を取得しました');
+        return aiResponse;
+      } else {
+        healthChecker.recordOpenAIFailure();
+        console.error('[LLM] ❌ OpenAI API 失敗:', aiResponse.error);
+        throw new Error(`OpenAI API failed: ${aiResponse.error}`);
+      }
+    } catch (error) {
+      healthChecker.recordOpenAIFailure();
+      console.error('[LLM] ❌ OpenAI API 呼び出しエラー:', error);
+      throw new Error(`OpenAI API failed`);
+    }
   }
-
-  console.log('[LLM] ⚠️ DeepSeek API 失敗、OpenAI にフォールバック:', deepseekResult.error);
-  const openaiResult = await callOpenAI(params);
-
-  if (openaiResult.success) {
-    console.log('[LLM] ✅ OpenAI API から応答を取得しました');
-    return openaiResult;
-  }
-
-  console.error('[LLM] ❌ 両方の API が失敗しました');
-  return {
-    success: false,
-    error: `DeepSeek: ${deepseekResult.error}, OpenAI: ${openaiResult.error}`,
-    status: openaiResult.status,
-  };
 }
 
 // ===== メインハンドラー =====
@@ -763,15 +977,17 @@ export const onRequestPost: PagesFunction = async (context) => {
     // AIに文脈理解と共感的対応を委ねます（システムプロンプトに安全ガイドライン追加済み）
     const characterName = getCharacterName(characterId);
 
-    // ===== 6. 会話履歴の取得 =====
+    // ===== 6. 会話履歴の取得（キャッシュ対応）=====
     const sanitizedHistory = sanitizeClientHistory(body.clientHistory);
     let conversationHistory: ClientHistoryEntry[] = [];
     let dbHistoryOnly: ClientHistoryEntry[] = []; // データベースから取得した履歴のみ（hasPreviousConversation判定用）
 
-    // ===== ユーザーの履歴取得 =====
+    // ===== ユーザーの履歴取得（キャッシュ対応）=====
     if (user) {
       try {
-        const dbHistory = await getConversationHistory(env.DB, user.id, characterId);
+        // CHAT_CACHEが設定されている場合はキャッシュを使用
+        const cache = env.CHAT_CACHE as KVNamespace | undefined;
+        const dbHistory = await getConversationHistory(env.DB, user.id, characterId, cache);
         dbHistoryOnly = dbHistory; // データベース履歴を保存
         conversationHistory = dbHistory;
       } catch (error) {
@@ -922,8 +1138,9 @@ export const onRequestPost: PagesFunction = async (context) => {
           console.log('[consult] ✅ 守護神からの最初のメッセージを生成しました');
 
           // 生成されたメッセージを会話履歴に保存
+          // 守護神メッセージは重要（最初のメッセージのため）
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, guardianLLMResult.message);
+            await saveAssistantMessage(env.DB, user.id, characterId, guardianLLMResult.message, 1);
           }
 
           return new Response(
@@ -943,8 +1160,9 @@ export const onRequestPost: PagesFunction = async (context) => {
           // エラーの場合、フォールバックメッセージを返す
           const fallbackMessage = `${userNickname}さん、私は${guardianName}。あなたを、前世からずっと守り続けてきました。今、${userNickname}さんの心の奥底には、何か感じるものがありますね。${userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
           
+          // フォールバックメッセージも重要（守護神メッセージのため）
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, fallbackMessage);
+            await saveAssistantMessage(env.DB, user.id, characterId, fallbackMessage, 1);
           }
 
           return new Response(
@@ -1034,8 +1252,9 @@ export const onRequestPost: PagesFunction = async (context) => {
           console.log('[consult] ✅ 楓からの追加メッセージを生成しました');
 
           // 生成されたメッセージを会話履歴に保存
+          // 楓のフォローアップメッセージも重要（守護神メッセージの直後）
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, kaedeLLMResult.message);
+            await saveAssistantMessage(env.DB, user.id, characterId, kaedeLLMResult.message, 2);
           }
 
           return new Response(
@@ -1118,16 +1337,20 @@ export const onRequestPost: PagesFunction = async (context) => {
     let userGender: string | null = null;
     let userBirthDate: string | null = null;
     
-    // 三崎花音の場合、訪問パターンを判定
+    // 【全キャラクター統一】訪問パターンを判定
     let visitPatternInfo: any = null;
-    if (characterId === 'kaon' && user) {
+    if (user) {
       try {
+        // ユーザーが登録済みかどうかを判定（nicknameが存在するか）
+        const isRegisteredUser = !!user.nickname;
+        
         visitPatternInfo = await detectVisitPattern({
           userId: user.id,
-          characterId: 'kaon',
+          characterId: characterId,
           database: env.DB,
+          isRegisteredUser: isRegisteredUser,
         });
-        console.log('[consult] 三崎花音の訪問パターン判定完了:', visitPatternInfo.pattern);
+        console.log(`[consult] ${characterId}の訪問パターン判定完了:`, visitPatternInfo.pattern);
       } catch (error) {
         console.error('[consult] 訪問パターン判定エラー:', error);
         // エラー時は初回訪問として扱う
@@ -1204,6 +1427,15 @@ export const onRequestPost: PagesFunction = async (context) => {
             userId: user.id,
             characterId,
           });
+          
+          // キャッシュを更新（ユーザーメッセージを追加）
+          const updatedHistory: ClientHistoryEntry[] = [
+            ...conversationHistory,
+            { role: 'user', content: trimmedMessage },
+          ];
+          
+          const cache = env.CHAT_CACHE as KVNamespace | undefined;
+          await updateConversationHistoryCache(cache, user.id, characterId, updatedHistory);
         } else {
           // ユーザーIDが取得できなかった場合のエラーログ
           console.error('[consult] ユーザーIDが取得できませんでした。nicknameと生年月日を確認してください。');
@@ -1288,11 +1520,22 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         // 【新仕様】すべてのユーザーを'registered'として扱う
         if (user) {
-          await saveAssistantMessage(env.DB, user.id, characterId, responseMessage);
+          await saveAssistantMessage(env.DB, user.id, characterId, responseMessage, userMessageCount);
           console.log('[consult] アシスタントメッセージを保存しました:', {
             userId: user.id,
             characterId,
+            userMessageCount,
           });
+          
+          // キャッシュを更新（新しいメッセージを追加）
+          const updatedHistory: ClientHistoryEntry[] = [
+            ...conversationHistory,
+            { role: 'user', content: trimmedMessage },
+            { role: 'assistant', content: responseMessage },
+          ];
+          
+          const cache = env.CHAT_CACHE as KVNamespace | undefined;
+          await updateConversationHistoryCache(cache, user.id, characterId, updatedHistory);
         } else {
           // ユーザーIDが取得できなかった場合のエラーログ
           console.error('[consult] ユーザーIDが取得できませんでした。nicknameと生年月日を確認してください。');

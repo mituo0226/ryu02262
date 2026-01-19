@@ -69,13 +69,14 @@ const ChatInit = {
         
         // 会話履歴はデータベースから取得（すべて登録ユーザー）
 
-        // キャラクター情報を読み込む
+        // キャラクター情報を読み込む（単一キャラクターのみ）
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:27',message:'loadCharacterData呼び出し前',data:{},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // }
         // #endregion
-        await ChatData.loadCharacterData();
+        // characterIdを指定して単一キャラクターデータのみ読み込む（効率化）
+        await ChatData.loadCharacterData(character);
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:29',message:'loadCharacterData呼び出し後',data:{characterInfoKeys:Object.keys(ChatData.characterInfo),characterInfoLength:Object.keys(ChatData.characterInfo).length},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
@@ -457,10 +458,9 @@ const ChatInit = {
                     }
                 }
                 
-                // 会話履歴がない場合：firstTimeGuestメッセージを表示
+                // 会話履歴がない場合の処理
                 // 【重要】守護神が既に決定されている場合は、firstTimeGuestメッセージを表示しない
                 // 楓の場合は、守護神が決定されている場合、ハンドラーで守護神確認メッセージが表示される
-                // ただし、三崎花音や水野ソラなど、他のキャラクターの場合は守護神の有無に関係なく初回メッセージを表示する
                 // 【スケーラビリティ改善】守護神が既に決定されている場合の判定をハンドラーに委譲
                 const handlerForFirstMessage = CharacterRegistry.get(character);
                 let shouldSkipFirstMessageForDeity = false;
@@ -469,31 +469,66 @@ const ChatInit = {
                     shouldSkipFirstMessageForDeity = handlerForFirstMessage.shouldSkipFirstMessageForDeity(historyData);
                 }
                 
+                // 【全キャラクター統一】履歴がない場合の判定
+                // ユーザーが登録済み（nicknameが存在）かつ履歴がない場合 → 継続セッションとして扱う
+                // ユーザーが未登録（nicknameが存在しない）かつ履歴がない場合 → 初回訪問として扱う
+                const isRegisteredUser = historyData && (historyData.nickname || ChatData.userNickname);
+                const isContinuingSession = isRegisteredUser && !historyData.hasHistory;
+                
                 if (!shouldSkipFirstMessageForDeity) {
-                    console.log('[初期化] 初回ユーザー。APIから動的メッセージを生成します');
-                    
-                    // 【全キャラクター統一】すべてのキャラクターでAPIから動的メッセージを取得
-                    try {
-                        console.log(`[初期化] ${info.name}の初回訪問時：APIから返答を生成します`, {
-                            character,
-                            userNickname: ChatData.userNickname || 'あなた'
-                        });
+                    if (isContinuingSession) {
+                        // 【再訪問時（履歴なし）】継続セッションとして処理
+                        console.log('[初期化] 再訪問ユーザー（履歴なし）。継続セッションとしてAPIから動的メッセージを生成します');
                         
-                        // 初回訪問時のメッセージをAPIから取得
-                        const response = await ChatAPI.sendMessage(
-                            '初めてお会いします',
-                            character,
-                            [], // 会話履歴は空
-                            {}
-                        );
+                        try {
+                            console.log(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を生成します`, {
+                                character,
+                                userNickname: historyData.nickname || ChatData.userNickname || 'あなた',
+                                isContinuingSession: true
+                            });
+                            
+                            // 継続セッションとして「前回の会話の継続」という返答をAPIから取得
+                            const response = await ChatAPI.sendMessage(
+                                '前回の会話の続きです',
+                                character,
+                                [], // 会話履歴は空（データベースに履歴がないため）
+                                {}
+                            );
+                            
+                            if (response && response.message) {
+                                ChatUI.addMessage('welcome', response.message, info.name);
+                                console.log(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得しました`);
+                                return true;
+                            } else {
+                                console.warn(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得できませんでした`);
+                                // APIから返答を取得できなかった場合は、フォールバックとして定型文を試行
+                                const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                                if (initialMessage && initialMessage.trim()) {
+                                    ChatUI.addMessage('welcome', initialMessage, info.name);
+                                }
+                                return true;
+                            }
+                        } catch (error) {
+                            console.error(`[初期化] ${info.name}の再訪問時（履歴なし）：API呼び出しエラー:`, error);
+                            // エラーの場合は、フォールバックとして定型文を試行
+                            const initialMessage = ChatData.generateInitialMessage(character, historyData);
+                            if (initialMessage && initialMessage.trim()) {
+                                ChatUI.addMessage('welcome', initialMessage, info.name);
+                            }
+                            return true;
+                        }
+                    } else {
+                        // 【初回訪問時】conversation-history APIから返されたwelcomeMessageを使用
+                        console.log('[初期化] 初回ユーザー。conversation-history APIから返されたwelcomeMessageを使用します');
                         
-                        if (response && response.message) {
-                            ChatUI.addMessage('welcome', response.message, info.name);
-                            console.log(`[初期化] ${info.name}の初回訪問時：APIから返答を取得しました`);
+                        // APIから返されたwelcomeMessageを使用
+                        if (historyData && historyData.welcomeMessage) {
+                            ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+                            console.log(`[初期化] ${info.name}の初回訪問時：welcomeMessageを使用しました`);
                             return true;
                         } else {
-                            console.warn(`[初期化] ${info.name}の初回訪問時：APIから返答を取得できませんでした`);
-                            // APIから返答を取得できなかった場合は、フォールバックとして定型文を試行
+                            // welcomeMessageが取得できなかった場合は、フォールバックとして定型文を試行
+                            console.warn(`[初期化] ${info.name}の初回訪問時：welcomeMessageが取得できませんでした。定型文を使用します`);
                             const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
                             const firstTimeMessage = ChatData.generateFirstTimeMessage(
                                 character, 
@@ -506,20 +541,6 @@ const ChatInit = {
                             }
                             return true;
                         }
-                    } catch (error) {
-                        console.error(`[初期化] ${info.name}の初回訪問時：API呼び出しエラー:`, error);
-                        // エラーの場合は、フォールバックとして定型文を試行
-                        const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                            character, 
-                            ChatData.userNickname || 'あなた',
-                            false,
-                            hasOtherCharacterHistory
-                        );
-                        if (firstTimeMessage && firstTimeMessage.trim()) {
-                            ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                        }
-                        return true;
                     }
                 } else if (handlerForFirstMessage && typeof handlerForFirstMessage.getGuardianConfirmationMessage === 'function' && !guardianMessageShown && !handlerSkippedFirstMessage) {
                     // 【スケーラビリティ改善】守護神確認メッセージの取得をハンドラーに委譲

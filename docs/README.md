@@ -31,6 +31,8 @@
 ### guides/
 ガイド・参考資料
 - `WORKDIR_GUIDE.md` - **作業用フォルダー管理ガイド**（作業ディレクトリ確認、ワークツリー対策、.wrangler クリーンアップ）
+- `CHAT_SYSTEM_ARCHITECTURE.md` - **チャットシステム全体構造図と説明**（システム全体の構造、主要ファイルの役割、初回訪問時と再訪問時の処理フロー）
+- `CHARACTER_VISIT_FLOW.md` - **各キャラクターの初回訪問時と再訪問時の対応フロー図**（全キャラクター共通フロー、各キャラクター固有の対応フロー）
 - `YUKINO_CHAT_SYSTEM.md` - 雪乃チャットシステム
 - `YUKINO_TAROT_SYSTEM.md` - 雪乃タロットシステム
 - `GUEST_HISTORY_FLOW.md` - ゲスト履歴フロー

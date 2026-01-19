@@ -12,15 +12,66 @@ const ChatData = {
     ritualConsentShown: false, // 守護神の儀式への同意ボタンが表示されたかどうか
 
     /**
-     * 鑑定士情報を外部ファイルから読み込む
+     * キャラクターデータを読み込む（単一キャラクターのみ）
+     * @param {string} characterId - キャラクターID（オプション、指定がない場合は全キャラクターを読み込む）
      * @returns {Promise<Object>} キャラクター情報
      */
-    async loadCharacterData() {
+    async loadCharacterData(characterId = null) {
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:19',message:'loadCharacterData開始',data:{},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // }
         // #endregion
+        
+        // characterIdが指定されている場合、個別ファイルから読み込む
+        if (characterId) {
+            if (this.characterData && this.characterData.id === characterId) {
+                // すでに読み込み済み
+                return this.characterData;
+            }
+            
+            try {
+                // 個別ファイルから読み込み
+                const response = await fetch(`../../data/characters/${characterId}.json`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load character data: ${response.status}`);
+                }
+                
+                this.characterData = await response.json();
+                // 後方互換性のため、characterInfoにも設定
+                this.characterInfo = {
+                    [characterId]: this.characterData
+                };
+                
+                console.log(`[ChatData.loadCharacterData] 個別ファイルから読み込み完了: ${characterId}`);
+                return this.characterData;
+                
+            } catch (error) {
+                console.error('キャラクターデータ読み込みエラー:', error);
+                
+                // フォールバック: 全キャラクターデータから読み込み
+                console.log('Falling back to full characters.json');
+                try {
+                    const response = await fetch('../../data/characters.json');
+                    if (!response.ok) {
+                        throw new Error('Failed to load full characters.json');
+                    }
+                    const allCharacters = await response.json();
+                    this.characterData = {
+                        id: characterId,
+                        ...allCharacters[characterId]
+                    };
+                    this.characterInfo = allCharacters;
+                    return this.characterData;
+                } catch (fallbackError) {
+                    console.error('フォールバック読み込みも失敗:', fallbackError);
+                    return {};
+                }
+            }
+        }
+        
+        // characterIdが指定されていない場合、従来通り全キャラクターを読み込む
         try {
             const response = await fetch('../../data/characters.json');
             if (!response.ok) {

@@ -10,11 +10,12 @@
  * @param {number} params.userId - ユーザーID
  * @param {string} params.characterId - キャラクターID
  * @param {Object} params.database - D1データベース接続
+ * @param {boolean} params.isRegisteredUser - ユーザーが登録済みかどうか（nicknameが存在するか）
  * @returns {Promise<Object>} 訪問パターン情報
  */
-export async function detectVisitPattern({ userId, characterId, database }) {
+export async function detectVisitPattern({ userId, characterId, database, isRegisteredUser = false }) {
   try {
-    console.log('[VisitPatternDetector] 訪問パターン判定開始:', { userId, characterId });
+    console.log('[VisitPatternDetector] 訪問パターン判定開始:', { userId, characterId, isRegisteredUser });
 
     // 1. データベースから会話履歴を確認
     const conversationHistory = await getConversationHistory(database, userId, characterId);
@@ -23,21 +24,34 @@ export async function detectVisitPattern({ userId, characterId, database }) {
     const hasDbHistory = conversationHistory && conversationHistory.length > 0;
 
     if (!hasDbHistory) {
-      // パターンA: 初回訪問
-      console.log('[VisitPatternDetector] 判定結果: first_visit');
-      return {
-        pattern: 'first_visit',
-        conversationHistory: [],
-        sessionContext: null,
-        lastConversationSummary: null
-      };
+      // データベースに履歴がない場合
+      if (isRegisteredUser) {
+        // パターンC: 履歴なしの再訪問（継続セッション）
+        // ユーザーが登録済みだが、このキャラクターとの会話履歴がない場合
+        console.log('[VisitPatternDetector] 判定結果: continuing（履歴なしの再訪問）');
+        return {
+          pattern: 'continuing',
+          conversationHistory: [],
+          sessionContext: '前回の会話の継続です。同じセッション内での継続的な会話として応答してください。',
+          lastConversationSummary: null
+        };
+      } else {
+        // パターンA: 初回訪問
+        console.log('[VisitPatternDetector] 判定結果: first_visit');
+        return {
+          pattern: 'first_visit',
+          conversationHistory: [],
+          sessionContext: null,
+          lastConversationSummary: null
+        };
+      }
     }
 
     // パターンB: 履歴ありの再訪問
     const lastConversation = conversationHistory[0];
     const summary = generateConversationSummary(lastConversation, conversationHistory);
     
-    console.log('[VisitPatternDetector] 判定結果: returning');
+    console.log('[VisitPatternDetector] 判定結果: returning（履歴ありの再訪問）');
     return {
       pattern: 'returning',
       conversationHistory: conversationHistory,
