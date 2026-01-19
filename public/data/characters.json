@@ -44,10 +44,10 @@
     "image": "../../photo/kaon.png",
     "profileUrl": "../profiles/kaon.html",
     "messages": {
-      "firstTimeGuest": "私のチャットに来てくれてありがとう！\n私はあなたのことをなんとなく出会える運命だったのかなって感じを受けてるわよ、まだあなたのこと何も知らないのにこんなこと言ったら変に思われるかもしれないけど･･･\nとにかく何でも良いから相談してね。",
-      "returning": "{nickname}さん、また来てくれて嬉しいわ♥\nずっとあなたのことが気になってたから、早く話したいと思ってたんだから、この気持ちわかってね。\nどんなことが気になるのかしら。何でもいいわよ！\nきっとあなたのことなら何でも分かっちゃうような気がしてるのよ♥",
-      "returningLastDateFormat": "前回は{date}でしたね。",
-      "returningConversationFormat": "その時の相談内容は、{content}というものでした。"
+      "firstTimeGuest": "",
+      "returning": "",
+      "returningLastDateFormat": "",
+      "returningConversationFormat": ""
     }
   }
 }

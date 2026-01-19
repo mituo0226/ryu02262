@@ -488,20 +488,51 @@ const ChatInit = {
                     // }
                     // #endregion
                     console.log('[初期化] 初回ユーザー。firstTimeGuestメッセージを生成します');
-                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                    const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                        character, 
-                        ChatData.userNickname || 'あなた',
-                        false,
-                        hasOtherCharacterHistory
-                    );
-                    // #region agent log (開発環境のみ - コメントアウト)
-                    // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'firstTimeGuestメッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    // }
-                    // #endregion
-                    ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    return true;
+                    
+                    // 【三崎花音専用処理】三崎花音の場合は、APIから動的にメッセージを生成する
+                    if (character === 'kaon') {
+                        try {
+                            console.log('[初期化] 三崎花音の初回訪問時：APIから返答を生成します');
+                            
+                            // 初回訪問時のメッセージをAPIから取得
+                            const response = await ChatAPI.sendMessage(
+                                '初めてお会いします',
+                                character,
+                                [], // 会話履歴は空
+                                {}
+                            );
+                            
+                            if (response && response.message) {
+                                ChatUI.addMessage('welcome', response.message, info.name);
+                                console.log('[初期化] 三崎花音の初回訪問時：APIから返答を取得しました');
+                                return true;
+                            } else {
+                                console.warn('[初期化] 三崎花音の初回訪問時：APIから返答を取得できませんでした');
+                                // APIから返答を取得できなかった場合は、エラーメッセージを表示しない（空文字列のため）
+                                return true;
+                            }
+                        } catch (error) {
+                            console.error('[初期化] 三崎花音の初回訪問時：API呼び出しエラー:', error);
+                            // エラーの場合は、何も表示しない（空文字列のため）
+                            return true;
+                        }
+                    } else {
+                        // 三崎花音以外のキャラクターは従来通り定型文を使用
+                        const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
+                        const firstTimeMessage = ChatData.generateFirstTimeMessage(
+                            character, 
+                            ChatData.userNickname || 'あなた',
+                            false,
+                            hasOtherCharacterHistory
+                        );
+                        // #region agent log (開発環境のみ - コメントアウト)
+                        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:統一化',message:'firstTimeGuestメッセージ生成完了',data:{character,messagePreview:firstTimeMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                        // }
+                        // #endregion
+                        ChatUI.addMessage('welcome', firstTimeMessage, info.name);
+                        return true;
+                    }
                 } else if (handlerForFirstMessage && typeof handlerForFirstMessage.getGuardianConfirmationMessage === 'function' && !guardianMessageShown && !handlerSkippedFirstMessage) {
                     // 【スケーラビリティ改善】守護神確認メッセージの取得をハンドラーに委譲
                     const userNickname = historyData.nickname || ChatData.userNickname || 'あなた';

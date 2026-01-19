@@ -2,6 +2,7 @@
 import { generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
 import { isValidCharacter } from '../_lib/character-loader.js';
 import { generateGuardianFirstMessagePrompt, generateKaedeFollowUpPrompt } from '../_lib/characters/kaede.js';
+import { detectVisitPattern } from '../_lib/visit-pattern-detector.js';
 
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
@@ -1117,6 +1118,28 @@ export const onRequestPost: PagesFunction = async (context) => {
     let userGender: string | null = null;
     let userBirthDate: string | null = null;
     
+    // 三崎花音の場合、訪問パターンを判定
+    let visitPatternInfo: any = null;
+    if (characterId === 'kaon' && user) {
+      try {
+        visitPatternInfo = await detectVisitPattern({
+          userId: user.id,
+          characterId: 'kaon',
+          database: env.DB,
+        });
+        console.log('[consult] 三崎花音の訪問パターン判定完了:', visitPatternInfo.pattern);
+      } catch (error) {
+        console.error('[consult] 訪問パターン判定エラー:', error);
+        // エラー時は初回訪問として扱う
+        visitPatternInfo = {
+          pattern: 'first_visit',
+          conversationHistory: [],
+          sessionContext: null,
+          lastConversationSummary: null,
+        };
+      }
+    }
+    
     if (user) {
       try {
         const userInfo = await env.DB.prepare<{ gender: string | null; birth_year: number | null; birth_month: number | null; birth_day: number | null }>(
@@ -1149,6 +1172,11 @@ export const onRequestPost: PagesFunction = async (context) => {
       userMessageCount: userMessageCount,
       userGender: userGender,
       userBirthDate: userBirthDate,
+      // 三崎花音の動的プロンプト生成用パラメータ
+      visitPattern: visitPatternInfo?.pattern || 'first_visit',
+      conversationHistory: visitPatternInfo?.conversationHistory || [],
+      lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
+      sessionContext: visitPatternInfo?.sessionContext || null,
     });
 
     console.log('[consult] システムプロンプト生成:', {
@@ -1193,10 +1221,10 @@ export const onRequestPost: PagesFunction = async (context) => {
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
-    // 楓の完全版プロンプトは長いため、maxTokensを増やす
-    const maxTokensForCharacter = characterId === 'kaede' ? 2000 : 800;
-    const temperatureForCharacter = characterId === 'kaede' ? 0.7 : 0.5; // 楓の完全版では少し高い温度で神秘性を出す
-    const topPForCharacter = characterId === 'kaede' ? 0.9 : 0.8;
+    // 楓と三崎花音の完全版プロンプトは長いため、maxTokensを増やす
+    const maxTokensForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 2000 : 800;
+    const temperatureForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.7 : 0.5; // 楓と三崎花音では少し高い温度で温かみを出す
+    const topPForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.9 : 0.8;
     
     console.log('[consult] LLM API呼び出し準備:', {
       characterId,

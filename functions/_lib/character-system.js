@@ -93,6 +93,7 @@ export function generateSystemPrompt(characterId, options = {}) {
   const generator = promptGenerators[characterId] || promptGenerators.kaede;
   // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定だけを守らせる
   // 楓の完全版プロンプトに必要な全てのパラメータを渡す
+  // 三崎花音の場合は動的プロンプト生成用のパラメータも渡す
   const characterPrompt = generator({
     userNickname: options.userNickname,
     hasPreviousConversation: options.hasPreviousConversation,
@@ -104,6 +105,11 @@ export function generateSystemPrompt(characterId, options = {}) {
     userMessageCount: options.userMessageCount || 0,
     userGender: options.userGender || null,
     userBirthDate: options.userBirthDate || null,
+    // 三崎花音の動的プロンプト生成用パラメータ
+    visitPattern: options.visitPattern || (options.hasPreviousConversation ? 'returning' : 'first_visit'),
+    conversationHistory: options.conversationHistory || [],
+    lastConversationSummary: options.lastConversationSummary || null,
+    sessionContext: options.sessionContext || null,
   });
 
   // キャラクターの機能制約を生成（ポジティブアプローチ：利用可能な機能のみを明示）
