@@ -106,7 +106,10 @@ export function generateSystemPrompt(characterId, options = {}) {
     userGender: options.userGender || null,
     userBirthDate: options.userBirthDate || null,
     // 三崎花音の動的プロンプト生成用パラメータ
-    visitPattern: options.visitPattern || (options.hasPreviousConversation ? 'returning' : 'first_visit'),
+    // visitPatternが明示的に指定されている場合はそれを使用、そうでない場合はhasPreviousConversationから判定
+    visitPattern: options.visitPattern !== undefined && options.visitPattern !== null 
+      ? options.visitPattern 
+      : (options.hasPreviousConversation ? 'returning' : 'first_visit'),
     conversationHistory: options.conversationHistory || [],
     lastConversationSummary: options.lastConversationSummary || null,
     sessionContext: options.sessionContext || null,
@@ -126,6 +129,8 @@ export function generateSystemPrompt(characterId, options = {}) {
     guardian: options.guardian,
     isRitualStart: options.isRitualStart,
     userMessageCount: options.userMessageCount,
+    visitPattern: options.visitPattern,
+    lastConversationSummary: options.lastConversationSummary?.substring(0, 100),
     promptLength: prompt.length,
     characterPromptLength: characterPrompt.length,
     promptPreview: characterPrompt.substring(0, 300) + '...',

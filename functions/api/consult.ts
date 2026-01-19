@@ -1187,6 +1187,8 @@ export const onRequestPost: PagesFunction = async (context) => {
       isRitualStart,
       userGender,
       userBirthDate,
+      visitPattern: visitPatternInfo?.pattern,
+      lastConversationSummary: visitPatternInfo?.lastConversationSummary?.substring(0, 100),
       systemPromptLength: systemPrompt.length,
       systemPromptPreview: systemPrompt.substring(0, 500) + '...',
     });
