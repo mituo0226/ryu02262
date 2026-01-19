@@ -16,8 +16,8 @@ interface ClientHistoryEntry {
 
 interface RequestBody {
   character: string;
-  userId: number;
-  conversationHistory?: ClientHistoryEntry[];
+  userId: number | string; // 数値または文字列として受け取る
+  conversationHistory?: ClientHistoryEntry[]; // フロントエンドから受け取るが、バックエンドで再取得するため使用しない
   visitPattern?: string;
 }
 
@@ -456,11 +456,26 @@ export const onRequestPost: PagesFunction = async (context) => {
       );
     }
 
+    // ユーザーIDを数値に変換して検証
+    const userIdNumber = Number(userId);
+    if (!Number.isFinite(userIdNumber) || userIdNumber <= 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid userId',
+        } as ResponseBody),
+        {
+          status: 400,
+          headers: corsHeaders,
+        }
+      );
+    }
+
     // ユーザー情報取得
     const user = await env.DB.prepare<UserRecord>(
       'SELECT id, nickname, guardian, birth_year, birth_month, birth_day, gender FROM users WHERE id = ?'
     )
-      .bind(userId)
+      .bind(userIdNumber)
       .first();
 
     if (!user) {
@@ -475,6 +490,41 @@ export const onRequestPost: PagesFunction = async (context) => {
         }
       );
     }
+
+    // 【重要】フロントエンドから受け取った履歴を信頼せず、データベースから直接取得
+    // これにより、ユーザーIDの混在を防ぐ
+    console.log('[generate-welcome] データベースから会話履歴を取得します:', {
+      userId: userIdNumber,
+      character,
+    });
+
+    const historyResults = await env.DB.prepare<{
+      role: 'user' | 'assistant';
+      message: string;
+      created_at: string;
+    }>(
+      `SELECT c.role, c.message, COALESCE(c.timestamp, c.created_at) as created_at
+       FROM conversations c
+       WHERE c.user_id = ? AND c.character_id = ?
+       ORDER BY COALESCE(c.timestamp, c.created_at) DESC
+       LIMIT 50`
+    )
+      .bind(userIdNumber, character)
+      .all();
+
+    // データベースから取得した履歴を使用（古い順に並び替え）
+    const dbConversationHistory: ClientHistoryEntry[] = (historyResults.results || [])
+      .reverse()
+      .map((row) => ({
+        role: row.role,
+        content: row.message || '',
+      }));
+
+    console.log('[generate-welcome] データベースから取得した履歴:', {
+      userId: userIdNumber,
+      character,
+      historyLength: dbConversationHistory.length,
+    });
 
     // 訪問パターン判定（未指定の場合）
     let finalVisitPattern = visitPattern;
@@ -502,21 +552,21 @@ export const onRequestPost: PagesFunction = async (context) => {
       userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
     }
 
-    // 会話要約を生成
-    const conversationSummary = generateConversationSummary(conversationHistory);
+    // 会話要約を生成（データベースから取得した履歴を使用）
+    const conversationSummary = generateConversationSummary(dbConversationHistory);
 
-    // システムプロンプト生成
+    // システムプロンプト生成（データベースから取得した履歴を使用）
     const systemPrompt = generateSystemPrompt(character, {
       userNickname: user.nickname,
-      hasPreviousConversation: conversationHistory.length > 0,
+      hasPreviousConversation: dbConversationHistory.length > 0,
       guardian: user.guardian || null,
       isRitualStart: false,
       isJustRegistered: false,
-      userMessageCount: conversationHistory.filter((m) => m.role === 'user').length,
+      userMessageCount: dbConversationHistory.filter((m) => m.role === 'user').length,
       userGender: userGender,
       userBirthDate: userBirthDate,
       visitPattern: finalVisitPattern,
-      conversationHistory: conversationHistory,
+      conversationHistory: dbConversationHistory, // データベースから取得した履歴を使用
       lastConversationSummary: conversationSummary,
       sessionContext: null,
     });
@@ -526,8 +576,8 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (finalVisitPattern === 'first_visit') {
       userMessage = '初めてお会いします。よろしくお願いします。';
     } else if (finalVisitPattern === 'returning') {
-      // 最後のユーザーメッセージを参照
-      const lastUserMsg = conversationHistory.filter((m) => m.role === 'user').slice(-1)[0];
+      // 最後のユーザーメッセージを参照（データベースから取得した履歴から）
+      const lastUserMsg = dbConversationHistory.filter((m) => m.role === 'user').slice(-1)[0];
       userMessage = lastUserMsg?.content || 'また来ました。';
     } else {
       userMessage = '前回の続きです。';
@@ -565,7 +615,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     try {
       const llmResult = await getLLMResponse({
         systemPrompt,
-        conversationHistory: conversationHistory.slice(-6), // 最近の6件のみ
+        conversationHistory: dbConversationHistory.slice(-6), // データベースから取得した履歴の最近6件のみ
         userMessage,
         temperature: temperatureForCharacter,
         maxTokens: maxTokensForCharacter,
