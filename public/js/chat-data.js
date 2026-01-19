@@ -30,44 +30,31 @@ const ChatData = {
                 return this.characterData;
             }
             
+            // 【修正】個別ファイルは存在しないため、直接characters.jsonから読み込む
+            // 個別ファイル読み込みを削除し、常にcharacters.jsonから読み込むように変更
             try {
-                // 個別ファイルから読み込み
-                const response = await fetch(`../../data/characters/${characterId}.json`);
-                
+                const response = await fetch('../../data/characters.json');
                 if (!response.ok) {
-                    throw new Error(`Failed to load character data: ${response.status}`);
+                    throw new Error('Failed to load full characters.json');
                 }
+                const allCharacters = await response.json();
                 
-                this.characterData = await response.json();
-                // 後方互換性のため、characterInfoにも設定
-                this.characterInfo = {
-                    [characterId]: this.characterData
-                };
-                
-                console.log(`[ChatData.loadCharacterData] 個別ファイルから読み込み完了: ${characterId}`);
-                return this.characterData;
-                
-            } catch (error) {
-                console.error('キャラクターデータ読み込みエラー:', error);
-                
-                // フォールバック: 全キャラクターデータから読み込み
-                console.log('Falling back to full characters.json');
-                try {
-                    const response = await fetch('../../data/characters.json');
-                    if (!response.ok) {
-                        throw new Error('Failed to load full characters.json');
-                    }
-                    const allCharacters = await response.json();
-                    this.characterData = {
-                        id: characterId,
-                        ...allCharacters[characterId]
-                    };
-                    this.characterInfo = allCharacters;
-                    return this.characterData;
-                } catch (fallbackError) {
-                    console.error('フォールバック読み込みも失敗:', fallbackError);
+                if (!allCharacters[characterId]) {
+                    console.warn(`[ChatData.loadCharacterData] キャラクター "${characterId}" が見つかりません`);
                     return {};
                 }
+                
+                this.characterData = {
+                    id: characterId,
+                    ...allCharacters[characterId]
+                };
+                this.characterInfo = allCharacters;
+                
+                console.log(`[ChatData.loadCharacterData] 読み込み完了: ${characterId}`);
+                return this.characterData;
+            } catch (error) {
+                console.error('キャラクターデータ読み込みエラー:', error);
+                return {};
             }
         }
         
