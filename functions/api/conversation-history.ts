@@ -247,13 +247,13 @@ export const onRequestGet: PagesFunction = async (context) => {
       ? sortedConversations[sortedConversations.length - 1].created_at 
       : null;
 
-    // 最近のメッセージを返す（最新10件、created_atも含める）
-    // SQLクエリでmessage as contentとしてエイリアスしているため、row.contentに値が入る
-    const recentMessages = sortedConversations.slice(-10).map((row) => ({
-      role: row.role,
-      content: row.content || row.message || '', // SQLエイリアスでcontentに値が入るが、フォールバックとしてmessageも確認
-      created_at: row.created_at,
-    }));
+    // 【変更】履歴を表示しないため、recentMessagesは空配列を返す
+    // 鑑定士の挨拶メッセージで過去の会話を記憶していることを示すため、履歴表示は不要
+    const recentMessages: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      created_at?: string;
+    }> = [];
 
     // 会話履歴をClientHistoryEntry形式に変換
     const conversationHistoryForLLM: ClientHistoryEntry[] = sortedConversations.map((row) => ({
@@ -324,8 +324,8 @@ export const onRequestGet: PagesFunction = async (context) => {
         birthDay: user.birth_day,
         assignedDeity: user.guardian, // guardianカラムから取得
         lastConversationDate,
-        recentMessages,
-        conversationSummary: conversationText,
+        recentMessages: [], // 【変更】履歴は表示しない（空配列を返す）
+        conversationSummary: conversationText, // システムプロンプト生成用に保持（表示はしない）
         clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
         firstQuestion: firstQuestion, // 最初の質問（儀式完了後の定型文で使用）
         returningMessage: null, // フロントエンドで非同期生成（generate-welcome APIを使用）

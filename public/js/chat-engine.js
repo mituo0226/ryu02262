@@ -442,20 +442,22 @@ const ChatInit = {
                     }
                     
                     // バックグラウンドで動的メッセージを生成（非同期）
+                    // 【変更】履歴は表示しないが、システムプロンプト生成のためにvisitPatternのみを渡す
                     const generateMessageAsync = async () => {
                         try {
                             const visitPattern = historyData.visitPattern || 'returning';
-                            const conversationHistory = historyData.recentMessages || [];
                             
                             console.log(`[初期化] ${info.name}の再訪問時：バックグラウンドで動的メッセージを生成します`, {
                                 character,
-                                visitPattern,
-                                historyLength: conversationHistory.length
+                                visitPattern
                             });
                             
+                            // 【変更】conversationHistoryは渡さない（generate-welcome.tsでデータベースから取得）
+                            // 履歴は表示しないが、システムプロンプト生成のためにvisitPatternを渡す
+                            // バックエンドでデータベースから履歴を取得し、システムプロンプトに含める
                             const welcomeMessage = await ChatAPI.generateWelcomeMessage({
                                 character,
-                                conversationHistory,
+                                conversationHistory: [], // 空配列を渡す（バックエンドでデータベースから取得）
                                 visitPattern
                             });
                             
@@ -726,65 +728,10 @@ const ChatInit = {
                 handlerForClearFlags.clearFlagsOnNewConversation(conversationHistory, null);
             }
             
-            // 会話履歴を表示
-            // 守護神の儀式完了直後（guardianMessageShown）の場合は、会話履歴を表示しない
-            // （既に守護神の儀式完了メッセージが表示されているため）
-            const guardianMessageShownFromStorage = sessionStorage.getItem('guardianMessageShown') === 'true';
-            
-            if (conversationHistory.length > 0 && !guardianMessageShownFromStorage) {
-                console.log('[初期化] 会話履歴を表示します:', conversationHistory.length, '件');
-                const info = ChatData.characterInfo[character];
-                
-                // 【改善】会話履歴の遅延表示: 最新5件だけ即座に表示、残りを遅延表示
-                const totalMessages = conversationHistory.length;
-                const recentFive = conversationHistory.slice(-5); // 最新5件
-                const olderMessages = conversationHistory.slice(0, -5); // 残りの履歴
-                
-                // 最新5件を即座に表示
-                recentFive.forEach((entry) => {
-                    // システムメッセージ（isSystemMessage: true）は画面に表示しない
-                    if (entry.isSystemMessage) {
-                        const content = entry.content || entry.message || '';
-                        if (content) {
-                            console.log('[初期化] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
-                        }
-                        return;
-                    }
-                    const type = entry.role === 'user' ? 'user' : 'character';
-                    const sender = entry.role === 'user' ? 'あなた' : info.name;
-                    // contentを安全に取得（messageプロパティも確認）
-                    const content = entry.content || entry.message || '';
-                    if (window.ChatUI) {
-                        window.ChatUI.addMessage(type, content, sender);
-                    }
-                });
-                
-                // 残りの履歴を遅延表示（バックグラウンド）
-                if (olderMessages.length > 0) {
-                    console.log('[初期化] 残りの会話履歴を遅延表示します:', olderMessages.length, '件');
-                    setTimeout(() => {
-                        olderMessages.forEach((entry) => {
-                            // システムメッセージ（isSystemMessage: true）は画面に表示しない
-                            if (entry.isSystemMessage) {
-                                const content = entry.content || entry.message || '';
-                                if (content) {
-                                    console.log('[初期化] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
-                                }
-                                return;
-                            }
-                            const type = entry.role === 'user' ? 'user' : 'character';
-                            const sender = entry.role === 'user' ? 'あなた' : info.name;
-                            // contentを安全に取得（messageプロパティも確認）
-                            const content = entry.content || entry.message || '';
-                            // 古いメッセージは先頭に追加（prependMessageを使用）
-                            if (window.ChatUI && window.ChatUI.prependMessage) {
-                                window.ChatUI.prependMessage(type, content, sender);
-                            }
-                        });
-                        console.log('[初期化] 遅延表示完了:', olderMessages.length, '件');
-                    }, 100); // 100ms後に表示
-                }
-            }
+            // 【変更】会話履歴は表示しない
+            // 鑑定士の挨拶メッセージで過去の会話を記憶していることを示すため、履歴表示は不要
+            // 常に最初のチャットから始まり、鑑定士が挨拶で過去の会話を参照する
+            console.log('[初期化] 会話履歴は表示しません（鑑定士の挨拶で過去の会話を記憶していることを示します）');
             
             // 雪乃の個別相談モード開始直後の定型文を表示（現在は使用されていない）
             if (false && character === 'yukino') {
