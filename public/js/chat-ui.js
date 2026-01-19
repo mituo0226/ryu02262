@@ -574,19 +574,6 @@ const ChatUI = {
         return messageId;
     },
         
-        // メッセージ追加後、ハンドラーのコールバックを呼び出す（鑑定士固有の処理を委譲）
-        // これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
-        if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
-            const handler = CharacterRegistry.get(ChatData.currentCharacter);
-            if (handler && typeof handler.onMessageAdded === 'function') {
-                try {
-                    handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
-                } catch (error) {
-                    console.error(`[chat-ui] ハンドラーのonMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
-                }
-            }
-        }
-        
         requestAnimationFrame(() => {
             this.scrollToLatest();
         });

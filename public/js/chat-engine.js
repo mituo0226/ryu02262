@@ -72,6 +72,9 @@ const ChatInit = {
         
         // 会話履歴はデータベースから取得（すべて登録ユーザー）
 
+        // 【修正】キャラクターを先に取得してから使用
+        const character = ChatData.getCharacterFromURL();
+
         // キャラクター情報を読み込む（単一キャラクターのみ）
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -95,8 +98,7 @@ const ChatInit = {
             return;
         }
         
-        // キャラクターを設定
-        const character = ChatData.getCharacterFromURL();
+        // 【削除】characterは既に上で定義済み
 
         // 以前のキャラクターを保存（キャラクター切り替え判定用）
         const previousCharacter = ChatData.currentCharacter;
@@ -2137,7 +2139,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.body.classList.add('fade-in');
     
     // UIを初期化
-    ChatUI.init();
+    if (window.ChatUI && typeof window.ChatUI.init === 'function') {
+        window.ChatUI.init();
+    }
     
     // ページを初期化
     // 入口フォームが表示されている場合は初期化をスキップ（ただし、initEntryForm()が処理中の場合を除く）
