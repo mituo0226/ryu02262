@@ -392,9 +392,9 @@ const ChatInit = {
              * @param {Object} options - オプション
              * @param {boolean} options.shouldShow - メッセージを表示するかどうか
              * @param {boolean} options.handlerSkippedFirstMessage - ハンドラーでスキップされたかどうか
-             * @returns {boolean} メッセージが表示されたかどうか
+             * @returns {Promise<boolean>} メッセージが表示されたかどうか
              */
-            const showInitialMessage = (options = {}) => {
+            const showInitialMessage = async (options = {}) => {
                 const { shouldShow = true, handlerSkippedFirstMessage = false } = options;
                 
                 // 表示条件をチェック
