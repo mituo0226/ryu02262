@@ -122,6 +122,18 @@ export function generateSystemPrompt(characterId, options = {}) {
   // 安全ガイドライン → 機能制約 → キャラクター固有プロンプトの順で結合
   const prompt = COMMON_SAFETY_GUIDELINES + '\n\n' + capabilityConstraints + '\n\n' + characterPrompt;
 
+  // lastConversationSummaryをログ用に文字列化（オブジェクト形式にも対応）
+  let lastConversationSummaryPreview = null;
+  if (options.lastConversationSummary) {
+    if (typeof options.lastConversationSummary === 'object') {
+      // オブジェクト形式の場合
+      lastConversationSummaryPreview = `${options.lastConversationSummary.date || ''}: ${options.lastConversationSummary.topics || ''}`.substring(0, 100);
+    } else {
+      // 文字列形式の場合（後方互換性）
+      lastConversationSummaryPreview = options.lastConversationSummary.substring(0, 100);
+    }
+  }
+
   console.log('[character-system] システムプロンプト生成完了:', {
     characterId,
     userNickname: options.userNickname,
@@ -130,7 +142,7 @@ export function generateSystemPrompt(characterId, options = {}) {
     isRitualStart: options.isRitualStart,
     userMessageCount: options.userMessageCount,
     visitPattern: options.visitPattern,
-    lastConversationSummary: options.lastConversationSummary?.substring(0, 100),
+    lastConversationSummary: lastConversationSummaryPreview,
     promptLength: prompt.length,
     characterPromptLength: characterPrompt.length,
     promptPreview: characterPrompt.substring(0, 300) + '...',
