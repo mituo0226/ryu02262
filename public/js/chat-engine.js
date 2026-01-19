@@ -9,6 +9,9 @@
  * CharacterRegistry は character-registry.js で定義されています。
  */
 
+// ChatUIのエイリアス（chat-ui.jsが読み込まれた後に利用可能になる）
+const ChatUI = window.ChatUI || {};
+
 const ChatInit = {
     /**
      * ページを初期化
@@ -55,8 +58,8 @@ const ChatInit = {
         // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
         
         // ChatUIを初期化
-        if (ChatUI && typeof ChatUI.init === 'function') {
-            ChatUI.init();
+        if (window.ChatUI && typeof window.ChatUI.init === 'function') {
+            window.ChatUI.init();
         }
         
         // AuthStateを初期化
@@ -118,7 +121,9 @@ const ChatInit = {
         // #endregion
         
         ChatData.currentCharacter = character;
-        ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
+        if (window.ChatUI) {
+            window.ChatUI.setCurrentCharacter(character, ChatData.characterInfo);
+        }
         
         // 【変更】ユーザー情報の設定はhistoryDataの取得後に実行
         // （データベースベースの判断に移行するため、初期化時はnull）
