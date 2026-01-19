@@ -5,7 +5,12 @@
  * BaseCharacterHandlerを継承
  */
 
-class KaonHandler extends BaseCharacterHandler {
+// BaseCharacterHandlerが読み込まれていることを確認
+if (typeof window.BaseCharacterHandler === 'undefined') {
+    throw new Error('BaseCharacterHandler is not loaded. Please load base-handler.js first.');
+}
+
+class KaonHandler extends window.BaseCharacterHandler {
     constructor() {
         super('kaon', '三崎花音');
     }
