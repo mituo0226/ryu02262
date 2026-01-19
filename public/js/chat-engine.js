@@ -430,29 +430,67 @@ const ChatInit = {
                     return false;
                 }
                 
-                // 会話履歴がある場合：returningメッセージを表示
-                // 【改善】バックエンドで生成された定型文のreturningMessageを使用（LLM API呼び出しなし）
+                // 会話履歴がある場合：非同期メッセージ生成方式
+                // 【改善】履歴を即座に表示し、「考え中...」を表示してからバックグラウンドで動的メッセージを生成
                 if (historyData && historyData.hasHistory) {
-                    console.log('[初期化] 再訪問ユーザー。バックエンドで生成された定型文のreturningMessageを使用します');
+                    console.log('[初期化] 再訪問ユーザー。非同期メッセージ生成方式を使用します');
                     
-                    // バックエンドで生成された定型文のreturningMessageを使用
-                    if (historyData.returningMessage && historyData.returningMessage.trim()) {
-                        if (window.ChatUI) {
-                            window.ChatUI.addMessage('welcome', historyData.returningMessage, info.name);
-                        }
-                        console.log(`[初期化] ${info.name}の再訪問時：バックエンドで生成された定型文のreturningMessageを表示しました`);
-                        return true;
-                    } else {
-                        // returningMessageが生成されていない場合のフォールバック
-                        console.warn(`[初期化] ${info.name}の再訪問時：returningMessageが生成されていません。フォールバック処理を実行します`);
-                        const initialMessage = ChatData.generateInitialMessage(character, historyData);
-                        if (initialMessage && initialMessage.trim()) {
-                            if (window.ChatUI) {
-                                window.ChatUI.addMessage('welcome', initialMessage, info.name);
+                    // 「考え中...」を表示
+                    let thinkingElement = null;
+                    if (window.ChatUI && typeof window.ChatUI.addThinkingMessage === 'function') {
+                        thinkingElement = window.ChatUI.addThinkingMessage(info.name);
+                    }
+                    
+                    // バックグラウンドで動的メッセージを生成（非同期）
+                    const generateMessageAsync = async () => {
+                        try {
+                            const visitPattern = historyData.visitPattern || 'returning';
+                            const conversationHistory = historyData.recentMessages || [];
+                            
+                            console.log(`[初期化] ${info.name}の再訪問時：バックグラウンドで動的メッセージを生成します`, {
+                                character,
+                                visitPattern,
+                                historyLength: conversationHistory.length
+                            });
+                            
+                            const welcomeMessage = await ChatAPI.generateWelcomeMessage({
+                                character,
+                                conversationHistory,
+                                visitPattern
+                            });
+                            
+                            console.log(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
+                            
+                            // 「考え中...」を動的メッセージに置き換え
+                            if (thinkingElement && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
+                                window.ChatUI.replaceThinkingMessage(thinkingElement, welcomeMessage);
+                            } else if (window.ChatUI) {
+                                // replaceThinkingMessageが使えない場合は、考え中要素を削除して新しく追加
+                                if (thinkingElement && thinkingElement.parentNode) {
+                                    thinkingElement.parentNode.removeChild(thinkingElement);
+                                }
+                                window.ChatUI.addMessage('welcome', welcomeMessage, info.name);
+                            }
+                        } catch (error) {
+                            console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
+                            
+                            // エラー時はフォールバック（定型文）
+                            const fallbackMessage = ChatData.generateInitialMessage(character, historyData);
+                            if (thinkingElement && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
+                                window.ChatUI.replaceThinkingMessage(thinkingElement, fallbackMessage || 'お帰りなさい。');
+                            } else if (window.ChatUI) {
+                                if (thinkingElement && thinkingElement.parentNode) {
+                                    thinkingElement.parentNode.removeChild(thinkingElement);
+                                }
+                                window.ChatUI.addMessage('welcome', fallbackMessage || 'お帰りなさい。', info.name);
                             }
                         }
-                        return true;
-                    }
+                    };
+                    
+                    // 非同期で実行（ページ読み込みをブロックしない）
+                    generateMessageAsync();
+                    
+                    return true;
                 }
                 
                 // 会話履歴がない場合の処理
@@ -521,33 +559,70 @@ const ChatInit = {
                             }
                         
                         case 'first_visit':
-                            // 【初回訪問時】conversation-history APIから返されたwelcomeMessageを使用
-                            console.log('[初期化] 初回ユーザー。conversation-history APIから返されたwelcomeMessageを使用します');
+                            // 【初回訪問時】非同期メッセージ生成方式
+                            console.log('[初期化] 初回ユーザー。非同期メッセージ生成方式を使用します');
                             
-                            // APIから返されたwelcomeMessageを使用
-                            if (historyData && historyData.welcomeMessage) {
-                                if (window.ChatUI) {
-                                    window.ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
-                                }
-                                console.log(`[初期化] ${info.name}の初回訪問時：welcomeMessageを使用しました`);
-                                return true;
-                            } else {
-                                // welcomeMessageが取得できなかった場合は、フォールバックとして定型文を試行
-                                console.warn(`[初期化] ${info.name}の初回訪問時：welcomeMessageが取得できませんでした。定型文を使用します`);
-                                const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
-                                const firstTimeMessage = ChatData.generateFirstTimeMessage(
-                                    character, 
-                                    ChatData.userNickname || 'あなた',
-                                    false,
-                                    hasOtherCharacterHistory
-                                );
-                                if (firstTimeMessage && firstTimeMessage.trim()) {
-                                    if (window.ChatUI) {
-                        window.ChatUI.addMessage('welcome', firstTimeMessage, info.name);
-                    }
-                                }
-                                return true;
+                            // 「考え中...」を表示
+                            let thinkingElementFirst = null;
+                            if (window.ChatUI && typeof window.ChatUI.addThinkingMessage === 'function') {
+                                thinkingElementFirst = window.ChatUI.addThinkingMessage(info.name);
                             }
+                            
+                            // バックグラウンドで動的メッセージを生成（非同期）
+                            const generateFirstMessageAsync = async () => {
+                                try {
+                                    const visitPattern = 'first_visit';
+                                    const conversationHistory = [];
+                                    
+                                    console.log(`[初期化] ${info.name}の初回訪問時：バックグラウンドで動的メッセージを生成します`, {
+                                        character,
+                                        visitPattern
+                                    });
+                                    
+                                    const welcomeMessage = await ChatAPI.generateWelcomeMessage({
+                                        character,
+                                        conversationHistory,
+                                        visitPattern
+                                    });
+                                    
+                                    console.log(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成完了`);
+                                    
+                                    // 「考え中...」を動的メッセージに置き換え
+                                    if (thinkingElementFirst && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
+                                        window.ChatUI.replaceThinkingMessage(thinkingElementFirst, welcomeMessage);
+                                    } else if (window.ChatUI) {
+                                        // replaceThinkingMessageが使えない場合は、考え中要素を削除して新しく追加
+                                        if (thinkingElementFirst && thinkingElementFirst.parentNode) {
+                                            thinkingElementFirst.parentNode.removeChild(thinkingElementFirst);
+                                        }
+                                        window.ChatUI.addMessage('welcome', welcomeMessage, info.name);
+                                    }
+                                } catch (error) {
+                                    console.error(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成エラー:`, error);
+                                    
+                                    // エラー時はフォールバック（定型文）
+                                    const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
+                                    const fallbackMessage = ChatData.generateFirstTimeMessage(
+                                        character, 
+                                        ChatData.userNickname || 'あなた',
+                                        false,
+                                        hasOtherCharacterHistory
+                                    );
+                                    if (thinkingElementFirst && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
+                                        window.ChatUI.replaceThinkingMessage(thinkingElementFirst, fallbackMessage || 'ようこそ、いらっしゃいませ。');
+                                    } else if (window.ChatUI) {
+                                        if (thinkingElementFirst && thinkingElementFirst.parentNode) {
+                                            thinkingElementFirst.parentNode.removeChild(thinkingElementFirst);
+                                        }
+                                        window.ChatUI.addMessage('welcome', fallbackMessage || 'ようこそ、いらっしゃいませ。', info.name);
+                                    }
+                                }
+                            };
+                            
+                            // 非同期で実行（ページ読み込みをブロックしない）
+                            generateFirstMessageAsync();
+                            
+                            return true;
                         
                         default:
                             // その他のパターン（returningなど）は既に処理済み

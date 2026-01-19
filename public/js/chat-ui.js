@@ -590,6 +590,72 @@ const ChatUI = {
     clearMessages() {
         if (!this.messagesDiv) return;
         this.messagesDiv.innerHTML = '';
+    },
+
+    /**
+     * 「考え中...」メッセージを追加
+     * @param {string} characterName - キャラクター名
+     * @returns {HTMLElement} 作成されたメッセージ要素
+     */
+    addThinkingMessage(characterName) {
+        if (!this.messagesDiv) return null;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant welcome thinking';
+        
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.textContent = characterName ? characterName[0] : '?';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.className = 'thinking-indicator';
+        thinkingDiv.innerHTML = `
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        `;
+        
+        contentDiv.appendChild(thinkingDiv);
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+        
+        this.messagesDiv.appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        return messageDiv;
+    },
+
+    /**
+     * 「考え中...」を実際のメッセージに置き換え
+     * @param {HTMLElement} thinkingElement - 「考え中...」要素
+     * @param {string} message - 置き換えるメッセージ
+     */
+    replaceThinkingMessage(thinkingElement, message) {
+        if (!thinkingElement || !this.messagesDiv) return;
+        
+        const contentDiv = thinkingElement.querySelector('.message-content');
+        if (!contentDiv) return;
+        
+        // アニメーション付きで置き換え
+        contentDiv.style.transition = 'opacity 0.2s ease';
+        contentDiv.style.opacity = '0';
+        
+        setTimeout(() => {
+            contentDiv.innerHTML = '';
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            textDiv.textContent = message;
+            contentDiv.appendChild(textDiv);
+            contentDiv.style.opacity = '1';
+            
+            // thinkingクラスを削除
+            thinkingElement.classList.remove('thinking');
+            
+            this.scrollToBottom();
+        }, 200);
         console.log('[ChatUI] メッセージをクリアしました');
     },
 

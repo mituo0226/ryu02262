@@ -5,6 +5,45 @@
     box-sizing: border-box;
 }
 
+/* 考え中インジケーター（非同期メッセージ生成用） */
+.thinking-indicator {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    align-items: center;
+}
+
+.thinking-indicator .dot {
+    width: 8px;
+    height: 8px;
+    background-color: #999;
+    border-radius: 50%;
+    animation: thinking 1.4s infinite ease-in-out both;
+}
+
+.thinking-indicator .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.thinking-indicator .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes thinking {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.message.thinking .message-content {
+    transition: opacity 0.2s ease;
+}
+
 body {
     font-family: 'Hiragino Mincho ProN', 'Hiragino Mincho Pro', '游明朝', YuMincho, 'ＭＳ 明朝', serif;
     overflow-x: hidden;

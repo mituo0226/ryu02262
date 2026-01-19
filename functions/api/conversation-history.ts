@@ -50,33 +50,9 @@ interface ResponseBody {
 // conversation-history.tsからLLM API呼び出しを完全に除去したため、これらの関数は不要になりました
 // consult.tsでLLM API呼び出しが行われるため、ここでは削除
 
-/**
- * 定型文ウェルカムメッセージを取得（LLM API呼び出しなし）
- */
-function getWelcomeMessage(characterId: string, userNickname?: string): string {
-  const nickname = userNickname || 'あなた';
-  const messages: Record<string, string> = {
-    kaede: `ようこそ、楓の神社へ。${nickname}さんの守護神を見つけるお手伝いをさせていただきます。`,
-    yukino: `いらっしゃいませ、${nickname}さん。タロットカードであなたの未来を占いましょう。`,
-    sora: `こんにちは、${nickname}さん。どんなお悩みでもお聞きします。一緒に考えましょう。`,
-    kaon: `お待ちしておりました、${nickname}さん。あなたのお悩み、聞かせていただけますか？`,
-  };
-  return messages[characterId] || `ようこそ、${nickname}さん。`;
-}
-
-/**
- * 定型文再訪問メッセージを取得（LLM API呼び出しなし）
- */
-function getReturningMessage(characterId: string, userNickname?: string): string {
-  const nickname = userNickname || 'あなた';
-  const messages: Record<string, string> = {
-    kaede: `お帰りなさい、${nickname}さん。また会えて嬉しいです。`,
-    yukino: `いらっしゃいませ、${nickname}さん。お待ちしておりました。`,
-    sora: `こんにちは、${nickname}さん。また相談に来てくれたんですね。`,
-    kaon: `お久しぶりです、${nickname}さん。お元気でしたか？`,
-  };
-  return messages[characterId] || `お帰りなさい、${nickname}さん。`;
-}
+// 【削除】定型文生成関数
+// 非同期メッセージ生成方式に変更したため、定型文は不要になりました
+// フロントエンドで「考え中...」を表示し、バックグラウンドで動的メッセージを生成します
 
 // 【削除】generateReturningMessage と generateWelcomeMessage 関数
 // LLM API呼び出しを完全に除去し、定型文を使用するため、これらの関数は不要になりました
@@ -231,22 +207,18 @@ export const onRequestGet: PagesFunction = async (context) => {
               console.error('[conversation-history] ユーザー情報取得エラー:', error);
             }
             
-            // 守護神未決定時も定型文を使用（LLM API呼び出しなし）
-            welcomeMessage = getWelcomeMessage(characterId, user.nickname);
-            console.log('[conversation-history] 定型文で楓の守護神未決定時のwelcomeMessageを生成しました（LLM API呼び出しなし）');
+            // 守護神未決定時: welcomeMessageは生成しない（フロントエンドで非同期生成）
+            console.log('[conversation-history] 楓の守護神未決定時: welcomeMessageはフロントエンドで非同期生成されます');
           } catch (error) {
-            console.error('[conversation-history] 楓の守護神未決定時のwelcomeMessage生成エラー:', error);
-            welcomeMessage = getFallbackWelcomeMessage(characterId);
+            console.error('[conversation-history] 楓の守護神未決定時の処理エラー:', error);
           }
         } else {
-          // 守護神決定済み: 定型文でwelcomeMessageを生成（LLM API呼び出しなし）
-          welcomeMessage = getWelcomeMessage(characterId, user.nickname);
-          console.log('[conversation-history] 定型文でwelcomeMessageを生成しました（LLM API呼び出しなし）');
+          // 守護神決定済み: welcomeMessageは生成しない（フロントエンドで非同期生成）
+          console.log('[conversation-history] 守護神決定済み: welcomeMessageはフロントエンドで非同期生成されます');
         }
       } else {
-        // 楓以外: 定型文でwelcomeMessageを生成（LLM API呼び出しなし）
-        welcomeMessage = getWelcomeMessage(characterId, user.nickname);
-        console.log('[conversation-history] 定型文でwelcomeMessageを生成しました（LLM API呼び出しなし）');
+        // 楓以外: welcomeMessageは生成しない（フロントエンドで非同期生成）
+        console.log('[conversation-history] 楓以外: welcomeMessageはフロントエンドで非同期生成されます');
       }
 
       return new Response(
@@ -259,7 +231,7 @@ export const onRequestGet: PagesFunction = async (context) => {
           birthDay: user.birth_day,
           assignedDeity: user.guardian,
           clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
-          welcomeMessage: welcomeMessage, // 初回訪問時のウェルカムメッセージ
+          welcomeMessage: null, // フロントエンドで非同期生成（generate-welcome APIを使用）
           requireGuardianConsent: characterId === 'kaede' ? requireGuardianConsent : undefined, // 楓専用フラグ
           visitPattern: visitPatternInfo?.pattern || 'first_visit', // 訪問パターン
         } as ResponseBody),
@@ -302,10 +274,10 @@ export const onRequestGet: PagesFunction = async (context) => {
       isRegisteredUser: !!user.nickname,
     });
 
-    // 【改善】定型文で再訪問メッセージを生成（LLM API呼び出しなし）
-    // ページ読み込みをブロックしないように、定型文を即座に返す
-    const returningMessage = getReturningMessage(characterId, user.nickname);
-    console.log('[conversation-history] 定型文でreturningMessageを生成しました（LLM API呼び出しなし）');
+    // 【改善】returningMessageは生成しない（フロントエンドで非同期生成）
+    // ページ読み込みをブロックしないように、フロントエンドでgenerate-welcome APIを呼び出す
+    const returningMessage = null;
+    console.log('[conversation-history] returningMessageはフロントエンドで非同期生成されます（generate-welcome APIを使用）');
 
     // 会話の要約を生成（最後の数件のメッセージから）
     // SQLクエリでmessage as contentとしてエイリアスしているため、msg.contentに値が入る
@@ -356,7 +328,7 @@ export const onRequestGet: PagesFunction = async (context) => {
         conversationSummary: conversationText,
         clearChat: isAfterRitual, // 儀式完了後の場合はチャットクリア指示
         firstQuestion: firstQuestion, // 最初の質問（儀式完了後の定型文で使用）
-        returningMessage: returningMessage, // 再訪問時のメッセージ
+        returningMessage: null, // フロントエンドで非同期生成（generate-welcome APIを使用）
         visitPattern: visitPatternInfo?.pattern || 'returning', // 訪問パターン
       } as ResponseBody),
       { status: 200, headers: corsHeaders }

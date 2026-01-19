@@ -303,6 +303,81 @@ const ChatAPI = {
             console.error('Failed to send message:', error);
             return { error: 'メッセージの送信に失敗しました' };
         }
+    },
+
+    /**
+     * ウェルカムメッセージ生成（非同期）
+     * ページ読み込み後にバックグラウンドで呼ばれる
+     * @param {Object} options - オプション
+     * @param {string} options.character - キャラクターID
+     * @param {Array} options.conversationHistory - 会話履歴
+     * @param {string} options.visitPattern - 訪問パターン
+     * @returns {Promise<string>} 生成されたウェルカムメッセージ
+     */
+    async generateWelcomeMessage(options = {}) {
+        const { character, conversationHistory = [], visitPattern = 'first_visit' } = options;
+        
+        // userIdを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = null;
+        const userIdParam = urlParams.get('userId');
+        if (userIdParam) {
+            userId = Number(userIdParam);
+            if (!Number.isFinite(userId) || userId <= 0) {
+                userId = null;
+            }
+        }
+        
+        if (!userId) {
+            throw new Error('ユーザーIDが見つかりません');
+        }
+        
+        if (!character) {
+            throw new Error('キャラクターIDが指定されていません');
+        }
+        
+        console.log('[ChatAPI] ウェルカムメッセージ生成開始（非同期）:', {
+            character,
+            userId,
+            visitPattern,
+            historyLength: conversationHistory.length
+        });
+        
+        try {
+            const response = await fetch('/api/generate-welcome', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    character,
+                    userId,
+                    conversationHistory,
+                    visitPattern
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success || !data.message) {
+                throw new Error('Invalid API response');
+            }
+            
+            console.log('[ChatAPI] ウェルカムメッセージ生成完了:', {
+                usedAPI: data.metadata?.usedAPI,
+                messageLength: data.message.length
+            });
+            
+            return data.message;
+            
+        } catch (error) {
+            console.error('[ChatAPI] ウェルカムメッセージ生成エラー:', error);
+            throw error;
+        }
     }
 };
 
