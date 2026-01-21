@@ -57,6 +57,7 @@
            ============================================ */
         html {
             height: 100%;
+            height: 100vh; /* ウィンドウの高さいっぱいに表示 */
             overflow: hidden;
             position: fixed;
             width: 100%;
@@ -67,13 +68,15 @@
             font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             margin: 0;
             height: 100%;
+            height: 100vh; /* ウィンドウの高さいっぱいに表示 */
             width: 100%;
             overflow: hidden;
             position: fixed;
             background: var(--bg-gradient);
             display: flex;
             justify-content: center;
-            padding: 18px;
+            align-items: stretch; /* 子要素を高さいっぱいに */
+            padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
             color: var(--text-light);
             -webkit-overflow-scrolling: touch;
             opacity: 0;
@@ -170,9 +173,12 @@
             width: 100%;
             max-width: 820px;
             height: 100%;
+            height: 100vh; /* ウィンドウの高さいっぱいに表示 */
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            padding: 18px; /* PC版の余白をmainに移動 */
+            box-sizing: border-box;
         }
         
         /* 管理者モード: チャットと分析パネルを横並び */
@@ -242,6 +248,7 @@
             gap: 16px;
             overflow: hidden;
             min-height: 0; /* flexboxの子要素が正しく縮小するように */
+            box-sizing: border-box; /* paddingを含めた高さ計算 */
         }
         
         /* キャラクターヘッダー（PC版） */
@@ -699,6 +706,8 @@
                 overflow: hidden;
                 width: 100%;
                 height: 100%;
+                height: 100vh; /* 標準のビューポート高さ */
+                height: 100dvh; /* 動的ビューポート高さ（iPhone/Androidのノッチ・ナビゲーションバー対応） */
             }
             
             body {
@@ -707,7 +716,10 @@
             
             main {
                 height: 100%;
+                height: 100vh; /* 標準のビューポート高さ */
+                height: 100dvh; /* 動的ビューポート高さ（iPhone/Android対応） */
                 max-width: 100%;
+                padding: 0; /* モバイル版ではpaddingなし */
             }
             
             .mobile-header {
@@ -717,11 +729,14 @@
             .chat-container {
                 padding: 0;
                 height: 100%;
+                height: 100vh; /* 標準のビューポート高さ */
+                height: 100dvh; /* 動的ビューポート高さ（iPhone/Android対応） */
                 border-radius: 0;
                 box-shadow: none;
                 padding-top: 48px;
                 /* padding-bottom: 70px; を削除（余計な余白設定を削除） */
                 background: var(--bg-gradient);
+                box-sizing: border-box; /* paddingを含めた高さ計算 */
             }
             
             
