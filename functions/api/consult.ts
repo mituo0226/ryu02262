@@ -327,8 +327,31 @@ async function checkAndCleanupOldMessages(
 
   const summaryCount = summaryCountResult?.count || 0;
 
+  // 要約メッセージが10件を超えた場合、古い要約メッセージを削除
+  if (summaryCount > MAX_SUMMARY_COUNT) {
+    const deleteSummaryCount = summaryCount - MAX_SUMMARY_COUNT;
+    await db.prepare(
+      `DELETE FROM conversations
+       WHERE user_id = ? AND character_id = ? AND message_type = 'summary'
+       AND id IN (
+         SELECT id FROM conversations
+         WHERE user_id = ? AND character_id = ? AND message_type = 'summary'
+         ORDER BY COALESCE(timestamp, created_at) ASC
+         LIMIT ?
+       )`
+    )
+      .bind(userId, characterId, userId, characterId, deleteSummaryCount)
+      .run();
+
+    console.log('[checkAndCleanupOldMessages] 古い要約メッセージを削除しました:', {
+      userId,
+      characterId,
+      deleteSummaryCount,
+    });
+  }
+
   // 通常メッセージが10件を超えた場合、古い10件を要約して圧縮
-  if (normalMessageCount > MAX_NORMAL_MESSAGES && env) {
+  if (normalMessageCount > MAX_NORMAL_MESSAGES && env && summaryCount < MAX_SUMMARY_COUNT) {
     // 要約する古い10件を取得（要約以外のメッセージから、最も古い10件）
     const oldMessagesResult = await db.prepare<{
       id: number;
@@ -393,7 +416,8 @@ async function checkAndCleanupOldMessages(
     }
   }
 
-  // 全体が20件を超えた場合、古い要約を削除
+  // 全体が20件を超えた場合、古いメッセージ（要約も含む）を削除
+  // これにより、通常メッセージ10件 + 要約メッセージ10件 = 合計20件を維持
   if (messageCount >= MAX_TOTAL_MESSAGES) {
     const deleteCount = messageCount - MAX_TOTAL_MESSAGES + 1;
     await db.prepare(
@@ -409,10 +433,11 @@ async function checkAndCleanupOldMessages(
       .bind(userId, characterId, userId, characterId, deleteCount)
       .run();
 
-    console.log('[checkAndCleanupOldMessages] 古いメッセージを削除しました:', {
+    console.log('[checkAndCleanupOldMessages] 全体が20件を超えたため、古いメッセージを削除しました:', {
       userId,
       characterId,
       deleteCount,
+      remainingCount: messageCount - deleteCount,
     });
   }
 }
