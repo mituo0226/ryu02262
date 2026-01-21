@@ -105,6 +105,12 @@ const YukinoHandler = {
             return false; // 雪乃以外は処理しない
         }
         
+        // [SUGGEST_TAROT]タグを削除
+        if (response && response.message && typeof response.message === 'string') {
+            response.message = response.message.replace(/\[SUGGEST_TAROT\]/g, '');
+            console.log('[雪乃ハンドラー] [SUGGEST_TAROT]タグを削除しました');
+        }
+        
         return false; // 共通処理を続行
     },
 

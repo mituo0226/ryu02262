@@ -639,6 +639,9 @@ const ChatUI = {
         const contentDiv = thinkingElement.querySelector('.message-content');
         if (!contentDiv) return;
         
+        // [SUGGEST_TAROT]タグを削除（雪乃のメッセージの場合）
+        const cleanedMessage = message ? message.replace(/\[SUGGEST_TAROT\]/g, '') : message;
+        
         // アニメーション付きで置き換え
         contentDiv.style.transition = 'opacity 0.2s ease';
         contentDiv.style.opacity = '0';
@@ -647,7 +650,7 @@ const ChatUI = {
             contentDiv.innerHTML = '';
             const textDiv = document.createElement('div');
             textDiv.className = 'message-text';
-            textDiv.textContent = message;
+            textDiv.textContent = cleanedMessage;
             contentDiv.appendChild(textDiv);
             contentDiv.style.opacity = '1';
             
