@@ -1494,10 +1494,8 @@ const ChatInit = {
                 const characterName = ChatData.characterInfo[character]?.name || character;
                 let responseText = response.message || response.response || '応答を取得できませんでした';
                 
-                // [SUGGEST_TAROT]タグを削除（雪乃の場合）
-                if (character === 'yukino') {
-                    responseText = responseText.replace(/\[SUGGEST_TAROT\]/g, '');
-                }
+                // [SUGGEST_TAROT]タグは削除しない
+                // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
                 
                 // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
                 let shouldShowUserMessage = !skipUserMessage;

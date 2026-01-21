@@ -477,6 +477,9 @@ const ChatUI = {
             displayText = displayText.replace(/\n{3,}/g, '\n\n');
         }
         
+        // [SUGGEST_TAROT]タグは削除しない
+        // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
+        
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
         if (type === 'loading') {
@@ -648,8 +651,9 @@ const ChatUI = {
             return;
         }
         
-        // [SUGGEST_TAROT]タグを削除（雪乃のメッセージの場合）
-        const cleanedMessage = message ? message.replace(/\[SUGGEST_TAROT\]/g, '') : message;
+        // [SUGGEST_TAROT]タグは削除しない
+        // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
+        const cleanedMessage = message;
         
         console.log('[ChatUI.replaceThinkingMessage] メッセージを置き換えます:', {
             messageLength: cleanedMessage?.length || 0,

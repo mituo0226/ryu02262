@@ -105,11 +105,8 @@ const YukinoHandler = {
             return false; // 雪乃以外は処理しない
         }
         
-        // [SUGGEST_TAROT]タグを削除
-        if (response && response.message && typeof response.message === 'string') {
-            response.message = response.message.replace(/\[SUGGEST_TAROT\]/g, '');
-            console.log('[雪乃ハンドラー] [SUGGEST_TAROT]タグを削除しました');
-        }
+        // [SUGGEST_TAROT]タグは削除しない
+        // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
         
         return false; // 共通処理を続行
     },
@@ -336,7 +333,8 @@ const YukinoHandler = {
      */
     onMessageAdded(type, text, sender, messageDiv, messageId, options = {}) {
         // 雪乃のメッセージに[SUGGEST_TAROT]マーカーが含まれている場合、「タロットカードを引く」ボタンを表示
-        if ((type === 'character' || type === 'assistant') && 
+        // 再訪問時のwelcomeメッセージにも対応するため、typeに'welcome'も追加
+        if ((type === 'character' || type === 'assistant' || type === 'welcome') && 
             text.includes('[SUGGEST_TAROT]')) {
             
             console.log('[雪乃ハンドラー] タロット鑑定提案を検出しました');
