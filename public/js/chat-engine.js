@@ -435,6 +435,13 @@ const ChatInit = {
                 if (historyData && historyData.hasHistory) {
                     console.log('[初期化] 再訪問ユーザー。非同期メッセージ生成方式を使用します');
                     
+                    // 待機画面を表示（API呼び出し中）
+                    const waitingOverlay = document.getElementById('waitingOverlay');
+                    if (waitingOverlay) {
+                        waitingOverlay.classList.remove('hidden');
+                        console.log('[初期化] 待機画面を表示しました（再訪問時のメッセージ生成中）');
+                    }
+                    
                     // 「考え中...」を表示
                     let thinkingElement = null;
                     if (window.ChatUI && typeof window.ChatUI.addThinkingMessage === 'function') {
@@ -463,6 +470,12 @@ const ChatInit = {
                             
                             console.log(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
                             
+                            // 待機画面を非表示
+                            if (waitingOverlay) {
+                                waitingOverlay.classList.add('hidden');
+                                console.log('[初期化] 待機画面を非表示にしました（メッセージ生成完了）');
+                            }
+                            
                             // 「考え中...」を動的メッセージに置き換え
                             if (thinkingElement && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
                                 window.ChatUI.replaceThinkingMessage(thinkingElement, welcomeMessage);
@@ -475,6 +488,12 @@ const ChatInit = {
                             }
                         } catch (error) {
                             console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
+                            
+                            // 待機画面を非表示（エラー時も）
+                            if (waitingOverlay) {
+                                waitingOverlay.classList.add('hidden');
+                                console.log('[初期化] 待機画面を非表示にしました（エラー時）');
+                            }
                             
                             // エラー時はフォールバック（定型文）
                             const fallbackMessage = ChatData.generateInitialMessage(character, historyData);
@@ -493,6 +512,14 @@ const ChatInit = {
                     // エラーハンドリングを追加
                     generateMessageAsync().catch((error) => {
                         console.error(`[初期化] ${info.name}の再訪問時：generateMessageAsyncエラー:`, error);
+                        
+                        // 待機画面を非表示（エラー時も）
+                        const waitingOverlay = document.getElementById('waitingOverlay');
+                        if (waitingOverlay) {
+                            waitingOverlay.classList.add('hidden');
+                            console.log('[初期化] 待機画面を非表示にしました（generateMessageAsyncエラー時）');
+                        }
+                        
                         // エラー時はフォールバックメッセージを表示
                         if (window.ChatUI) {
                             const fallbackMessage = ChatData.generateInitialMessage(character, historyData) || 'お帰りなさい。';
