@@ -632,9 +632,14 @@ const ChatInit = {
                             // 【初回訪問時】非同期メッセージ生成方式
                             console.log('[初期化] 初回ユーザー。非同期メッセージ生成方式を使用します');
                             
-                            // 「考え中...」を表示
+                            // 【重要】待機画面が表示されている場合は「考え中...」メッセージを表示しない
+                            // 待機画面が表示されているため、追加の「考え中...」メッセージは不要
+                            const waitingOverlayFirst = document.getElementById('waitingOverlay');
+                            const isWaitingOverlayVisible = waitingOverlayFirst && !waitingOverlayFirst.classList.contains('hidden');
+                            
+                            // 「考え中...」を表示（待機画面が表示されていない場合のみ）
                             let thinkingElementFirst = null;
-                            if (window.ChatUI && typeof window.ChatUI.addThinkingMessage === 'function') {
+                            if (!isWaitingOverlayVisible && window.ChatUI && typeof window.ChatUI.addThinkingMessage === 'function') {
                                 thinkingElementFirst = window.ChatUI.addThinkingMessage(info.name);
                             }
                             
@@ -657,6 +662,12 @@ const ChatInit = {
                                     
                                     console.log(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成完了`);
                                     
+                                    // 待機画面を非表示（メッセージ表示前に実行）
+                                    if (waitingOverlayFirst) {
+                                        waitingOverlayFirst.classList.add('hidden');
+                                        console.log('[初期化] 待機画面を非表示にしました（初回訪問時のメッセージ生成完了）');
+                                    }
+                                    
                                     // 「考え中...」を動的メッセージに置き換え
                                     if (thinkingElementFirst && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
                                         window.ChatUI.replaceThinkingMessage(thinkingElementFirst, welcomeMessage);
@@ -669,6 +680,12 @@ const ChatInit = {
                                     }
                                 } catch (error) {
                                     console.error(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成エラー:`, error);
+                                    
+                                    // 待機画面を非表示（エラー時も）
+                                    if (waitingOverlayFirst) {
+                                        waitingOverlayFirst.classList.add('hidden');
+                                        console.log('[初期化] 待機画面を非表示にしました（初回訪問時のエラー時）');
+                                    }
                                     
                                     // エラー時はフォールバック（定型文）
                                     const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
@@ -689,10 +706,21 @@ const ChatInit = {
                                 }
                             };
                             
-                            // 非同期で実行（ページ読み込みをブロックしない）
-                            // エラーハンドリングを追加
-                            generateFirstMessageAsync().catch((error) => {
+                            // 【重要】初回訪問時のメッセージ生成が完了するまで待つ
+                            // これにより、initPage()の最終チェックが実行される前にメッセージが表示される
+                            try {
+                                await generateFirstMessageAsync();
+                                console.log('[初期化] 初回訪問時のメッセージ生成が完了しました');
+                            } catch (error) {
                                 console.error(`[初期化] ${info.name}の初回訪問時：generateFirstMessageAsyncエラー:`, error);
+                                
+                                // 待機画面を非表示（エラー時も）
+                                const waitingOverlayErrorFirst = document.getElementById('waitingOverlay');
+                                if (waitingOverlayErrorFirst) {
+                                    waitingOverlayErrorFirst.classList.add('hidden');
+                                    console.log('[初期化] 待機画面を非表示にしました（generateFirstMessageAsyncエラー時）');
+                                }
+                                
                                 // エラー時はフォールバックメッセージを表示
                                 if (window.ChatUI) {
                                     const fallbackMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false) || 'ようこそ、いらっしゃいませ。';
@@ -701,7 +729,7 @@ const ChatInit = {
                                     }
                                     window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
                                 }
-                            });
+                            }
                             
                             return true;
                         
@@ -1187,9 +1215,29 @@ const ChatInit = {
         const waitingOverlayFinal = document.getElementById('waitingOverlay');
         const finalHistoryData = ChatData.conversationHistory || null;
         if (waitingOverlayFinal && (!finalHistoryData || !finalHistoryData.hasHistory)) {
-            // 初回訪問時のみ非表示にする
-            waitingOverlayFinal.classList.add('hidden');
-            console.log('[初期化] 待機画面を非表示にしました（初回訪問時）');
+            // 初回訪問時：メッセージが表示された後に待機画面を非表示にする
+            // メッセージが表示されているか確認
+            if (window.ChatUI && window.ChatUI.messagesDiv) {
+                const hasMessages = window.ChatUI.messagesDiv.children.length > 0;
+                if (hasMessages) {
+                    // メッセージが表示されている場合、待機画面を非表示にする
+                    waitingOverlayFinal.classList.add('hidden');
+                    console.log('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後）');
+                } else {
+                    // メッセージが表示されていない場合、少し待ってから再確認
+                    setTimeout(() => {
+                        const hasMessagesAfterWait = window.ChatUI && window.ChatUI.messagesDiv && window.ChatUI.messagesDiv.children.length > 0;
+                        if (hasMessagesAfterWait && waitingOverlayFinal) {
+                            waitingOverlayFinal.classList.add('hidden');
+                            console.log('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後・遅延確認）');
+                        }
+                    }, 500);
+                }
+            } else {
+                // ChatUIが利用できない場合、待機画面を非表示にする
+                waitingOverlayFinal.classList.add('hidden');
+                console.log('[初期化] 待機画面を非表示にしました（初回訪問時、ChatUI未利用）');
+            }
         } else if (waitingOverlayFinal && finalHistoryData && finalHistoryData.hasHistory) {
             // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは何もしない
             console.log('[初期化] 待機画面は再訪問時のメッセージ生成中に管理されます');

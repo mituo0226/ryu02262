@@ -1262,11 +1262,28 @@
                   const entryForm = document.getElementById('entryForm');
                   const entryFormError = document.getElementById('entryFormError');
                   const entryFormSubmit = document.getElementById('entryFormSubmit');
-                   
-                   if (!entryFormContainer || !chatContainer || !entryForm) {
-                       console.error('[入口フォーム] DOM要素が見つかりません');
-                       return;
-                   }
+                  
+                  if (!entryFormContainer || !chatContainer || !entryForm) {
+                      console.error('[入口フォーム] DOM要素が見つかりません');
+                      return;
+                  }
+                  
+                  // 【重要】まず、chat-engine.jsが読み込まれるのを待つ（最大10秒）
+                  // これにより、initEntryForm内でchat-engine.jsを使用できるようになる
+                  console.log('[入口フォーム] chat-engine.jsの読み込みを待機中...');
+                  let scriptAttempts = 0;
+                  const maxScriptAttempts = 100; // 10秒間待機（100ms × 100）
+                  while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && scriptAttempts < maxScriptAttempts) {
+                      await new Promise(resolve => setTimeout(resolve, 100));
+                      scriptAttempts++;
+                  }
+                  
+                  if (!window.ChatData || !window.ChatUI || !window.ChatInit) {
+                      console.error('[入口フォーム] chat-engine.jsの読み込みがタイムアウトしました。ページをリロードしてください。');
+                      // エラー時でも処理を続行（チャット画面は表示されないが、エントリーフォームは表示される）
+                  } else {
+                      console.log('[入口フォーム] chat-engine.jsの読み込みが完了しました');
+                  }
                    
                    // 【変更】データベースから直接ユーザー情報を取得
                    // URLパラメータからcharacterとuserIdを取得
@@ -1274,11 +1291,20 @@
                    const character = urlParams.get('character') || 'kaede';
                    const userId = urlParams.get('userId');
                    
-                   // 【修正】userIdパラメータがある場合、API呼び出し完了まで入口フォームを非表示にする
-                   // これにより、一瞬だけ登録画面が表示される問題を防ぐ
+                   // 【重要】userIdがある場合は、データ取得を待たずにチャット画面を先に表示
                    if (userId) {
-                       entryFormContainer.classList.add('loading');
-                       console.log('[入口フォーム] userIdパラメータが存在するため、API呼び出し完了まで入口フォームを非表示にします');
+                       // エントリーフォームを非表示
+                       entryFormContainer.classList.add('entry-form-hidden');
+                       // チャット画面を表示（データ取得前でも表示）
+                       chatContainer.classList.remove('entry-form-hidden');
+                       console.log('[入口フォーム] チャット画面を先に表示しました（データ読み込み中）');
+                       
+                       // 【重要】データ読み込み前に待機画面を表示
+                       const waitingOverlay = document.getElementById('waitingOverlay');
+                       if (waitingOverlay) {
+                           waitingOverlay.classList.remove('hidden');
+                           console.log('[入口フォーム] 待機画面を表示しました（データ読み込み開始前）');
+                       }
                    }
                    
                    try {
@@ -1376,13 +1402,20 @@
                                    } else {
                                        // その他のエラー（ネットワークエラーなど）
                                        console.error('[入口フォーム] API呼び出しエラー:', response.status);
-                                       entryFormContainer.classList.remove('loading');
-                                       entryFormContainer.classList.remove('entry-form-hidden');
-                                       chatContainer.classList.add('entry-form-hidden');
-                                       const errorMsg = document.createElement('div');
-                                       errorMsg.className = 'result-message error';
-                                       errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
-                                       entryFormContainer.appendChild(errorMsg);
+                                       // userIdがある場合はチャット画面を表示したままにする
+                                       if (userId) {
+                                           // チャット画面にエラーメッセージを表示（チャット画面は表示したまま）
+                                           console.error('[入口フォーム] データ取得エラーが発生しましたが、チャット画面は表示したままです');
+                                       } else {
+                                           // userIdがない場合はエントリーフォームを表示
+                                           entryFormContainer.classList.remove('loading');
+                                           entryFormContainer.classList.remove('entry-form-hidden');
+                                           chatContainer.classList.add('entry-form-hidden');
+                                           const errorMsg = document.createElement('div');
+                                           errorMsg.className = 'result-message error';
+                                           errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
+                                           entryFormContainer.appendChild(errorMsg);
+                                       }
                                        return;
                                    }
                                }
@@ -1397,18 +1430,28 @@
                                        return;
                                    } else if (error.message === 'NETWORK_ERROR') {
                                       // ネットワーク接続エラーの場合
-                                      entryFormContainer.classList.remove('entry-form-hidden');
-                                      chatContainer.classList.add('entry-form-hidden');
-                                      const errorMsg = document.createElement('div');
-                                      errorMsg.className = 'result-message error';
-                                      errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
-                                      entryFormContainer.appendChild(errorMsg);
+                                      // userIdがある場合はチャット画面を表示したままにする
+                                      if (userId) {
+                                          console.error('[入口フォーム] ネットワークエラーが発生しましたが、チャット画面は表示したままです');
+                                      } else {
+                                          entryFormContainer.classList.remove('entry-form-hidden');
+                                          chatContainer.classList.add('entry-form-hidden');
+                                          const errorMsg = document.createElement('div');
+                                          errorMsg.className = 'result-message error';
+                                          errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
+                                          entryFormContainer.appendChild(errorMsg);
+                                      }
                                       return;
                                    }
                                }
                               // その他のエラー
-                              entryFormContainer.classList.remove('entry-form-hidden');
-                              chatContainer.classList.add('entry-form-hidden');
+                              // userIdがある場合はチャット画面を表示したままにする
+                              if (userId) {
+                                  console.error('[入口フォーム] エラーが発生しましたが、チャット画面は表示したままです');
+                              } else {
+                                  entryFormContainer.classList.remove('entry-form-hidden');
+                                  chatContainer.classList.add('entry-form-hidden');
+                              }
                               return;
                            }
                        }
@@ -1416,7 +1459,7 @@
                       // 【重要】userIdが指定されている場合、historyDataが存在すればチャットに入室可能
                       // nicknameの有無に関わらず、userIdが存在すればユーザーは特定できる
                       if (historyData) {
-                          console.log('[入口フォーム] データベースからユーザー情報を取得しました。チャット画面を直接表示します', {
+                          console.log('[入口フォーム] データベースからユーザー情報を取得しました', {
                               nickname: historyData.nickname,
                               birthYear: historyData.birthYear,
                               birthMonth: historyData.birthMonth,
@@ -1426,12 +1469,13 @@
                               userId: userId
                           });
                           
-                          // エントリーフォームを非表示
+                          // エントリーフォームを非表示（既に非表示の可能性があるが、念のため）
                           entryFormContainer.classList.add('entry-form-hidden');
                           
-                          // 【重要】チャット画面を先に表示（確実に表示させる）
+                          // チャット画面は既に表示されている（userIdがある場合は先に表示済み）
+                          // 念のため、再度表示を確認
                           chatContainer.classList.remove('entry-form-hidden');
-                          console.log('[入口フォーム] チャット画面を表示しました');
+                          console.log('[入口フォーム] チャット画面の表示を確認しました');
                           
                           // 【重要】ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
                           if (window.ChatData) {
@@ -1449,22 +1493,6 @@
                                   assignedDeity: historyData.assignedDeity
                               });
                               console.log('[入口フォーム] ユーザー情報をチャット画面に表示しました');
-                          }
-                          
-                          // chat-engine.jsが読み込まれるのを待つ（チャット画面は既に表示されている）
-                          console.log('[入口フォーム] チャットエンジンの読み込みを待機中（チャット画面は表示済み）...');
-                          let attempts = 0;
-                          const maxAttempts = 100; // 10秒間待機（100ms × 100）
-                          while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && attempts < maxAttempts) {
-                              await new Promise(resolve => setTimeout(resolve, 100));
-                              attempts++;
-                          }
-                          
-                          if (!window.ChatData || !window.ChatUI || !window.ChatInit) {
-                              console.error('[入口フォーム] チャットエンジンの読み込みがタイムアウトしました。必要なスクリプトが読み込まれているか確認してください。');
-                              // エラー時でもチャット画面は表示されているので、そのまま続行
-                          } else {
-                              console.log('[入口フォーム] チャットエンジンの読み込みが完了しました');
                           }
                           
                           // chat-engine.jsの初期化を実行（チャット画面は既に表示されている）
@@ -1623,29 +1651,20 @@
                    }
                }
                
-               // スクリプトの読み込み完了を待ってから実行
-               // chat-engine.jsが読み込まれるのを待つ
-               async function waitForScripts() {
-                   // まず、DOMContentLoadedを待つ
-                   if (document.readyState === 'loading') {
-                       await new Promise(resolve => {
-                           document.addEventListener('DOMContentLoaded', resolve, { once: true });
-                       });
-                   }
-                   
-                   // chat-engine.jsが読み込まれるのを待つ（最大5秒）
-                   let attempts = 0;
-                   const maxAttempts = 50; // 5秒間待機
-                   while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && attempts < maxAttempts) {
-                       await new Promise(resolve => setTimeout(resolve, 100));
-                       attempts++;
-                   }
-                   
-                   // スクリプトが読み込まれたら、initEntryFormを実行
+               // window.loadイベントを待ってから実行（すべてのスクリプトが読み込まれた後）
+               // これにより、chat-engine.jsが確実に読み込まれた後にinitEntryFormが実行される
+               if (document.readyState === 'complete') {
+                   // 既に読み込み完了している場合は即座に実行
                    initEntryForm();
+               } else {
+                   // window.loadイベントを待つ（すべてのスクリプトが読み込まれた後）
+                   window.addEventListener('load', () => {
+                       // さらに少し待ってから実行（スクリプトの初期化を確実にする）
+                       setTimeout(() => {
+                           initEntryForm();
+                       }, 100);
+                   }, { once: true });
                }
-               
-               waitForScripts();
            })();
            
            // #region agent log (開発環境のみ - コメントアウト)
