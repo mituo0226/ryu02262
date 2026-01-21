@@ -1384,51 +1384,6 @@ const ChatInit = {
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
         // ここでは実行しない（重複を避ける）
         
-        // MutationObserverを設定して、#messagesコンテナに新しい要素が追加されたら自動スクロール（冒頭に配置）
-        const messagesDiv = document.getElementById('messages');
-        if (messagesDiv && typeof MutationObserver !== 'undefined') {
-            const scrollObserver = new MutationObserver((mutations) => {
-                let shouldScroll = false;
-                for (const mutation of mutations) {
-                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                        shouldScroll = true;
-                        break;
-                    }
-                }
-                if (shouldScroll) {
-                    // window.scrollToBottomが存在する場合はそれを使用、なければChatUI.scrollToLatestを使用
-                    if (window.scrollToBottom) {
-                        window.scrollToBottom();
-                    } else if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
-                        window.ChatUI.scrollToLatest();
-                    } else {
-                        // フォールバック：直接スクロール
-                        const msgDiv = document.getElementById('messages');
-                        if (msgDiv) {
-                            try {
-                                msgDiv.scrollTo({
-                                    top: msgDiv.scrollHeight,
-                                    behavior: 'smooth'
-                                });
-                            } catch (e) {
-                                msgDiv.scrollTop = msgDiv.scrollHeight;
-                            }
-                        }
-                    }
-                }
-            });
-            
-            scrollObserver.observe(messagesDiv, {
-                childList: true,
-                subtree: true
-            });
-            
-            console.log('[初期化] MutationObserverを設定しました（自動スクロール監視・冒頭）', {
-                hasScrollToBottom: typeof window.scrollToBottom === 'function',
-                hasChatUI: typeof window.ChatUI !== 'undefined'
-            });
-        }
-        
         // 待機画面の管理
         // チャット画面が表示されている場合、待機画面を表示（全鑑定士共通）
         const waitingOverlay = document.getElementById('waitingOverlay');
@@ -2552,7 +2507,29 @@ const ChatInit = {
                 console.log('[初期化] 初期化完了、待機画面を非表示にしました');
             }
             
-            // MutationObserverは既に冒頭で設定済み
+            // MutationObserverを設定して、#messagesコンテナに新しい要素が追加されたら自動スクロール
+            const messagesDiv = document.getElementById('messages');
+            if (messagesDiv && typeof MutationObserver !== 'undefined') {
+                const scrollObserver = new MutationObserver((mutations) => {
+                    let shouldScroll = false;
+                    for (const mutation of mutations) {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            shouldScroll = true;
+                            break;
+                        }
+                    }
+                    if (shouldScroll && window.scrollToBottom) {
+                        window.scrollToBottom();
+                    }
+                });
+                
+                scrollObserver.observe(messagesDiv, {
+                    childList: true,
+                    subtree: true
+                });
+                
+                console.log('[初期化] MutationObserverを設定しました（自動スクロール監視）');
+            }
             
             this._initPageRunning = false;
             this._initPageCompleted = true;
