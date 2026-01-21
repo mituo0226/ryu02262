@@ -735,7 +735,7 @@
                 padding: 20px 10px;
                 padding-top: 20px;
                 height: 100%;
-                padding-bottom: 190px; /* モバイル版の入力欄（position: fixed）が重なる分を考慮 */
+                padding-bottom: 220px; /* モバイル版の入力欄（position: fixed）が重なる分を考慮 */
                 margin-top: 0;
             }
             
@@ -1772,17 +1772,17 @@
           })();
           </script>
           
-          <!-- 依存関係のないファイルはasyncで並列読み込み -->
-          <script src="../../js/auth-state.js" async></script>
-          <script src="../../js/character-features.js" async></script>
+          <!-- スクリプト読み込み順序を固定（すべてdeferで統一） -->
+          <script src="../../js/auth-state.js" defer></script>
+          <script src="../../js/character-features.js" defer></script>
           <!-- 鑑定士固有の機能スクリプトはハンドラーのinit()で動的に読み込まれる -->
-          <script src="../../js/chat-api.js" async></script>
-          <script src="../../js/chat-data.js" async></script>
-          <script src="../../js/chat-ui.js" async></script>
+          <script src="../../js/chat-api.js" defer></script>
+          <script src="../../js/chat-data.js" defer></script>
+          <script src="../../js/chat-ui.js" defer></script>
           <!-- プラグインアーキテクチャ -->
-          <script src="../../js/character-registry.js" async></script>
-          <script src="../../js/character-loader.js" async></script>
-          <!-- チャットエンジン（依存関係があるためdeferで順序を保証） -->
+          <script src="../../js/character-registry.js" defer></script>
+          <script src="../../js/character-loader.js" defer></script>
+          <!-- チャットエンジン（依存関係があるため最後に読み込み） -->
           <script src="../../js/chat-engine.js" defer onload="window.chatEngineLoaded = true;"></script>
           <!-- ハンドラーの動的読み込み -->
           <script>
@@ -2231,5 +2231,85 @@
                }
            }
            </style>
+           
+           <!-- Enterキー送信と自動スクロールの実装 -->
+           <script>
+           (function() {
+               'use strict';
+               
+               // メッセージコンテナの最下部へスクロールする関数
+               function scrollToBottom() {
+                   const messagesDiv = document.getElementById('messages');
+                   if (messagesDiv) {
+                       setTimeout(() => {
+                           messagesDiv.scrollTo({
+                               top: messagesDiv.scrollHeight,
+                               behavior: 'smooth'
+                           });
+                       }, 100);
+                   }
+               }
+               
+               // DOMContentLoadedで初期化
+               function initEnterKeyAndScroll() {
+                   const messageInput = document.getElementById('messageInput');
+                   const sendButton = document.getElementById('sendButton');
+                   
+                   if (!messageInput || !sendButton) {
+                       // 要素がまだ存在しない場合は、少し待ってから再試行
+                       setTimeout(initEnterKeyAndScroll, 100);
+                       return;
+                   }
+                   
+                   // Enterキー送信の実装
+                   messageInput.addEventListener('keydown', (e) => {
+                       // PC環境（画面幅768px以上）でのみEnterキー送信を有効化
+                       // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
+                       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.innerWidth >= 768) {
+                           e.preventDefault();
+                           if (sendButton && !sendButton.disabled) {
+                               sendButton.click();
+                           }
+                       }
+                   });
+                   
+                   // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
+                   messageInput.addEventListener('focus', () => {
+                       scrollToBottom();
+                   });
+                   
+                   // メッセージ追加時の自動スクロール（MutationObserverを使用）
+                   const messagesDiv = document.getElementById('messages');
+                   if (messagesDiv) {
+                       const observer = new MutationObserver(() => {
+                           scrollToBottom();
+                       });
+                       
+                       observer.observe(messagesDiv, {
+                           childList: true,
+                           subtree: true
+                       });
+                   }
+                   
+                   console.log('[Enter送信・自動スクロール] 初期化完了');
+               }
+               
+               // DOMContentLoadedまたはloadイベントで初期化
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', initEnterKeyAndScroll);
+               } else {
+                   // 既にDOMContentLoadedが完了している場合
+                   initEnterKeyAndScroll();
+               }
+               
+               // window.load時にも初期化（念のため）
+               window.addEventListener('load', () => {
+                   setTimeout(initEnterKeyAndScroll, 100);
+               });
+               
+               // グローバルにscrollToBottom関数を公開（他のスクリプトからも呼び出せるように）
+               window.scrollToBottom = scrollToBottom;
+           })();
+           </script>
 </body>
 </html>

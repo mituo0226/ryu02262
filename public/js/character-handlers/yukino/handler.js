@@ -757,22 +757,35 @@ const YukinoHandler = {
         const typeMatches = (type === 'character' || type === 'assistant' || type === 'welcome');
         const hasSuggestTarot = textString.includes('[SUGGEST_TAROT]');
         
-        if (textString.includes('[SUGGEST_TAROT]')) {
-            console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - 条件チェック');
+        // フォールバック: [SUGGEST_TAROT]タグが見つからない場合でも、キーワード検出でボタンを表示
+        const hasTarotKeywords = !hasSuggestTarot && (
+            textString.includes('タロット') || 
+            textString.includes('カード') || 
+            textString.includes('占')
+        );
+        
+        // ボタンを表示する条件: [SUGGEST_TAROT]タグがある、またはキーワードが含まれている
+        const shouldShowButton = typeMatches && (hasSuggestTarot || hasTarotKeywords);
+        
+        if (textString.includes('[SUGGEST_TAROT]') || hasTarotKeywords) {
+            console.group('🔍 [DEBUG] タロットボタン表示条件チェック');
             console.log('typeMatches:', typeMatches, '(type === "character" || type === "assistant" || type === "welcome")');
             console.log('hasSuggestTarot:', hasSuggestTarot);
+            console.log('hasTarotKeywords:', hasTarotKeywords);
+            console.log('shouldShowButton:', shouldShowButton);
             console.log('type:', type);
-            console.log('willShowButton:', typeMatches && hasSuggestTarot);
             console.log('条件詳細:', {
                 typeIsCharacter: type === 'character',
                 typeIsAssistant: type === 'assistant',
                 typeIsWelcome: type === 'welcome',
-                textIncludesTag: textString.includes('[SUGGEST_TAROT]')
+                textIncludesTag: textString.includes('[SUGGEST_TAROT]'),
+                textIncludesKeywords: hasTarotKeywords
             });
             console.groupEnd();
         }
         
-        if (typeMatches && hasSuggestTarot) {
+        // 入力欄の状態に関係なくボタンを表示（AIの応答中でも表示可能）
+        if (shouldShowButton) {
             console.group('✅ [DEBUG] タロット鑑定提案を検出 - ボタン表示開始');
             console.log('typeMatches:', typeMatches);
             console.log('hasSuggestTarot:', hasSuggestTarot);
@@ -864,13 +877,15 @@ const YukinoHandler = {
             console.groupEnd();
         } else {
             // 条件が満たされていない場合のログ
-            if (textString.includes('[SUGGEST_TAROT]')) {
-                console.group('❌ [DEBUG] [SUGGEST_TAROT]検出 - 条件不一致（ボタン表示されません）');
+            if (textString.includes('[SUGGEST_TAROT]') || hasTarotKeywords) {
+                console.group('❌ [DEBUG] タロットボタン表示条件不一致');
                 console.warn('typeMatches:', typeMatches, '(期待: true)');
-                console.warn('hasSuggestTarot:', hasSuggestTarot, '(期待: true)');
+                console.warn('hasSuggestTarot:', hasSuggestTarot);
+                console.warn('hasTarotKeywords:', hasTarotKeywords);
+                console.warn('shouldShowButton:', shouldShowButton, '(期待: true)');
                 console.warn('type:', type);
                 console.warn('textPreview:', textString.substring(0, 100));
-                console.warn('原因:', !typeMatches ? 'typeが一致しません' : 'hasSuggestTarotがfalseです');
+                console.warn('原因:', !typeMatches ? 'typeが一致しません' : 'タグもキーワードも検出されませんでした');
                 console.groupEnd();
             }
         }
