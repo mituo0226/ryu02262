@@ -871,7 +871,7 @@ const YukinoHandler = {
             
             messageDiv.appendChild(buttonWrapper);
             
-            // ボタン追加後にスクロールを確実に実行
+            // ボタン追加後にスクロール（通常の1回実行で十分）
             if (window.scrollToBottom) {
                 window.scrollToBottom();
             } else if (window.ChatUI && window.ChatUI.scrollToLatest) {

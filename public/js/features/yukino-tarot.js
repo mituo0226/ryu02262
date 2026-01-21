@@ -551,12 +551,28 @@
         
         container.appendChild(cardWrapper);
         
-        // スクロール（複数の方法で確実に実行）
-        if (window.scrollToBottom) {
-            window.scrollToBottom();
-        } else if (window.ChatUI && window.ChatUI.scrollToLatest) {
-            window.ChatUI.scrollToLatest();
-        }
+        // タロット画像表示時は複数回スクロール（画像読み込み遅延に対応）
+        const performTarotScroll = () => {
+            const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) return;
+            
+            const scroll = () => {
+                try {
+                    messagesDiv.scrollTo({
+                        top: messagesDiv.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } catch (e) {
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+            };
+            
+            scroll(); // 直後
+            setTimeout(scroll, 200); // 描画後
+            setTimeout(scroll, 800); // 画像読み込み後（重要）
+        };
+        
+        performTarotScroll();
     }
 
     /**
@@ -1236,12 +1252,28 @@ ${cardNames}
         cardContainer.appendChild(cardWrapper);
         container.appendChild(cardContainer);
         
-        // スクロール（複数の方法で確実に実行）
-        if (window.scrollToBottom) {
-            window.scrollToBottom();
-        } else if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
-            window.ChatUI.scrollToLatest();
-        }
+        // タロット画像表示時は複数回スクロール（画像読み込み遅延に対応）
+        const performTarotScroll = () => {
+            const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) return;
+            
+            const scroll = () => {
+                try {
+                    messagesDiv.scrollTo({
+                        top: messagesDiv.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } catch (e) {
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+            };
+            
+            scroll(); // 直後
+            setTimeout(scroll, 200); // 描画後
+            setTimeout(scroll, 800); // 画像読み込み後（重要）
+        };
+        
+        performTarotScroll();
     }
 
     /**
