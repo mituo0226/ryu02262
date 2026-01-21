@@ -259,7 +259,7 @@ export function generateYukinoPrompt(options = {}) {
 ========================================
 `;
       console.log('[yukino] 再訪問時（履歴なし）のメッセージ指示を生成:', userNickname);
-    } else if (lastGuestMessage) {
+    } else if (hasHistory && lastGuestMessage) {
       // ゲストモード時のメッセージが存在する場合（ゲストから登録したユーザー）
       yukinoSpecificInstruction = `
 ========================================
