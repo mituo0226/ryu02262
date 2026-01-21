@@ -479,6 +479,12 @@ const ChatInit = {
                                 console.log('[初期化] 待機画面を非表示にしました（メッセージ生成完了）');
                             }
                             
+                            // bodyのfade-inクラスを追加（チャット画面を表示）
+                            if (document.body) {
+                                document.body.classList.add('fade-in');
+                                console.log('[初期化] bodyにfade-inクラスを追加しました（チャット画面を表示）');
+                            }
+                            
                             // 「考え中...」を動的メッセージに置き換え
                             if (thinkingElement && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
                                 window.ChatUI.replaceThinkingMessage(thinkingElement, welcomeMessage);
@@ -496,6 +502,12 @@ const ChatInit = {
                             if (waitingOverlay) {
                                 waitingOverlay.classList.add('hidden');
                                 console.log('[初期化] 待機画面を非表示にしました（エラー時）');
+                            }
+                            
+                            // bodyのfade-inクラスを追加（チャット画面を表示）
+                            if (document.body) {
+                                document.body.classList.add('fade-in');
+                                console.log('[初期化] bodyにfade-inクラスを追加しました（エラー時、チャット画面を表示）');
                             }
                             
                             // エラー時はフォールバック（定型文）
@@ -521,6 +533,12 @@ const ChatInit = {
                         if (waitingOverlay) {
                             waitingOverlay.classList.add('hidden');
                             console.log('[初期化] 待機画面を非表示にしました（generateMessageAsyncエラー時）');
+                        }
+                        
+                        // bodyのfade-inクラスを追加（チャット画面を表示）
+                        if (document.body) {
+                            document.body.classList.add('fade-in');
+                            console.log('[初期化] bodyにfade-inクラスを追加しました（generateMessageAsyncエラー時、チャット画面を表示）');
                         }
                         
                         // エラー時はフォールバックメッセージを表示
