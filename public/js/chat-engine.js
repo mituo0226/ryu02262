@@ -7,10 +7,1308 @@
  * 
  * ハンドラーの取得は CharacterRegistry を使用します。
  * CharacterRegistry は character-registry.js で定義されています。
+ * 
+ * 【統合】chat-api.js, chat-data.js, chat-ui.js を統合
+ * 読み込み順序の問題を根本的に解決するため、3つのファイルを1つに統合しました。
  */
 
-// 【修正】ChatUIはchat-ui.jsで定義されるため、ここではエイリアスを作成しない
-// すべてのChatUI参照をwindow.ChatUIに変更
+// ============================================
+// chat-api.js の統合
+// ============================================
+/**
+ * chat-api.js
+ * API通信処理を担当
+ */
+
+const ChatAPI = {
+    /**
+     * 会話履歴を取得
+     * @param {string} characterId - キャラクターID
+     * @returns {Promise<Object|null>} 会話履歴データ
+     */
+    async loadConversationHistory(characterId, userInfo = null) {
+        // 【変更】データベースから最新のユーザー情報と会話履歴を取得
+        // localStorage/sessionStorageからの取得を削除（データベースベースの判断に完全移行）
+        // user_idを優先的に使用（より安全で効率的）
+        let userId = null;
+        // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
+        // nickname+生年月日によるユーザー確認は行わない
+        
+        console.log('[loadConversationHistory] 呼び出し:', {
+            characterId,
+            hasUserInfo: !!userInfo,
+            userInfoUserId: userInfo?.userId,
+            userInfoUserIdType: typeof userInfo?.userId
+        });
+        
+        if (userInfo && userInfo.userId) {
+            // userInfoからuserIdを取得（優先）
+            const userIdFromUserInfo = userInfo.userId;
+            if (typeof userIdFromUserInfo === 'number' && Number.isFinite(userIdFromUserInfo) && userIdFromUserInfo > 0) {
+                userId = userIdFromUserInfo;
+                console.log('[loadConversationHistory] userInfoからuserIdを取得（数値）:', userId);
+            } else if (typeof userIdFromUserInfo === 'string' && userIdFromUserInfo.trim() !== '') {
+                const parsedUserId = Number(userIdFromUserInfo);
+                if (Number.isFinite(parsedUserId) && parsedUserId > 0) {
+                    userId = parsedUserId;
+                    console.log('[loadConversationHistory] userInfoからuserIdを取得（文字列から数値に変換）:', userId);
+                } else {
+                    console.warn('[loadConversationHistory] userInfo.userIdが無効な値です:', userIdFromUserInfo);
+                }
+            } else {
+                console.warn('[loadConversationHistory] userInfo.userIdが無効な型または値です:', userIdFromUserInfo, typeof userIdFromUserInfo);
+            }
+        }
+        
+        // userInfoから取得できない場合、URLパラメータから取得（フォールバック）
+        if (!userId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userIdParam = urlParams.get('userId');
+            console.log('[loadConversationHistory] URLパラメータからuserIdを取得（フォールバック）:', userIdParam);
+            if (userIdParam && userIdParam.trim() !== '') {
+                const parsedUserId = Number(userIdParam);
+                if (Number.isFinite(parsedUserId) && parsedUserId > 0) {
+                    userId = parsedUserId;
+                    console.log('[loadConversationHistory] URLパラメータからuserIdを取得（数値に変換）:', userId);
+                } else {
+                    console.warn('[loadConversationHistory] URLパラメータのuserIdが無効な値です:', userIdParam);
+                }
+            }
+        }
+        
+        // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
+        // nickname+生年月日によるユーザー確認は行わない
+        if (!userId) {
+            console.error('[loadConversationHistory] userIdが指定されていません（nullを返します）:', {
+                userInfoProvided: !!userInfo,
+                userInfoUserId: userInfo?.userId,
+                userInfoUserIdType: typeof userInfo?.userId,
+                urlParams: new URLSearchParams(window.location.search).get('userId'),
+                locationHref: window.location.href
+            });
+            return null;
+        }
+        
+        console.log('[loadConversationHistory] userIdを確認しました（データベース検索を開始）:', userId);
+        
+        try {
+            // userIdのみを使用してAPIを呼び出し
+            const apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(characterId)}`;
+            
+            const response = await fetch(apiUrl);
+            
+            const responseText = await response.text();
+            let data = null;
+            
+            try {
+                if (responseText) {
+                    data = JSON.parse(responseText);
+                }
+            } catch (e) {
+                // JSON解析に失敗した場合は無視
+                console.error('[loadConversationHistory] JSON解析エラー:', e);
+            }
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('[loadConversationHistory] ユーザー情報が見つかりません（404）');
+                    // 404の場合は、ユーザーが登録されていない可能性がある
+                    throw new Error('USER_NOT_FOUND');
+                }
+                
+                console.warn('[loadConversationHistory] 会話履歴の取得に失敗:', response.status);
+                // ネットワークエラーやサーバーエラーの可能性
+                throw new Error('NETWORK_ERROR');
+            }
+            
+            // 【変更】データベースから取得した情報をlocalStorageに保存しない
+            // すべてのユーザー情報はデータベースから取得する
+            if (data) {
+                console.log('[loadConversationHistory] データベースから最新のユーザー情報を取得しました:', {
+                    nickname: data.nickname,
+                    birthYear: data.birthYear,
+                    birthMonth: data.birthMonth,
+                    birthDay: data.birthDay,
+                    assignedDeity: data.assignedDeity
+                });
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('[loadConversationHistory] エラー:', error);
+            // エラーの種類を判定
+            if (error instanceof Error) {
+                // 既にエラーメッセージが設定されている場合はそのまま投げる
+                if (error.message === 'USER_NOT_FOUND' || error.message === 'NETWORK_ERROR') {
+                    throw error;
+                }
+            }
+            // fetch自体が失敗した場合（ネットワークエラー）
+            if (error instanceof TypeError || (error instanceof Error && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')))) {
+                throw new Error('NETWORK_ERROR');
+            }
+            // その他のエラーもネットワークエラーとして扱う
+            throw new Error('NETWORK_ERROR');
+        }
+    },
+
+    /**
+     * メッセージを送信してAI応答を取得
+     * @param {string} message - 送信するメッセージ
+     * @param {string} characterId - キャラクターID
+     * @param {Array} conversationHistory - 会話履歴
+     * @param {Object} options - オプション
+     * @param {string} options.forceProvider - プロバイダーを強制指定（オプション: 'deepseek' | 'openai'）
+     * @param {Object} options - オプション
+     * @returns {Promise<Object>} APIレスポンス
+     */
+    async sendMessage(message, characterId, conversationHistory = [], options = {}) {
+        // 会話履歴の形式を変換（{role, content}形式に統一）
+        const clientHistory = conversationHistory.map(entry => {
+            if (typeof entry === 'string') {
+                return { role: 'user', content: entry };
+            }
+            return {
+                role: entry.role || 'user',
+                content: entry.content || entry.message || ''
+            };
+        });
+        
+        // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
+        // user_idを優先的に使用（より安全で効率的）
+        // URLパラメータからuserIdを取得（ログイン成功時にリダイレクトURLに含まれる）
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = null;
+        const userIdParam = urlParams.get('userId');
+        if (userIdParam) {
+            userId = Number(userIdParam);
+            if (!Number.isFinite(userId) || userId <= 0) {
+                userId = null;
+            }
+        }
+        
+        // userIdがない場合、ChatData.conversationHistoryから取得を試みる
+        // （会話履歴APIのレスポンスにuserIdが含まれる可能性がある）
+        if (!userId && ChatData && ChatData.conversationHistory && ChatData.conversationHistory.userId) {
+            userId = ChatData.conversationHistory.userId;
+        }
+        
+        // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
+        // API側でuserIdを優先的に使用するため、userIdがある場合はnickname+生年月日は送信しない
+        // ただし、API側の後方互換性のために、userIdがない場合のみnickname+生年月日を送信
+        let nickname, birthYear, birthMonth, birthDay;
+        
+        if (userId) {
+            // userIdがある場合は、nickname+生年月日は送信しない（API側でuserIdを優先的に使用）
+            nickname = undefined;
+            birthYear = undefined;
+            birthMonth = undefined;
+            birthDay = undefined;
+        } else {
+            // userIdがない場合のみ、後方互換性のためにnickname+生年月日を取得
+            if (ChatData && ChatData.conversationHistory && ChatData.conversationHistory.nickname) {
+                // 会話履歴から取得
+                nickname = ChatData.conversationHistory.nickname;
+                birthYear = ChatData.conversationHistory.birthYear;
+                birthMonth = ChatData.conversationHistory.birthMonth;
+                birthDay = ChatData.conversationHistory.birthDay;
+            } else if (ChatData && ChatData.userNickname) {
+                // ChatData.userNicknameから取得（会話履歴がない場合のフォールバック）
+                nickname = ChatData.userNickname;
+                // 生年月日は会話履歴に含まれていない場合はundefined
+                birthYear = undefined;
+                birthMonth = undefined;
+                birthDay = undefined;
+            } else {
+                // どちらも存在しない場合はundefined（ゲストユーザー）
+                nickname = undefined;
+                birthYear = undefined;
+                birthMonth = undefined;
+                birthDay = undefined;
+            }
+        }
+        
+        const payload = {
+            message: message,
+            character: characterId,
+            clientHistory: clientHistory,
+            userId: userId || undefined, // user_idを優先的に使用
+            nickname: nickname || undefined, // userIdがない場合のみ使用（後方互換性のため）
+            birthYear: birthYear ? Number(birthYear) : undefined, // userIdがない場合のみ使用
+            birthMonth: birthMonth ? Number(birthMonth) : undefined, // userIdがない場合のみ使用
+            birthDay: birthDay ? Number(birthDay) : undefined // userIdがない場合のみ使用
+        };
+        
+        // オプション設定
+        if (options.forceProvider) {
+            payload.forceProvider = options.forceProvider;
+        }
+        
+        if (options.migrateHistory) {
+            payload.migrateHistory = true;
+        }
+
+        // 儀式開始フラグ（守護神の儀式の開催を通知）
+        if (options.ritualStart) {
+            payload.ritualStart = true;
+        }
+
+        // 守護神からの最初のメッセージ生成フラグ
+        if (options.guardianFirstMessage) {
+            payload.guardianFirstMessage = true;
+            if (options.guardianName) {
+                payload.guardianName = options.guardianName;
+            }
+            if (options.firstQuestion !== undefined) {
+                payload.firstQuestion = options.firstQuestion;
+            }
+        }
+
+        // 楓からの追加メッセージ生成フラグ
+        if (options.kaedeFollowUp) {
+            payload.kaedeFollowUp = true;
+            if (options.guardianName) {
+                payload.guardianName = options.guardianName;
+            }
+            if (options.guardianMessage) {
+                payload.guardianMessage = options.guardianMessage;
+            }
+            if (options.firstQuestion !== undefined) {
+                payload.firstQuestion = options.firstQuestion;
+            }
+        }
+
+        try {
+            const response = await fetch('/api/consult', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                let errorData = {};
+                try {
+                    const responseText = await response.text();
+                    if (responseText) {
+                        errorData = JSON.parse(responseText);
+                    }
+                } catch (e) {
+                    console.error('[ChatAPI] エラーレスポンスの解析に失敗:', e);
+                    errorData = { error: `HTTP ${response.status} エラー` };
+                }
+                
+                const errorMessage = errorData.message || errorData.error || `メッセージの送信に失敗しました (HTTP ${response.status})`;
+                console.error('[ChatAPI] APIエラー詳細:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorData.error,
+                    message: errorData.message,
+                    fullErrorData: errorData
+                });
+                
+                return { 
+                    error: errorData.error || 'メッセージの送信に失敗しました',
+                    message: errorMessage
+                };
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            return { error: 'メッセージの送信に失敗しました' };
+        }
+    },
+
+    /**
+     * ウェルカムメッセージ生成（非同期）
+     * ページ読み込み後にバックグラウンドで呼ばれる
+     * @param {Object} options - オプション
+     * @param {string} options.character - キャラクターID
+     * @param {Array} options.conversationHistory - 会話履歴
+     * @param {string} options.visitPattern - 訪問パターン
+     * @returns {Promise<string>} 生成されたウェルカムメッセージ
+     */
+    async generateWelcomeMessage(options = {}) {
+        const { character, conversationHistory = [], visitPattern = 'first_visit' } = options;
+        
+        // userIdを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = null;
+        const userIdParam = urlParams.get('userId');
+        if (userIdParam) {
+            userId = Number(userIdParam);
+            if (!Number.isFinite(userId) || userId <= 0) {
+                userId = null;
+            }
+        }
+        
+        if (!userId) {
+            throw new Error('ユーザーIDが見つかりません');
+        }
+        
+        if (!character) {
+            throw new Error('キャラクターIDが指定されていません');
+        }
+        
+        console.log('[ChatAPI] ウェルカムメッセージ生成開始（非同期）:', {
+            character,
+            userId,
+            visitPattern,
+            historyLength: conversationHistory.length
+        });
+        
+        try {
+            const response = await fetch('/api/generate-welcome', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    character,
+                    userId,
+                    conversationHistory,
+                    visitPattern
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success || !data.message) {
+                throw new Error('Invalid API response');
+            }
+            
+            console.log('[ChatAPI] ウェルカムメッセージ生成完了:', {
+                usedAPI: data.metadata?.usedAPI,
+                messageLength: data.message.length
+            });
+            
+            return data.message;
+            
+        } catch (error) {
+            console.error('[ChatAPI] ウェルカムメッセージ生成エラー:', error);
+            throw error;
+        }
+    }
+};
+
+// グローバルスコープに公開
+window.ChatAPI = ChatAPI;
+
+// ============================================
+// chat-data.js の統合
+// ============================================
+/**
+ * chat-data.js
+ * データ管理と状態管理を担当
+ */
+
+const ChatData = {
+    // 状態変数
+    userNickname: null,
+    conversationHistory: null,
+    currentCharacter: 'kaede',
+    characterInfo: {},
+    ritualConsentShown: false, // 守護神の儀式への同意ボタンが表示されたかどうか
+
+    /**
+     * キャラクターデータを読み込む（単一キャラクターのみ）
+     * @param {string} characterId - キャラクターID（オプション、指定がない場合は全キャラクターを読み込む）
+     * @returns {Promise<Object>} キャラクター情報
+     */
+    async loadCharacterData(characterId = null) {
+        // characterIdが指定されている場合、個別ファイルから読み込む
+        if (characterId) {
+            if (this.characterData && this.characterData.id === characterId) {
+                // すでに読み込み済み
+                return this.characterData;
+            }
+            
+            // 【修正】個別ファイルは存在しないため、直接characters.jsonから読み込む
+            // 個別ファイル読み込みを削除し、常にcharacters.jsonから読み込むように変更
+            try {
+                const response = await fetch('../../data/characters.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load full characters.json');
+                }
+                const allCharacters = await response.json();
+                
+                if (!allCharacters[characterId]) {
+                    console.warn(`[ChatData.loadCharacterData] キャラクター "${characterId}" が見つかりません`);
+                    return {};
+                }
+                
+                this.characterData = {
+                    id: characterId,
+                    ...allCharacters[characterId]
+                };
+                this.characterInfo = allCharacters;
+                
+                console.log(`[ChatData.loadCharacterData] 読み込み完了: ${characterId}`);
+                return this.characterData;
+            } catch (error) {
+                console.error('キャラクターデータ読み込みエラー:', error);
+                return {};
+            }
+        }
+        
+        // characterIdが指定されていない場合、従来通り全キャラクターを読み込む
+        try {
+            const response = await fetch('../../data/characters.json');
+            if (!response.ok) {
+                throw new Error('Failed to load character data');
+            }
+            this.characterInfo = await response.json();
+            console.log('[ChatData.loadCharacterData] 読み込み完了:', {
+                characters: Object.keys(this.characterInfo),
+                yukinoHasFirstTimeGuest: !!this.characterInfo.yukino?.messages?.firstTimeGuest,
+                yukinoHasFirstTime: !!this.characterInfo.yukino?.messages?.firstTime,
+                yukinoFirstTimeGuest: this.characterInfo.yukino?.messages?.firstTimeGuest?.substring(0, 50) + '...' || 'なし'
+            });
+            return this.characterInfo;
+        } catch (error) {
+            console.error('Failed to load character data:', error);
+            return {};
+        }
+    },
+
+    /**
+     * URLパラメータから鑑定士IDを取得
+     * @returns {string} キャラクターID
+     */
+    getCharacterFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const character = urlParams.get('character');
+        
+        // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
+        // 有効なキャラクターIDのリスト
+        const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+        
+        if (character && validCharacters.includes(character)) {
+            return character;
+        }
+        
+        // characterInfoが読み込まれている場合は、その中から取得
+        const loadedCharacters = Object.keys(this.characterInfo);
+        if (loadedCharacters.length > 0) {
+            return loadedCharacters[0] || 'kaede';
+        }
+        
+        // フォールバック
+        return 'kaede';
+    },
+
+    /**
+     * 現在のURLを構築（ファイル名を含めない）
+     * @param {string} character - キャラクターID
+     * @returns {string} URL
+     */
+    buildCurrentUrl(character = this.currentCharacter) {
+        const baseUrl = window.location.origin;
+        const pathParts = window.location.pathname.split('/').filter(part => part !== '');
+        const path = pathParts.slice(0, -1).join('/');
+        return `${baseUrl}/${path}?character=${character}`;
+    },
+
+    /**
+     * ユーザーメッセージカウントを取得
+     * @param {string} character - キャラクターID
+     * @returns {number} メッセージカウント
+     */
+    getUserMessageCount(character) {
+        // 会話履歴が唯一の真実の源（single source of truth）
+        // 会話履歴からユーザーメッセージ数を直接数える
+        const history = this.getConversationHistory(character);
+        
+        if (history && Array.isArray(history)) {
+            const userMessageCount = history.filter(msg => msg && msg.role === 'user').length;
+            console.log(`[ChatData] getUserMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
+            
+            // sessionStorageの値と一致するか確認（デバッグ用）
+            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
+            const key = GUEST_COUNT_KEY_PREFIX + character;
+            const storedCount = sessionStorage.getItem(key);
+            if (storedCount !== null) {
+                const storedCountNum = Number.parseInt(storedCount, 10);
+                if (storedCountNum !== userMessageCount) {
+                    console.warn(`[ChatData] ⚠️ カウントの不一致を検出: sessionStorage=${storedCountNum}, 履歴=${userMessageCount}。履歴を優先します。`);
+                    // 履歴の値をsessionStorageに同期
+                    this.setUserMessageCount(character, userMessageCount);
+                }
+            } else {
+                // sessionStorageにない場合は、計算した値を保存（補助的な用途）
+                this.setUserMessageCount(character, userMessageCount);
+            }
+            
+            return userMessageCount;
+        }
+        
+        // 会話履歴が存在しない場合のみ0を返す
+        console.log(`[ChatData] getUserMessageCount(${character}): 0 (会話履歴が空)`);
+        return 0;
+    },
+
+    /**
+     * 【後方互換性】getGuestMessageCount → getUserMessageCount のエイリアス
+     * @deprecated getUserMessageCountを使用してください
+     */
+    getGuestMessageCount(character) {
+        console.warn('[ChatData] getGuestMessageCountは非推奨です。getUserMessageCountを使用してください。');
+        return this.getUserMessageCount(character);
+    },
+
+    /**
+     * ユーザーメッセージカウントを設定
+     * @param {string} character - キャラクターID
+     * @param {number} count - カウント
+     */
+    setUserMessageCount(character, count) {
+        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
+        const key = GUEST_COUNT_KEY_PREFIX + character;
+        sessionStorage.setItem(key, String(count));
+        sessionStorage.setItem('lastGuestMessageCount', String(count - 1));
+        console.log(`[ChatData] setUserMessageCount(${character}, ${count})`);
+    },
+
+    /**
+     * 【後方互換性】setGuestMessageCount → setUserMessageCount のエイリアス
+     * @deprecated setUserMessageCountを使用してください
+     */
+    setGuestMessageCount(character, count) {
+        console.warn('[ChatData] setGuestMessageCountは非推奨です。setUserMessageCountを使用してください。');
+        return this.setUserMessageCount(character, count);
+    },
+
+    /**
+     * ゲスト会話履歴を取得
+     * @param {string} character - キャラクターID
+     * @returns {Array} 会話履歴
+     */
+    getConversationHistory(character) {
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
+        const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+        const storedHistory = sessionStorage.getItem(historyKey);
+        
+        if (storedHistory) {
+            try {
+                return JSON.parse(storedHistory);
+            } catch (error) {
+                console.error('Error parsing conversation history:', error);
+                return [];
+            }
+        }
+        
+        // AuthStateから取得を試みる
+        if (window.AuthState && typeof window.AuthState.getGuestHistory === 'function') {
+            return AuthState.getGuestHistory(character) || [];
+        }
+        
+        return [];
+    },
+
+    /**
+     * 【後方互換性】getGuestHistory → getConversationHistory のエイリアス
+     * @deprecated getConversationHistoryを使用してください
+     */
+    getGuestHistory(character) {
+        console.warn('[ChatData] getGuestHistoryは非推奨です。getConversationHistoryを使用してください。');
+        return this.getConversationHistory(character);
+    },
+
+    /**
+     * 会話履歴を設定
+     * @param {string} character - キャラクターID
+     * @param {Array} history - 会話履歴
+     */
+    setConversationHistory(character, history) {
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
+        const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+        sessionStorage.setItem(historyKey, JSON.stringify(history));
+    },
+
+    /**
+     * 【後方互換性】setGuestHistory → setConversationHistory のエイリアス
+     * @deprecated setConversationHistoryを使用してください
+     */
+    setGuestHistory(character, history) {
+        console.warn('[ChatData] setGuestHistoryは非推奨です。setConversationHistoryを使用してください。');
+        return this.setConversationHistory(character, history);
+    },
+
+    /**
+     * 会話履歴にメッセージを追加
+     * @param {string} character - キャラクターID
+     * @param {string} role - 'user' または 'assistant'
+     * @param {string} content - メッセージ内容
+     */
+    addToConversationHistory(character, role, content) {
+        const history = this.getConversationHistory(character);
+        history.push({ role, content });
+        this.setConversationHistory(character, history);
+    },
+
+    /**
+     * 【後方互換性】addToGuestHistory → addToConversationHistory のエイリアス
+     * @deprecated addToConversationHistoryを使用してください
+     */
+    addToGuestHistory(character, role, content) {
+        console.warn('[ChatData] addToGuestHistoryは非推奨です。addToConversationHistoryを使用してください。');
+        return this.addToConversationHistory(character, role, content);
+    },
+
+    /**
+     * 会話内容を抽出
+     * @param {Object} historyData - 履歴データ
+     * @returns {string|null} 会話内容
+     */
+    extractConversationContent(historyData) {
+        if (!historyData || !historyData.recentMessages) {
+            return null;
+        }
+
+        // 最後のユーザーメッセージを取得（時系列順に並んでいる場合）
+        const messages = historyData.recentMessages;
+        let lastUserMessage = null;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') {
+                lastUserMessage = messages[i];
+                break;
+            }
+        }
+        
+        if (lastUserMessage) {
+            const content = lastUserMessage.content;
+            // 長さ制限は設けず、そのまま返す（returningメッセージで使用されるため）
+            return content;
+        }
+        
+        return null;
+    },
+
+    /**
+     * 日付をフォーマット
+     * @param {string} dateString - 日付文字列
+     * @returns {string|null} フォーマット済み日付
+     */
+    formatDateForMessage(dateString) {
+        if (!dateString) return null;
+        
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const currentYear = new Date().getFullYear();
+        
+        if (year === currentYear) {
+            return `${month}月${day}日`;
+        } else {
+            return `${year}年${month}月${day}日`;
+        }
+    },
+
+    /**
+     * メッセージテンプレートを置換
+     * @param {string} template - テンプレート文字列
+     * @param {string} nickname - ニックネーム
+     * @param {string|null} lastDate - 最後の会話日時
+     * @param {string|null} conversationContent - 会話内容
+     * @param {string} characterId - キャラクターID
+     * @returns {string} 置換済みメッセージ
+     */
+    replaceMessageTemplate(template, nickname, lastDate, conversationContent, characterId) {
+        let message = template;
+        const character = this.characterInfo[characterId];
+        
+        const safeNickname = nickname || 'あなた';
+        message = message.replace(/{nickname}/g, safeNickname);
+        
+        if (lastDate) {
+            const dateText = this.formatDateForMessage(lastDate);
+            if (dateText) {
+                const dateFormat = character?.messages?.returningLastDateFormat || `前回は{date}でしたね。`;
+                const formattedDate = dateFormat.replace(/{date}/g, dateText);
+                message = message.replace(/{lastDate}/g, formattedDate);
+            } else {
+                message = message.replace(/{lastDate}/g, '');
+            }
+        } else {
+            message = message.replace(/{lastDate}/g, '');
+        }
+        
+        if (conversationContent) {
+            const contentFormat = character?.messages?.returningConversationFormat || `その時の相談内容は、{content}というものでした。`;
+            const formattedContent = contentFormat.replace(/{content}/g, conversationContent);
+            message = message.replace(/{conversationContent}/g, formattedContent);
+        } else {
+            message = message.replace(/{conversationContent}/g, '');
+        }
+        
+        return message;
+    },
+
+    /**
+     * 各鑑定師の初回メッセージを生成（会話履歴がある場合）
+     * @param {string} characterId - キャラクターID
+     * @param {Object} historyData - 履歴データ
+     * @returns {string} メッセージ
+     */
+    generateInitialMessage(characterId, historyData) {
+        const character = this.characterInfo[characterId];
+        if (!character || !character.messages || !character.messages.returning) {
+            return 'こんにちは。';
+        }
+
+        const nickname = historyData.nickname || this.userNickname || 'あなた';
+        const lastDate = historyData.lastConversationDate || null;
+        const conversationContent = this.extractConversationContent(historyData);
+        
+        const finalMessage = this.replaceMessageTemplate(character.messages.returning, nickname, lastDate, conversationContent, characterId);
+        return finalMessage;
+    },
+
+    /**
+     * 各鑑定師の初めての会話メッセージを生成
+     * @param {string} characterId - キャラクターID
+     * @param {string} nickname - ニックネーム
+     * @param {boolean} isGuestFirstVisit - ゲストユーザーとして初めて入室した場合true（未使用、後方互換性のため残す）
+     * @param {boolean} hasOtherCharacterHistory - 他のキャラクターとの会話履歴があるかどうか（未使用、後方互換性のため残す）
+     * @returns {string} メッセージ
+     */
+    generateFirstTimeMessage(characterId, nickname, isGuestFirstVisit = false, hasOtherCharacterHistory = false) {
+        console.log('[ChatData.generateFirstTimeMessage] 呼び出し:', {
+            characterId,
+            nickname,
+            hasCharacterInfo: !!this.characterInfo[characterId],
+            hasMessages: !!this.characterInfo[characterId]?.messages,
+            hasFirstTimeGuest: !!this.characterInfo[characterId]?.messages?.firstTimeGuest
+        });
+        
+        const character = this.characterInfo[characterId];
+        if (!character || !character.messages) {
+            console.log('[ChatData.generateFirstTimeMessage] キャラクター情報が見つかりません。デフォルトメッセージを返します');
+            return `${nickname}さん、初めまして。`;
+        }
+        
+        // 初めて笹岡と会話するユーザーは、他のキャラクターとの会話履歴に関係なく、常にfirstTimeGuestを使用
+        let messageTemplate = null;
+        if (character.messages.firstTimeGuest) {
+            messageTemplate = character.messages.firstTimeGuest;
+            console.log('[ChatData.generateFirstTimeMessage] firstTimeGuestを使用:', messageTemplate.substring(0, 50) + '...');
+        } else {
+            console.log('[ChatData.generateFirstTimeMessage] firstTimeGuestが設定されていません');
+        }
+        
+        if (!messageTemplate) {
+            // firstTimeGuestが設定されていない場合は、デフォルトメッセージを返す
+            console.log('[ChatData.generateFirstTimeMessage] デフォルトメッセージを返します');
+            return `${nickname}さん、初めまして。`;
+        }
+        
+        // テンプレート変数を含まない可能性があるため、その場合はそのまま返す
+        if (!messageTemplate.includes('{nickname}')) {
+            console.log('[ChatData.generateFirstTimeMessage] テンプレート変数なし。そのまま返します');
+            return messageTemplate;
+        }
+        
+        console.log('[ChatData.generateFirstTimeMessage] テンプレート変数を置換します');
+        const finalMessage = this.replaceMessageTemplate(messageTemplate, nickname, null, null, characterId);
+        return finalMessage;
+    }
+};
+
+// グローバルスコープに公開（iframeからアクセスできるようにする）
+window.ChatData = ChatData;
+
+// ============================================
+// chat-ui.js の統合（簡略版 - 主要機能のみ）
+// ============================================
+/**
+ * chat-ui.js
+ * UI更新とレンダリングを担当
+ */
+
+const ChatUI = {
+    // DOM要素の参照
+    messagesDiv: null,
+    messageInput: null,
+    sendButton: null,
+    userStatus: null,
+    characterHeader: null,
+    characterHeaderImage: null,
+    characterHeaderName: null,
+    mobileHeaderTitle: null,
+
+    /**
+     * DOM要素を初期化
+     */
+    init() {
+        this.messagesDiv = document.getElementById('messages');
+        this.messageInput = document.getElementById('messageInput');
+        this.sendButton = document.getElementById('sendButton');
+        this.userStatus = document.getElementById('userStatus');
+        this.characterHeader = document.getElementById('characterHeader');
+        this.characterHeaderImage = document.getElementById('characterHeaderImage');
+        this.characterHeaderName = document.getElementById('characterHeaderName');
+        this.mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
+    },
+
+    /**
+     * 鑑定士を設定（ヘッダー表示を更新）
+     * @param {string} characterId - キャラクターID
+     * @param {Object} characterInfo - キャラクター情報
+     */
+    setCurrentCharacter(characterId, characterInfo) {
+        if (!characterInfo[characterId]) {
+            console.warn('[ChatUI.setCurrentCharacter] ⚠️ characterInfo[' + characterId + '] が存在しないため、kaedeにフォールバックします');
+            characterId = 'kaede';
+        }
+        
+        const info = characterInfo[characterId];
+        
+        // PC版ヘッダー
+        if (this.characterHeaderImage && this.characterHeaderName) {
+            this.characterHeaderImage.src = info.image;
+            this.characterHeaderImage.alt = info.name;
+            this.characterHeaderName.textContent = info.name;
+        }
+        
+        // モバイル版ヘッダー
+        if (this.mobileHeaderTitle) {
+            this.mobileHeaderTitle.innerHTML = '';
+            
+            const profileLink = document.createElement('a');
+            profileLink.href = info.profileUrl;
+            profileLink.style.textDecoration = 'none';
+            profileLink.style.color = '#ffffff';
+            profileLink.style.display = 'flex';
+            profileLink.style.alignItems = 'center';
+            profileLink.style.justifyContent = 'center';
+            profileLink.style.gap = '8px';
+            
+            const iconImg = document.createElement('img');
+            iconImg.src = info.image;
+            iconImg.alt = info.name;
+            iconImg.className = 'mobile-character-icon';
+            
+            const nameText = document.createElement('span');
+            nameText.textContent = info.name;
+            
+            profileLink.appendChild(iconImg);
+            profileLink.appendChild(nameText);
+            this.mobileHeaderTitle.appendChild(profileLink);
+        }
+    },
+
+    /**
+     * ユーザーステータスを更新
+     * @param {boolean} isRegistered - 登録済みかどうか
+     * @param {Object} userData - ユーザーデータ（オプション）
+     */
+    updateUserStatus(isRegistered, userData = null) {
+        if (!this.userStatus) return;
+        
+        if (!userData) {
+            console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
+            this.userStatus.textContent = '鑑定名義: 鑑定者';
+            this.userStatus.className = 'user-status registered';
+            return;
+        }
+        
+        const nickname = userData.nickname || '鑑定者';
+        const deityId = userData.assignedDeity || '未割当';
+        const birthYear = userData.birthYear || null;
+        const birthMonth = userData.birthMonth || null;
+        const birthDay = userData.birthDay || null;
+        
+        const deity = deityId;
+        
+        let statusText = `鑑定名義: ${nickname}`;
+        
+        if (birthYear && birthMonth && birthDay) {
+            statusText += ` ｜ 生年月日: ${birthYear}年${birthMonth}月${birthDay}日`;
+        }
+        
+        if (deity && deity !== '未割当') {
+            statusText += ` ｜ 守護: ${deity}`;
+        }
+        
+        this.userStatus.textContent = statusText;
+        this.userStatus.className = 'user-status registered';
+    },
+
+    /**
+     * メッセージを追加
+     * @param {string} type - メッセージタイプ ('user', 'character', 'welcome', 'error', 'loading')
+     * @param {string} text - メッセージテキスト
+     * @param {string} sender - 送信者名
+     * @param {Object} options - オプション
+     * @returns {string} メッセージ要素のID
+     */
+    addMessage(type, text, sender, options = {}) {
+        // デバッグ: オブジェクトが渡されている場合、詳細ログを出力
+        if (typeof text !== 'string') {
+            console.error('[ChatUI.addMessage] ⚠️ オブジェクトが渡されています！', {
+                type,
+                sender,
+                textType: typeof text,
+                textValue: text,
+                textStringified: JSON.stringify(text),
+                stackTrace: new Error().stack
+            });
+            // エラーとして処理：オブジェクトを文字列に変換
+            if (Array.isArray(text)) {
+                text = text.map(item => typeof item === 'object' ? JSON.stringify(item) : String(item)).join(', ');
+            } else if (text && typeof text === 'object') {
+                text = text.message || text.content || JSON.stringify(text);
+            } else {
+                text = String(text);
+            }
+        }
+        
+        if (type === 'welcome') {
+            const existingMessages = this.messagesDiv?.querySelectorAll('.message.welcome') || [];
+            const isDuplicate = Array.from(existingMessages).some(msg => {
+                const textDiv = msg.querySelector('.message-text');
+                return textDiv && textDiv.textContent === text;
+            });
+            
+            if (isDuplicate) {
+                console.warn('[ChatUI] 重複したwelcomeメッセージを検出しました。スキップします。', text.substring(0, 100));
+                return null;
+            }
+        }
+        
+        if (!this.messagesDiv) return null;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        
+        const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        messageDiv.id = messageId;
+        
+        if (type === 'character') {
+            messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
+            messageDiv.style.color = '#ffffff';
+            messageDiv.style.border = 'none';
+            messageDiv.style.boxShadow = 'none';
+        }
+
+        // loadingタイプのメッセージの特別な処理（簡略版）
+        if (type === 'loading') {
+            messageDiv.className = 'message loading-message';
+            messageDiv.style.background = 'rgba(75, 0, 130, 0.95)';
+            messageDiv.style.color = '#ffd700';
+            messageDiv.style.border = 'none';
+            messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
+        }
+
+        if (sender) {
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.textContent = sender;
+            
+            if (type === 'character') {
+                headerDiv.style.color = 'rgba(255, 255, 255, 0.9)';
+            }
+            else if (type === 'loading') {
+                headerDiv.style.color = '#ffd700';
+                headerDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6)';
+            }
+            else if (type === 'user') {
+                headerDiv.style.color = '#b794ff';
+            }
+            
+            messageDiv.appendChild(headerDiv);
+        }
+
+        let displayText = text;
+        const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
+        const hasCardInfo = cardPattern.test(text);
+        
+        if (hasCardInfo) {
+            displayText = text.replace(/【(過去|現在|未来)】[^\n]+\n?/g, '').trim();
+            displayText = displayText.replace(/\n{3,}/g, '\n\n');
+        }
+        
+        const displayTextWithoutTag = displayText.replace(/\[SUGGEST_TAROT\]/g, '');
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        if (type === 'loading') {
+            textDiv.style.cssText = `
+                color: #ffd700;
+                text-shadow: 
+                    0 0 10px rgba(255, 215, 0, 0.8),
+                    0 0 20px rgba(138, 43, 226, 0.6),
+                    0 0 30px rgba(255, 107, 157, 0.4);
+                animation: guardian-mystic-glow-text 3s ease-in-out infinite;
+                text-align: center;
+                line-height: 1.8;
+            `;
+        }
+        textDiv.textContent = displayTextWithoutTag;
+        messageDiv.appendChild(textDiv);
+
+        if ((type === 'character' || type === 'welcome') && window.CharacterFeatures) {
+            const sendMessageCallback = typeof window.sendMessage === 'function' ? window.sendMessage : null;
+            if (window.CharacterFeatures.detect(ChatData.currentCharacter, text)) {
+                window.CharacterFeatures.display(ChatData.currentCharacter, text, messageDiv, sendMessageCallback);
+            }
+        }
+
+        this.messagesDiv.appendChild(messageDiv);
+        
+        // メッセージ追加後、ハンドラーのコールバックを呼び出す
+        if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
+            const handler = CharacterRegistry.get(ChatData.currentCharacter);
+            if (handler && typeof handler.onMessageAdded === 'function') {
+                try {
+                    handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
+                } catch (error) {
+                    console.error(`[chat-ui] ハンドラーのonMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
+                }
+            }
+        }
+        
+        requestAnimationFrame(() => {
+            this.scrollToLatest();
+        });
+        
+        return messageId;
+    },
+
+    /**
+     * スクロールを最新に（スムーズスクロール対応）
+     */
+    scrollToLatest() {
+        if (!this.messagesDiv) return;
+        setTimeout(() => {
+            this.messagesDiv.scrollTo({
+                top: this.messagesDiv.scrollHeight,
+                behavior: 'smooth'
+            });
+        }, 100);
+    },
+
+    /**
+     * メッセージをすべてクリア
+     */
+    clearMessages() {
+        if (!this.messagesDiv) return;
+        this.messagesDiv.innerHTML = '';
+    },
+
+    /**
+     * 「考え中...」を実際のメッセージに置き換え
+     * @param {HTMLElement} thinkingElement - 「考え中...」要素
+     * @param {string} message - 置き換えるメッセージ
+     */
+    replaceThinkingMessage(thinkingElement, message) {
+        if (!thinkingElement || !this.messagesDiv) {
+            console.warn('[ChatUI.replaceThinkingMessage] 無効な引数');
+            return;
+        }
+        
+        const contentDiv = thinkingElement.querySelector('.message-content');
+        if (!contentDiv) {
+            console.error('[ChatUI.replaceThinkingMessage] .message-contentが見つかりません');
+            return;
+        }
+        
+        const cleanedMessage = message;
+        
+        contentDiv.style.transition = 'opacity 0.2s ease';
+        contentDiv.style.opacity = '0';
+        
+        setTimeout(() => {
+            const thinkingIndicator = contentDiv.querySelector('.thinking-indicator');
+            if (thinkingIndicator) {
+                thinkingIndicator.remove();
+            }
+            
+            contentDiv.innerHTML = '';
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            const displayMessageWithoutTag = cleanedMessage.replace(/\[SUGGEST_TAROT\]/g, '');
+            textDiv.textContent = displayMessageWithoutTag;
+            contentDiv.appendChild(textDiv);
+            contentDiv.style.opacity = '1';
+            
+            if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
+                const handler = CharacterRegistry.get(ChatData.currentCharacter);
+                if (handler && typeof handler.onMessageAdded === 'function') {
+                    const messageDiv = thinkingElement;
+                    const messageId = messageDiv.id || `message-${Date.now()}`;
+                    try {
+                        const messageType = thinkingElement.classList.contains('welcome') ? 'welcome' : 
+                                           thinkingElement.classList.contains('character') ? 'character' : 'assistant';
+                        const sender = ChatData.characterInfo?.[ChatData.currentCharacter]?.name || 'キャラクター';
+                        handler.onMessageAdded(messageType, cleanedMessage, sender, messageDiv, messageId, {});
+                    } catch (error) {
+                        console.error(`[ChatUI.replaceThinkingMessage] onMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
+                    }
+                }
+            }
+            
+            thinkingElement.classList.remove('thinking');
+            this.scrollToLatest();
+        }, 200);
+    },
+
+    /**
+     * 送信ボタンの表示/非表示を更新
+     */
+    updateSendButtonVisibility() {
+        if (!this.sendButton || !this.messageInput) return;
+        
+        if (this.messageInput.value.trim().length > 0) {
+            this.sendButton.classList.add('visible');
+            this.sendButton.disabled = false;
+        } else {
+            this.sendButton.classList.remove('visible');
+        }
+    },
+
+    /**
+     * 守護神の儀式への同意ボタンを表示
+     */
+    showRitualConsentButtons(questionText = '守護神の儀式を始めますか？') {
+        if (ChatData.ritualConsentShown) {
+            return;
+        }
+        
+        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
+        const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
+        
+        if (ritualConsentContainer) {
+            if (ritualConsentContainer.classList.contains('visible')) {
+                return;
+            }
+            
+            if (ritualConsentQuestion) {
+                ritualConsentQuestion.textContent = questionText;
+            }
+            
+            ChatData.ritualConsentShown = true;
+            ritualConsentContainer.style.display = 'block';
+            requestAnimationFrame(() => {
+                ritualConsentContainer.classList.add('visible');
+            });
+        }
+    },
+
+    /**
+     * 守護神の儀式への同意ボタンを非表示
+     */
+    hideRitualConsentButtons() {
+        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
+        if (ritualConsentContainer) {
+            ritualConsentContainer.classList.remove('visible');
+            setTimeout(() => {
+                ritualConsentContainer.style.display = 'none';
+            }, 500);
+        }
+    },
+
+    /**
+     * 守護神の儀式開始ボタンをメッセージの下に追加
+     */
+    addRitualStartButton(messageElement, onClickHandler) {
+        if (!messageElement) {
+            console.error('[addRitualStartButton] messageElementがnullです');
+            return null;
+        }
+        
+        const existingButton = messageElement.querySelector('.ritual-start-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.marginTop = '15px';
+        buttonContainer.style.paddingTop = '15px';
+        buttonContainer.style.borderTop = '1px solid rgba(255, 255, 255, 0.2)';
+        
+        const button = document.createElement('button');
+        button.className = 'ritual-start-button';
+        button.textContent = '守護神の儀式を始める';
+        button.style.cssText = `
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.3);
+        `;
+        
+        button.addEventListener('mouseenter', () => {
+            button.style.background = 'linear-gradient(135deg, #9B4DFF 0%, #7A1DBD 100%)';
+            button.style.boxShadow = '0 6px 16px rgba(139, 61, 255, 0.4)';
+            button.style.transform = 'translateY(-2px)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.background = 'linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%)';
+            button.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.3)';
+            button.style.transform = 'translateY(0)';
+        });
+        
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            button.textContent = '儀式を開始しています...';
+            button.style.opacity = '0.7';
+            button.style.cursor = 'wait';
+            
+            try {
+                await onClickHandler();
+            } catch (error) {
+                console.error('[守護神の儀式] 開始エラー:', error);
+                button.disabled = false;
+                button.textContent = '守護神の儀式を始める';
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                ChatUI.addMessage('error', '守護神の儀式の開始中にエラーが発生しました。もう一度お試しください。', 'システム');
+            }
+        });
+        
+        buttonContainer.appendChild(button);
+        messageElement.appendChild(buttonContainer);
+        
+        requestAnimationFrame(() => {
+            this.scrollToLatest();
+        });
+        
+        return button;
+    },
+
+    /**
+     * 守護神の儀式開始ボタンが表示されているかチェック
+     */
+    isRitualStartButtonVisible() {
+        const button = document.querySelector('.ritual-start-button');
+        if (!button) return false;
+        
+        const visibleButton = Array.from(document.querySelectorAll('.ritual-start-button')).find(btn => {
+            const style = window.getComputedStyle(btn);
+            return style.display !== 'none' && !btn.disabled;
+        });
+        
+        return visibleButton !== undefined;
+    }
+};
+
+// グローバルスコープに公開（iframeからアクセスできるようにする）
+window.ChatUI = ChatUI;
 
 const ChatInit = {
     /**

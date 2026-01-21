@@ -450,7 +450,7 @@
             border-radius: 0;
             padding: 18px 12px;
             padding-top: 24px;
-            padding-bottom: 300px; /* PC/モバイル共にメッセージが隠れないように十分な余白を確保 */
+            padding-bottom: 300px !important; /* PC/モバイル共にメッセージが隠れないように十分な余白を確保 */
             background: transparent;
             border: none;
             display: flex;
@@ -735,7 +735,7 @@
                 padding: 20px 10px;
                 padding-top: 20px;
                 height: 100%;
-                padding-bottom: 300px; /* PC/モバイル共にメッセージが隠れないように十分な余白を確保 */
+                padding-bottom: 300px !important; /* PC/モバイル共にメッセージが隠れないように十分な余白を確保 */
                 margin-top: 0;
             }
             
@@ -1226,42 +1226,9 @@
                       
                   }
                   
-                  // 【重要】chat-engine.jsが読み込まれるのを待つ（最大30秒）
-                  // チャット画面は既に表示されているので、ユーザーには見える
-                  console.log('[入口フォーム] chat-engine.jsの読み込みを待機中...');
-                  let scriptAttempts = 0;
-                  const maxScriptAttempts = 300; // 30秒間待機（100ms × 300）
-                  
-                  // より確実に待機するため、window.chatEngineLoadedだけでなく、ChatData、ChatUI、ChatInitも確認
-                  while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && scriptAttempts < maxScriptAttempts) {
-                      await new Promise(resolve => setTimeout(resolve, 100));
-                      scriptAttempts++;
-                      
-                      // 100回ごとに進捗をログ出力
-                      if (scriptAttempts % 100 === 0) {
-                          console.log(`[入口フォーム] chat-engine.jsの読み込み待機中... (${scriptAttempts}/${maxScriptAttempts})`, {
-                              chatEngineLoaded: window.chatEngineLoaded,
-                              hasChatData: !!window.ChatData,
-                              hasChatUI: !!window.ChatUI,
-                              hasChatInit: !!window.ChatInit
-                          });
-                      }
-                  }
-                  
-                  if (!window.ChatData || !window.ChatUI || !window.ChatInit) {
-                      console.warn('[入口フォーム] chat-engine.jsの読み込みがタイムアウトしましたが、処理を続行します', {
-                          chatEngineLoaded: window.chatEngineLoaded,
-                          hasChatData: !!window.ChatData,
-                          hasChatUI: !!window.ChatUI,
-                          hasChatInit: !!window.ChatInit
-                      });
-                  } else {
-                      console.log('[入口フォーム] chat-engine.jsの読み込みが完了しました', {
-                          hasChatData: !!window.ChatData,
-                          hasChatUI: !!window.ChatUI,
-                          hasChatInit: !!window.ChatInit
-                      });
-                  }
+                  // 【統合後】chat-engine.jsに統合されたため、読み込み待機ループは不要
+                  // deferにより、DOMContentLoaded後に確実に読み込まれる
+                  console.log('[入口フォーム] chat-engine.jsの読み込みを確認（統合後）');
                    
                    // 【変更】データベースから直接ユーザー情報を取得
                    // URLパラメータからcharacterとuserIdを取得
@@ -1456,46 +1423,13 @@
                               console.log('[入口フォーム] ユーザー情報をチャット画面に表示しました');
                           }
                           
-                          // chat-engine.jsの初期化を実行（チャット画面は既に表示されている）
-                          // 【修正】initPageが既に完了している場合でも、チャット画面を表示する
-                          // 【重要】ChatInit.initPageが見つからない場合、再試行する
-                          async function tryInitPage() {
-                              if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                                  // initPageが既に完了している場合は、再実行を試みる（フラグをリセット）
-                                  if (window.ChatInit._initPageCompleted) {
-                                      console.log('[入口フォーム] initPageは既に完了していますが、チャット画面を表示します');
-                                      // フラグをリセットして再実行を試みる
-                                      window.ChatInit._initPageCompleted = false;
-                                      window.ChatInit._initPageRunning = false;
-                                  }
-                                  console.log('[入口フォーム] chat-engine.jsの初期化を実行します');
-                                  await window.ChatInit.initPage();
-                                  return true;
-                              } else {
-                                  return false;
-                              }
-                          }
-                          
-                          // まず試行
-                          let initSuccess = await tryInitPage();
-                          
-                          // 失敗した場合、最大5回まで再試行（各1秒間隔）
-                          if (!initSuccess) {
-                              console.warn('[入口フォーム] ChatInit.initPageが見つかりませんでした。再試行します...');
-                              let retryCount = 0;
-                              const maxRetries = 5;
-                              
-                              while (!initSuccess && retryCount < maxRetries) {
-                                  await new Promise(resolve => setTimeout(resolve, 1000));
-                                  retryCount++;
-                                  console.log(`[入口フォーム] ChatInit.initPageの再試行 ${retryCount}/${maxRetries}`);
-                                  initSuccess = await tryInitPage();
-                              }
-                              
-                              if (!initSuccess) {
-                                  console.error('[入口フォーム] ChatInit.initPageが見つかりませんでした。chat-engine.jsが正しく読み込まれているか確認してください。');
-                                  // エラー時でもチャット画面は表示されているので、そのまま続行
-                              }
+                          // 【統合後】chat-engine.jsの初期化を実行（deferにより確実に読み込まれる）
+                          // 統合により読み込み順序の問題が解決されたため、直接呼び出し
+                          if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                              console.log('[入口フォーム] chat-engine.jsの初期化を実行します（統合後）');
+                              await window.ChatInit.initPage();
+                          } else {
+                              console.warn('[入口フォーム] ChatInit.initPageが見つかりません。deferにより後で読み込まれます。');
                           }
                           
                           return;
@@ -1772,18 +1706,14 @@
           })();
           </script>
           
-          <!-- スクリプト読み込み順序を固定（すべてdeferで統一） -->
+          <!-- スクリプト読み込み順序を固定（統合後の最小構成） -->
           <script src="../../js/auth-state.js" defer></script>
           <script src="../../js/character-features.js" defer></script>
-          <!-- 鑑定士固有の機能スクリプトはハンドラーのinit()で動的に読み込まれる -->
-          <script src="../../js/chat-api.js" defer></script>
-          <script src="../../js/chat-data.js" defer></script>
-          <script src="../../js/chat-ui.js" defer></script>
+          <!-- チャットエンジン（chat-api.js, chat-data.js, chat-ui.jsを統合済み） -->
+          <script src="../../js/chat-engine.js" defer onload="window.chatEngineLoaded = true;"></script>
           <!-- プラグインアーキテクチャ -->
           <script src="../../js/character-registry.js" defer></script>
           <script src="../../js/character-loader.js" defer></script>
-          <!-- チャットエンジン（依存関係があるため最後に読み込み） -->
-          <script src="../../js/chat-engine.js" defer onload="window.chatEngineLoaded = true;"></script>
           <!-- ハンドラーの動的読み込み -->
           <script>
           (async function() {
@@ -2327,8 +2257,32 @@
                        messageInput.addEventListener('keydown', enterKeyHandler, { passive: false });
                        
                        // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
+                       // 0.1秒後と0.5秒後の2回、強制的にスクロールを実行
                        messageInput.addEventListener('focus', function() {
-                           scrollToBottom();
+                           const messagesDiv = document.getElementById('messages');
+                           if (messagesDiv) {
+                               setTimeout(() => {
+                                   try {
+                                       messagesDiv.scrollTo({
+                                           top: messagesDiv.scrollHeight,
+                                           behavior: 'smooth'
+                                       });
+                                   } catch (e) {
+                                       messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                   }
+                               }, 100);
+                               
+                               setTimeout(() => {
+                                   try {
+                                       messagesDiv.scrollTo({
+                                           top: messagesDiv.scrollHeight,
+                                           behavior: 'smooth'
+                                       });
+                                   } catch (e) {
+                                       messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                   }
+                               }, 500);
+                           }
                        }, { passive: true });
                        
                        // メッセージ追加時の自動スクロール（MutationObserverを使用）
