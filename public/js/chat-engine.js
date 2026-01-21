@@ -856,7 +856,18 @@ const ChatInit = {
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
-                await showInitialMessage({ handlerSkippedFirstMessage });
+                try {
+                    await showInitialMessage({ handlerSkippedFirstMessage });
+                } catch (error) {
+                    console.error('[初期化] showInitialMessageエラー（hasHistory=true）:', error);
+                    // エラー時はフォールバックメッセージを表示
+                    const info = ChatData.characterInfo[character];
+                    if (info && window.ChatUI && !handlerSkippedFirstMessage) {
+                        const fallbackMessage = ChatData.generateInitialMessage(character, historyData) || 
+                                                 ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false);
+                        window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                    }
+                }
             } else if (historyData && historyData.nickname) {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -923,7 +934,7 @@ const ChatInit = {
                 try {
                     await showInitialMessage({ handlerSkippedFirstMessage });
                 } catch (error) {
-                    console.error('[初期化] showInitialMessageエラー（nickname存在）:', error);
+                    console.error('[初期化] showInitialMessageエラー（nickname存在、hasHistory=false）:', error);
                     // エラー時はフォールバックメッセージを表示
                     const info = ChatData.characterInfo[character];
                     if (info && window.ChatUI && !handlerSkippedFirstMessage) {
@@ -999,6 +1010,20 @@ const ChatInit = {
                     // エラー時はフォールバックメッセージを表示
                     const info = ChatData.characterInfo[character];
                     if (info && window.ChatUI && !handlerSkippedFirstMessage) {
+                        const fallbackMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false);
+                        window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                    }
+                }
+            }
+            
+            // メッセージが表示されていない場合の最終チェック
+            // すべての分岐でメッセージが表示されなかった場合、最低限のメッセージを表示
+            if (window.ChatUI && window.ChatUI.messagesDiv) {
+                const hasMessages = window.ChatUI.messagesDiv.children.length > 0;
+                if (!hasMessages) {
+                    console.warn('[初期化] メッセージが表示されていません。フォールバックメッセージを表示します。');
+                    const info = ChatData.characterInfo[character];
+                    if (info) {
                         const fallbackMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false);
                         window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
                     }
