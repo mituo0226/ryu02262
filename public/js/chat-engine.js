@@ -445,11 +445,10 @@ const ChatInit = {
                         console.log('[初期化] 待機画面を表示しました（再訪問時のメッセージ生成中）');
                     }
                     
-                    // 「考え中...」を表示
+                    // 【重要】待機画面が表示されている間は「考え中...」メッセージを表示しない
+                    // 待機画面が表示されているため、追加の「考え中...」メッセージは不要
+                    // メッセージ生成完了後に直接メッセージを表示する
                     let thinkingElement = null;
-                    if (window.ChatUI && typeof window.ChatUI.addThinkingMessage === 'function') {
-                        thinkingElement = window.ChatUI.addThinkingMessage(info.name);
-                    }
                     
                     // バックグラウンドで動的メッセージを生成（非同期）
                     // 【変更】履歴は表示しないが、システムプロンプト生成のためにvisitPatternのみを渡す
@@ -473,7 +472,7 @@ const ChatInit = {
                             
                             console.log(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
                             
-                            // 待機画面を非表示
+                            // 待機画面を非表示（メッセージ表示前に実行）
                             if (waitingOverlay) {
                                 waitingOverlay.classList.add('hidden');
                                 console.log('[初期化] 待機画面を非表示にしました（メッセージ生成完了）');
@@ -485,15 +484,12 @@ const ChatInit = {
                                 console.log('[初期化] bodyにfade-inクラスを追加しました（チャット画面を表示）');
                             }
                             
-                            // 「考え中...」を動的メッセージに置き換え
-                            if (thinkingElement && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
-                                window.ChatUI.replaceThinkingMessage(thinkingElement, welcomeMessage);
-                            } else if (window.ChatUI) {
-                                // replaceThinkingMessageが使えない場合は、考え中要素を削除して新しく追加
-                                if (thinkingElement && thinkingElement.parentNode) {
-                                    thinkingElement.parentNode.removeChild(thinkingElement);
-                                }
+                            // メッセージを直接表示（「考え中...」メッセージは表示していないため、直接追加）
+                            if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', welcomeMessage, info.name);
+                                console.log('[初期化] ウェルカムメッセージを表示しました');
+                            } else {
+                                console.error('[初期化] ChatUIが利用できません');
                             }
                         } catch (error) {
                             console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
@@ -511,14 +507,11 @@ const ChatInit = {
                             }
                             
                             // エラー時はフォールバック（定型文）
+                            // 「考え中...」メッセージは表示していないため、直接追加
                             const fallbackMessage = ChatData.generateInitialMessage(character, historyData);
-                            if (thinkingElement && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
-                                window.ChatUI.replaceThinkingMessage(thinkingElement, fallbackMessage || 'お帰りなさい。');
-                            } else if (window.ChatUI) {
-                                if (thinkingElement && thinkingElement.parentNode) {
-                                    thinkingElement.parentNode.removeChild(thinkingElement);
-                                }
+                            if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', fallbackMessage || 'お帰りなさい。', info.name);
+                                console.log('[初期化] フォールバックメッセージを表示しました（エラー時）');
                             }
                         }
                     };
@@ -542,12 +535,11 @@ const ChatInit = {
                         }
                         
                         // エラー時はフォールバックメッセージを表示
+                        // 「考え中...」メッセージは表示していないため、直接追加
                         if (window.ChatUI) {
                             const fallbackMessage = ChatData.generateInitialMessage(character, historyData) || 'お帰りなさい。';
-                            if (thinkingElement && thinkingElement.parentNode) {
-                                thinkingElement.parentNode.removeChild(thinkingElement);
-                            }
                             window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                            console.log('[初期化] フォールバックメッセージを表示しました（generateMessageAsyncエラー時）');
                         }
                     });
                     

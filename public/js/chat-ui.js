@@ -634,19 +634,39 @@ const ChatUI = {
      * @param {string} message - 置き換えるメッセージ
      */
     replaceThinkingMessage(thinkingElement, message) {
-        if (!thinkingElement || !this.messagesDiv) return;
+        if (!thinkingElement || !this.messagesDiv) {
+            console.warn('[ChatUI.replaceThinkingMessage] 無効な引数:', {
+                thinkingElement: !!thinkingElement,
+                messagesDiv: !!this.messagesDiv
+            });
+            return;
+        }
         
         const contentDiv = thinkingElement.querySelector('.message-content');
-        if (!contentDiv) return;
+        if (!contentDiv) {
+            console.error('[ChatUI.replaceThinkingMessage] .message-contentが見つかりません:', thinkingElement);
+            return;
+        }
         
         // [SUGGEST_TAROT]タグを削除（雪乃のメッセージの場合）
         const cleanedMessage = message ? message.replace(/\[SUGGEST_TAROT\]/g, '') : message;
+        
+        console.log('[ChatUI.replaceThinkingMessage] メッセージを置き換えます:', {
+            messageLength: cleanedMessage?.length || 0,
+            hasContentDiv: !!contentDiv
+        });
         
         // アニメーション付きで置き換え
         contentDiv.style.transition = 'opacity 0.2s ease';
         contentDiv.style.opacity = '0';
         
         setTimeout(() => {
+            // thinking-indicatorを削除
+            const thinkingIndicator = contentDiv.querySelector('.thinking-indicator');
+            if (thinkingIndicator) {
+                thinkingIndicator.remove();
+            }
+            
             contentDiv.innerHTML = '';
             const textDiv = document.createElement('div');
             textDiv.className = 'message-text';
@@ -658,8 +678,8 @@ const ChatUI = {
             thinkingElement.classList.remove('thinking');
             
             this.scrollToLatest();
+            console.log('[ChatUI.replaceThinkingMessage] メッセージの置き換えが完了しました');
         }, 200);
-        console.log('[ChatUI] メッセージをクリアしました');
     },
 
     /**
