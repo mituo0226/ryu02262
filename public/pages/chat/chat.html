@@ -6,6 +6,55 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>鑑定士チャット</title>
+    <!-- 【重要】userIdパラメータがある場合は即座にチャット画面を表示（JavaScript読み込み前） -->
+    <script>
+    (function() {
+        // URLパラメータからuserIdを取得（即座に実行）
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        
+        // userIdがある場合、DOMContentLoadedを待ってチャット画面を表示
+        if (userId) {
+            function showChatContainer() {
+                // DOM要素が存在するか確認
+                const chatContainer = document.getElementById('chatContainer');
+                const entryFormContainer = document.getElementById('entryFormContainer');
+                
+                if (chatContainer && entryFormContainer) {
+                    // エントリーフォームを非表示
+                    entryFormContainer.classList.add('entry-form-hidden');
+                    entryFormContainer.style.display = 'none';
+                    
+                    // チャット画面を表示
+                    chatContainer.classList.remove('entry-form-hidden');
+                    chatContainer.style.display = 'block';
+                    chatContainer.style.visibility = 'visible';
+                    chatContainer.style.opacity = '1';
+                    
+                    // 待機画面も表示
+                    const waitingOverlay = document.getElementById('waitingOverlay');
+                    if (waitingOverlay) {
+                        waitingOverlay.classList.remove('hidden');
+                        waitingOverlay.style.display = 'flex';
+                    }
+                    
+                    console.log('[即時表示] チャット画面を表示しました（JavaScript読み込み前）');
+                } else {
+                    // DOM要素がまだ存在しない場合、少し待ってから再試行
+                    setTimeout(showChatContainer, 10);
+                }
+            }
+            
+            // DOMContentLoadedを待つ
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showChatContainer, { once: true });
+            } else {
+                // 既にDOMContentLoadedが完了している場合
+                showChatContainer();
+            }
+        }
+    })();
+    </script>
     <style>
         /* ============================================
            カラーパレット
@@ -1158,6 +1207,7 @@
         </div>
         
         <!-- チャットコンテナ（初期状態では非表示） -->
+        <!-- 【重要】userIdパラメータがある場合は<head>内のスクリプトで即座に表示されます -->
         <div class="chat-container entry-form-hidden" id="chatContainer">
             <!-- 待機画面（全鑑定士共通 - ハンドラー呼び出し中） -->
             <div id="waitingOverlay" class="waiting-overlay">
