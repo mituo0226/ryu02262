@@ -47,11 +47,14 @@ const ChatInit = {
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
         // ここでは実行しない（重複を避ける）
         
-        // 待機画面を非表示にする（初期化開始時）
+        // 待機画面の管理
+        // 再訪問時のAPI呼び出し中は待機画面を表示するため、ここでは非表示にしない
+        // 待機画面は、再訪問時のメッセージ生成が完了したら非表示にする
+        // 初回訪問時は、historyData取得後に非表示にする
         const waitingOverlay = document.getElementById('waitingOverlay');
         if (waitingOverlay) {
-            waitingOverlay.classList.add('hidden');
-            console.log('[初期化] 待機画面を非表示にしました（初期化開始時）');
+            console.log('[初期化] 待機画面の状態を確認します（初期化開始時）');
+            // 待機画面は、historyData取得後に判定して非表示にする
         }
         
         // キャラクター固有の初期化処理はハンドラーに委譲
@@ -1150,9 +1153,16 @@ const ChatInit = {
         // （重複登録を防ぐため。loadイベントでcloneNodeを使って確実に1回だけ登録される）
         
         // 待機画面を非表示にする（通常の初期化フロー）
-        if (waitingOverlay) {
-            waitingOverlay.classList.add('hidden');
-            console.log('[初期化] 待機画面を非表示にしました');
+        // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは非表示にしない
+        // 初回訪問時のみ非表示にする
+        const waitingOverlayFinal = document.getElementById('waitingOverlay');
+        if (waitingOverlayFinal && (!historyData || !historyData.hasHistory)) {
+            // 初回訪問時のみ非表示にする
+            waitingOverlayFinal.classList.add('hidden');
+            console.log('[初期化] 待機画面を非表示にしました（初回訪問時）');
+        } else if (waitingOverlayFinal && historyData && historyData.hasHistory) {
+            // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは何もしない
+            console.log('[初期化] 待機画面は再訪問時のメッセージ生成中に管理されます');
         }
         
         window.ChatUI.updateSendButtonVisibility();
