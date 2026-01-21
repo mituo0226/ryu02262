@@ -920,7 +920,18 @@ const ChatInit = {
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
-                await showInitialMessage({ handlerSkippedFirstMessage });
+                try {
+                    await showInitialMessage({ handlerSkippedFirstMessage });
+                } catch (error) {
+                    console.error('[初期化] showInitialMessageエラー（nickname存在）:', error);
+                    // エラー時はフォールバックメッセージを表示
+                    const info = ChatData.characterInfo[character];
+                    if (info && window.ChatUI && !handlerSkippedFirstMessage) {
+                        const fallbackMessage = ChatData.generateInitialMessage(character, historyData) || 
+                                                 ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false);
+                        window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                    }
+                }
             } else {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -981,7 +992,17 @@ const ChatInit = {
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
-                await showInitialMessage({ handlerSkippedFirstMessage });
+                try {
+                    await showInitialMessage({ handlerSkippedFirstMessage });
+                } catch (error) {
+                    console.error('[初期化] showInitialMessageエラー（historyDataなし）:', error);
+                    // エラー時はフォールバックメッセージを表示
+                    const info = ChatData.characterInfo[character];
+                    if (info && window.ChatUI && !handlerSkippedFirstMessage) {
+                        const fallbackMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false);
+                        window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                    }
+                }
             }
             
             // 守護神確認メッセージを表示した場合は、フラグをクリア
@@ -1034,8 +1055,15 @@ const ChatInit = {
             }
             
             // 【統一化】共通の初回メッセージ表示ロジックを使用
-            // showInitialMessage関数がguardianMessageShownを参照できるようにする
-            await showInitialMessage({ handlerSkippedFirstMessage });
+            // エラー時はhistoryDataがnullの可能性があるため、エラー時の初期メッセージ表示は簡素化
+            if (!handlerSkippedFirstMessage && window.ChatUI) {
+                const info = ChatData.characterInfo[character];
+                if (info) {
+                    // エラー時は簡単なメッセージを表示
+                    const errorMessage = `ようこそ、${info.name}です。何かお困りのことがあれば、お気軽にお話しください。`;
+                    window.ChatUI.addMessage('welcome', errorMessage, info.name);
+                }
+            }
         }
 
         // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない

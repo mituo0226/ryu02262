@@ -501,6 +501,14 @@ ${displayName}さんの運命を、
 
     // 守護神の「交信演出」を入れる頻度（大きいほど控えめ）
     const GUARDIAN_CHANNELING_INTERVAL = 4;
+    
+    // デバッグログ: visitPatternを確認
+    console.log('[kaede] 訪問パターン確認:', {
+      visitPattern,
+      hasPreviousConversation,
+      lastConversationSummary: lastConversationSummary ? (typeof lastConversationSummary === 'object' ? JSON.stringify(lastConversationSummary) : lastConversationSummary) : null,
+      isReturning: visitPattern === 'returning' || visitPattern === 'continuing'
+    });
 
     // 再訪問時の特別な指示を生成
     let returningInstruction = '';
@@ -514,19 +522,32 @@ ${displayName}さんの運命を、
       
       returningInstruction = `
 ========================================
-【再訪問時の特別指示】
+【【最重要】再訪問時の特別指示 - 絶対遵守】
 ========================================
 
 ${displayName}さんは以前にもあなたの元を訪れています。
+これは初回訪問ではありません。必ず再訪問時の応答をしてください。
 
 ${visitPattern === 'continuing' ? '前回の会話の継続として、自然に会話を続けてください。' : ''}
 ${lastSummary ? `前回の相談内容: ${lastSummary}` : ''}
 
-【再訪問時の応答方針】
-1. 前回の会話を覚えているかのように、自然に会話を続ける
-2. 「おかえりなさい、${displayName}さん」のような温かい歓迎
-3. 前回の内容に触れる場合は、具体的に言及する
+【再訪問時の応答方針（必須）】
+1. **必ず「おかえりなさい、${displayName}さん」のような温かい歓迎から始める**
+2. 前回の会話を覚えているかのように、自然に会話を続ける
+3. 前回の内容に触れる場合は、具体的に言及する（${lastSummary ? `例: 「${lastSummary}について話していましたね」` : '前回の相談内容を思い出すように'})
 4. 守護神${guardianName}とのつながりを再確認する
+5. **初回訪問時の挨拶（「初めまして」など）は絶対に使わない**
+
+【再訪問時の応答例】
+「おかえりなさい、${displayName}さん。
+
+（優しく微笑む）
+
+また私の元を訪れてくださって、ありがとうございます。
+${lastSummary ? `前回は${lastSummary}についてお話ししていましたね。` : '前回の会話を覚えています。'}
+
+${guardianName}も、${displayName}さんの再訪を喜んでいます。
+今日は、どのようなことでお悩みですか？」
 
 ========================================
 `;
