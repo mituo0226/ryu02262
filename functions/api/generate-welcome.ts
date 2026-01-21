@@ -6,7 +6,7 @@ import { getHealthChecker } from '../_lib/api-health-checker.js';
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
-const API_TIMEOUT = 15000; // 15秒
+const API_TIMEOUT = 10000; // 10秒（最適化：15秒から短縮）
 
 // ===== 型定義 =====
 interface ClientHistoryEntry {
@@ -165,9 +165,9 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
           return { success: false, error: lastError, status: response.status };
         }
 
-        // リトライ前に待機
+        // リトライ前に待機（最適化：待機時間を短縮）
         if (attempt < MAX_DEEPSEEK_RETRIES) {
-          await sleep(300 * attempt * attempt);
+          await sleep(200 * attempt); // 300 * attempt * attempt → 200 * attempt に短縮
         }
       } catch (fetchError) {
         clearTimeout(timeoutId);
@@ -180,16 +180,16 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
           console.error('DeepSeek API fetch error:', { attempt, message });
         }
         if (attempt < MAX_DEEPSEEK_RETRIES) {
-          await sleep(300 * attempt * attempt);
+          await sleep(200 * attempt); // 300 * attempt * attempt → 200 * attempt に短縮
         }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown DeepSeek error';
       lastError = message;
       console.error('DeepSeek API error:', { attempt, message });
-      if (attempt < MAX_DEEPSEEK_RETRIES) {
-        await sleep(300 * attempt * attempt);
-      }
+        if (attempt < MAX_DEEPSEEK_RETRIES) {
+          await sleep(200 * attempt); // 300 * attempt * attempt → 200 * attempt に短縮
+        }
     }
   }
 
@@ -531,17 +531,22 @@ export const onRequestPost: PagesFunction = async (context) => {
     });
 
     // 訪問パターン判定（フロントエンドから渡されたvisitPatternを優先）
+    // 【最適化】フロントエンドからvisitPatternが渡されている場合は、detectVisitPatternを完全にスキップ
     let finalVisitPattern = visitPattern;
     if (!visitPattern || visitPattern === 'first_visit') {
       // フロントエンドからvisitPatternが渡されていない場合のみ、再判定
-      const visitPatternInfo = await detectVisitPattern({
-        userId: user.id,
-        characterId: character,
-        database: env.DB,
-        isRegisteredUser: !!user.nickname,
-      });
-      finalVisitPattern = visitPatternInfo?.pattern || 'first_visit';
-      console.log('[generate-welcome] visitPatternを再判定しました:', finalVisitPattern);
+      // 【注意】この場合でも、既に取得したdbConversationHistoryから判定できるため、
+      // detectVisitPattern内の重複クエリを避けるため、簡易判定を実装
+      if (dbConversationHistory.length > 0) {
+        finalVisitPattern = 'returning';
+        console.log('[generate-welcome] 会話履歴から判定: returning（履歴あり）');
+      } else if (user.nickname) {
+        finalVisitPattern = 'continuing';
+        console.log('[generate-welcome] 会話履歴から判定: continuing（履歴なしの再訪問）');
+      } else {
+        finalVisitPattern = 'first_visit';
+        console.log('[generate-welcome] 会話履歴から判定: first_visit');
+      }
     } else {
       // フロントエンドから渡されたvisitPatternを使用
       console.log('[generate-welcome] フロントエンドから渡されたvisitPatternを使用:', visitPattern);
@@ -616,8 +621,8 @@ export const onRequestPost: PagesFunction = async (context) => {
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
-    // キャラクターに応じたパラメータ設定
-    const maxTokensForCharacter = character === 'kaede' || character === 'kaon' ? 1000 : 500; // ウェルカムメッセージは短めに
+    // キャラクターに応じたパラメータ設定（最適化：ウェルカムメッセージは短めに）
+    const maxTokensForCharacter = character === 'kaede' || character === 'kaon' ? 800 : 400; // 1000→800, 500→400に短縮
     const temperatureForCharacter = character === 'kaede' || character === 'kaon' ? 0.7 : 0.5;
     const topPForCharacter = character === 'kaede' || character === 'kaon' ? 0.9 : 0.8;
 
