@@ -1089,24 +1089,26 @@ const ChatUI = {
     },
 
     /**
-     * スクロールを最新に（スムーズスクロール対応・強化版）
+     * スクロールを最新に（3段階スクロール）
      */
     scrollToLatest() {
         if (!this.messagesDiv) return;
-        // 0.1秒後、0.5秒後、1.0秒後の3回実行し、画像の読み込みなどによる高さ変化に対応する
-        [100, 500, 1000].forEach(delay => {
-            setTimeout(() => {
-                try {
-                    this.messagesDiv.scrollTo({
-                        top: this.messagesDiv.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                } catch (e) {
-                    // scrollToが使えない場合はscrollTopを使用
-                    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
-                }
-            }, delay);
-        });
+        
+        const scroll = () => {
+            try {
+                this.messagesDiv.scrollTo({
+                    top: this.messagesDiv.scrollHeight,
+                    behavior: 'smooth'
+                });
+            } catch (e) {
+                // scrollToが使えない場合はscrollTopを使用
+                this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+            }
+        };
+        
+        scroll(); // 直後
+        setTimeout(scroll, 200); // 描画後
+        setTimeout(scroll, 800); // 画像読み込み後（重要）
     },
 
     /**
@@ -1357,6 +1359,30 @@ const ChatInit = {
         // #endregion
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
         // ここでは実行しない（重複を避ける）
+        
+        // MutationObserverを設定して、#messagesコンテナに新しい要素が追加されたら自動スクロール（冒頭に配置）
+        const messagesDiv = document.getElementById('messages');
+        if (messagesDiv && typeof MutationObserver !== 'undefined') {
+            const scrollObserver = new MutationObserver((mutations) => {
+                let shouldScroll = false;
+                for (const mutation of mutations) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        shouldScroll = true;
+                        break;
+                    }
+                }
+                if (shouldScroll && window.scrollToBottom) {
+                    window.scrollToBottom();
+                }
+            });
+            
+            scrollObserver.observe(messagesDiv, {
+                childList: true,
+                subtree: true
+            });
+            
+            console.log('[初期化] MutationObserverを設定しました（自動スクロール監視・冒頭）');
+        }
         
         // 待機画面の管理
         // チャット画面が表示されている場合、待機画面を表示（全鑑定士共通）
@@ -2481,29 +2507,7 @@ const ChatInit = {
                 console.log('[初期化] 初期化完了、待機画面を非表示にしました');
             }
             
-            // MutationObserverを設定して、#messagesコンテナに新しい要素が追加されたら自動スクロール
-            const messagesDiv = document.getElementById('messages');
-            if (messagesDiv && typeof MutationObserver !== 'undefined') {
-                const scrollObserver = new MutationObserver((mutations) => {
-                    let shouldScroll = false;
-                    for (const mutation of mutations) {
-                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                            shouldScroll = true;
-                            break;
-                        }
-                    }
-                    if (shouldScroll && window.scrollToBottom) {
-                        window.scrollToBottom();
-                    }
-                });
-                
-                scrollObserver.observe(messagesDiv, {
-                    childList: true,
-                    subtree: true
-                });
-                
-                console.log('[初期化] MutationObserverを設定しました（自動スクロール監視）');
-            }
+            // MutationObserverは既に冒頭で設定済み
             
             this._initPageRunning = false;
             this._initPageCompleted = true;
@@ -3599,25 +3603,27 @@ window.ChatTestUtils = {
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
 
-// グローバルなscrollToBottom関数（強化版）
-// 0.1秒後、0.5秒後、1.0秒後の3回実行し、画像の読み込みなどによる高さ変化に対応する
+// グローバルなscrollToBottom関数（3段階スクロール）
+// 直後、200ms後、800ms後の3回実行で画像の読み込み遅延に対応
 window.scrollToBottom = function() {
     const messagesDiv = document.getElementById('messages');
-    if (messagesDiv) {
-        [100, 500, 1000].forEach(delay => {
-            setTimeout(() => {
-                try {
-                    messagesDiv.scrollTo({
-                        top: messagesDiv.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                } catch (e) {
-                    // scrollToが使えない場合はscrollTopを使用
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                }
-            }, delay);
-        });
-    }
+    if (!messagesDiv) return;
+    
+    const scroll = () => {
+        try {
+            messagesDiv.scrollTo({
+                top: messagesDiv.scrollHeight,
+                behavior: 'smooth'
+            });
+        } catch (e) {
+            // scrollToが使えない場合はscrollTopを使用
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    };
+    
+    scroll(); // 直後
+    setTimeout(scroll, 200); // 描画後
+    setTimeout(scroll, 800); // 画像読み込み後（重要）
 };
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
