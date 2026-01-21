@@ -369,7 +369,7 @@ async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResu
 function generateConversationSummary(history: ClientHistoryEntry[]): { date: string; topics: string[]; messageCount: number } | null {
   if (history.length === 0) return null;
 
-  const recentMessages = history.slice(-6);
+  const recentMessages = history.slice(-3); // 最新3件のみを使用
   const lastUserMessages = recentMessages
     .filter((m) => m.role === 'user')
     .map((m) => m.content)
@@ -498,6 +498,8 @@ export const onRequestPost: PagesFunction = async (context) => {
       character,
     });
 
+    // 再訪問時の返答生成には最新3件のみを使用するため、6件取得で十分
+    // （要約生成用に3件、LLM API呼び出し用に3件）
     const historyResults = await env.DB.prepare<{
       role: 'user' | 'assistant';
       message: string;
@@ -508,7 +510,7 @@ export const onRequestPost: PagesFunction = async (context) => {
        FROM conversations c
        WHERE c.user_id = ? AND c.character_id = ?
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
-       LIMIT 20`
+       LIMIT 6`
     )
       .bind(userIdNumber, character)
       .all();
@@ -525,6 +527,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       userId: userIdNumber,
       character,
       historyLength: dbConversationHistory.length,
+      usedForLLM: Math.min(dbConversationHistory.length, 3), // LLM API呼び出しで使用する件数
     });
 
     // 訪問パターン判定（フロントエンドから渡されたvisitPatternを優先）
@@ -621,7 +624,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     try {
       const llmResult = await getLLMResponse({
         systemPrompt,
-        conversationHistory: dbConversationHistory.slice(-6), // データベースから取得した履歴の最近6件のみ
+        conversationHistory: dbConversationHistory.slice(-3), // データベースから取得した履歴の最近3件のみ
         userMessage,
         temperature: temperatureForCharacter,
         maxTokens: maxTokensForCharacter,
