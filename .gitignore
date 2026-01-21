@@ -25,3 +25,13 @@ desktop.ini
 # 分割されたキャラクターファイル（ビルド時に生成）
 public/data/characters/*.json
 !public/data/characters.json
+
+# AIの作業用フォルダをGitの管理から完全に除外する
+.cursor/
+worktrees/
+.git/worktrees/
+
+# AIが誤解する原因となっているワークツリーを完全に除外
+.git/worktrees/
+**/worktrees/yyi/**
+gitdir

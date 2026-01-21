@@ -29,3 +29,13 @@ build/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# AIに作業フォルダを見せないようにする
+.cursor/
+worktrees/
+**/worktrees/**
+
+# --- AIの視界からワークツリーを完全に消去する ---
+.git/worktrees/
+**/worktrees/yyi/**
+gitdir
