@@ -526,9 +526,10 @@ export const onRequestPost: PagesFunction = async (context) => {
       historyLength: dbConversationHistory.length,
     });
 
-    // 訪問パターン判定（未指定の場合）
+    // 訪問パターン判定（フロントエンドから渡されたvisitPatternを優先）
     let finalVisitPattern = visitPattern;
     if (!visitPattern || visitPattern === 'first_visit') {
+      // フロントエンドからvisitPatternが渡されていない場合のみ、再判定
       const visitPatternInfo = await detectVisitPattern({
         userId: user.id,
         characterId: character,
@@ -536,6 +537,10 @@ export const onRequestPost: PagesFunction = async (context) => {
         isRegisteredUser: !!user.nickname,
       });
       finalVisitPattern = visitPatternInfo?.pattern || 'first_visit';
+      console.log('[generate-welcome] visitPatternを再判定しました:', finalVisitPattern);
+    } else {
+      // フロントエンドから渡されたvisitPatternを使用
+      console.log('[generate-welcome] フロントエンドから渡されたvisitPatternを使用:', visitPattern);
     }
 
     // ユーザー情報を準備
