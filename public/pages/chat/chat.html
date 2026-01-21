@@ -122,19 +122,22 @@
            待機画面（データベース接続中）
            ============================================ */
         .waiting-overlay {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg-gradient);
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 10000;
+            z-index: 1000;
             opacity: 1;
             transition: opacity 0.5s ease-out;
+            border-radius: 20px;
+            overflow: hidden;
         }
 
         .waiting-overlay.hidden {
@@ -142,35 +145,211 @@
             pointer-events: none;
         }
 
+        /* 神秘的な背景エフェクト */
+        .waiting-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(139, 61, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(138, 43, 226, 0.1) 0%, transparent 70%);
+            animation: mysticPulse 4s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes mysticPulse {
+            0%, 100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+        }
+
+        /* 浮遊する光の粒子 */
+        .waiting-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(2px 2px at 60% 70%, rgba(139, 61, 255, 0.6), transparent),
+                radial-gradient(1px 1px at 50% 50%, rgba(255, 215, 0, 0.8), transparent),
+                radial-gradient(1px 1px at 80% 10%, rgba(138, 43, 226, 0.6), transparent),
+                radial-gradient(2px 2px at 90% 60%, rgba(255, 255, 255, 0.6), transparent),
+                radial-gradient(1px 1px at 30% 90%, rgba(139, 61, 255, 0.8), transparent);
+            background-size: 200% 200%;
+            background-position: 0% 0%, 100% 100%, 50% 50%, 100% 0%, 0% 100%, 50% 100%;
+            animation: particleFloat 20s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                background-position: 0% 0%, 100% 100%, 50% 50%, 100% 0%, 0% 100%, 50% 100%;
+            }
+            100% {
+                background-position: 100% 100%, 0% 0%, 50% 50%, 0% 100%, 100% 0%, 50% 0%;
+            }
+        }
+
         .waiting-content {
+            position: relative;
             text-align: center;
             color: var(--text-light);
+            z-index: 2;
+            padding: 40px 20px;
         }
 
         .waiting-content h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: var(--text-light);
+            font-size: clamp(20px, 4vw, 28px);
+            margin-bottom: 24px;
+            color: #ffd700;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-shadow: 
+                0 0 10px rgba(255, 215, 0, 0.8),
+                0 0 20px rgba(139, 61, 255, 0.6),
+                0 0 30px rgba(255, 107, 157, 0.4);
+            animation: textGlow 3s ease-in-out infinite;
+            position: relative;
+        }
+
+        @keyframes textGlow {
+            0%, 100% {
+                text-shadow: 
+                    0 0 10px rgba(255, 215, 0, 0.8),
+                    0 0 20px rgba(139, 61, 255, 0.6),
+                    0 0 30px rgba(255, 107, 157, 0.4);
+                transform: translateY(0);
+            }
+            50% {
+                text-shadow: 
+                    0 0 20px rgba(255, 215, 0, 1),
+                    0 0 40px rgba(139, 61, 255, 0.9),
+                    0 0 60px rgba(255, 107, 157, 0.7),
+                    0 0 80px rgba(196, 69, 105, 0.5);
+                transform: translateY(-3px);
+            }
         }
 
         .waiting-content p {
-            font-size: 16px;
-            margin-bottom: 30px;
-            color: var(--text-secondary);
+            font-size: clamp(14px, 3vw, 18px);
+            margin-bottom: 40px;
+            color: #e8d5ff;
+            opacity: 0.9;
+            animation: textFade 2s ease-in-out infinite;
+            letter-spacing: 0.05em;
         }
 
+        @keyframes textFade {
+            0%, 100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 神秘的なスピナー */
         .waiting-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(139, 61, 255, 0.3);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            width: 60px;
+            height: 60px;
             margin: 0 auto;
+            position: relative;
+        }
+
+        .waiting-spinner::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(139, 61, 255, 0.2);
+            border-top-color: #8b3dff;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+        }
+
+        .waiting-spinner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 215, 0, 0.2);
+            border-top-color: #ffd700;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite reverse;
+        }
+
+        /* 中心の光る点 */
+        .waiting-spinner {
+            position: relative;
+        }
+
+        .waiting-spinner::before,
+        .waiting-spinner::after {
+            box-shadow: 
+                0 0 10px rgba(139, 61, 255, 0.5),
+                0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        /* 追加の装飾リング */
+        .waiting-spinner {
+            position: relative;
+        }
+
+        .waiting-spinner::before {
+            box-shadow: 
+                0 0 15px rgba(139, 61, 255, 0.6),
+                0 0 30px rgba(139, 61, 255, 0.3),
+                inset 0 0 20px rgba(139, 61, 255, 0.2);
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* 波紋エフェクト */
+        .waiting-content::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px solid rgba(139, 61, 255, 0.3);
+            border-radius: 50%;
+            animation: ripple 3s ease-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes ripple {
+            0% {
+                width: 100px;
+                height: 100px;
+                opacity: 1;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+            }
         }
 
         main {
@@ -237,6 +416,7 @@
            チャットコンテナ
            ============================================ */
         .chat-container {
+            position: relative; /* 待機画面の基準位置として */
             background: var(--bg-gradient);
             border-radius: 20px;
             padding: 22px;
@@ -726,6 +906,10 @@
                 background: var(--bg-gradient);
             }
             
+            .waiting-overlay {
+                border-radius: 0;
+            }
+            
             .navigation-links {
                 display: none;
             }
@@ -898,14 +1082,6 @@
     </style>
 </head>
 <body>
-    <!-- 待機画面（データベース接続中） -->
-    <div id="waitingOverlay" class="waiting-overlay">
-        <div class="waiting-content">
-            <h2>鑑定士とつながっています</h2>
-            <p>お待ちください...</p>
-            <div class="waiting-spinner"></div>
-        </div>
-    </div>
     <!-- モバイルヘッダー -->
     <div class="mobile-header" id="mobileHeader">
         <div class="mobile-header-content">
@@ -1000,6 +1176,15 @@
         
         <!-- チャットコンテナ（初期状態では非表示） -->
         <div class="chat-container entry-form-hidden" id="chatContainer">
+            <!-- 待機画面（データベース接続中） -->
+            <div id="waitingOverlay" class="waiting-overlay">
+                <div class="waiting-content">
+                    <h2>鑑定士とつながっています</h2>
+                    <p>お待ちください...</p>
+                    <div class="waiting-spinner"></div>
+                </div>
+            </div>
+            
             <!-- PC版キャラクターヘッダー -->
             <div class="character-header" id="characterHeader">
                 <img id="characterHeaderImage" src="" alt="" class="character-header-image">
