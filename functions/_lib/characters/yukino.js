@@ -23,6 +23,8 @@ export function generateYukinoPrompt(options = {}) {
     needsRegistration,
     lastGuestMessage,
     visitPattern, // 訪問パターン（'first_visit' | 'returning' | 'continuing'）
+    conversationHistory = [], // 会話履歴（再訪問時に使用）
+    lastConversationSummary = null, // 会話要約（再訪問時に使用）
   } = options;
 
   // 雪乃専用の指示を生成
@@ -222,10 +224,16 @@ export function generateYukinoPrompt(options = {}) {
    - 例：「${userNickname}さん、おかえりなさい」
    - 例：「おかえりなさい、${userNickname}さん」
 
-2. **過去の会話を覚えていることを示す（自然に）**
-   - 例：「前回お話しした内容、覚えていますよ」
-   - 例：「以前の相談の続きですね」
-   - ゲストモード時の最後のメッセージがある場合は、それを引用する
+2. **過去の会話を覚えていることを示す（自然に、実際の会話履歴を参照）**
+   - **【最重要】以下の会話履歴を必ず参照し、実際の会話内容を具体的に言及すること**
+   - 会話履歴：
+${conversationHistory.length > 0 
+  ? conversationHistory.map((msg, idx) => `${idx + 1}. ${msg.role === 'user' ? 'ユーザー' : 'アシスタント'}: ${msg.content}`).join('\n')
+  : '（会話履歴なし）'}
+   - **実際の会話内容を具体的に引用して、過去の会話を覚えていることを示す**
+   - 例：「前回、${conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user' ? conversationHistory[conversationHistory.length - 1].content : '経済的な豊かさについて'}についてお話ししましたね」
+   - 例：「以前、${conversationHistory.length > 0 ? conversationHistory.filter(m => m.role === 'user').slice(-1)[0]?.content || '相談' : '相談'}について相談されていましたね」
+   - ゲストモード時の最後のメッセージがある場合は、それも引用する
    - 例：「ユーザー登録する前のメッセージは、『${lastGuestMessage}』でしたよね」
 
 3. **会話を促す**
@@ -277,9 +285,15 @@ export function generateYukinoPrompt(options = {}) {
    - 例：「${userNickname}さん、おかえりなさい」
    - 例：「おかえりなさい、${userNickname}さん」
 
-2. **過去の会話を覚えていることを示す（自然に）**
-   - 例：「前回お話しした内容、覚えていますよ」
-   - 例：「以前の相談の続きですね」
+2. **過去の会話を覚えていることを示す（自然に、実際の会話履歴を参照）**
+   - **【最重要】以下の会話履歴を必ず参照し、実際の会話内容を具体的に言及すること**
+   - 会話履歴：
+${conversationHistory.length > 0 
+  ? conversationHistory.map((msg, idx) => `${idx + 1}. ${msg.role === 'user' ? 'ユーザー' : 'アシスタント'}: ${msg.content}`).join('\n')
+  : '（会話履歴なし）'}
+   - **実際の会話内容を具体的に引用して、過去の会話を覚えていることを示す**
+   - 例：「前回、${conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user' ? conversationHistory[conversationHistory.length - 1].content : '相談'}についてお話ししましたね」
+   - 例：「以前、${conversationHistory.length > 0 ? conversationHistory.filter(m => m.role === 'user').slice(-1)[0]?.content || '相談' : '相談'}について相談されていましたね」
 
 3. **会話を促す**
    - 例：「今日はどんなお話をしましょうか？」
@@ -543,6 +557,23 @@ export function generateYukinoPrompt(options = {}) {
     }
   }
 
+  // 再訪問時の会話履歴をシステムプロンプトに含める
+  let conversationHistoryContext = '';
+  if (visitPattern === 'returning' && conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6); // 最新6件
+    conversationHistoryContext = `
+【過去の会話履歴（再訪問時の参照用）】
+以下の会話履歴を参照し、実際の会話内容を具体的に言及してください：
+${recentHistory.map((msg, idx) => {
+  const roleLabel = msg.role === 'user' ? 'ユーザー' : 'アシスタント（あなた）';
+  return `${idx + 1}. ${roleLabel}: ${msg.content}`;
+}).join('\n')}
+
+【重要】上記の会話履歴を必ず参照し、実際の会話内容を具体的に言及してください。
+抽象的な表現（「前回お話しした内容」など）ではなく、具体的な内容（例：「前回、経済的な豊かさについてお話ししましたね」）を使用してください。
+`;
+  }
+
   return `あなたは女性鑑定士「笹岡雪乃（ささおかゆきの）」としてふるまいます。
 
 【提供する機能】
@@ -557,6 +588,7 @@ export function generateYukinoPrompt(options = {}) {
 ${nicknameContext ? `\n${nicknameContext}\n` : ''}
 ${conversationContext ? `\n${conversationContext}\n` : ''}
 ${guestUserContext}
+${conversationHistoryContext}
 
 ${yukinoSpecificInstruction}
 
