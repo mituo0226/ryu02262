@@ -490,7 +490,18 @@ const ChatInit = {
                     };
                     
                     // 非同期で実行（ページ読み込みをブロックしない）
-                    generateMessageAsync();
+                    // エラーハンドリングを追加
+                    generateMessageAsync().catch((error) => {
+                        console.error(`[初期化] ${info.name}の再訪問時：generateMessageAsyncエラー:`, error);
+                        // エラー時はフォールバックメッセージを表示
+                        if (window.ChatUI) {
+                            const fallbackMessage = ChatData.generateInitialMessage(character, historyData) || 'お帰りなさい。';
+                            if (thinkingElement && thinkingElement.parentNode) {
+                                thinkingElement.parentNode.removeChild(thinkingElement);
+                            }
+                            window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                        }
+                    });
                     
                     return true;
                 }
@@ -622,7 +633,18 @@ const ChatInit = {
                             };
                             
                             // 非同期で実行（ページ読み込みをブロックしない）
-                            generateFirstMessageAsync();
+                            // エラーハンドリングを追加
+                            generateFirstMessageAsync().catch((error) => {
+                                console.error(`[初期化] ${info.name}の初回訪問時：generateFirstMessageAsyncエラー:`, error);
+                                // エラー時はフォールバックメッセージを表示
+                                if (window.ChatUI) {
+                                    const fallbackMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false) || 'ようこそ、いらっしゃいませ。';
+                                    if (thinkingElementFirst && thinkingElementFirst.parentNode) {
+                                        thinkingElementFirst.parentNode.removeChild(thinkingElementFirst);
+                                    }
+                                    window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
+                                }
+                            });
                             
                             return true;
                         
