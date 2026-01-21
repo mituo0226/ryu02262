@@ -121,248 +121,6 @@
         /* ============================================
            待機画面（データベース接続中）
            ============================================ */
-        .waiting-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(10px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
-            border-radius: 20px;
-            overflow: hidden;
-        }
-
-        /* グローバルな待機画面（chat-containerが表示される前） */
-        .waiting-overlay-global {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 10000;
-            border-radius: 0;
-        }
-
-        .waiting-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* 神秘的な背景エフェクト */
-        .waiting-overlay::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(139, 61, 255, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(138, 43, 226, 0.1) 0%, transparent 70%);
-            animation: mysticPulse 4s ease-in-out infinite;
-            z-index: 1;
-        }
-
-        @keyframes mysticPulse {
-            0%, 100% {
-                opacity: 0.6;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.1);
-            }
-        }
-
-        /* 浮遊する光の粒子 */
-        .waiting-overlay::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
-                radial-gradient(2px 2px at 60% 70%, rgba(139, 61, 255, 0.6), transparent),
-                radial-gradient(1px 1px at 50% 50%, rgba(255, 215, 0, 0.8), transparent),
-                radial-gradient(1px 1px at 80% 10%, rgba(138, 43, 226, 0.6), transparent),
-                radial-gradient(2px 2px at 90% 60%, rgba(255, 255, 255, 0.6), transparent),
-                radial-gradient(1px 1px at 30% 90%, rgba(139, 61, 255, 0.8), transparent);
-            background-size: 200% 200%;
-            background-position: 0% 0%, 100% 100%, 50% 50%, 100% 0%, 0% 100%, 50% 100%;
-            animation: particleFloat 20s linear infinite;
-            z-index: 1;
-        }
-
-        @keyframes particleFloat {
-            0% {
-                background-position: 0% 0%, 100% 100%, 50% 50%, 100% 0%, 0% 100%, 50% 100%;
-            }
-            100% {
-                background-position: 100% 100%, 0% 0%, 50% 50%, 0% 100%, 100% 0%, 50% 0%;
-            }
-        }
-
-        .waiting-content {
-            position: relative;
-            text-align: center;
-            color: var(--text-light);
-            z-index: 2;
-            padding: 40px 20px;
-        }
-
-        .waiting-content h2 {
-            font-size: clamp(20px, 4vw, 28px);
-            margin-bottom: 24px;
-            color: #ffd700;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-shadow: 
-                0 0 10px rgba(255, 215, 0, 0.8),
-                0 0 20px rgba(139, 61, 255, 0.6),
-                0 0 30px rgba(255, 107, 157, 0.4);
-            animation: textGlow 3s ease-in-out infinite;
-            position: relative;
-        }
-
-        @keyframes textGlow {
-            0%, 100% {
-                text-shadow: 
-                    0 0 10px rgba(255, 215, 0, 0.8),
-                    0 0 20px rgba(139, 61, 255, 0.6),
-                    0 0 30px rgba(255, 107, 157, 0.4);
-                transform: translateY(0);
-            }
-            50% {
-                text-shadow: 
-                    0 0 20px rgba(255, 215, 0, 1),
-                    0 0 40px rgba(139, 61, 255, 0.9),
-                    0 0 60px rgba(255, 107, 157, 0.7),
-                    0 0 80px rgba(196, 69, 105, 0.5);
-                transform: translateY(-3px);
-            }
-        }
-
-        .waiting-content p {
-            font-size: clamp(14px, 3vw, 18px);
-            margin-bottom: 40px;
-            color: #e8d5ff;
-            opacity: 0.9;
-            animation: textFade 2s ease-in-out infinite;
-            letter-spacing: 0.05em;
-        }
-
-        @keyframes textFade {
-            0%, 100% {
-                opacity: 0.7;
-            }
-            50% {
-                opacity: 1;
-            }
-        }
-
-        /* 神秘的なスピナー */
-        .waiting-spinner {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .waiting-spinner::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(139, 61, 255, 0.2);
-            border-top-color: #8b3dff;
-            border-radius: 50%;
-            animation: spin 1.2s linear infinite;
-        }
-
-        .waiting-spinner::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 215, 0, 0.2);
-            border-top-color: #ffd700;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite reverse;
-        }
-
-        /* 中心の光る点 */
-        .waiting-spinner {
-            position: relative;
-        }
-
-        .waiting-spinner::before,
-        .waiting-spinner::after {
-            box-shadow: 
-                0 0 10px rgba(139, 61, 255, 0.5),
-                0 0 20px rgba(255, 215, 0, 0.3);
-        }
-
-        /* 追加の装飾リング */
-        .waiting-spinner {
-            position: relative;
-        }
-
-        .waiting-spinner::before {
-            box-shadow: 
-                0 0 15px rgba(139, 61, 255, 0.6),
-                0 0 30px rgba(139, 61, 255, 0.3),
-                inset 0 0 20px rgba(139, 61, 255, 0.2);
-        }
-
-        @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        /* 波紋エフェクト */
-        .waiting-content::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 200px;
-            height: 200px;
-            border: 2px solid rgba(139, 61, 255, 0.3);
-            border-radius: 50%;
-            animation: ripple 3s ease-out infinite;
-            z-index: -1;
-        }
-
-        @keyframes ripple {
-            0% {
-                width: 100px;
-                height: 100px;
-                opacity: 1;
-            }
-            100% {
-                width: 300px;
-                height: 300px;
-                opacity: 0;
-            }
-        }
-
         main {
             width: 100%;
             max-width: 820px;
@@ -917,10 +675,6 @@
                 background: var(--bg-gradient);
             }
             
-            .waiting-overlay {
-                border-radius: 0;
-            }
-            
             .navigation-links {
                 display: none;
             }
@@ -1102,15 +856,6 @@
     </div>
 
     <main>
-        <!-- 待機画面（データベース接続中）- chat-containerが表示される前に表示 -->
-        <div id="waitingOverlay" class="waiting-overlay waiting-overlay-global">
-            <div class="waiting-content">
-                <h2>鑑定士とつながっています</h2>
-                <p>お待ちください...</p>
-                <div class="waiting-spinner"></div>
-            </div>
-        </div>
-        
         <!-- 入口フォーム（ゲストユーザー作成用） -->
         <div class="entry-form-container" id="entryFormContainer">
             <form class="entry-form" id="entryForm">
@@ -1460,27 +1205,7 @@
                           // チャット画面を表示
                           chatContainer.classList.remove('entry-form-hidden');
                           
-                          // 待機画面をchat-container内に移動（chat-containerが確実に表示された後）
-                          const waitingOverlay = document.getElementById('waitingOverlay');
-                          if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                              // chat-containerが表示されるまで待機してから移動
-                              const moveWaitingOverlay = () => {
-                                  const rect = chatContainer.getBoundingClientRect();
-                                  if (rect.width > 0 && rect.height > 0) {
-                                      // chat-containerが表示されている
-                                      if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                                          waitingOverlay.classList.remove('waiting-overlay-global');
-                                          chatContainer.insertBefore(waitingOverlay, chatContainer.firstChild);
-                                          console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
-                                      }
-                                  } else {
-                                      // まだ表示されていないので、次のフレームで再試行
-                                      requestAnimationFrame(moveWaitingOverlay);
-                                  }
-                              };
-                              requestAnimationFrame(moveWaitingOverlay);
-                          }
-                          
+                          // userIdが指定されている場合、待機画面は既に非表示になっているはずだが、念のため確認
                           // 【重要】ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
                           if (window.ChatData) {
                               window.ChatData.conversationHistory = historyData;
@@ -1524,13 +1249,6 @@
                                   console.log('[入口フォーム] ChatInit.initPageを実行します（再試行）');
                                   await window.ChatInit.initPage();
                               }
-                          }
-                          
-                          // 待機画面を非表示にする（チャットエンジン初期化後）
-                          const waitingOverlay = document.getElementById('waitingOverlay');
-                          if (waitingOverlay) {
-                              waitingOverlay.classList.add('hidden');
-                              console.log('[入口フォーム] 待機画面を非表示にしました');
                           }
                           
                           return;
@@ -1633,37 +1351,11 @@
                        entryFormContainer.classList.add('entry-form-hidden');
                        chatContainer.classList.remove('entry-form-hidden');
                        
-                       // 待機画面をchat-container内に移動（chat-containerが確実に表示された後）
-                       const waitingOverlay = document.getElementById('waitingOverlay');
-                       if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                           // chat-containerが表示されるまで待機してから移動
-                           const moveWaitingOverlay = () => {
-                               const rect = chatContainer.getBoundingClientRect();
-                               if (rect.width > 0 && rect.height > 0) {
-                                   // chat-containerが表示されている
-                                   if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                                       waitingOverlay.classList.remove('waiting-overlay-global');
-                                       chatContainer.insertBefore(waitingOverlay, chatContainer.firstChild);
-                                       console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
-                                   }
-                               } else {
-                                   // まだ表示されていないので、次のフレームで再試行
-                                   requestAnimationFrame(moveWaitingOverlay);
-                               }
-                           };
-                           requestAnimationFrame(moveWaitingOverlay);
-                       }
+                       // 待機画面は既にchat-container内に配置されているため、移動処理は不要
                        
                        // チャットエンジンの初期化をトリガー（既に読み込まれている場合）
                        if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
                            await window.ChatInit.initPage();
-                       }
-                       
-                       // 待機画面を非表示にする（チャットエンジン初期化後）
-                       const waitingOverlayFinal = document.getElementById('waitingOverlay');
-                       if (waitingOverlayFinal) {
-                           waitingOverlayFinal.classList.add('hidden');
-                           console.log('[入口フォーム] 待機画面を非表示にしました');
                        }
                    } catch (error) {
                        console.error('[entry-form] エラー:', error);
