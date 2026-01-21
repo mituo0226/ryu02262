@@ -48,11 +48,16 @@ const ChatInit = {
         // ここでは実行しない（重複を避ける）
         
         // 待機画面の管理
-        // 再訪問時のAPI呼び出し中は待機画面を表示するため、ここでは非表示にしない
-        // 待機画面は、再訪問時のメッセージ生成が完了したら非表示にする
-        // 初回訪問時は、historyData取得後に非表示にする
+        // チャット画面が表示されている場合、待機画面を表示（全鑑定士共通）
         const waitingOverlay = document.getElementById('waitingOverlay');
         if (waitingOverlay) {
+            // チャットコンテナが表示されているか確認
+            const chatContainer = document.getElementById('chatContainer');
+            if (chatContainer && !chatContainer.classList.contains('entry-form-hidden')) {
+                // チャット画面が表示されている場合、待機画面を表示
+                waitingOverlay.classList.remove('hidden');
+                console.log('[初期化] 待機画面を表示しました（チャット画面表示中）');
+            }
             console.log('[初期化] 待機画面の状態を確認します（初期化開始時）');
             // 待機画面は、historyData取得後に判定して非表示にする
         }
