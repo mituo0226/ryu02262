@@ -438,6 +438,8 @@ const ChatInit = {
                 if (historyData && historyData.hasHistory) {
                     console.log('[初期化] 再訪問ユーザー。非同期メッセージ生成方式を使用します');
                     
+                    // 【削除】フラグは不要（awaitにより同期処理になるため）
+                    
                     // 待機画面を表示（API呼び出し中）
                     const waitingOverlay = document.getElementById('waitingOverlay');
                     if (waitingOverlay) {
@@ -491,6 +493,8 @@ const ChatInit = {
                             } else {
                                 console.error('[初期化] ChatUIが利用できません');
                             }
+                            
+                            // 【削除】フラグは不要（awaitにより同期処理になるため）
                         } catch (error) {
                             console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
                             
@@ -513,18 +517,23 @@ const ChatInit = {
                                 window.ChatUI.addMessage('welcome', fallbackMessage || 'お帰りなさい。', info.name);
                                 console.log('[初期化] フォールバックメッセージを表示しました（エラー時）');
                             }
+                            
+                            // 【削除】フラグは不要（awaitにより同期処理になるため）
                         }
                     };
                     
-                    // 非同期で実行（ページ読み込みをブロックしない）
-                    // エラーハンドリングを追加
-                    generateMessageAsync().catch((error) => {
+                    // 【重要】再訪問時のメッセージ生成が完了するまで待つ
+                    // これにより、initPage()の最終チェックが実行される前にメッセージが表示される
+                    try {
+                        await generateMessageAsync();
+                        console.log('[初期化] 再訪問時のメッセージ生成が完了しました');
+                    } catch (error) {
                         console.error(`[初期化] ${info.name}の再訪問時：generateMessageAsyncエラー:`, error);
                         
                         // 待機画面を非表示（エラー時も）
-                        const waitingOverlay = document.getElementById('waitingOverlay');
-                        if (waitingOverlay) {
-                            waitingOverlay.classList.add('hidden');
+                        const waitingOverlayError = document.getElementById('waitingOverlay');
+                        if (waitingOverlayError) {
+                            waitingOverlayError.classList.add('hidden');
                             console.log('[初期化] 待機画面を非表示にしました（generateMessageAsyncエラー時）');
                         }
                         
@@ -541,8 +550,11 @@ const ChatInit = {
                             window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
                             console.log('[初期化] フォールバックメッセージを表示しました（generateMessageAsyncエラー時）');
                         }
-                    });
+                        
+                        // 【削除】フラグは不要（awaitにより同期処理になるため）
+                    }
                     
+                    // 再訪問時の処理が完了したので、以降の処理（最終チェックなど）をスキップ
                     return true;
                 }
                 
@@ -1086,6 +1098,7 @@ const ChatInit = {
             
             // メッセージが表示されていない場合の最終チェック
             // すべての分岐でメッセージが表示されなかった場合、最低限のメッセージを表示
+            // 【重要】再訪問時の処理はawaitにより完了しているため、ここでチェックしても問題ない
             if (window.ChatUI && window.ChatUI.messagesDiv) {
                 const hasMessages = window.ChatUI.messagesDiv.children.length > 0;
                 if (!hasMessages) {
