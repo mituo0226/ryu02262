@@ -2257,31 +2257,35 @@
                        messageInput.addEventListener('keydown', enterKeyHandler, { passive: false });
                        
                        // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
-                       // 0.1秒後と0.5秒後の2回、強制的にスクロールを実行
+                       // window.scrollToBottom()を使用して確実にスクロール
                        messageInput.addEventListener('focus', function() {
-                           const messagesDiv = document.getElementById('messages');
-                           if (messagesDiv) {
-                               setTimeout(() => {
-                                   try {
-                                       messagesDiv.scrollTo({
-                                           top: messagesDiv.scrollHeight,
-                                           behavior: 'smooth'
-                                       });
-                                   } catch (e) {
-                                       messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                   }
-                               }, 100);
-                               
-                               setTimeout(() => {
-                                   try {
-                                       messagesDiv.scrollTo({
-                                           top: messagesDiv.scrollHeight,
-                                           behavior: 'smooth'
-                                       });
-                                   } catch (e) {
-                                       messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                   }
-                               }, 500);
+                           if (window.scrollToBottom) {
+                               window.scrollToBottom();
+                           } else {
+                               const messagesDiv = document.getElementById('messages');
+                               if (messagesDiv) {
+                                   setTimeout(() => {
+                                       try {
+                                           messagesDiv.scrollTo({
+                                               top: messagesDiv.scrollHeight,
+                                               behavior: 'smooth'
+                                           });
+                                       } catch (e) {
+                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                       }
+                                   }, 100);
+                                   
+                                   setTimeout(() => {
+                                       try {
+                                           messagesDiv.scrollTo({
+                                               top: messagesDiv.scrollHeight,
+                                               behavior: 'smooth'
+                                           });
+                                       } catch (e) {
+                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                       }
+                                   }, 500);
+                               }
                            }
                        }, { passive: true });
                        

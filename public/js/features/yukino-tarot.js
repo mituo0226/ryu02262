@@ -551,8 +551,10 @@
         
         container.appendChild(cardWrapper);
         
-        // スクロール
-        if (window.ChatUI && window.ChatUI.scrollToLatest) {
+        // スクロール（複数の方法で確実に実行）
+        if (window.scrollToBottom) {
+            window.scrollToBottom();
+        } else if (window.ChatUI && window.ChatUI.scrollToLatest) {
             window.ChatUI.scrollToLatest();
         }
     }
@@ -766,7 +768,10 @@
         buttonWrapper.appendChild(button);
         messagesDiv.appendChild(buttonWrapper);
         
-        if (window.ChatUI && window.ChatUI.scrollToLatest) {
+        // ボタン追加後にスクロール（複数の方法で確実に実行）
+        if (window.scrollToBottom) {
+            window.scrollToBottom();
+        } else if (window.ChatUI && window.ChatUI.scrollToLatest) {
             window.ChatUI.scrollToLatest();
         }
     }
@@ -1231,7 +1236,10 @@ ${cardNames}
         cardContainer.appendChild(cardWrapper);
         container.appendChild(cardContainer);
         
-        if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+        // スクロール（複数の方法で確実に実行）
+        if (window.scrollToBottom) {
+            window.scrollToBottom();
+        } else if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
             window.ChatUI.scrollToLatest();
         }
     }

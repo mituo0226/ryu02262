@@ -1093,8 +1093,8 @@ const ChatUI = {
      */
     scrollToLatest() {
         if (!this.messagesDiv) return;
-        // 0.1秒後と0.4秒後の2回実行し、画像の読み込みなどによる高さ変化に対応する
-        [100, 400].forEach(delay => {
+        // 0.1秒後、0.5秒後、1.0秒後の3回実行し、画像の読み込みなどによる高さ変化に対応する
+        [100, 500, 1000].forEach(delay => {
             setTimeout(() => {
                 try {
                     this.messagesDiv.scrollTo({
@@ -2481,6 +2481,30 @@ const ChatInit = {
                 console.log('[初期化] 初期化完了、待機画面を非表示にしました');
             }
             
+            // MutationObserverを設定して、#messagesコンテナに新しい要素が追加されたら自動スクロール
+            const messagesDiv = document.getElementById('messages');
+            if (messagesDiv && typeof MutationObserver !== 'undefined') {
+                const scrollObserver = new MutationObserver((mutations) => {
+                    let shouldScroll = false;
+                    for (const mutation of mutations) {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            shouldScroll = true;
+                            break;
+                        }
+                    }
+                    if (shouldScroll && window.scrollToBottom) {
+                        window.scrollToBottom();
+                    }
+                });
+                
+                scrollObserver.observe(messagesDiv, {
+                    childList: true,
+                    subtree: true
+                });
+                
+                console.log('[初期化] MutationObserverを設定しました（自動スクロール監視）');
+            }
+            
             this._initPageRunning = false;
             this._initPageCompleted = true;
         } catch (error) {
@@ -3576,11 +3600,11 @@ window.ChatTestUtils = {
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
 
 // グローバルなscrollToBottom関数（強化版）
-// 0.1秒後と0.4秒後の2回実行し、画像の読み込みなどによる高さ変化に対応する
+// 0.1秒後、0.5秒後、1.0秒後の3回実行し、画像の読み込みなどによる高さ変化に対応する
 window.scrollToBottom = function() {
     const messagesDiv = document.getElementById('messages');
     if (messagesDiv) {
-        [100, 400].forEach(delay => {
+        [100, 500, 1000].forEach(delay => {
             setTimeout(() => {
                 try {
                     messagesDiv.scrollTo({
