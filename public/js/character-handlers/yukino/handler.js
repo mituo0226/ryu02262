@@ -752,10 +752,12 @@ const YukinoHandler = {
         
         // 雪乃のメッセージに[SUGGEST_TAROT]マーカーが含まれている場合、「タロットカードを引く」ボタンを表示
         // 再訪問時のwelcomeメッセージにも対応するため、typeに'welcome'も追加
+        // 【重要】textが文字列でない場合（オブジェクトなど）も考慮
+        const textString = text && typeof text === 'string' ? text : (text?.toString ? text.toString() : String(text || ''));
         const typeMatches = (type === 'character' || type === 'assistant' || type === 'welcome');
-        const hasSuggestTarot = text && typeof text === 'string' ? text.includes('[SUGGEST_TAROT]');
+        const hasSuggestTarot = textString.includes('[SUGGEST_TAROT]');
         
-        if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+        if (textString.includes('[SUGGEST_TAROT]')) {
             console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - 条件チェック');
             console.log('typeMatches:', typeMatches, '(type === "character" || type === "assistant" || type === "welcome")');
             console.log('hasSuggestTarot:', hasSuggestTarot);
@@ -765,7 +767,7 @@ const YukinoHandler = {
                 typeIsCharacter: type === 'character',
                 typeIsAssistant: type === 'assistant',
                 typeIsWelcome: type === 'welcome',
-                textIncludesTag: text.includes('[SUGGEST_TAROT]')
+                textIncludesTag: textString.includes('[SUGGEST_TAROT]')
             });
             console.groupEnd();
         }
@@ -776,25 +778,13 @@ const YukinoHandler = {
             console.log('hasSuggestTarot:', hasSuggestTarot);
             console.groupEnd();
             
-            // 安全策：入力欄が無効化されている場合（3枚鑑定中）はスキップ
-            const messageInput = document.getElementById('messageInput');
-            const isInputDisabled = messageInput && messageInput.disabled;
-            console.log('[DEBUG] 入力欄チェック:', {
-                hasMessageInput: !!messageInput,
-                isInputDisabled: isInputDisabled
-            });
-            if (isInputDisabled) {
-                console.warn('⚠️ [DEBUG] タロット鑑定中のため、ボタン表示をスキップします');
-                return;
-            }
-            
             // [SUGGEST_TAROT]マーカーをメッセージから削除（すべての出現を削除）
             // 既にchat-ui.jsで削除されている可能性があるが、念のため再度削除
-            const cleanedText = text.replace(/\[SUGGEST_TAROT\]/g, '');
+            const cleanedText = textString.replace(/\[SUGGEST_TAROT\]/g, '');
             const textDiv = messageDiv.querySelector('.message-text');
             if (textDiv) {
                 // 既に削除されている可能性があるが、念のため再度削除
-                const currentText = textDiv.textContent;
+                const currentText = textDiv.textContent || textDiv.innerText || '';
                 if (currentText.includes('[SUGGEST_TAROT]')) {
                     textDiv.textContent = currentText.replace(/\[SUGGEST_TAROT\]/g, '');
                 } else {
@@ -874,21 +864,22 @@ const YukinoHandler = {
             console.groupEnd();
         } else {
             // 条件が満たされていない場合のログ
-            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+            if (textString.includes('[SUGGEST_TAROT]')) {
                 console.group('❌ [DEBUG] [SUGGEST_TAROT]検出 - 条件不一致（ボタン表示されません）');
                 console.warn('typeMatches:', typeMatches, '(期待: true)');
                 console.warn('hasSuggestTarot:', hasSuggestTarot, '(期待: true)');
                 console.warn('type:', type);
-                console.warn('textPreview:', text.substring(0, 100));
+                console.warn('textPreview:', textString.substring(0, 100));
                 console.warn('原因:', !typeMatches ? 'typeが一致しません' : 'hasSuggestTarotがfalseです');
                 console.groupEnd();
             }
         }
         
         // 雪乃の初回メッセージ（firstTimeGuest）の後にタロット鑑定を自動開始
+        // 【重要】textが文字列でない場合も考慮
         if ((type === 'welcome' || type === 'character') && 
-            (text.includes('まずは何がともあれ、あなたの現在の運勢をタロットで占いますので') ||
-             text.includes('はじめまして、笹岡雪乃です'))) {
+            (textString.includes('まずは何がともあれ、あなたの現在の運勢をタロットで占いますので') ||
+             textString.includes('はじめまして、笹岡雪乃です'))) {
             
             console.log('[雪乃ハンドラー] 初回メッセージを検出 - タロット鑑定を自動開始します');
             

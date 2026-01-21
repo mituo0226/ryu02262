@@ -241,6 +241,7 @@
             flex-direction: column;
             gap: 16px;
             overflow: hidden;
+            min-height: 0; /* flexboxの子要素が正しく縮小するように */
         }
         
         /* キャラクターヘッダー（PC版） */
@@ -458,6 +459,7 @@
             position: relative;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+            min-height: 0; /* flexboxの子要素が正しく縮小するように */
         }
         
         .message {
