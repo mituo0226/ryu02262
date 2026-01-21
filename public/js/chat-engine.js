@@ -1173,12 +1173,14 @@ const ChatInit = {
         // 待機画面を非表示にする（通常の初期化フロー）
         // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは非表示にしない
         // 初回訪問時のみ非表示にする
+        // 【重要】historyDataはtryブロック内で定義されているため、ここではChatData.conversationHistoryを使用
         const waitingOverlayFinal = document.getElementById('waitingOverlay');
-        if (waitingOverlayFinal && (!historyData || !historyData.hasHistory)) {
+        const finalHistoryData = ChatData.conversationHistory || null;
+        if (waitingOverlayFinal && (!finalHistoryData || !finalHistoryData.hasHistory)) {
             // 初回訪問時のみ非表示にする
             waitingOverlayFinal.classList.add('hidden');
             console.log('[初期化] 待機画面を非表示にしました（初回訪問時）');
-        } else if (waitingOverlayFinal && historyData && historyData.hasHistory) {
+        } else if (waitingOverlayFinal && finalHistoryData && finalHistoryData.hasHistory) {
             // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは何もしない
             console.log('[初期化] 待機画面は再訪問時のメッセージ生成中に管理されます');
         }
