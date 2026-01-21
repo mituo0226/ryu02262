@@ -333,20 +333,33 @@ const YukinoHandler = {
      */
     onMessageAdded(type, text, sender, messageDiv, messageId, options = {}) {
         // デバッグ: onMessageAddedが呼ばれたことをログに記録
-        if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-            console.log('[雪乃ハンドラー] onMessageAdded呼び出し - [SUGGEST_TAROT]検出:', {
-                type,
-                sender,
-                textPreview: text.substring(0, 100),
-                hasSuggestTarot: text.includes('[SUGGEST_TAROT]'),
-                typeCheck: type === 'character' || type === 'assistant' || type === 'welcome'
-            });
-        }
+        console.log('[雪乃ハンドラー] onMessageAdded呼び出し:', {
+            type,
+            sender,
+            hasText: !!text,
+            textType: typeof text,
+            textPreview: text && typeof text === 'string' ? text.substring(0, 100) : String(text),
+            hasSuggestTarot: text && typeof text === 'string' ? text.includes('[SUGGEST_TAROT]') : false,
+            typeCheck: type === 'character' || type === 'assistant' || type === 'welcome',
+            messageDiv: !!messageDiv,
+            messageId
+        });
         
         // 雪乃のメッセージに[SUGGEST_TAROT]マーカーが含まれている場合、「タロットカードを引く」ボタンを表示
         // 再訪問時のwelcomeメッセージにも対応するため、typeに'welcome'も追加
-        if ((type === 'character' || type === 'assistant' || type === 'welcome') && 
-            text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+        const typeMatches = (type === 'character' || type === 'assistant' || type === 'welcome');
+        const hasSuggestTarot = text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]');
+        
+        if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+            console.log('[雪乃ハンドラー] [SUGGEST_TAROT]検出 - 条件チェック:', {
+                typeMatches,
+                hasSuggestTarot,
+                type,
+                willShowButton: typeMatches && hasSuggestTarot
+            });
+        }
+        
+        if (typeMatches && hasSuggestTarot) {
             
             console.log('[雪乃ハンドラー] タロット鑑定提案を検出しました - ボタンを表示します');
             

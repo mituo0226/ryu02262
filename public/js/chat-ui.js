@@ -477,8 +477,10 @@ const ChatUI = {
             displayText = displayText.replace(/\n{3,}/g, '\n\n');
         }
         
-        // [SUGGEST_TAROT]タグはonMessageAddedで検出してボタンを表示するため、ここでは削除しない
-        // キャラクター固有の処理はハンドラーのonMessageAddedに委譲する
+        // [SUGGEST_TAROT]タグはonMessageAddedで検出してボタンを表示するため、元のtextパラメータには残す
+        // ただし、表示テキストからは削除する（ユーザーには見えないようにする）
+        // onMessageAddedには元のtextパラメータ（削除前）を渡すことで、検出できるようにする
+        const displayTextWithoutTag = displayText.replace(/\[SUGGEST_TAROT\]/g, '');
         
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
@@ -494,7 +496,7 @@ const ChatUI = {
                 line-height: 1.8;
             `;
         }
-        textDiv.textContent = displayText;
+        textDiv.textContent = displayTextWithoutTag;
         messageDiv.appendChild(textDiv);
 
         if ((type === 'character' || type === 'welcome') && window.CharacterFeatures) {
@@ -508,42 +510,50 @@ const ChatUI = {
         
         // メッセージ追加後、ハンドラーのコールバックを呼び出す（鑑定士固有の処理を委譲）
         // これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
+        
+        // [SUGGEST_TAROT]が含まれている場合、必ずログを出力して原因を特定
+        if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+            console.log('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - デバッグ情報:', {
+                type,
+                sender,
+                character: ChatData?.currentCharacter,
+                hasRegistry: !!window.CharacterRegistry,
+                hasChatData: !!ChatData,
+                textPreview: text.substring(0, 100),
+                registeredIds: window.CharacterRegistry ? CharacterRegistry.getRegisteredIds() : []
+            });
+        }
+        
         if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
             const handler = CharacterRegistry.get(ChatData.currentCharacter);
             if (handler && typeof handler.onMessageAdded === 'function') {
                 try {
-                    // デバッグ: [SUGGEST_TAROT]が含まれている場合にログを出力
-                    if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                        console.log('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - onMessageAddedを呼び出します:', {
-                            type,
-                            sender,
-                            character: ChatData.currentCharacter,
-                            textPreview: text.substring(0, 100),
-                            hasSuggestTarot: text.includes('[SUGGEST_TAROT]')
-                        });
-                    }
                     handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
                 } catch (error) {
                     console.error(`[chat-ui] ハンドラーのonMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
+                    if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+                        console.error('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - onMessageAddedでエラー:', error);
+                    }
                 }
             } else {
                 // デバッグ: ハンドラーが見つからない場合
                 if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                    console.warn('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - ハンドラーが見つかりません:', {
+                    console.error('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - ハンドラーが見つかりません:', {
                         type,
                         sender,
                         character: ChatData.currentCharacter,
                         hasRegistry: !!window.CharacterRegistry,
                         hasChatData: !!ChatData,
                         hasHandler: !!handler,
-                        handlerType: handler ? typeof handler.onMessageAdded : 'null'
+                        handlerType: handler ? typeof handler.onMessageAdded : 'null',
+                        registeredIds: CharacterRegistry.getRegisteredIds()
                     });
                 }
             }
         } else {
             // デバッグ: CharacterRegistryまたはChatDataが存在しない場合
             if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                console.warn('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - CharacterRegistryまたはChatDataが存在しません:', {
+                console.error('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - CharacterRegistryまたはChatDataが存在しません:', {
                     type,
                     sender,
                     hasRegistry: !!window.CharacterRegistry,
@@ -708,7 +718,10 @@ const ChatUI = {
             contentDiv.innerHTML = '';
             const textDiv = document.createElement('div');
             textDiv.className = 'message-text';
-            textDiv.textContent = cleanedMessage;
+            // [SUGGEST_TAROT]タグを表示テキストから削除（ユーザーには見えないようにする）
+            // onMessageAddedには元のcleanedMessage（削除前）を渡すことで、検出できるようにする
+            const displayMessageWithoutTag = cleanedMessage.replace(/\[SUGGEST_TAROT\]/g, '');
+            textDiv.textContent = displayMessageWithoutTag;
             contentDiv.appendChild(textDiv);
             contentDiv.style.opacity = '1';
             
