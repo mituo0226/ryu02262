@@ -85,13 +85,401 @@ const YukinoHandler = {
     /**
      * メッセージ送信前の処理
      * @param {string} message - 送信するメッセージ
-     * @returns {Object} { proceed: boolean, modifiedMessage?: string }
+     * @returns {Object} { proceed: boolean, modifiedMessage?: string, waitingMessageId?: string }
      */
     beforeMessageSent(message) {
         console.log('[雪乃ハンドラー] メッセージ送信前処理:', message);
         
+        // 待機画面を表示
+        const waitingMessageId = this.showWaitingScreen();
+        
         // 特に変更なし、そのまま送信
-        return { proceed: true };
+        return { proceed: true, waitingMessageId };
+    },
+
+    /**
+     * メッセージ送信後の処理（API応答受信前）
+     * @param {string} waitingMessageId - 待機メッセージのID
+     */
+    onMessageSent(waitingMessageId) {
+        // 待機画面は既に表示されているため、ここでは何もしない
+        console.log('[雪乃ハンドラー] メッセージ送信完了、待機画面表示中');
+    },
+
+    /**
+     * API応答受信後の処理（メッセージ表示前）
+     * @param {string} waitingMessageId - 待機メッセージのID
+     */
+    onResponseReceived(waitingMessageId) {
+        // 待機画面を非表示にする
+        this.hideWaitingScreen(waitingMessageId);
+        console.log('[雪乃ハンドラー] API応答受信、待機画面を非表示にしました');
+    },
+
+    /**
+     * エラー発生時の処理
+     * @param {string} waitingMessageId - 待機メッセージのID
+     */
+    onError(waitingMessageId) {
+        // エラー時も待機画面を非表示にする
+        this.hideWaitingScreen(waitingMessageId);
+        console.log('[雪乃ハンドラー] エラー発生、待機画面を非表示にしました');
+    },
+
+    /**
+     * 待機画面を表示
+     * @returns {string|null} 待機メッセージのID
+     */
+    showWaitingScreen() {
+        const messagesDiv = document.getElementById('messages');
+        if (!messagesDiv) {
+            console.warn('[雪乃ハンドラー] messages要素が見つかりません');
+            return null;
+        }
+
+        // 待機画面コンテナを作成
+        const waitingContainer = document.createElement('div');
+        const waitingId = `yukino-waiting-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        waitingContainer.id = waitingId;
+        waitingContainer.className = 'yukino-waiting-screen';
+        
+        // 神秘的なスタイルを適用
+        waitingContainer.style.cssText = `
+            position: relative;
+            width: 100%;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.95) 0%, rgba(30, 10, 40, 0.95) 100%);
+            border-radius: 20px;
+            border: 2px solid rgba(147, 112, 219, 0.3);
+            box-shadow: 
+                0 0 30px rgba(147, 112, 219, 0.4),
+                inset 0 0 30px rgba(138, 43, 226, 0.2);
+            overflow: hidden;
+            animation: yukinoWaitingFadeIn 0.8s ease-out;
+        `;
+
+        // 背景の神秘的なエフェクト
+        const backgroundEffect = document.createElement('div');
+        backgroundEffect.className = 'yukino-waiting-background';
+        backgroundEffect.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(147, 112, 219, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(138, 43, 226, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(75, 0, 130, 0.1) 0%, transparent 70%);
+            animation: yukinoWaitingPulse 4s ease-in-out infinite;
+            z-index: 1;
+        `;
+        waitingContainer.appendChild(backgroundEffect);
+
+        // 浮遊する光の粒子
+        const particlesContainer = document.createElement('div');
+        particlesContainer.className = 'yukino-waiting-particles';
+        particlesContainer.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.6), transparent),
+                radial-gradient(2px 2px at 60% 70%, rgba(147, 112, 219, 0.5), transparent),
+                radial-gradient(1px 1px at 50% 50%, rgba(255, 215, 0, 0.6), transparent),
+                radial-gradient(1px 1px at 80% 10%, rgba(138, 43, 226, 0.5), transparent),
+                radial-gradient(2px 2px at 90% 60%, rgba(255, 255, 255, 0.4), transparent),
+                radial-gradient(1px 1px at 30% 90%, rgba(147, 112, 219, 0.6), transparent);
+            background-size: 200% 200%;
+            background-position: 0% 0%, 100% 100%, 50% 50%, 100% 0%, 0% 100%, 50% 100%;
+            animation: yukinoWaitingParticles 20s linear infinite;
+            z-index: 1;
+        `;
+        waitingContainer.appendChild(particlesContainer);
+
+        // メッセージコンテンツ
+        const content = document.createElement('div');
+        content.className = 'yukino-waiting-content';
+        content.style.cssText = `
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        `;
+
+        // メインメッセージ
+        const mainMessage = document.createElement('h2');
+        mainMessage.className = 'yukino-waiting-message';
+        mainMessage.textContent = 'タロットの力を読み解いています...';
+        mainMessage.style.cssText = `
+            font-size: clamp(18px, 3vw, 24px);
+            margin: 0 0 20px 0;
+            color: #ffd700;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-shadow: 
+                0 0 10px rgba(255, 215, 0, 0.8),
+                0 0 20px rgba(147, 112, 219, 0.6),
+                0 0 30px rgba(255, 107, 157, 0.4);
+            animation: yukinoWaitingTextGlow 3s ease-in-out infinite;
+        `;
+        content.appendChild(mainMessage);
+
+        // サブメッセージ
+        const subMessage = document.createElement('p');
+        subMessage.className = 'yukino-waiting-submessage';
+        subMessage.textContent = '星々の導きを待っています';
+        subMessage.style.cssText = `
+            font-size: clamp(14px, 2.5vw, 18px);
+            margin: 0 0 30px 0;
+            color: #e8d5ff;
+            opacity: 0.9;
+            animation: yukinoWaitingTextFade 2s ease-in-out infinite;
+            letter-spacing: 0.05em;
+        `;
+        content.appendChild(subMessage);
+
+        // 神秘的なスピナー
+        const spinner = document.createElement('div');
+        spinner.className = 'yukino-waiting-spinner';
+        spinner.style.cssText = `
+            width: 60px;
+            height: 60px;
+            margin: 0 auto;
+            position: relative;
+        `;
+
+        // 外側のリング
+        const outerRing = document.createElement('div');
+        outerRing.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(147, 112, 219, 0.2);
+            border-top-color: #9370DB;
+            border-radius: 50%;
+            animation: yukinoWaitingSpin 1.2s linear infinite;
+            box-shadow: 
+                0 0 15px rgba(147, 112, 219, 0.6),
+                0 0 30px rgba(147, 112, 219, 0.3),
+                inset 0 0 20px rgba(147, 112, 219, 0.2);
+        `;
+        spinner.appendChild(outerRing);
+
+        // 内側のリング
+        const innerRing = document.createElement('div');
+        innerRing.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 215, 0, 0.2);
+            border-top-color: #ffd700;
+            border-radius: 50%;
+            animation: yukinoWaitingSpin 0.8s linear infinite reverse;
+            box-shadow: 
+                0 0 10px rgba(255, 215, 0, 0.5),
+                0 0 20px rgba(255, 215, 0, 0.3);
+        `;
+        spinner.appendChild(innerRing);
+
+        // 中心の光る点
+        const centerGlow = document.createElement('div');
+        centerGlow.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #ffd700 0%, rgba(255, 215, 0, 0.3) 70%, transparent 100%);
+            border-radius: 50%;
+            animation: yukinoWaitingCenterPulse 2s ease-in-out infinite;
+            box-shadow: 
+                0 0 15px rgba(255, 215, 0, 0.8),
+                0 0 30px rgba(147, 112, 219, 0.6);
+        `;
+        spinner.appendChild(centerGlow);
+
+        content.appendChild(spinner);
+        waitingContainer.appendChild(content);
+
+        // 波紋エフェクト
+        const ripple = document.createElement('div');
+        ripple.className = 'yukino-waiting-ripple';
+        ripple.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(147, 112, 219, 0.3);
+            border-radius: 50%;
+            animation: yukinoWaitingRipple 3s ease-out infinite;
+            z-index: 1;
+        `;
+        waitingContainer.appendChild(ripple);
+
+        // スタイルシートを追加（まだ存在しない場合）
+        if (!document.getElementById('yukino-waiting-styles')) {
+            const style = document.createElement('style');
+            style.id = 'yukino-waiting-styles';
+            style.textContent = `
+                @keyframes yukinoWaitingFadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes yukinoWaitingPulse {
+                    0%, 100% {
+                        opacity: 0.6;
+                        transform: scale(1);
+                    }
+                    50% {
+                        opacity: 1;
+                        transform: scale(1.1);
+                    }
+                }
+
+                @keyframes yukinoWaitingParticles {
+                    0% {
+                        background-position: 0% 0%, 100% 100%, 50% 50%, 100% 0%, 0% 100%, 50% 100%;
+                    }
+                    100% {
+                        background-position: 100% 100%, 0% 0%, 50% 50%, 0% 100%, 100% 0%, 50% 0%;
+                    }
+                }
+
+                @keyframes yukinoWaitingTextGlow {
+                    0%, 100% {
+                        text-shadow: 
+                            0 0 10px rgba(255, 215, 0, 0.8),
+                            0 0 20px rgba(147, 112, 219, 0.6),
+                            0 0 30px rgba(255, 107, 157, 0.4);
+                        transform: translateY(0);
+                    }
+                    50% {
+                        text-shadow: 
+                            0 0 20px rgba(255, 215, 0, 1),
+                            0 0 40px rgba(147, 112, 219, 0.9),
+                            0 0 60px rgba(255, 107, 157, 0.7),
+                            0 0 80px rgba(196, 69, 105, 0.5);
+                        transform: translateY(-3px);
+                    }
+                }
+
+                @keyframes yukinoWaitingTextFade {
+                    0%, 100% {
+                        opacity: 0.7;
+                    }
+                    50% {
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes yukinoWaitingSpin {
+                    to {
+                        transform: translate(-50%, -50%) rotate(360deg);
+                    }
+                }
+
+                @keyframes yukinoWaitingCenterPulse {
+                    0%, 100% {
+                        opacity: 0.6;
+                        transform: translate(-50%, -50%) scale(0.8);
+                    }
+                    50% {
+                        opacity: 1;
+                        transform: translate(-50%, -50%) scale(1.2);
+                    }
+                }
+
+                @keyframes yukinoWaitingRipple {
+                    0% {
+                        width: 100px;
+                        height: 100px;
+                        opacity: 1;
+                    }
+                    100% {
+                        width: 300px;
+                        height: 300px;
+                        opacity: 0;
+                    }
+                }
+
+                .yukino-waiting-screen {
+                    animation: yukinoWaitingFadeIn 0.8s ease-out;
+                }
+
+                .yukino-waiting-screen.fade-out {
+                    animation: yukinoWaitingFadeOut 0.5s ease-out forwards;
+                }
+
+                @keyframes yukinoWaitingFadeOut {
+                    from {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // メッセージエリアに追加
+        messagesDiv.appendChild(waitingContainer);
+
+        console.log('[雪乃ハンドラー] 待機画面を表示しました:', waitingId);
+        return waitingId;
+    },
+
+    /**
+     * 待機画面を非表示にする
+     * @param {string} waitingMessageId - 待機メッセージのID
+     */
+    hideWaitingScreen(waitingMessageId) {
+        if (!waitingMessageId) {
+            console.warn('[雪乃ハンドラー] 待機画面IDが指定されていません');
+            return;
+        }
+
+        const waitingElement = document.getElementById(waitingMessageId);
+        if (waitingElement) {
+            // フェードアウトアニメーションを適用
+            waitingElement.classList.add('fade-out');
+            
+            // アニメーション完了後に削除
+            setTimeout(() => {
+                if (waitingElement.parentNode) {
+                    waitingElement.remove();
+                    console.log('[雪乃ハンドラー] 待機画面を削除しました:', waitingMessageId);
+                }
+            }, 500);
+        } else {
+            console.warn('[雪乃ハンドラー] 待機画面要素が見つかりません:', waitingMessageId);
+        }
     },
 
     /**

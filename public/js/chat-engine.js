@@ -1386,8 +1386,26 @@ const ChatInit = {
             }
             
             // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
-            // 待機メッセージを表示（送信者名は表示しない）
-            const waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', null);
+            // ハンドラーから待機画面のIDを取得（ハンドラーが独自の待機画面を表示する場合）
+            let waitingMessageId = null;
+            const handler = CharacterRegistry.get(character);
+            if (handler && typeof handler.beforeMessageSent === 'function') {
+                const beforeResult = handler.beforeMessageSent(messageToSend);
+                if (beforeResult && beforeResult.waitingMessageId) {
+                    waitingMessageId = beforeResult.waitingMessageId;
+                    console.log('[ChatEngine] ハンドラーから待機画面IDを取得:', waitingMessageId);
+                }
+            }
+            
+            // ハンドラーが待機画面を表示しない場合は、デフォルトのローディングメッセージを表示
+            if (!waitingMessageId) {
+                waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', null);
+            }
+            
+            // ハンドラーのonMessageSentを呼び出す
+            if (handler && typeof handler.onMessageSent === 'function') {
+                handler.onMessageSent(waitingMessageId);
+            }
             
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
@@ -1466,11 +1484,17 @@ const ChatInit = {
                 // APIリクエストを送信
                 const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
                 
-                // 待機メッセージを削除
-                if (waitingMessageId) {
-                    const waitingElement = document.getElementById(waitingMessageId);
-                    if (waitingElement) {
-                        waitingElement.remove();
+                // ハンドラーのonResponseReceivedを呼び出す（待機画面を非表示にする）
+                const handlerForResponse = CharacterRegistry.get(character);
+                if (handlerForResponse && typeof handlerForResponse.onResponseReceived === 'function') {
+                    handlerForResponse.onResponseReceived(waitingMessageId);
+                } else {
+                    // ハンドラーが処理しない場合は、デフォルトのローディングメッセージを削除
+                    if (waitingMessageId) {
+                        const waitingElement = document.getElementById(waitingMessageId);
+                        if (waitingElement) {
+                            waitingElement.remove();
+                        }
                     }
                 }
                 
@@ -1563,11 +1587,17 @@ const ChatInit = {
         } catch (error) {
             console.error('メッセージ送信エラー:', error);
                 
-            // 待機メッセージを削除
-            if (waitingMessageId) {
-                const waitingElement = document.getElementById(waitingMessageId);
-                if (waitingElement) {
-                    waitingElement.remove();
+            // ハンドラーのonErrorを呼び出す（待機画面を非表示にする）
+            const handler = CharacterRegistry.get(character);
+            if (handler && typeof handler.onError === 'function') {
+                handler.onError(waitingMessageId);
+            } else {
+                // ハンドラーが処理しない場合は、デフォルトのローディングメッセージを削除
+                if (waitingMessageId) {
+                    const waitingElement = document.getElementById(waitingMessageId);
+                    if (waitingElement) {
+                        waitingElement.remove();
+                    }
                 }
             }
             
