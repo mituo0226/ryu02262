@@ -1458,7 +1458,7 @@ const ChatInit = {
             // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
             // ハンドラーから待機画面のIDを取得（ハンドラーが独自の待機画面を表示する場合）
             // 注意: waitingMessageIdは関数の先頭（1305行目付近）で既に宣言済み
-            const handler = CharacterRegistry.get(character);
+            let handler = CharacterRegistry.get(character);
             if (handler && typeof handler.beforeMessageSent === 'function') {
                 const beforeResult = handler.beforeMessageSent(messageToSend);
                 if (beforeResult && beforeResult.waitingMessageId) {
