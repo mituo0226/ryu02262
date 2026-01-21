@@ -891,8 +891,119 @@
             }
         }
     </style>
+    
+    <!-- ============================================
+         待機画面用CSS（HTMLだけで即座に表示）
+         ============================================ -->
+    <style>
+        /* ============================================
+           待機画面（HTMLだけで即座に表示）
+           ============================================ */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.8s ease-out;
+        }
+        
+        /* JSで.hiddenクラスが追加されたらフェードアウト */
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* ローディングアニメーション */
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 6px solid rgba(139, 61, 255, 0.2);
+            border-top-color: #8b3dff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ローディングテキスト */
+        .loading-text {
+            color: #e8d5ff;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            margin-bottom: 12px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* サブテキスト */
+        .loading-subtext {
+            color: #b794ff;
+            font-size: 14px;
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            opacity: 0.8;
+        }
+        
+        /* キャラクターアイコン（オプション） */
+        .loading-character-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid rgba(139, 61, 255, 0.5);
+            margin-bottom: 24px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
 </head>
 <body>
+    <!-- ============================================
+         待機画面（最初に表示される）
+         ============================================ -->
+    <div class="loading-screen" id="loadingScreen">
+        <!-- キャラクターアイコン（オプション） -->
+        <img 
+            id="loadingCharacterIcon" 
+            class="loading-character-icon" 
+            src="" 
+            alt="読み込み中"
+            style="display: none;"
+        >
+        
+        <!-- ローディングスピナー -->
+        <div class="loading-spinner"></div>
+        
+        <!-- メインテキスト -->
+        <div class="loading-text" id="loadingText">
+            鑑定の準備をしています...
+        </div>
+        
+        <!-- サブテキスト -->
+        <div class="loading-subtext" id="loadingSubtext">
+            少々お待ちください
+        </div>
+    </div>
+    
     <!-- モバイルヘッダー -->
     <div class="mobile-header" id="mobileHeader">
         <div class="mobile-header-content">
@@ -1571,6 +1682,91 @@
                }
            })();
            </script>
+          
+          <!-- ============================================
+               待機画面制御スクリプト（最小限のコア）
+               ============================================ -->
+          <script>
+          (function() {
+              'use strict';
+              
+              // URLパラメータを取得
+              const urlParams = new URLSearchParams(window.location.search);
+              const character = urlParams.get('character');
+              
+              // キャラクター情報のマッピング（簡易版）
+              const characterInfo = {
+                  'kaede': {
+                      name: '楓',
+                      icon: '../../photo/kaede.png'
+                  },
+                  'yukino': {
+                      name: '雪乃',
+                      icon: '../../photo/yukino.png'
+                  },
+                  'sora': {
+                      name: 'ソラ',
+                      icon: '../../photo/sora.png'
+                  },
+                  'kaon': {
+                      name: '花音',
+                      icon: '../../photo/kaon.png'
+                  }
+              };
+              
+              // 待機画面のカスタマイズ
+              function customizeLoadingScreen() {
+                  if (character && characterInfo[character]) {
+                      const info = characterInfo[character];
+                      const loadingText = document.getElementById('loadingText');
+                      const loadingIcon = document.getElementById('loadingCharacterIcon');
+                      
+                      if (loadingText) {
+                          loadingText.textContent = `${info.name}が準備をしています...`;
+                      }
+                      
+                      if (loadingIcon && info.icon) {
+                          loadingIcon.src = info.icon;
+                          loadingIcon.style.display = 'block';
+                      }
+                  }
+              }
+              
+              // DOMContentLoadedでカスタマイズ
+              if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', customizeLoadingScreen, { once: true });
+              } else {
+                  customizeLoadingScreen();
+              }
+              
+              // 待機画面を非表示にする関数
+              window.hideLoadingScreen = function() {
+                  const loadingScreen = document.getElementById('loadingScreen');
+                  if (loadingScreen) {
+                      loadingScreen.classList.add('hidden');
+                      // アニメーション完了後にDOMから削除
+                      setTimeout(() => {
+                          loadingScreen.remove();
+                      }, 800);
+                  }
+              };
+              
+              // 最低表示時間（体感速度の調整）
+              const MIN_LOADING_TIME = 800; // 0.8秒
+              const loadStartTime = Date.now();
+              
+              // すべてのスクリプト読み込み完了を検知
+              window.addEventListener('load', function() {
+                  const elapsed = Date.now() - loadStartTime;
+                  const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsed);
+                  
+                  // 最低表示時間を確保してから非表示
+                  // ただし、chat-engine.jsの初期化完了を待つため、ここでは自動的に非表示にはしない
+                  // chat-engine.jsから明示的にhideLoadingScreen()が呼ばれるまで待機
+              });
+          })();
+          </script>
+          
           <script src="../../js/auth-state.js"></script>
           <script src="../../js/character-features.js"></script>
           <!-- 鑑定士固有の機能スクリプトはハンドラーのinit()で動的に読み込まれる -->

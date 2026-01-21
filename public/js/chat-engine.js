@@ -1154,6 +1154,13 @@ const ChatInit = {
             //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:820',message:'initPage関数終了（正常終了）',data:{character},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
+            
+            // 【追加】すべての初期化が完了したら待機画面を非表示
+            if (typeof window.hideLoadingScreen === 'function') {
+                window.hideLoadingScreen();
+                console.log('[初期化] 初期化完了、待機画面を非表示にしました');
+            }
+            
             this._initPageRunning = false;
             this._initPageCompleted = true;
         } catch (error) {
@@ -1167,6 +1174,13 @@ const ChatInit = {
             //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:825',message:'initPage関数エラー',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
+            
+            // 【追加】エラー時も待機画面を非表示
+            if (typeof window.hideLoadingScreen === 'function') {
+                window.hideLoadingScreen();
+                console.log('[初期化] エラー発生、待機画面を非表示にしました');
+            }
+            
             this._initPageRunning = false;
             this._initPageCompleted = true;
             console.error('Error loading conversation history:', error);
