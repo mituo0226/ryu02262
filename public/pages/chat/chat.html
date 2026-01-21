@@ -1460,12 +1460,25 @@
                           // チャット画面を表示
                           chatContainer.classList.remove('entry-form-hidden');
                           
-                          // 待機画面をchat-container内に移動
+                          // 待機画面をchat-container内に移動（chat-containerが確実に表示された後）
                           const waitingOverlay = document.getElementById('waitingOverlay');
                           if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                              waitingOverlay.classList.remove('waiting-overlay-global');
-                              chatContainer.appendChild(waitingOverlay);
-                              console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
+                              // chat-containerが表示されるまで待機してから移動
+                              const moveWaitingOverlay = () => {
+                                  const rect = chatContainer.getBoundingClientRect();
+                                  if (rect.width > 0 && rect.height > 0) {
+                                      // chat-containerが表示されている
+                                      if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
+                                          waitingOverlay.classList.remove('waiting-overlay-global');
+                                          chatContainer.insertBefore(waitingOverlay, chatContainer.firstChild);
+                                          console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
+                                      }
+                                  } else {
+                                      // まだ表示されていないので、次のフレームで再試行
+                                      requestAnimationFrame(moveWaitingOverlay);
+                                  }
+                              };
+                              requestAnimationFrame(moveWaitingOverlay);
                           }
                           
                           // 【重要】ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
@@ -1620,20 +1633,25 @@
                        entryFormContainer.classList.add('entry-form-hidden');
                        chatContainer.classList.remove('entry-form-hidden');
                        
-                       // 待機画面をchat-container内に移動
+                       // 待機画面をchat-container内に移動（chat-containerが確実に表示された後）
                        const waitingOverlay = document.getElementById('waitingOverlay');
                        if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                           waitingOverlay.classList.remove('waiting-overlay-global');
-                           chatContainer.appendChild(waitingOverlay);
-                           console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
-                       }
-                       
-                       // 待機画面をchat-container内に移動
-                       const waitingOverlay = document.getElementById('waitingOverlay');
-                       if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
-                           waitingOverlay.classList.remove('waiting-overlay-global');
-                           chatContainer.appendChild(waitingOverlay);
-                           console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
+                           // chat-containerが表示されるまで待機してから移動
+                           const moveWaitingOverlay = () => {
+                               const rect = chatContainer.getBoundingClientRect();
+                               if (rect.width > 0 && rect.height > 0) {
+                                   // chat-containerが表示されている
+                                   if (waitingOverlay && waitingOverlay.classList.contains('waiting-overlay-global')) {
+                                       waitingOverlay.classList.remove('waiting-overlay-global');
+                                       chatContainer.insertBefore(waitingOverlay, chatContainer.firstChild);
+                                       console.log('[入口フォーム] 待機画面をchat-container内に移動しました');
+                                   }
+                               } else {
+                                   // まだ表示されていないので、次のフレームで再試行
+                                   requestAnimationFrame(moveWaitingOverlay);
+                               }
+                           };
+                           requestAnimationFrame(moveWaitingOverlay);
                        }
                        
                        // チャットエンジンの初期化をトリガー（既に読み込まれている場合）
@@ -1642,8 +1660,9 @@
                        }
                        
                        // 待機画面を非表示にする（チャットエンジン初期化後）
-                       if (waitingOverlay) {
-                           waitingOverlay.classList.add('hidden');
+                       const waitingOverlayFinal = document.getElementById('waitingOverlay');
+                       if (waitingOverlayFinal) {
+                           waitingOverlayFinal.classList.add('hidden');
                            console.log('[入口フォーム] 待機画面を非表示にしました');
                        }
                    } catch (error) {
