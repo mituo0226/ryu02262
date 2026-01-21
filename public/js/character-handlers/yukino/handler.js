@@ -871,6 +871,13 @@ const YukinoHandler = {
             
             messageDiv.appendChild(buttonWrapper);
             
+            // ボタン追加後にスクロールを確実に実行
+            if (window.scrollToBottom) {
+                window.scrollToBottom();
+            } else if (window.ChatUI && window.ChatUI.scrollToLatest) {
+                window.ChatUI.scrollToLatest();
+            }
+            
             console.group('✅ [DEBUG] タロットボタンDOM追加完了');
             const buttonInDOM = messageDiv.querySelector('.tarot-button');
             console.log('ボタンがDOMに存在:', !!buttonInDOM);

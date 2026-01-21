@@ -1076,24 +1076,37 @@ const ChatUI = {
             }
         }
         
+        // メッセージ追加時に強制的にスクロール（複数タイミングで実行）
         requestAnimationFrame(() => {
             this.scrollToLatest();
+            // グローバル関数も呼び出す（念のため）
+            if (window.scrollToBottom) {
+                window.scrollToBottom();
+            }
         });
         
         return messageId;
     },
 
     /**
-     * スクロールを最新に（スムーズスクロール対応）
+     * スクロールを最新に（スムーズスクロール対応・強化版）
      */
     scrollToLatest() {
         if (!this.messagesDiv) return;
-        setTimeout(() => {
-            this.messagesDiv.scrollTo({
-                top: this.messagesDiv.scrollHeight,
-                behavior: 'smooth'
-            });
-        }, 100);
+        // 0.1秒後と0.4秒後の2回実行し、画像の読み込みなどによる高さ変化に対応する
+        [100, 400].forEach(delay => {
+            setTimeout(() => {
+                try {
+                    this.messagesDiv.scrollTo({
+                        top: this.messagesDiv.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } catch (e) {
+                    // scrollToが使えない場合はscrollTopを使用
+                    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+                }
+            }, delay);
+        });
     },
 
     /**
@@ -3561,6 +3574,27 @@ window.ChatTestUtils = {
 
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
+
+// グローバルなscrollToBottom関数（強化版）
+// 0.1秒後と0.4秒後の2回実行し、画像の読み込みなどによる高さ変化に対応する
+window.scrollToBottom = function() {
+    const messagesDiv = document.getElementById('messages');
+    if (messagesDiv) {
+        [100, 400].forEach(delay => {
+            setTimeout(() => {
+                try {
+                    messagesDiv.scrollTo({
+                        top: messagesDiv.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } catch (e) {
+                    // scrollToが使えない場合はscrollTopを使用
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+            }, delay);
+        });
+    }
+};
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // ===== テストモードチェック（最優先で実行） =====
@@ -3700,35 +3734,8 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // DOMContentLoaded時に初期化
 window.addEventListener('DOMContentLoaded', async () => {
-    // 依存関係の読み込みを待つ
-    function waitForDependencies() {
-        return new Promise((resolve) => {
-            const checkInterval = setInterval(() => {
-                const allLoaded = 
-                    typeof ChatAPI !== 'undefined' &&
-                    typeof ChatData !== 'undefined' &&
-                    typeof ChatUI !== 'undefined' &&
-                    typeof AuthState !== 'undefined' &&
-                    typeof CharacterRegistry !== 'undefined' &&
-                    typeof CharacterLoader !== 'undefined';
-                
-                if (allLoaded) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 50); // 50msごとにチェック
-            
-            // タイムアウト（10秒）
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                console.error('[初期化] 依存関係の読み込みがタイムアウトしました');
-                resolve(); // タイムアウトしても続行
-            }, 10000);
-        });
-    }
-    
-    // 依存関係が読み込まれたら続行
-    await waitForDependencies();
+    // 【統合後】依存関係の読み込み待機は不要（統合によりchat-engine.js内で定義済み）
+    // deferにより確実に読み込まれるため、直接初期化を実行
     
     // アニメーションページからの復帰を検知
     const urlParams = new URLSearchParams(window.location.search);
