@@ -445,7 +445,7 @@
            ============================================ */
         .messages {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: auto !important; /* PC/モバイル共に確実にスクロール可能にする */
             overflow-x: hidden;
             border-radius: 0;
             padding: 18px 12px;
@@ -457,9 +457,11 @@
             flex-direction: column;
             gap: 12px;
             position: relative;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch; /* モバイルのスムーズスクロール */
+            overscroll-behavior: contain; /* スクロールチェーンの制御 */
             min-height: 0; /* flexboxの子要素が正しく縮小するように */
+            max-height: 100%; /* 親要素の高さを超えないように */
+            height: 0; /* flex: 1と組み合わせて高さを計算 */
         }
         
         .message {
@@ -734,9 +736,14 @@
             .messages {
                 padding: 20px 10px;
                 padding-top: 20px;
-                /* height: 100%; を削除（flex: 1と競合してスクロールが動作しなくなる） */
                 padding-bottom: 150px; /* モバイル入力エリアの高さ（約120px）+ 余白（30px）に調整 */
                 margin-top: 0;
+                overflow-y: auto !important; /* モバイルでも確実にタッチスクロール可能にする */
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch; /* iOSのスムーズスクロール */
+                overscroll-behavior: contain; /* スクロールチェーンの制御 */
+                max-height: 100%; /* 親要素の高さを超えないように */
+                height: 0; /* flex: 1と組み合わせて高さを計算 */
             }
             
             .message {
