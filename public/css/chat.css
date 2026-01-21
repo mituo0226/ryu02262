@@ -18,8 +18,6 @@
 html {
     height: 100%;
     height: 100vh; /* ウィンドウの高さいっぱいに表示 */
-    overflow: hidden;
-    position: fixed;
     width: 100%;
     -webkit-overflow-scrolling: touch;
 }
@@ -30,12 +28,10 @@ body {
     height: 100%;
     height: 100vh; /* ウィンドウの高さいっぱいに表示 */
     width: 100%;
-    overflow: hidden;
-    position: fixed;
+    min-height: 100vh; /* 最小高さを確保 */
     background: var(--bg-gradient);
     display: flex;
-    justify-content: center;
-    align-items: stretch; /* 子要素を高さいっぱいに */
+    flex-direction: column; /* 縦方向に配置 */
     padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
     color: var(--text-light);
     -webkit-overflow-scrolling: touch;
@@ -130,13 +126,13 @@ body.fade-in {
 main {
     width: 100%;
     max-width: 100%; /* 画面いっぱいに表示 */
-    height: 100vh; /* ウィンドウの高さいっぱいに表示 */
+    flex: 1; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる */
+    min-height: 0; /* flexboxの子要素が正しく縮小するように */
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
     box-sizing: border-box;
-    min-height: 0; /* flexboxの子要素が正しく縮小するように */
 }
 
 /* 管理者モード: チャットと分析パネルを横並び */
@@ -676,12 +672,11 @@ div.message.character,
    ============================================ */
 @media (max-width: 768px) {
     html, body {
-        position: fixed;
-        overflow: hidden;
         width: 100%;
         height: 100%;
         height: 100vh; /* 標準のビューポート高さ */
         height: 100dvh; /* 動的ビューポート高さ（iPhone/Androidのノッチ・ナビゲーションバー対応） */
+        min-height: 100dvh; /* 最小高さを確保 */
     }
     
     body {
@@ -689,7 +684,7 @@ div.message.character,
     }
     
     main {
-        height: 100dvh; /* 動的ビューポート高さ（iPhone/Android対応） */
+        flex: 1; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる */
         max-width: 100%;
         padding: 0; /* モバイル版ではpaddingなし */
         min-height: 0; /* flexboxの子要素が正しく縮小するように */
