@@ -10,7 +10,8 @@ const MAX_DEEPSEEK_RETRIES = 3;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
 const MAX_NORMAL_MESSAGES = 10; // 通常保存する最新メッセージ数
 const MAX_SUMMARY_COUNT = 10; // 保持する要約の最大数
-const MAX_TOTAL_MESSAGES = 100; // 全体の最大メッセージ数（通常 + 要約）
+const MAX_TOTAL_MESSAGES = 20; // 全体の最大メッセージ数（通常10件 + 要約10件）
+const MESSAGES_PER_SUMMARY = 10; // 1つの要約に圧縮するメッセージ数
 const CACHE_TTL = 300; // キャッシュの有効期限（5分間、秒単位）
 const API_TIMEOUT = 15000; // API呼び出しのタイムアウト（15秒）
 
@@ -175,8 +176,8 @@ async function getConversationHistory(
   
   // ステップ2: キャッシュミスの場合、DBから取得
   console.log('[getConversationHistory] キャッシュミス、DBから取得:', cacheKey);
-  const historyResults = await db.prepare<ConversationRow>(
-    `SELECT c.role, c.message as content, c.is_guest_message
+  const historyResults = await db.prepare<ConversationRow & { message_type?: string }>(
+    `SELECT c.role, c.message as content, c.is_guest_message, c.message_type
      FROM conversations c
      WHERE c.user_id = ? AND c.character_id = ?
      ORDER BY COALESCE(c.timestamp, c.created_at) DESC
@@ -185,6 +186,7 @@ async function getConversationHistory(
     .bind(userId, characterId)
     .all();
 
+  // 要約メッセージを通常のメッセージとして扱う（message_type='summary'も含める）
   const history = historyResults.results?.slice().reverse().map((row) => ({
     role: row.role,
     content: row.content || row.message || '',
@@ -237,14 +239,68 @@ async function updateConversationHistoryCache(
 }
 
 /**
- * 100件制限チェックと古いメッセージの削除（共通関数、重要度フラグ対応）
+ * 会話履歴を要約して圧縮する
+ */
+async function summarizeConversationHistory(
+  db: D1Database,
+  userId: number,
+  characterId: string,
+  messages: Array<{ role: string; message: string }>,
+  env: { DEEPSEEK_API_KEY?: string; 'GPT-API'?: string; OPENAI_API_KEY?: string; FALLBACK_OPENAI_API_KEY?: string; OPENAI_MODEL?: string; FALLBACK_OPENAI_MODEL?: string }
+): Promise<string> {
+  // メッセージをテキストに変換
+  const conversationText = messages
+    .map((msg) => `${msg.role === 'user' ? 'ユーザー' : 'アシスタント'}: ${msg.message}`)
+    .join('\n');
+
+  const systemPrompt = `以下の会話履歴を簡潔に要約してください。重要なポイントや相談内容の要点を200文字以内でまとめてください。
+
+会話履歴:
+${conversationText}
+
+要約:`;
+
+  const apiKey = env.DEEPSEEK_API_KEY;
+  const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
+  const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+
+  try {
+    const llmResult = await getLLMResponse({
+      systemPrompt,
+      conversationHistory: [],
+      userMessage: '上記の会話履歴を要約してください。',
+      temperature: 0.3,
+      maxTokens: 300,
+      topP: 0.8,
+      deepseekApiKey: apiKey || '',
+      fallbackApiKey: fallbackApiKey,
+      fallbackModel: fallbackModel,
+    });
+
+    if (llmResult.success && llmResult.message) {
+      return llmResult.message;
+    }
+  } catch (error) {
+    console.error('[summarizeConversationHistory] 要約生成エラー:', error);
+  }
+
+  // フォールバック: 最初と最後のメッセージを簡潔にまとめる
+  const firstUserMsg = messages.find((m) => m.role === 'user')?.message || '';
+  const lastUserMsg = messages.filter((m) => m.role === 'user').slice(-1)[0]?.message || '';
+  return `過去の会話: ${firstUserMsg.substring(0, 50)}... ${lastUserMsg.substring(0, 50)}...`;
+}
+
+/**
+ * 20件制限チェックと古いメッセージの要約圧縮（共通関数）
+ * 最初の10件は通常保存、10件以降は10件ずつ要約して1件に圧縮
  */
 async function checkAndCleanupOldMessages(
   db: D1Database,
   userId: number,
-  characterId: string
+  characterId: string,
+  env?: { DEEPSEEK_API_KEY?: string; 'GPT-API'?: string; OPENAI_API_KEY?: string; FALLBACK_OPENAI_API_KEY?: string; OPENAI_MODEL?: string; FALLBACK_OPENAI_MODEL?: string }
 ): Promise<void> {
-  // 100件制限チェック
+  // 現在のメッセージ数を取得
   const messageCountResult = await db.prepare<{ count: number }>(
     `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
   )
@@ -253,25 +309,107 @@ async function checkAndCleanupOldMessages(
 
   const messageCount = messageCountResult?.count || 0;
 
-  if (messageCount >= 100) {
-    // 重要でない古いメッセージのみを削除
-    const deleteCount = messageCount - 100 + 1; // 1件追加するので、1件削除
+  // 通常メッセージ数（要約以外）を取得
+  const normalMessageCountResult = await db.prepare<{ count: number }>(
+    `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND message_type != 'summary'`
+  )
+    .bind(userId, characterId)
+    .first();
+
+  const normalMessageCount = normalMessageCountResult?.count || 0;
+
+  // 要約メッセージ数を取得
+  const summaryCountResult = await db.prepare<{ count: number }>(
+    `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND message_type = 'summary'`
+  )
+    .bind(userId, characterId)
+    .first();
+
+  const summaryCount = summaryCountResult?.count || 0;
+
+  // 通常メッセージが10件を超えた場合、古い10件を要約して圧縮
+  if (normalMessageCount > MAX_NORMAL_MESSAGES && env) {
+    // 要約する古い10件を取得（要約以外のメッセージから、最も古い10件）
+    const oldMessagesResult = await db.prepare<{
+      id: number;
+      role: string;
+      message: string;
+    }>(
+      `SELECT id, role, message
+       FROM conversations
+       WHERE user_id = ? AND character_id = ? AND message_type != 'summary'
+       ORDER BY COALESCE(timestamp, created_at) ASC
+       LIMIT ?`
+    )
+      .bind(userId, characterId, MESSAGES_PER_SUMMARY)
+      .all();
+
+    const oldMessages = oldMessagesResult.results || [];
+
+    if (oldMessages.length >= MESSAGES_PER_SUMMARY) {
+      // 要約を生成
+      const summary = await summarizeConversationHistory(
+        db,
+        userId,
+        characterId,
+        oldMessages.map((m) => ({ role: m.role, message: m.message || '' })),
+        env
+      );
+
+      // 要約メッセージを保存
+      try {
+        await db.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
+           VALUES (?, ?, 'assistant', ?, 'summary', 0, CURRENT_TIMESTAMP)`
+        )
+          .bind(userId, characterId, summary)
+          .run();
+      } catch {
+        await db.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+           VALUES (?, ?, 'assistant', ?, 'summary', 0, CURRENT_TIMESTAMP)`
+        )
+          .bind(userId, characterId, summary)
+          .run();
+      }
+
+      // 元の10件を削除
+      const idsToDelete = oldMessages.map((m) => m.id);
+      if (idsToDelete.length > 0) {
+        const placeholders = idsToDelete.map(() => '?').join(',');
+        await db.prepare(
+          `DELETE FROM conversations
+           WHERE user_id = ? AND character_id = ? AND id IN (${placeholders})`
+        )
+          .bind(userId, characterId, ...idsToDelete)
+          .run();
+      }
+
+      console.log('[checkAndCleanupOldMessages] 10件のメッセージを要約して1件に圧縮しました:', {
+        userId,
+        characterId,
+        compressedCount: oldMessages.length,
+      });
+    }
+  }
+
+  // 全体が20件を超えた場合、古い要約を削除
+  if (messageCount >= MAX_TOTAL_MESSAGES) {
+    const deleteCount = messageCount - MAX_TOTAL_MESSAGES + 1;
     await db.prepare(
       `DELETE FROM conversations
        WHERE user_id = ? AND character_id = ?
-       AND is_important = 0
        AND id IN (
          SELECT id FROM conversations
          WHERE user_id = ? AND character_id = ?
-         AND is_important = 0
          ORDER BY COALESCE(timestamp, created_at) ASC
          LIMIT ?
        )`
     )
       .bind(userId, characterId, userId, characterId, deleteCount)
       .run();
-    
-    console.log('[checkAndCleanupOldMessages] 古いメッセージを削除しました（重要でないメッセージのみ）:', {
+
+    console.log('[checkAndCleanupOldMessages] 古いメッセージを削除しました:', {
       userId,
       characterId,
       deleteCount,
@@ -287,11 +425,12 @@ async function saveUserMessage(
   db: D1Database,
   userId: number,
   characterId: string,
-  userMessage: string
+  userMessage: string,
+  env?: { DEEPSEEK_API_KEY?: string; 'GPT-API'?: string; OPENAI_API_KEY?: string; FALLBACK_OPENAI_API_KEY?: string; OPENAI_MODEL?: string; FALLBACK_OPENAI_MODEL?: string }
 ): Promise<void> {
-  // 100件制限チェックと古いメッセージの削除
+  // 20件制限チェックと古いメッセージの要約圧縮
   try {
-    await checkAndCleanupOldMessages(db, userId, characterId);
+    await checkAndCleanupOldMessages(db, userId, characterId, env);
   } catch (error) {
     console.error('[saveUserMessage] checkAndCleanupOldMessagesエラー:', {
       error: error instanceof Error ? error.message : String(error),
@@ -391,7 +530,7 @@ async function saveAssistantMessage(
   // is_guest_messageは常に0（使用しない）
   const isGuestMessage = 0;
 
-  // アシスタントメッセージの10件制限チェックと古いメッセージの削除
+  // 重要度判定（メッセージ数を取得）
   const assistantMessageCountResult = await db.prepare<{ count: number }>(
     `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND role = 'assistant'`
   )
@@ -399,30 +538,10 @@ async function saveAssistantMessage(
     .first();
 
   const assistantMessageCount = assistantMessageCountResult?.count || 0;
-  const MAX_ASSISTANT_MESSAGES = 10;
-
-  // 重要度判定（メッセージ数を取得）
   const totalMessageCount = messageCount !== undefined ? messageCount : assistantMessageCount + 1;
   const isImportant = shouldMarkAsImportant(totalMessageCount, assistantMessage, 'assistant');
 
-  if (assistantMessageCount >= MAX_ASSISTANT_MESSAGES) {
-    // 重要でない古いメッセージのみを削除
-    const deleteCount = assistantMessageCount - MAX_ASSISTANT_MESSAGES + 1; // 1件追加するので、1件削除
-    await db.prepare(
-      `DELETE FROM conversations
-       WHERE user_id = ? AND character_id = ? AND role = 'assistant'
-       AND is_important = 0
-       AND id IN (
-         SELECT id FROM conversations
-         WHERE user_id = ? AND character_id = ? AND role = 'assistant'
-         AND is_important = 0
-         ORDER BY COALESCE(timestamp, created_at) ASC
-         LIMIT ?
-       )`
-    )
-      .bind(userId, characterId, userId, characterId, deleteCount)
-      .run();
-  }
+  // 注意: 10件制限チェックと要約圧縮はcheckAndCleanupOldMessagesで行うため、ここでは削除しない
 
   // アシスタントメッセージを保存（重要度フラグを含む）
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
@@ -1422,7 +1541,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       try {
         // 【新仕様】すべてのユーザーを'registered'として扱う
         if (user) {
-          await saveUserMessage(env.DB, user.id, characterId, trimmedMessage);
+          await saveUserMessage(env.DB, user.id, characterId, trimmedMessage, env);
           console.log('[consult] ユーザーのメッセージを保存しました:', {
             userId: user.id,
             characterId,

@@ -502,12 +502,13 @@ export const onRequestPost: PagesFunction = async (context) => {
       role: 'user' | 'assistant';
       message: string;
       created_at: string;
+      message_type?: string;
     }>(
-      `SELECT c.role, c.message, COALESCE(c.timestamp, c.created_at) as created_at
+      `SELECT c.role, c.message, COALESCE(c.timestamp, c.created_at) as created_at, c.message_type
        FROM conversations c
        WHERE c.user_id = ? AND c.character_id = ?
        ORDER BY COALESCE(c.timestamp, c.created_at) DESC
-       LIMIT 50`
+       LIMIT 20`
     )
       .bind(userIdNumber, character)
       .all();
