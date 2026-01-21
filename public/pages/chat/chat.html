@@ -172,13 +172,13 @@
         main {
             width: 100%;
             max-width: 820px;
-            height: 100%;
             height: 100vh; /* ウィンドウの高さいっぱいに表示 */
             display: flex;
             flex-direction: column;
             overflow: hidden;
             padding: 18px; /* PC版の余白をmainに移動 */
             box-sizing: border-box;
+            min-height: 0; /* flexboxの子要素が正しく縮小するように */
         }
         
         /* 管理者モード: チャットと分析パネルを横並び */
@@ -243,12 +243,12 @@
             padding: 22px;
             box-shadow: none;
             border: none;
-            height: 100%;
+            flex: 1; /* mainのflex子要素として高さを最大限に使用 */
+            min-height: 0; /* flexboxの子要素が正しく縮小するように */
             display: flex;
             flex-direction: column;
             gap: 0; /* gapを削除してチャット表示エリアを最大限に広げる */
             overflow: hidden;
-            min-height: 0; /* flexboxの子要素が正しく縮小するように */
             box-sizing: border-box; /* paddingを含めた高さ計算 */
         }
         
@@ -455,7 +455,7 @@
            メッセージエリア
            ============================================ */
         .messages {
-            flex: 1; /* チャット表示エリアを最大限に広げる */
+            flex: 1 1 auto; /* チャット表示エリアを最大限に広げる（flex-grow, flex-shrink, flex-basis） */
             overflow-y: auto !important; /* PC/モバイル共に確実にスクロール可能にする */
             overflow-x: hidden;
             border-radius: 0;
@@ -471,8 +471,8 @@
             -webkit-overflow-scrolling: touch; /* モバイルのスムーズスクロール */
             overscroll-behavior: contain; /* スクロールチェーンの制御 */
             min-height: 0; /* flexboxの子要素が正しく縮小するように */
-            max-height: 100%; /* 親要素の高さを超えないように */
-            height: 0; /* flex: 1と組み合わせて高さを計算 */
+            max-height: none; /* 最大高さの制限を解除 */
+            height: auto; /* 高さを自動計算 */
         }
         
         .message {
@@ -720,11 +720,13 @@
             }
             
             main {
-                height: 100%;
-                height: 100vh; /* 標準のビューポート高さ */
                 height: 100dvh; /* 動的ビューポート高さ（iPhone/Android対応） */
                 max-width: 100%;
                 padding: 0; /* モバイル版ではpaddingなし */
+                min-height: 0; /* flexboxの子要素が正しく縮小するように */
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
             }
             
             .mobile-header {
@@ -733,9 +735,8 @@
             
             .chat-container {
                 padding: 0;
-                height: 100%;
-                height: 100vh; /* 標準のビューポート高さ */
-                height: 100dvh; /* 動的ビューポート高さ（iPhone/Android対応） */
+                flex: 1; /* mainのflex子要素として高さを最大限に使用 */
+                min-height: 0; /* flexboxの子要素が正しく縮小するように */
                 border-radius: 0;
                 box-shadow: none;
                 padding-top: 48px; /* モバイルヘッダーの高さ分 */
@@ -758,7 +759,7 @@
             }
             
             .messages {
-                flex: 1; /* チャット表示エリアを最大限に広げる */
+                flex: 1 1 auto; /* チャット表示エリアを最大限に広げる（flex-grow, flex-shrink, flex-basis） */
                 padding: 20px 10px;
                 padding-top: 20px;
                 padding-bottom: 150px; /* モバイル入力エリアの高さ（約120px）+ 余白（30px）に調整 */
@@ -767,8 +768,8 @@
                 overflow-x: hidden;
                 -webkit-overflow-scrolling: touch; /* iOSのスムーズスクロール */
                 overscroll-behavior: contain; /* スクロールチェーンの制御 */
-                max-height: 100%; /* 親要素の高さを超えないように */
-                height: 0; /* flex: 1と組み合わせて高さを計算 */
+                max-height: none; /* 最大高さの制限を解除 */
+                height: auto; /* 高さを自動計算 */
                 min-height: 0; /* flexboxの子要素が正しく縮小するように */
             }
             
