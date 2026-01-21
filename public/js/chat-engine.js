@@ -1325,6 +1325,30 @@ const ChatUI = {
 // グローバルスコープに公開（iframeからアクセスできるようにする）
 window.ChatUI = ChatUI;
 
+// グローバルなscrollToBottom関数（3段階スクロール）
+// 直後、200ms後、800ms後の3回実行で画像の読み込み遅延に対応
+// 【重要】initPage()より前に定義することで、MutationObserver設定時に確実に存在するようにする
+window.scrollToBottom = function() {
+    const messagesDiv = document.getElementById('messages');
+    if (!messagesDiv) return;
+    
+    const scroll = () => {
+        try {
+            messagesDiv.scrollTo({
+                top: messagesDiv.scrollHeight,
+                behavior: 'smooth'
+            });
+        } catch (e) {
+            // scrollToが使えない場合はscrollTopを使用
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    };
+    
+    scroll(); // 直後
+    setTimeout(scroll, 200); // 描画後
+    setTimeout(scroll, 800); // 画像読み込み後（重要）
+};
+
 const ChatInit = {
     /**
      * ページを初期化
@@ -1371,8 +1395,26 @@ const ChatInit = {
                         break;
                     }
                 }
-                if (shouldScroll && window.scrollToBottom) {
-                    window.scrollToBottom();
+                if (shouldScroll) {
+                    // window.scrollToBottomが存在する場合はそれを使用、なければChatUI.scrollToLatestを使用
+                    if (window.scrollToBottom) {
+                        window.scrollToBottom();
+                    } else if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+                        window.ChatUI.scrollToLatest();
+                    } else {
+                        // フォールバック：直接スクロール
+                        const msgDiv = document.getElementById('messages');
+                        if (msgDiv) {
+                            try {
+                                msgDiv.scrollTo({
+                                    top: msgDiv.scrollHeight,
+                                    behavior: 'smooth'
+                                });
+                            } catch (e) {
+                                msgDiv.scrollTop = msgDiv.scrollHeight;
+                            }
+                        }
+                    }
                 }
             });
             
@@ -1381,7 +1423,10 @@ const ChatInit = {
                 subtree: true
             });
             
-            console.log('[初期化] MutationObserverを設定しました（自動スクロール監視・冒頭）');
+            console.log('[初期化] MutationObserverを設定しました（自動スクロール監視・冒頭）', {
+                hasScrollToBottom: typeof window.scrollToBottom === 'function',
+                hasChatUI: typeof window.ChatUI !== 'undefined'
+            });
         }
         
         // 待機画面の管理
@@ -3602,29 +3647,6 @@ window.ChatTestUtils = {
 
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
-
-// グローバルなscrollToBottom関数（3段階スクロール）
-// 直後、200ms後、800ms後の3回実行で画像の読み込み遅延に対応
-window.scrollToBottom = function() {
-    const messagesDiv = document.getElementById('messages');
-    if (!messagesDiv) return;
-    
-    const scroll = () => {
-        try {
-            messagesDiv.scrollTo({
-                top: messagesDiv.scrollHeight,
-                behavior: 'smooth'
-            });
-        } catch (e) {
-            // scrollToが使えない場合はscrollTopを使用
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-    };
-    
-    scroll(); // 直後
-    setTimeout(scroll, 200); // 描画後
-    setTimeout(scroll, 800); // 画像読み込み後（重要）
-};
 window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // ===== テストモードチェック（最優先で実行） =====
