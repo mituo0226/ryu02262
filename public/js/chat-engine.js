@@ -1012,6 +1012,9 @@ const ChatInit = {
             console.error('Error loading conversation history:', error);
             const info = ChatData.characterInfo[character];
             
+            // 守護神の儀式完了直後のフラグを事前にチェック
+            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+            
             // エラー時はハンドラーのinitPageを呼び出す
             const handler = CharacterRegistry.get(character);
             let handlerSkippedFirstMessage = false;
@@ -1031,7 +1034,8 @@ const ChatInit = {
             }
             
             // 【統一化】共通の初回メッセージ表示ロジックを使用
-            showInitialMessage({ handlerSkippedFirstMessage });
+            // showInitialMessage関数がguardianMessageShownを参照できるようにする
+            await showInitialMessage({ handlerSkippedFirstMessage });
         }
 
         // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない

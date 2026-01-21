@@ -623,7 +623,7 @@ const ChatUI = {
         messageDiv.appendChild(contentDiv);
         
         this.messagesDiv.appendChild(messageDiv);
-        this.scrollToBottom();
+        this.scrollToLatest();
         
         return messageDiv;
     },
@@ -654,7 +654,7 @@ const ChatUI = {
             // thinkingクラスを削除
             thinkingElement.classList.remove('thinking');
             
-            this.scrollToBottom();
+            this.scrollToLatest();
         }, 200);
         console.log('[ChatUI] メッセージをクリアしました');
     },
