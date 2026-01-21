@@ -37,12 +37,9 @@
         }
     })();
     </script>
-    <style>
-        /* ============================================
-           カラーパレット
-           ============================================ */
-        :root {
-            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+    <link rel="stylesheet" href="../../css/chat.css">
+</head>
+<body>
             --primary: #8b3dff;
             --user-bubble: #8b3dff;
             --char-bubble: rgba(75, 0, 130, 0.9);
@@ -455,7 +452,7 @@
            メッセージエリア
            ============================================ */
         .messages {
-            flex: 1 1 auto; /* チャット表示エリアを最大限に広げる（flex-grow, flex-shrink, flex-basis） */
+            flex: 1; /* チャット表示エリアを最大限に広げる */
             overflow-y: auto !important; /* PC/モバイル共に確実にスクロール可能にする */
             overflow-x: hidden;
             border-radius: 0;
@@ -470,9 +467,8 @@
             position: relative;
             -webkit-overflow-scrolling: touch; /* モバイルのスムーズスクロール */
             overscroll-behavior: contain; /* スクロールチェーンの制御 */
-            min-height: 0; /* flexboxの子要素が正しく縮小するように */
-            max-height: none; /* 最大高さの制限を解除 */
-            height: auto; /* 高さを自動計算 */
+            min-height: 0; /* flexboxの子要素が正しく縮小するように（重要：overflowを機能させるために必須） */
+            height: 0; /* flex: 1と組み合わせて親要素の高さを基準に計算（overflowを機能させるために必須） */
         }
         
         .message {
@@ -759,7 +755,7 @@
             }
             
             .messages {
-                flex: 1 1 auto; /* チャット表示エリアを最大限に広げる（flex-grow, flex-shrink, flex-basis） */
+                flex: 1; /* チャット表示エリアを最大限に広げる */
                 padding: 20px 10px;
                 padding-top: 20px;
                 padding-bottom: 150px; /* モバイル入力エリアの高さ（約120px）+ 余白（30px）に調整 */
@@ -768,9 +764,8 @@
                 overflow-x: hidden;
                 -webkit-overflow-scrolling: touch; /* iOSのスムーズスクロール */
                 overscroll-behavior: contain; /* スクロールチェーンの制御 */
-                max-height: none; /* 最大高さの制限を解除 */
-                height: auto; /* 高さを自動計算 */
-                min-height: 0; /* flexboxの子要素が正しく縮小するように */
+                min-height: 0; /* flexboxの子要素が正しく縮小するように（重要：overflowを機能させるために必須） */
+                height: 0; /* flex: 1と組み合わせて親要素の高さを基準に計算（overflowを機能させるために必須） */
             }
             
             .message {
@@ -926,17 +921,9 @@
                 font-size: 14px;
             }
         }
-    </style>
-    
-    <!-- ============================================
-         待機画面用CSS（HTMLだけで即座に表示）
-         ============================================ -->
-    <style>
-        /* ============================================
-           待機画面（HTMLだけで即座に表示）
-           ============================================ */
-        .loading-screen {
-            position: fixed;
+    <!-- 待機画面用CSSは外部ファイル（chat.css）に移動しました -->
+</head>
+<body>
             top: 0;
             left: 0;
             width: 100%;
@@ -1010,7 +997,7 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
         }
-    </style>
+    <!-- 待機画面用CSSは外部ファイル（chat.css）に移動しました -->
 </head>
 <body>
     <!-- ============================================
@@ -2121,9 +2108,7 @@
            })();
            </script>
            
-           <style>
-           /* 管理者モード: 分析パネルのスタイル */
-           .admin-analysis-panel {
+           <!-- 管理者モード用CSSは外部ファイル（chat.css）に移動しました -->
                width: 350px;
                background: rgba(255, 255, 255, 0.04);
                border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2194,7 +2179,7 @@
                    max-height: 400px;
                }
            }
-           </style>
+           <!-- 管理者モード用CSSは外部ファイル（chat.css）に移動しました -->
            
            <!-- Enterキー送信と自動スクロールの実装（chat-engine.jsのエラーに巻き込まれない独立実装） -->
            <script>
