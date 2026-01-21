@@ -1742,12 +1742,15 @@
               // 待機画面を非表示にする関数
               window.hideLoadingScreen = function() {
                   const loadingScreen = document.getElementById('loadingScreen');
-                  if (loadingScreen) {
+                  if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
                       loadingScreen.classList.add('hidden');
                       // アニメーション完了後にDOMから削除
                       setTimeout(() => {
-                          loadingScreen.remove();
+                          if (loadingScreen.parentNode) {
+                              loadingScreen.parentNode.removeChild(loadingScreen);
+                          }
                       }, 800);
+                      console.log('[待機画面] 非表示にしました');
                   }
               };
               
