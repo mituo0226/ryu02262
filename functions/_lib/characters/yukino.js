@@ -514,7 +514,8 @@ ${conversationHistory.length > 0
 この指示は最優先で守ってください。
 ========================================
 `;
-      console.log('[yukino] 登録済みユーザー通常指示を生成（直接登録）:', userNickname);
+        console.log('[yukino] 登録済みユーザー通常指示を生成（直接登録）:', userNickname);
+      }
     }
   } else if (!userNickname) {
     // ゲストユーザーの対応
