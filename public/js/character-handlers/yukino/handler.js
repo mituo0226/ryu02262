@@ -144,6 +144,12 @@ const YukinoHandler = {
      */
     async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow) {
         // 雪乃の場合は特別な初期化処理なし
+        // 親クラスの処理を呼び出す（BaseCharacterHandlerを継承していないため、手動で処理）
+        // バックエンドの判定結果（visitPattern）を使用
+        const visitPattern = historyData?.visitPattern || (historyData?.hasHistory ? 'returning' : 'first_visit');
+        
+        // 共通処理を実行（メッセージ表示など）
+        // ただし、chat-engine.jsで既に処理されているため、ここでは何もしない
         return null;
     },
 

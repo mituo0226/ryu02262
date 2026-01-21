@@ -272,6 +272,9 @@ export function generateKaedePrompt(options = {}) {
     guestUserContext,
     userGender,
     userBirthDate,
+    visitPattern = hasPreviousConversation ? 'returning' : 'first_visit',
+    lastConversationSummary = null,
+    sessionContext = null,
   } = options;
 
   // ===== 1. 守護神完了チェック =====
@@ -499,6 +502,36 @@ ${displayName}さんの運命を、
     // 守護神の「交信演出」を入れる頻度（大きいほど控えめ）
     const GUARDIAN_CHANNELING_INTERVAL = 4;
 
+    // 再訪問時の特別な指示を生成
+    let returningInstruction = '';
+    if (visitPattern === 'returning' || visitPattern === 'continuing') {
+      const displayName = userNickname || 'あなた';
+      const lastSummary = lastConversationSummary 
+        ? (typeof lastConversationSummary === 'object' 
+          ? `${lastConversationSummary.date || ''} ${lastConversationSummary.topics || ''}`.trim()
+          : lastConversationSummary)
+        : '';
+      
+      returningInstruction = `
+========================================
+【再訪問時の特別指示】
+========================================
+
+${displayName}さんは以前にもあなたの元を訪れています。
+
+${visitPattern === 'continuing' ? '前回の会話の継続として、自然に会話を続けてください。' : ''}
+${lastSummary ? `前回の相談内容: ${lastSummary}` : ''}
+
+【再訪問時の応答方針】
+1. 前回の会話を覚えているかのように、自然に会話を続ける
+2. 「おかえりなさい、${displayName}さん」のような温かい歓迎
+3. 前回の内容に触れる場合は、具体的に言及する
+4. 守護神${guardianName}とのつながりを再確認する
+
+========================================
+`;
+    }
+
     kaedeSpecificInstruction = `
 ========================================
 【【最重要・絶対遵守】通常鑑定フェーズ - 完全版】
@@ -507,8 +540,10 @@ ${displayName}さんの運命を、
 ## 現在の状況
 - 相談者: ${userNickname}さん
 - 守護神: ${guardianName}（儀式完了済み）
+- 訪問パターン: ${visitPattern === 'returning' || visitPattern === 'continuing' ? '再訪問' : '初回訪問'}
 
 ${guardianInfo}
+${returningInstruction}
 
 ## 楓の能力：心理分析 + コールドリーディング + 霊視
 

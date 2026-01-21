@@ -84,8 +84,8 @@ class BaseCharacterHandler {
      */
     async handleFirstVisit(historyData) {
         const info = ChatData.characterInfo[this.characterId];
-        if (historyData && historyData.welcomeMessage) {
-            ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+        if (historyData && historyData.welcomeMessage && window.ChatUI) {
+            window.ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
         }
     }
 
@@ -99,8 +99,8 @@ class BaseCharacterHandler {
         
         // 再訪問メッセージ表示
         const info = ChatData.characterInfo[this.characterId];
-        if (historyData && historyData.returningMessage) {
-            ChatUI.addMessage('welcome', historyData.returningMessage, info.name);
+        if (historyData && historyData.returningMessage && window.ChatUI) {
+            window.ChatUI.addMessage('welcome', historyData.returningMessage, info.name);
         }
     }
 
@@ -110,8 +110,8 @@ class BaseCharacterHandler {
      */
     async handleContinuingVisit(historyData) {
         const info = ChatData.characterInfo[this.characterId];
-        if (historyData && historyData.welcomeMessage) {
-            ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+        if (historyData && historyData.welcomeMessage && window.ChatUI) {
+            window.ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
         }
     }
 
@@ -120,7 +120,7 @@ class BaseCharacterHandler {
      * @param {Array} messages - メッセージ配列
      */
     displayHistory(messages) {
-        if (!messages || messages.length === 0) return;
+        if (!messages || messages.length === 0 || !window.ChatUI) return;
         
         const info = ChatData.characterInfo[this.characterId];
         const totalMessages = messages.length;
@@ -136,7 +136,7 @@ class BaseCharacterHandler {
             const type = entry.role === 'user' ? 'user' : 'character';
             const sender = entry.role === 'user' ? 'あなた' : info.name;
             const content = entry.content || entry.message || '';
-            ChatUI.addMessage(type, content, sender);
+            window.ChatUI.addMessage(type, content, sender);
         });
         
         // 残りの履歴を遅延表示（バックグラウンド）
@@ -150,7 +150,11 @@ class BaseCharacterHandler {
                     const type = entry.role === 'user' ? 'user' : 'character';
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     const content = entry.content || entry.message || '';
-                    ChatUI.prependMessage(type, content, sender);
+                    if (window.ChatUI && typeof window.ChatUI.prependMessage === 'function') {
+                        window.ChatUI.prependMessage(type, content, sender);
+                    } else {
+                        window.ChatUI.addMessage(type, content, sender);
+                    }
                 });
             }, 100); // 100ms後に表示
         }
