@@ -1623,13 +1623,29 @@
                    }
                }
                
-               // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
-               if (document.readyState === 'loading') {
-                   document.addEventListener('DOMContentLoaded', initEntryForm);
-               } else {
-                   // 既にDOMが読み込まれている場合は即座に実行
+               // スクリプトの読み込み完了を待ってから実行
+               // chat-engine.jsが読み込まれるのを待つ
+               async function waitForScripts() {
+                   // まず、DOMContentLoadedを待つ
+                   if (document.readyState === 'loading') {
+                       await new Promise(resolve => {
+                           document.addEventListener('DOMContentLoaded', resolve, { once: true });
+                       });
+                   }
+                   
+                   // chat-engine.jsが読み込まれるのを待つ（最大5秒）
+                   let attempts = 0;
+                   const maxAttempts = 50; // 5秒間待機
+                   while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && attempts < maxAttempts) {
+                       await new Promise(resolve => setTimeout(resolve, 100));
+                       attempts++;
+                   }
+                   
+                   // スクリプトが読み込まれたら、initEntryFormを実行
                    initEntryForm();
                }
+               
+               waitForScripts();
            })();
            
            // #region agent log (開発環境のみ - コメントアウト)
