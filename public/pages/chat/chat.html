@@ -201,9 +201,10 @@
         .navigation-links {
             display: flex;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 0; /* gapを削除したのでmarginも削除 */
             flex-wrap: wrap;
             justify-content: center;
+            flex-shrink: 0; /* ナビゲーションは固定サイズ */
         }
         
         .navigation-links a {
@@ -245,7 +246,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 0; /* gapを削除してチャット表示エリアを最大限に広げる */
             overflow: hidden;
             min-height: 0; /* flexboxの子要素が正しく縮小するように */
             box-sizing: border-box; /* paddingを含めた高さ計算 */
@@ -257,10 +258,11 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 0; /* gapを削除したのでmarginも削除 */
             padding: 12px 16px;
             background: rgba(75, 0, 130, 0.3);
             border-radius: 16px;
+            flex-shrink: 0; /* ヘッダーは固定サイズ */
         }
         
         .character-header-image {
@@ -293,6 +295,8 @@
             border: 1px solid rgba(139, 61, 255, 0.2);
             line-height: 1.6;
             word-break: break-word;
+            flex-shrink: 0; /* プロフィールは固定サイズ */
+            margin-bottom: 0; /* gapを削除したのでmarginも削除 */
         }
         
         .user-status.guest {
@@ -451,7 +455,7 @@
            メッセージエリア
            ============================================ */
         .messages {
-            flex: 1;
+            flex: 1; /* チャット表示エリアを最大限に広げる */
             overflow-y: auto !important; /* PC/モバイル共に確実にスクロール可能にする */
             overflow-x: hidden;
             border-radius: 0;
@@ -620,8 +624,9 @@
             bottom: 0;
             background: rgba(75, 0, 130, 0.9);
             padding-top: 6px;
-            flex-shrink: 0;
+            flex-shrink: 0; /* 入力エリアは固定サイズ（フッター） */
             z-index: 10;
+            margin-top: 0; /* gapを削除したのでmarginも削除 */
         }
         
         .input-row {
@@ -733,10 +738,14 @@
                 height: 100dvh; /* 動的ビューポート高さ（iPhone/Android対応） */
                 border-radius: 0;
                 box-shadow: none;
-                padding-top: 48px;
-                /* padding-bottom: 70px; を削除（余計な余白設定を削除） */
+                padding-top: 48px; /* モバイルヘッダーの高さ分 */
+                padding-bottom: 0; /* 入力エリアは固定なのでpadding不要 */
                 background: var(--bg-gradient);
                 box-sizing: border-box; /* paddingを含めた高さ計算 */
+                display: flex;
+                flex-direction: column;
+                gap: 0; /* gapを削除してチャット表示エリアを最大限に広げる */
+                overflow: hidden;
             }
             
             
@@ -749,6 +758,7 @@
             }
             
             .messages {
+                flex: 1; /* チャット表示エリアを最大限に広げる */
                 padding: 20px 10px;
                 padding-top: 20px;
                 padding-bottom: 150px; /* モバイル入力エリアの高さ（約120px）+ 余白（30px）に調整 */
@@ -759,6 +769,7 @@
                 overscroll-behavior: contain; /* スクロールチェーンの制御 */
                 max-height: 100%; /* 親要素の高さを超えないように */
                 height: 0; /* flex: 1と組み合わせて高さを計算 */
+                min-height: 0; /* flexboxの子要素が正しく縮小するように */
             }
             
             .message {
