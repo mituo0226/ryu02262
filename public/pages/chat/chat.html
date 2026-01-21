@@ -735,7 +735,7 @@
                 padding: 20px 10px;
                 padding-top: 20px;
                 height: 100%;
-                padding-bottom: 220px; /* モバイル版の入力欄（position: fixed）が重なる分を考慮 */
+                padding-bottom: 250px; /* モバイル版の入力欄（position: fixed）が重なる分を考慮 */
                 margin-top: 0;
             }
             
@@ -2232,80 +2232,161 @@
            }
            </style>
            
-           <!-- Enterキー送信と自動スクロールの実装 -->
+           <!-- Enterキー送信と自動スクロールの実装（chat-engine.jsのエラーに巻き込まれない独立実装） -->
            <script>
            (function() {
                'use strict';
                
+               // 初期化済みフラグ（重複初期化を防ぐ）
+               let isInitialized = false;
+               let enterKeyHandler = null;
+               let scrollObserver = null;
+               
                // メッセージコンテナの最下部へスクロールする関数
                function scrollToBottom() {
-                   const messagesDiv = document.getElementById('messages');
-                   if (messagesDiv) {
-                       setTimeout(() => {
-                           messagesDiv.scrollTo({
-                               top: messagesDiv.scrollHeight,
-                               behavior: 'smooth'
+                   try {
+                       const messagesDiv = document.getElementById('messages');
+                       if (messagesDiv) {
+                           // requestAnimationFrameを使用してより確実にスクロール
+                           requestAnimationFrame(() => {
+                               setTimeout(() => {
+                                   try {
+                                       messagesDiv.scrollTo({
+                                           top: messagesDiv.scrollHeight,
+                                           behavior: 'smooth'
+                                       });
+                                   } catch (e) {
+                                       // scrollToが使えない場合はscrollTopを使用
+                                       messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                   }
+                               }, 100);
                            });
-                       }, 100);
+                       }
+                   } catch (error) {
+                       console.warn('[自動スクロール] エラー:', error);
+                   }
+               }
+               
+               // Enterキー送信とスクロールの初期化（chat-engine.jsのエラーに巻き込まれない）
+               function initEnterKeyAndScroll() {
+                   // 既に初期化済みの場合はスキップ
+                   if (isInitialized) {
+                       return;
+                   }
+                   
+                   try {
+                       const messageInput = document.getElementById('messageInput');
+                       const sendButton = document.getElementById('sendButton');
+                       const messagesDiv = document.getElementById('messages');
+                       
+                       if (!messageInput || !sendButton || !messagesDiv) {
+                           // 要素がまだ存在しない場合は、少し待ってから再試行（最大10回）
+                           let retryCount = 0;
+                           const maxRetries = 10;
+                           const retryInterval = setInterval(() => {
+                               retryCount++;
+                               if (retryCount >= maxRetries) {
+                                   clearInterval(retryInterval);
+                                   console.warn('[Enter送信・自動スクロール] 要素が見つかりませんでした');
+                                   return;
+                               }
+                               if (document.getElementById('messageInput') && 
+                                   document.getElementById('sendButton') && 
+                                   document.getElementById('messages')) {
+                                   clearInterval(retryInterval);
+                                   initEnterKeyAndScroll();
+                               }
+                           }, 200);
+                           return;
+                       }
+                       
+                       // 既存のイベントリスナーを削除（重複を防ぐ）
+                       if (enterKeyHandler) {
+                           messageInput.removeEventListener('keydown', enterKeyHandler);
+                       }
+                       
+                       // Enterキー送信の実装（PC環境のみ）
+                       enterKeyHandler = function(e) {
+                           try {
+                               // PC環境（画面幅768px以上）でのみEnterキー送信を有効化
+                               // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
+                               if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.innerWidth >= 768) {
+                                   e.preventDefault();
+                                   e.stopPropagation();
+                                   
+                                   const btn = document.getElementById('sendButton');
+                                   if (btn && !btn.disabled) {
+                                       btn.click();
+                                   }
+                               }
+                           } catch (error) {
+                               console.warn('[Enter送信] エラー:', error);
+                           }
+                       };
+                       
+                       messageInput.addEventListener('keydown', enterKeyHandler, { passive: false });
+                       
+                       // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
+                       messageInput.addEventListener('focus', function() {
+                           scrollToBottom();
+                       }, { passive: true });
+                       
+                       // メッセージ追加時の自動スクロール（MutationObserverを使用）
+                       if (scrollObserver) {
+                           scrollObserver.disconnect();
+                       }
+                       
+                       scrollObserver = new MutationObserver(function(mutations) {
+                           // メッセージが追加された場合のみスクロール
+                           let shouldScroll = false;
+                           for (let mutation of mutations) {
+                               if (mutation.addedNodes.length > 0) {
+                                   shouldScroll = true;
+                                   break;
+                               }
+                           }
+                           if (shouldScroll) {
+                               scrollToBottom();
+                           }
+                       });
+                       
+                       scrollObserver.observe(messagesDiv, {
+                           childList: true,
+                           subtree: true
+                       });
+                       
+                       isInitialized = true;
+                       console.log('[Enter送信・自動スクロール] 初期化完了（独立実装）');
+                   } catch (error) {
+                       console.error('[Enter送信・自動スクロール] 初期化エラー:', error);
+                   }
+               }
+               
+               // 複数のタイミングで初期化を試みる（chat-engine.jsのエラーに巻き込まれない）
+               function tryInit() {
+                   try {
+                       initEnterKeyAndScroll();
+                   } catch (error) {
+                       console.warn('[Enter送信・自動スクロール] 初期化試行エラー:', error);
                    }
                }
                
                // DOMContentLoadedで初期化
-               function initEnterKeyAndScroll() {
-                   const messageInput = document.getElementById('messageInput');
-                   const sendButton = document.getElementById('sendButton');
-                   
-                   if (!messageInput || !sendButton) {
-                       // 要素がまだ存在しない場合は、少し待ってから再試行
-                       setTimeout(initEnterKeyAndScroll, 100);
-                       return;
-                   }
-                   
-                   // Enterキー送信の実装
-                   messageInput.addEventListener('keydown', (e) => {
-                       // PC環境（画面幅768px以上）でのみEnterキー送信を有効化
-                       // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
-                       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.innerWidth >= 768) {
-                           e.preventDefault();
-                           if (sendButton && !sendButton.disabled) {
-                               sendButton.click();
-                           }
-                       }
-                   });
-                   
-                   // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
-                   messageInput.addEventListener('focus', () => {
-                       scrollToBottom();
-                   });
-                   
-                   // メッセージ追加時の自動スクロール（MutationObserverを使用）
-                   const messagesDiv = document.getElementById('messages');
-                   if (messagesDiv) {
-                       const observer = new MutationObserver(() => {
-                           scrollToBottom();
-                       });
-                       
-                       observer.observe(messagesDiv, {
-                           childList: true,
-                           subtree: true
-                       });
-                   }
-                   
-                   console.log('[Enter送信・自動スクロール] 初期化完了');
-               }
-               
-               // DOMContentLoadedまたはloadイベントで初期化
                if (document.readyState === 'loading') {
-                   document.addEventListener('DOMContentLoaded', initEnterKeyAndScroll);
+                   document.addEventListener('DOMContentLoaded', tryInit, { once: true });
                } else {
                    // 既にDOMContentLoadedが完了している場合
-                   initEnterKeyAndScroll();
+                   tryInit();
                }
                
                // window.load時にも初期化（念のため）
-               window.addEventListener('load', () => {
-                   setTimeout(initEnterKeyAndScroll, 100);
-               });
+               window.addEventListener('load', function() {
+                   setTimeout(tryInit, 200);
+               }, { once: true });
+               
+               // 少し遅れてからも初期化を試みる（動的に追加される要素に対応）
+               setTimeout(tryInit, 500);
+               setTimeout(tryInit, 1000);
                
                // グローバルにscrollToBottom関数を公開（他のスクリプトからも呼び出せるように）
                window.scrollToBottom = scrollToBottom;

@@ -758,10 +758,12 @@ const YukinoHandler = {
         const hasSuggestTarot = textString.includes('[SUGGEST_TAROT]');
         
         // フォールバック: [SUGGEST_TAROT]タグが見つからない場合でも、キーワード検出でボタンを表示
+        // 「タロット」「カード」「占」「引く」のいずれかが含まれていればボタンを表示
         const hasTarotKeywords = !hasSuggestTarot && (
             textString.includes('タロット') || 
             textString.includes('カード') || 
-            textString.includes('占')
+            textString.includes('占') ||
+            textString.includes('引く')
         );
         
         // ボタンを表示する条件: [SUGGEST_TAROT]タグがある、またはキーワードが含まれている
