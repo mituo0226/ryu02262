@@ -1520,7 +1520,7 @@ const ChatInit = {
                 let messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
                 
                 // 個別相談モードのチェック（ハンドラーに委譲）
-                let handler = CharacterRegistry.get(character);
+                // 注意: handlerは1458行目で既に取得済み
                 const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
                     ? handler.isConsultationMode() 
                     : false;
