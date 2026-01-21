@@ -552,27 +552,20 @@
         container.appendChild(cardWrapper);
         
         // タロット画像表示時は複数回スクロール（画像読み込み遅延に対応）
-        const performTarotScroll = () => {
-            const messagesDiv = document.getElementById('messages');
-            if (!messagesDiv) return;
-            
+        const messagesDiv = document.getElementById('messages');
+        if (messagesDiv) {
             const scroll = () => {
                 try {
-                    messagesDiv.scrollTo({
-                        top: messagesDiv.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                } catch (e) {
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                } catch (e) {
+                    // エラー時は何もしない
                 }
             };
             
             scroll(); // 直後
             setTimeout(scroll, 200); // 描画後
             setTimeout(scroll, 800); // 画像読み込み後（重要）
-        };
-        
-        performTarotScroll();
+        }
     }
 
     /**
@@ -1253,27 +1246,20 @@ ${cardNames}
         container.appendChild(cardContainer);
         
         // タロット画像表示時は複数回スクロール（画像読み込み遅延に対応）
-        const performTarotScroll = () => {
-            const messagesDiv = document.getElementById('messages');
-            if (!messagesDiv) return;
-            
+        const messagesDiv = document.getElementById('messages');
+        if (messagesDiv) {
             const scroll = () => {
                 try {
-                    messagesDiv.scrollTo({
-                        top: messagesDiv.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                } catch (e) {
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                } catch (e) {
+                    // エラー時は何もしない
                 }
             };
             
             scroll(); // 直後
             setTimeout(scroll, 200); // 描画後
             setTimeout(scroll, 800); // 画像読み込み後（重要）
-        };
-        
-        performTarotScroll();
+        }
     }
 
     /**

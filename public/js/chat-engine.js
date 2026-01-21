@@ -1076,38 +1076,35 @@ const ChatUI = {
             }
         }
         
-        // メッセージ追加時に強制的にスクロール（複数タイミングで実行）
-        requestAnimationFrame(() => {
-            this.scrollToLatest();
-            // グローバル関数も呼び出す（念のため）
-            if (window.scrollToBottom) {
-                window.scrollToBottom();
+        // メッセージ追加時に自動スクロール（シンプル版）
+        // DOM追加後に確実にスクロールするため、少し遅延させる
+        setTimeout(() => {
+            if (this.messagesDiv) {
+                try {
+                    this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+                } catch (e) {
+                    // エラー時は何もしない
+                }
             }
-        });
+        }, 50);
         
         return messageId;
     },
 
     /**
-     * スクロールを最新に（シンプル版：1回実行）
-     * タロット画像など特別な場合はハンドラー側で複数回実行する処理を追加
+     * スクロールを最新に（シンプル版）
      */
     scrollToLatest() {
-        if (!this.messagesDiv) return;
-        
-        // 手動スクロール中は自動スクロールをスキップ
-        if (this._isManualScrolling) {
-            return;
+        if (!this.messagesDiv) {
+            // messagesDivが初期化されていない場合は再取得を試みる
+            this.messagesDiv = document.getElementById('messages');
+            if (!this.messagesDiv) return;
         }
         
         try {
-            this.messagesDiv.scrollTo({
-                top: this.messagesDiv.scrollHeight,
-                behavior: 'smooth'
-            });
-        } catch (e) {
-            // scrollToが使えない場合はscrollTopを使用
             this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
+        } catch (e) {
+            // エラー時は何もしない
         }
     },
 
@@ -1325,74 +1322,16 @@ const ChatUI = {
 // グローバルスコープに公開（iframeからアクセスできるようにする）
 window.ChatUI = ChatUI;
 
-// 手動スクロール検知機能を初期化
-(function() {
-    let scrollTimeout = null;
-    let lastScrollTop = 0;
-    
-    function initManualScrollDetection() {
-        const messagesDiv = document.getElementById('messages');
-        if (!messagesDiv || !window.ChatUI) return;
-        
-        // スクロールイベントを監視
-        messagesDiv.addEventListener('scroll', function() {
-            const currentScrollTop = messagesDiv.scrollTop;
-            const scrollHeight = messagesDiv.scrollHeight;
-            const clientHeight = messagesDiv.clientHeight;
-            
-            // ユーザーが手動でスクロールしているか判定
-            // 最下部から一定距離以上離れている場合は手動スクロールと判定
-            const isNearBottom = (scrollHeight - currentScrollTop - clientHeight) < 50;
-            
-            if (!isNearBottom && currentScrollTop !== lastScrollTop) {
-                // 手動スクロール中
-                window.ChatUI._isManualScrolling = true;
-                
-                // スクロールが停止してから3秒後に自動スクロールを再有効化
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    window.ChatUI._isManualScrolling = false;
-                }, 3000);
-            } else if (isNearBottom) {
-                // 最下部に近い場合は自動スクロールを再有効化
-                window.ChatUI._isManualScrolling = false;
-            }
-            
-            lastScrollTop = currentScrollTop;
-        }, { passive: true });
-    }
-    
-    // DOMContentLoaded時に初期化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initManualScrollDetection);
-    } else {
-        initManualScrollDetection();
-    }
-    
-    // 少し遅れてからも初期化を試みる
-    setTimeout(initManualScrollDetection, 500);
-})();
-
-// グローバルなscrollToBottom関数（シンプル版：1回実行）
-// タロット画像など特別な場合はハンドラー側で複数回実行する処理を追加
+// グローバルなscrollToBottom関数（シンプル版）
 // 【重要】initPage()より前に定義することで、MutationObserver設定時に確実に存在するようにする
 window.scrollToBottom = function() {
     const messagesDiv = document.getElementById('messages');
     if (!messagesDiv) return;
     
-    // 手動スクロール中は自動スクロールをスキップ
-    if (window.ChatUI && window.ChatUI._isManualScrolling) {
-        return;
-    }
-    
     try {
-        messagesDiv.scrollTo({
-            top: messagesDiv.scrollHeight,
-            behavior: 'smooth'
-        });
-    } catch (e) {
-        // scrollToが使えない場合はscrollTopを使用
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } catch (e) {
+        // エラー時は何もしない
     }
 };
 
@@ -2565,8 +2504,13 @@ const ChatInit = {
                             break;
                         }
                     }
-                    if (shouldScroll && window.scrollToBottom) {
-                        window.scrollToBottom();
+                    if (shouldScroll) {
+                        // 少し遅延させてからスクロール（DOM更新を待つ）
+                        setTimeout(() => {
+                            if (window.scrollToBottom) {
+                                window.scrollToBottom();
+                            }
+                        }, 100);
                     }
                 });
                 
