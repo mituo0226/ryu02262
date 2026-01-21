@@ -260,28 +260,35 @@ ${conversationText}
 
 要約:`;
 
-  const apiKey = env.DEEPSEEK_API_KEY;
-  const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
-  const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
+  const apiKey = env?.DEEPSEEK_API_KEY;
+  const fallbackApiKey = env?.['GPT-API'] || env?.OPENAI_API_KEY || env?.FALLBACK_OPENAI_API_KEY;
+  const fallbackModel = env?.OPENAI_MODEL || env?.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
-  try {
-    const llmResult = await getLLMResponse({
-      systemPrompt,
-      conversationHistory: [],
-      userMessage: '上記の会話履歴を要約してください。',
-      temperature: 0.3,
-      maxTokens: 300,
-      topP: 0.8,
-      deepseekApiKey: apiKey || '',
-      fallbackApiKey: fallbackApiKey,
-      fallbackModel: fallbackModel,
-    });
+  // APIキーが設定されていない場合は、フォールバック処理に進む
+  if (!apiKey && !fallbackApiKey) {
+    console.warn('[summarizeConversationHistory] APIキーが設定されていません。フォールバック処理を使用します。');
+    // フォールバック処理に進む（下記のコードで処理される）
+  } else {
+    try {
+      const llmResult = await getLLMResponse({
+        systemPrompt,
+        conversationHistory: [],
+        userMessage: '上記の会話履歴を要約してください。',
+        temperature: 0.3,
+        maxTokens: 300,
+        topP: 0.8,
+        deepseekApiKey: apiKey || '',
+        fallbackApiKey: fallbackApiKey,
+        fallbackModel: fallbackModel,
+      });
 
-    if (llmResult.success && llmResult.message) {
-      return llmResult.message;
+      if (llmResult.success && llmResult.message) {
+        return llmResult.message;
+      }
+    } catch (error) {
+      console.error('[summarizeConversationHistory] 要約生成エラー:', error);
+      // エラーが発生した場合、フォールバック処理に進む
     }
-  } catch (error) {
-    console.error('[summarizeConversationHistory] 要約生成エラー:', error);
   }
 
   // フォールバック: 最初と最後のメッセージを簡潔にまとめる
@@ -878,8 +885,16 @@ async function getLLMResponse(params: LLMRequestParams): Promise<LLMResponseResu
   let aiResponse: LLMResponseResult | null = null;
   let usedAPI: 'deepseek' | 'openai' | null = null;
 
-  // DeepSeekを使用すべきか判定
-  if (healthChecker.shouldUseDeepSeek()) {
+  // APIキーが設定されていない場合はエラーを返す
+  if (!params.deepseekApiKey && !params.fallbackApiKey) {
+    return {
+      success: false,
+      error: 'API keys are not configured',
+    };
+  }
+
+  // DeepSeekを使用すべきか判定（APIキーが設定されている場合のみ）
+  if (healthChecker.shouldUseDeepSeek() && params.deepseekApiKey) {
     try {
       console.log('[LLM] Attempting DeepSeek API...');
       aiResponse = await callDeepSeek(params);
