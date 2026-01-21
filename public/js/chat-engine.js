@@ -705,15 +705,19 @@ const ChatInit = {
                             }
                         }
                     } else {
-                        // 楓以外のキャラクターまたは守護神が決定されていない場合は、従来通りハンドラーのメッセージを使用
-                        const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
-                        if (guardianConfirmationMessage) {
-                            console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
-                            if (window.ChatUI) {
-                                window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                        // 楓以外のキャラクターまたは守護神が決定されていない場合は、ハンドラーのメッセージを使用
+                        // 【重要】守護神確認メッセージは楓（kaede）専用の機能であるため、他のキャラクターでは表示しない
+                        if (character === 'kaede') {
+                            const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
+                            if (guardianConfirmationMessage) {
+                                console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します（楓専用）');
+                                if (window.ChatUI) {
+                                    window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
+                                }
+                                return true;
                             }
-                            return true;
                         }
+                        // 楓以外のキャラクターの場合は、守護神確認メッセージを表示しない
                     }
                 }
                 
@@ -823,12 +827,14 @@ const ChatInit = {
                 // 含まれていない場合は追加（APIが儀式完了を認識できるように）
                 // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
                 // 【重要】guardianMessageShownがtrueの場合は、楓専用の定型文が既に表示されているためスキップ
+                // 【重要】守護神の儀式は楓（kaede）専用の機能であるため、楓以外のキャラクターでは処理しない
                 const ritualCompleted = sessionStorage.getItem('ritualCompleted');
                 // 【変更】assignedDeityをhistoryDataから取得（データベースベースの判断）
                 const assignedDeity = (historyData && historyData.assignedDeity) || null;
                 const guardianMessageShownCheck = sessionStorage.getItem('guardianMessageShown') === 'true';
                 
-                if ((ritualCompleted === 'true' || assignedDeity) && !guardianMessageShownCheck && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+                // 楓（kaede）専用の処理：守護神確認メッセージを会話履歴に追加
+                if (character === 'kaede' && (ritualCompleted === 'true' || assignedDeity) && !guardianMessageShownCheck && ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
                     const hasGuardianMessage = ChatData.conversationHistory.recentMessages.some(msg => 
                         msg.role === 'assistant' && msg.content && msg.content.includes('の守護神は')
                     );
@@ -844,7 +850,7 @@ const ChatInit = {
                             role: 'assistant',
                             content: guardianConfirmationMessage
                         });
-                        console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompleted/assignedDeityチェック）');
+                        console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompleted/assignedDeityチェック、楓専用）');
                     }
                 }
                 
