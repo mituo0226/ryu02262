@@ -1301,6 +1301,9 @@ const ChatInit = {
         });
         
         // エラー時にもフラグをリセットするためにtry-finallyを使用
+        // waitingMessageIdを関数スコープで宣言（catchブロックからもアクセスできるように）
+        let waitingMessageId = null;
+        
         try {
             // タロットカード解説トリガーマーカーを検出
             const isTarotExplanationTrigger = message.includes('[TAROT_EXPLANATION_TRIGGER:');
@@ -1454,7 +1457,7 @@ const ChatInit = {
             
             // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
             // ハンドラーから待機画面のIDを取得（ハンドラーが独自の待機画面を表示する場合）
-            let waitingMessageId = null;
+            // 注意: waitingMessageIdは関数の先頭（1305行目付近）で既に宣言済み
             const handler = CharacterRegistry.get(character);
             if (handler && typeof handler.beforeMessageSent === 'function') {
                 const beforeResult = handler.beforeMessageSent(messageToSend);
@@ -2372,6 +2375,36 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // DOMContentLoaded時に初期化
 window.addEventListener('DOMContentLoaded', async () => {
+    // 依存関係の読み込みを待つ
+    function waitForDependencies() {
+        return new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+                const allLoaded = 
+                    typeof ChatAPI !== 'undefined' &&
+                    typeof ChatData !== 'undefined' &&
+                    typeof ChatUI !== 'undefined' &&
+                    typeof AuthState !== 'undefined' &&
+                    typeof CharacterRegistry !== 'undefined' &&
+                    typeof CharacterLoader !== 'undefined';
+                
+                if (allLoaded) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50); // 50msごとにチェック
+            
+            // タイムアウト（10秒）
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.error('[初期化] 依存関係の読み込みがタイムアウトしました');
+                resolve(); // タイムアウトしても続行
+            }, 10000);
+        });
+    }
+    
+    // 依存関係が読み込まれたら続行
+    await waitForDependencies();
+    
     // アニメーションページからの復帰を検知
     const urlParams = new URLSearchParams(window.location.search);
     const isTransitionComplete = urlParams.get('transition') === 'complete';
