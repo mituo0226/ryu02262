@@ -6,51 +6,33 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>鑑定士チャット</title>
-    <!-- 【重要】userIdパラメータがある場合は即座にチャット画面を表示（JavaScript読み込み前） -->
+    <!-- 【重要】userIdパラメータがある場合は即座にbodyに属性を追加（CSSで表示制御） -->
     <script>
     (function() {
         // URLパラメータからuserIdを取得（即座に実行）
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
         
-        // userIdがある場合、DOMContentLoadedを待ってチャット画面を表示
+        // userIdがある場合、bodyにdata-user-id属性を追加（CSSで表示制御）
+        // これにより、JavaScriptの読み込みを待たずにCSSだけで表示される
         if (userId) {
-            function showChatContainer() {
-                // DOM要素が存在するか確認
-                const chatContainer = document.getElementById('chatContainer');
-                const entryFormContainer = document.getElementById('entryFormContainer');
-                
-                if (chatContainer && entryFormContainer) {
-                    // エントリーフォームを非表示
-                    entryFormContainer.classList.add('entry-form-hidden');
-                    entryFormContainer.style.display = 'none';
-                    
-                    // チャット画面を表示
-                    chatContainer.classList.remove('entry-form-hidden');
-                    chatContainer.style.display = 'block';
-                    chatContainer.style.visibility = 'visible';
-                    chatContainer.style.opacity = '1';
-                    
-                    // 待機画面も表示
-                    const waitingOverlay = document.getElementById('waitingOverlay');
-                    if (waitingOverlay) {
-                        waitingOverlay.classList.remove('hidden');
-                        waitingOverlay.style.display = 'flex';
-                    }
-                    
-                    console.log('[即時表示] チャット画面を表示しました（JavaScript読み込み前）');
-                } else {
-                    // DOM要素がまだ存在しない場合、少し待ってから再試行
-                    setTimeout(showChatContainer, 10);
-                }
-            }
-            
-            // DOMContentLoadedを待つ
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', showChatContainer, { once: true });
+            // bodyが存在するか確認（存在しない場合は即座に追加を試みる）
+            if (document.body) {
+                document.body.setAttribute('data-user-id', userId);
             } else {
-                // 既にDOMContentLoadedが完了している場合
-                showChatContainer();
+                // bodyがまだ存在しない場合、DOMContentLoadedを待つ
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.setAttribute('data-user-id', userId);
+                    }, { once: true });
+                } else {
+                    // 既にDOMContentLoadedが完了している場合
+                    setTimeout(function() {
+                        if (document.body) {
+                            document.body.setAttribute('data-user-id', userId);
+                        }
+                    }, 0);
+                }
             }
         }
     })();
@@ -96,6 +78,26 @@
             -webkit-overflow-scrolling: touch;
             opacity: 0;
             transition: opacity 1s ease-in;
+        }
+        
+        /* 【重要】userIdパラメータがある場合、bodyを即座に表示（CSSだけで制御） */
+        body[data-user-id] {
+            opacity: 1 !important;
+        }
+        
+        /* 【重要】userIdパラメータがある場合、チャット画面を即座に表示（CSSだけで制御） */
+        body[data-user-id] .chat-container.entry-form-hidden {
+            display: flex !important;
+        }
+        
+        /* 【重要】userIdパラメータがある場合、エントリーフォームを非表示（CSSだけで制御） */
+        body[data-user-id] #entryFormContainer:not(.entry-form-hidden) {
+            display: none !important;
+        }
+        
+        /* 【重要】userIdパラメータがある場合、待機画面を表示（CSSだけで制御） */
+        body[data-user-id] #waitingOverlay.hidden {
+            display: flex !important;
         }
 
         body.fade-in {
@@ -1350,20 +1352,41 @@
                       }
                   }
                   
-                  // 【重要】chat-engine.jsが読み込まれるのを待つ（最大15秒）
+                  // 【重要】chat-engine.jsが読み込まれるのを待つ（最大30秒）
                   // チャット画面は既に表示されているので、ユーザーには見える
                   console.log('[入口フォーム] chat-engine.jsの読み込みを待機中...');
                   let scriptAttempts = 0;
-                  const maxScriptAttempts = 150; // 15秒間待機（100ms × 150）
-                  while ((!window.chatEngineLoaded || !window.ChatData || !window.ChatUI || !window.ChatInit) && scriptAttempts < maxScriptAttempts) {
+                  const maxScriptAttempts = 300; // 30秒間待機（100ms × 300）
+                  
+                  // より確実に待機するため、window.chatEngineLoadedだけでなく、ChatData、ChatUI、ChatInitも確認
+                  while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && scriptAttempts < maxScriptAttempts) {
                       await new Promise(resolve => setTimeout(resolve, 100));
                       scriptAttempts++;
+                      
+                      // 100回ごとに進捗をログ出力
+                      if (scriptAttempts % 100 === 0) {
+                          console.log(`[入口フォーム] chat-engine.jsの読み込み待機中... (${scriptAttempts}/${maxScriptAttempts})`, {
+                              chatEngineLoaded: window.chatEngineLoaded,
+                              hasChatData: !!window.ChatData,
+                              hasChatUI: !!window.ChatUI,
+                              hasChatInit: !!window.ChatInit
+                          });
+                      }
                   }
                   
                   if (!window.ChatData || !window.ChatUI || !window.ChatInit) {
-                      console.warn('[入口フォーム] chat-engine.jsの読み込みがタイムアウトしましたが、処理を続行します');
+                      console.warn('[入口フォーム] chat-engine.jsの読み込みがタイムアウトしましたが、処理を続行します', {
+                          chatEngineLoaded: window.chatEngineLoaded,
+                          hasChatData: !!window.ChatData,
+                          hasChatUI: !!window.ChatUI,
+                          hasChatInit: !!window.ChatInit
+                      });
                   } else {
-                      console.log('[入口フォーム] chat-engine.jsの読み込みが完了しました');
+                      console.log('[入口フォーム] chat-engine.jsの読み込みが完了しました', {
+                          hasChatData: !!window.ChatData,
+                          hasChatUI: !!window.ChatUI,
+                          hasChatInit: !!window.ChatInit
+                      });
                   }
                    
                    // 【変更】データベースから直接ユーザー情報を取得
@@ -1561,19 +1584,44 @@
                           
                           // chat-engine.jsの初期化を実行（チャット画面は既に表示されている）
                           // 【修正】initPageが既に完了している場合でも、チャット画面を表示する
-                          if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                              // initPageが既に完了している場合は、再実行を試みる（フラグをリセット）
-                              if (window.ChatInit._initPageCompleted) {
-                                  console.log('[入口フォーム] initPageは既に完了していますが、チャット画面を表示します');
-                                  // フラグをリセットして再実行を試みる
-                                  window.ChatInit._initPageCompleted = false;
-                                  window.ChatInit._initPageRunning = false;
+                          // 【重要】ChatInit.initPageが見つからない場合、再試行する
+                          async function tryInitPage() {
+                              if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
+                                  // initPageが既に完了している場合は、再実行を試みる（フラグをリセット）
+                                  if (window.ChatInit._initPageCompleted) {
+                                      console.log('[入口フォーム] initPageは既に完了していますが、チャット画面を表示します');
+                                      // フラグをリセットして再実行を試みる
+                                      window.ChatInit._initPageCompleted = false;
+                                      window.ChatInit._initPageRunning = false;
+                                  }
+                                  console.log('[入口フォーム] chat-engine.jsの初期化を実行します');
+                                  await window.ChatInit.initPage();
+                                  return true;
+                              } else {
+                                  return false;
                               }
-                              console.log('[入口フォーム] chat-engine.jsの初期化を実行します');
-                              await window.ChatInit.initPage();
-                          } else {
-                              console.error('[入口フォーム] ChatInit.initPageが見つかりませんでした。chat-engine.jsが正しく読み込まれているか確認してください。');
-                              // エラー時でもチャット画面は表示されているので、そのまま続行
+                          }
+                          
+                          // まず試行
+                          let initSuccess = await tryInitPage();
+                          
+                          // 失敗した場合、最大5回まで再試行（各1秒間隔）
+                          if (!initSuccess) {
+                              console.warn('[入口フォーム] ChatInit.initPageが見つかりませんでした。再試行します...');
+                              let retryCount = 0;
+                              const maxRetries = 5;
+                              
+                              while (!initSuccess && retryCount < maxRetries) {
+                                  await new Promise(resolve => setTimeout(resolve, 1000));
+                                  retryCount++;
+                                  console.log(`[入口フォーム] ChatInit.initPageの再試行 ${retryCount}/${maxRetries}`);
+                                  initSuccess = await tryInitPage();
+                              }
+                              
+                              if (!initSuccess) {
+                                  console.error('[入口フォーム] ChatInit.initPageが見つかりませんでした。chat-engine.jsが正しく読み込まれているか確認してください。');
+                                  // エラー時でもチャット画面は表示されているので、そのまま続行
+                              }
                           }
                           
                           return;
