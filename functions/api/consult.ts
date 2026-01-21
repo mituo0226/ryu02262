@@ -1570,7 +1570,11 @@ export const onRequestPost: PagesFunction = async (context) => {
       userGender,
       userBirthDate,
       visitPattern: visitPatternInfo?.pattern,
-      lastConversationSummary: visitPatternInfo?.lastConversationSummary?.substring(0, 100),
+      lastConversationSummary: visitPatternInfo?.lastConversationSummary 
+        ? (typeof visitPatternInfo.lastConversationSummary === 'object'
+          ? `${visitPatternInfo.lastConversationSummary.date || ''}: ${visitPatternInfo.lastConversationSummary.topics || ''}`.substring(0, 100)
+          : visitPatternInfo.lastConversationSummary.substring(0, 100))
+        : null,
       systemPromptLength: systemPrompt.length,
       systemPromptPreview: systemPrompt.substring(0, 500) + '...',
     });
