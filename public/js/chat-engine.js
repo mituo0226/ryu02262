@@ -328,7 +328,9 @@ const ChatInit = {
                     window.ChatUI.messageInput = newInput;
                     
                     window.ChatUI.messageInput.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
+                        // PC環境（画面幅768px以上）でのみEnterキー送信を有効化
+                        // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
+                        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.innerWidth >= 768) {
                             e.preventDefault();
                             window.sendMessage();
                         }
@@ -336,6 +338,13 @@ const ChatInit = {
                     
                     window.ChatUI.messageInput.addEventListener('input', () => {
                         window.ChatUI.updateSendButtonVisibility();
+                    });
+                    
+                    // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
+                    window.ChatUI.messageInput.addEventListener('focus', () => {
+                        if (window.ChatUI.scrollToLatest) {
+                            window.ChatUI.scrollToLatest();
+                        }
                     });
                     
                     console.log('[登録完了処理] イベントリスナーの設定完了');
@@ -2478,7 +2487,9 @@ window.addEventListener('DOMContentLoaded', async () => {
             window.ChatUI.messageInput = newInput;
             
             window.ChatUI.messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                // PC環境（画面幅768px以上）でのみEnterキー送信を有効化
+                // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.innerWidth >= 768) {
                     e.preventDefault();
                     window.sendMessage();
                 }
@@ -2486,6 +2497,13 @@ window.addEventListener('DOMContentLoaded', async () => {
             
             window.ChatUI.messageInput.addEventListener('input', () => {
                 window.ChatUI.updateSendButtonVisibility();
+            });
+            
+            // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
+            window.ChatUI.messageInput.addEventListener('focus', () => {
+                if (window.ChatUI.scrollToLatest) {
+                    window.ChatUI.scrollToLatest();
+                }
             });
             
             console.log('[DOMContentLoaded] load イベント: イベントリスナーの設定完了');

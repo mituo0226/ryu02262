@@ -647,13 +647,16 @@ const ChatUI = {
     },
 
     /**
-     * スクロールを最新に
+     * スクロールを最新に（スムーズスクロール対応）
      */
     scrollToLatest() {
         if (!this.messagesDiv) return;
         setTimeout(() => {
-            this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
-        }, 50);
+            this.messagesDiv.scrollTo({
+                top: this.messagesDiv.scrollHeight,
+                behavior: 'smooth'
+            });
+        }, 100);
     },
 
     /**
