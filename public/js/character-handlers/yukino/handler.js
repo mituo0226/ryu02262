@@ -755,25 +755,28 @@ const YukinoHandler = {
         // 【重要】textが文字列でない場合（オブジェクトなど）も考慮
         const textString = text && typeof text === 'string' ? text : (text?.toString ? text.toString() : String(text || ''));
         const typeMatches = (type === 'character' || type === 'assistant' || type === 'welcome');
-        const hasSuggestTarot = textString.includes('[SUGGEST_TAROT]');
         
-        // フォールバック: [SUGGEST_TAROT]タグが見つからない場合でも、キーワード検出でボタンを表示
-        // 「タロット」「カード」「占」「引く」のいずれかが含まれていればボタンを表示
-        const hasTarotKeywords = !hasSuggestTarot && (
-            textString.includes('タロット') || 
+        // 【最優先】キーワード検出：括弧書きがあってもスキップしない
+        // 「占」「カード」「タロット」のいずれかが含まれていればボタンを表示
+        const hasTarotKeywords = (
+            textString.includes('占') || 
             textString.includes('カード') || 
-            textString.includes('占') ||
-            textString.includes('引く')
+            textString.includes('タロット')
         );
         
-        // ボタンを表示する条件: [SUGGEST_TAROT]タグがある、またはキーワードが含まれている
-        const shouldShowButton = typeMatches && (hasSuggestTarot || hasTarotKeywords);
+        // [SUGGEST_TAROT]タグの検出（キーワード検出の補助として）
+        const hasSuggestTarot = textString.includes('[SUGGEST_TAROT]');
         
-        if (textString.includes('[SUGGEST_TAROT]') || hasTarotKeywords) {
-            console.group('🔍 [DEBUG] タロットボタン表示条件チェック');
+        // ボタンを表示する条件: キーワードが含まれている、または[SUGGEST_TAROT]タグがある
+        // キーワード検出を最優先で実行（リピーター対応）
+        const shouldShowButton = typeMatches && (hasTarotKeywords || hasSuggestTarot);
+        
+        // キーワード検出を最優先で実行（リピーター対応、括弧書きがあってもスキップしない）
+        if (hasTarotKeywords || hasSuggestTarot) {
+            console.group('🔍 [DEBUG] タロットボタン表示条件チェック（最優先実行）');
             console.log('typeMatches:', typeMatches, '(type === "character" || type === "assistant" || type === "welcome")');
+            console.log('hasTarotKeywords:', hasTarotKeywords, '(最優先)');
             console.log('hasSuggestTarot:', hasSuggestTarot);
-            console.log('hasTarotKeywords:', hasTarotKeywords);
             console.log('shouldShowButton:', shouldShowButton);
             console.log('type:', type);
             console.log('条件詳細:', {
@@ -781,12 +784,14 @@ const YukinoHandler = {
                 typeIsAssistant: type === 'assistant',
                 typeIsWelcome: type === 'welcome',
                 textIncludesTag: textString.includes('[SUGGEST_TAROT]'),
-                textIncludesKeywords: hasTarotKeywords
+                textIncludesKeywords: hasTarotKeywords,
+                textPreview: textString.substring(0, 200)
             });
             console.groupEnd();
         }
         
         // 入力欄の状態に関係なくボタンを表示（AIの応答中でも表示可能）
+        // キーワード検出を最優先で実行
         if (shouldShowButton) {
             console.group('✅ [DEBUG] タロット鑑定提案を検出 - ボタン表示開始');
             console.log('typeMatches:', typeMatches);

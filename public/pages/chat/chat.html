@@ -450,7 +450,7 @@
             border-radius: 0;
             padding: 18px 12px;
             padding-top: 24px;
-            padding-bottom: 150px;
+            padding-bottom: 300px; /* PC/モバイル共にメッセージが隠れないように十分な余白を確保 */
             background: transparent;
             border: none;
             display: flex;
@@ -718,7 +718,7 @@
                 border-radius: 0;
                 box-shadow: none;
                 padding-top: 48px;
-                padding-bottom: 70px;
+                /* padding-bottom: 70px; を削除（余計な余白設定を削除） */
                 background: var(--bg-gradient);
             }
             
@@ -735,7 +735,7 @@
                 padding: 20px 10px;
                 padding-top: 20px;
                 height: 100%;
-                padding-bottom: 250px; /* モバイル版の入力欄（position: fixed）が重なる分を考慮 */
+                padding-bottom: 300px; /* PC/モバイル共にメッセージが隠れないように十分な余白を確保 */
                 margin-top: 0;
             }
             
@@ -2305,12 +2305,12 @@
                            messageInput.removeEventListener('keydown', enterKeyHandler);
                        }
                        
-                       // Enterキー送信の実装（PC環境のみ）
+                       // Enterキー送信の実装（PC判定の条件緩和）
                        enterKeyHandler = function(e) {
                            try {
-                               // PC環境（画面幅768px以上）でのみEnterキー送信を有効化
                                // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
-                               if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.innerWidth >= 768) {
+                               // PC判定を緩和：!e.shiftKeyであれば送信を試みる
+                               if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
                                    e.preventDefault();
                                    e.stopPropagation();
                                    
@@ -2346,7 +2346,31 @@
                                }
                            }
                            if (shouldScroll) {
-                               scrollToBottom();
+                               const messagesDiv = document.getElementById('messages');
+                               if (messagesDiv) {
+                                   // 強制スクロール：0.1秒後と0.5秒後の2回実行
+                                   setTimeout(() => {
+                                       try {
+                                           messagesDiv.scrollTo({
+                                               top: messagesDiv.scrollHeight,
+                                               behavior: 'smooth'
+                                           });
+                                       } catch (e) {
+                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                       }
+                                   }, 100);
+                                   
+                                   setTimeout(() => {
+                                       try {
+                                           messagesDiv.scrollTo({
+                                               top: messagesDiv.scrollHeight,
+                                               behavior: 'smooth'
+                                           });
+                                       } catch (e) {
+                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                                       }
+                                   }, 500);
+                               }
                            }
                        });
                        
