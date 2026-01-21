@@ -1268,44 +1268,58 @@
                       return;
                   }
                   
-                  // 【重要】まず、chat-engine.jsが読み込まれるのを待つ（最大10秒）
-                  // これにより、initEntryForm内でchat-engine.jsを使用できるようになる
+                  // 【重要】まず、userIdがある場合はチャット画面を先に表示
+                  // chat-engine.jsの読み込みを待つ前に表示する
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const userId = urlParams.get('userId');
+                  
+                  if (userId) {
+                      // エントリーフォームを非表示
+                      entryFormContainer.classList.add('entry-form-hidden');
+                      // チャット画面を表示（データ取得前でも表示）
+                      chatContainer.classList.remove('entry-form-hidden');
+                      
+                      // 【重要】チャット画面が確実に表示されるように、強制的にスタイルを適用
+                      chatContainer.style.display = 'block';
+                      chatContainer.style.visibility = 'visible';
+                      chatContainer.style.opacity = '1';
+                      
+                      console.log('[入口フォーム] チャット画面を先に表示しました（chat-engine.js読み込み前）', {
+                          hasEntryFormHidden: chatContainer.classList.contains('entry-form-hidden'),
+                          display: window.getComputedStyle(chatContainer).display,
+                          visibility: window.getComputedStyle(chatContainer).visibility,
+                          opacity: window.getComputedStyle(chatContainer).opacity
+                      });
+                      
+                      // 【重要】データ読み込み前に待機画面を表示
+                      const waitingOverlay = document.getElementById('waitingOverlay');
+                      if (waitingOverlay) {
+                          waitingOverlay.classList.remove('hidden');
+                          waitingOverlay.style.display = 'flex';
+                          console.log('[入口フォーム] 待機画面を表示しました（chat-engine.js読み込み前）');
+                      }
+                  }
+                  
+                  // 【重要】chat-engine.jsが読み込まれるのを待つ（最大15秒）
+                  // チャット画面は既に表示されているので、ユーザーには見える
                   console.log('[入口フォーム] chat-engine.jsの読み込みを待機中...');
                   let scriptAttempts = 0;
-                  const maxScriptAttempts = 100; // 10秒間待機（100ms × 100）
-                  while ((!window.ChatData || !window.ChatUI || !window.ChatInit) && scriptAttempts < maxScriptAttempts) {
+                  const maxScriptAttempts = 150; // 15秒間待機（100ms × 150）
+                  while ((!window.chatEngineLoaded || !window.ChatData || !window.ChatUI || !window.ChatInit) && scriptAttempts < maxScriptAttempts) {
                       await new Promise(resolve => setTimeout(resolve, 100));
                       scriptAttempts++;
                   }
                   
                   if (!window.ChatData || !window.ChatUI || !window.ChatInit) {
-                      console.error('[入口フォーム] chat-engine.jsの読み込みがタイムアウトしました。ページをリロードしてください。');
-                      // エラー時でも処理を続行（チャット画面は表示されないが、エントリーフォームは表示される）
+                      console.warn('[入口フォーム] chat-engine.jsの読み込みがタイムアウトしましたが、処理を続行します');
                   } else {
                       console.log('[入口フォーム] chat-engine.jsの読み込みが完了しました');
                   }
                    
                    // 【変更】データベースから直接ユーザー情報を取得
                    // URLパラメータからcharacterとuserIdを取得
-                   const urlParams = new URLSearchParams(window.location.search);
                    const character = urlParams.get('character') || 'kaede';
-                   const userId = urlParams.get('userId');
-                   
-                   // 【重要】userIdがある場合は、データ取得を待たずにチャット画面を先に表示
-                   if (userId) {
-                       // エントリーフォームを非表示
-                       entryFormContainer.classList.add('entry-form-hidden');
-                       // チャット画面を表示（データ取得前でも表示）
-                       chatContainer.classList.remove('entry-form-hidden');
-                       console.log('[入口フォーム] チャット画面を先に表示しました（データ読み込み中）');
-                       
-                       // 【重要】データ読み込み前に待機画面を表示
-                       const waitingOverlay = document.getElementById('waitingOverlay');
-                       if (waitingOverlay) {
-                           waitingOverlay.classList.remove('hidden');
-                           console.log('[入口フォーム] 待機画面を表示しました（データ読み込み開始前）');
-                       }
-                   }
+                   // userIdは既に上で取得済み
                    
                    try {
                        // 【追加】back.htmlで事前に取得したデータを確認
@@ -1651,19 +1665,15 @@
                    }
                }
                
-               // window.loadイベントを待ってから実行（すべてのスクリプトが読み込まれた後）
-               // これにより、chat-engine.jsが確実に読み込まれた後にinitEntryFormが実行される
-               if (document.readyState === 'complete') {
-                   // 既に読み込み完了している場合は即座に実行
-                   initEntryForm();
-               } else {
-                   // window.loadイベントを待つ（すべてのスクリプトが読み込まれた後）
-                   window.addEventListener('load', () => {
-                       // さらに少し待ってから実行（スクリプトの初期化を確実にする）
-                       setTimeout(() => {
-                           initEntryForm();
-                       }, 100);
+               // 【重要】チャット画面を先に表示してから、chat-engine.jsの読み込みを待つ
+               // DOMContentLoadedを待ってから実行
+               if (document.readyState === 'loading') {
+                   document.addEventListener('DOMContentLoaded', () => {
+                       initEntryForm();
                    }, { once: true });
+               } else {
+                   // 既にDOMContentLoadedが完了している場合は即座に実行
+                   initEntryForm();
                }
            })();
            
@@ -1712,7 +1722,7 @@
           <script src="../../js/character-registry.js"></script>
           <script src="../../js/character-loader.js"></script>
           <!-- チャットエンジン -->
-          <script src="../../js/chat-engine.js"></script>
+          <script src="../../js/chat-engine.js" onload="window.chatEngineLoaded = true;"></script>
           <!-- ハンドラーの動的読み込み -->
           <script>
           (async function() {
