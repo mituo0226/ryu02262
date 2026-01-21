@@ -449,7 +449,7 @@
             border-radius: 0;
             padding: 18px 12px;
             padding-top: 24px;
-            padding-bottom: 100px;
+            padding-bottom: 150px;
             background: transparent;
             border: none;
             display: flex;
@@ -733,7 +733,7 @@
                 padding: 20px 10px;
                 padding-top: 20px;
                 height: 100%;
-                padding-bottom: 100px;
+                padding-bottom: 150px;
                 margin-top: 0;
             }
             
@@ -1800,14 +1800,26 @@
               const characterId = urlParams.get('character');
               
               if (characterId) {
-                  // 必要なハンドラーのみを読み込む
-                  // 注意: CharacterLoader.loadHandler()内で既にhandler.init()が呼ばれているため、
-                  // ここで再度初期化する必要はありません
-                  const success = await CharacterLoader.loadHandler(characterId);
-                  if (success) {
-                      console.log('[初期化] ハンドラーを読み込みました:', characterId);
+                  // CharacterLoaderが読み込まれるまで待機
+                  let attempts = 0;
+                  const maxAttempts = 50; // 5秒間待機（100ms × 50）
+                  while (!window.CharacterLoader && attempts < maxAttempts) {
+                      await new Promise(resolve => setTimeout(resolve, 100));
+                      attempts++;
+                  }
+                  
+                  if (!window.CharacterLoader) {
+                      console.error('[初期化] CharacterLoaderの読み込みがタイムアウトしました');
                   } else {
-                      console.error('[初期化] ハンドラーの読み込みに失敗しました:', characterId);
+                      // 必要なハンドラーのみを読み込む
+                      // 注意: CharacterLoader.loadHandler()内で既にhandler.init()が呼ばれているため、
+                      // ここで再度初期化する必要はありません
+                      const success = await CharacterLoader.loadHandler(characterId);
+                      if (success) {
+                          console.log('[初期化] ハンドラーを読み込みました:', characterId);
+                      } else {
+                          console.error('[初期化] ハンドラーの読み込みに失敗しました:', characterId);
+                      }
                   }
               }
               
@@ -2080,7 +2092,8 @@
                   const ritualBtn = document.getElementById('adminRitualButton');
                   if (ritualBtn) {
                       // character変数を取得（管理者モードの初期化コード内で使用）
-                      const currentCharacter = ChatData?.currentCharacter || urlParams.get('character') || 'unknown';
+                      // ChatDataが読み込まれていない可能性があるため、安全にアクセス
+                      const currentCharacter = (window.ChatData && window.ChatData.currentCharacter) || urlParams.get('character') || 'unknown';
                       if (currentCharacter === 'kaede') {
                           ritualBtn.addEventListener('click', async () => {
                               // ハンドラー側で処理を実行

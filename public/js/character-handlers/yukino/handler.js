@@ -721,40 +721,70 @@ const YukinoHandler = {
      */
     onMessageAdded(type, text, sender, messageDiv, messageId, options = {}) {
         // デバッグ: onMessageAddedが呼ばれたことをログに記録
+        const hasSuggestTarotCheck = text && typeof text === 'string' ? text.includes('[SUGGEST_TAROT]') : false;
         console.log('[雪乃ハンドラー] onMessageAdded呼び出し:', {
             type,
             sender,
             hasText: !!text,
             textType: typeof text,
             textPreview: text && typeof text === 'string' ? text.substring(0, 100) : String(text),
-            hasSuggestTarot: text && typeof text === 'string' ? text.includes('[SUGGEST_TAROT]') : false,
+            hasSuggestTarot: hasSuggestTarotCheck,
             typeCheck: type === 'character' || type === 'assistant' || type === 'welcome',
             messageDiv: !!messageDiv,
             messageId
         });
+        // #region agent log - コンソールログのみ（確実に読み取れる）
+        if (hasSuggestTarotCheck) {
+            console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - onMessageAdded開始');
+            console.log('type:', type);
+            console.log('sender:', sender);
+            console.log('text存在:', !!text);
+            console.log('textタイプ:', typeof text);
+            console.log('textプレビュー:', text && typeof text === 'string' ? text.substring(0, 100) : String(text));
+            console.log('SUGGEST_TAROT含む:', hasSuggestTarotCheck);
+            console.log('messageDiv存在:', !!messageDiv);
+            console.log('messageId:', messageId);
+            console.log('テキスト全文:', text && typeof text === 'string' ? text : String(text));
+            console.log('テキストに[SUGGEST_TAROT]が含まれるか:', text && typeof text === 'string' ? text.includes('[SUGGEST_TAROT]') : false);
+            console.groupEnd();
+        }
+        // #endregion
         
         // 雪乃のメッセージに[SUGGEST_TAROT]マーカーが含まれている場合、「タロットカードを引く」ボタンを表示
         // 再訪問時のwelcomeメッセージにも対応するため、typeに'welcome'も追加
         const typeMatches = (type === 'character' || type === 'assistant' || type === 'welcome');
-        const hasSuggestTarot = text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]');
+        const hasSuggestTarot = text && typeof text === 'string' ? text.includes('[SUGGEST_TAROT]');
         
         if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-            console.log('[雪乃ハンドラー] [SUGGEST_TAROT]検出 - 条件チェック:', {
-                typeMatches,
-                hasSuggestTarot,
-                type,
-                willShowButton: typeMatches && hasSuggestTarot
+            console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - 条件チェック');
+            console.log('typeMatches:', typeMatches, '(type === "character" || type === "assistant" || type === "welcome")');
+            console.log('hasSuggestTarot:', hasSuggestTarot);
+            console.log('type:', type);
+            console.log('willShowButton:', typeMatches && hasSuggestTarot);
+            console.log('条件詳細:', {
+                typeIsCharacter: type === 'character',
+                typeIsAssistant: type === 'assistant',
+                typeIsWelcome: type === 'welcome',
+                textIncludesTag: text.includes('[SUGGEST_TAROT]')
             });
+            console.groupEnd();
         }
         
         if (typeMatches && hasSuggestTarot) {
-            
-            console.log('[雪乃ハンドラー] タロット鑑定提案を検出しました - ボタンを表示します');
+            console.group('✅ [DEBUG] タロット鑑定提案を検出 - ボタン表示開始');
+            console.log('typeMatches:', typeMatches);
+            console.log('hasSuggestTarot:', hasSuggestTarot);
+            console.groupEnd();
             
             // 安全策：入力欄が無効化されている場合（3枚鑑定中）はスキップ
             const messageInput = document.getElementById('messageInput');
-            if (messageInput && messageInput.disabled) {
-                console.log('[雪乃ハンドラー] タロット鑑定中のため、ボタン表示をスキップします');
+            const isInputDisabled = messageInput && messageInput.disabled;
+            console.log('[DEBUG] 入力欄チェック:', {
+                hasMessageInput: !!messageInput,
+                isInputDisabled: isInputDisabled
+            });
+            if (isInputDisabled) {
+                console.warn('⚠️ [DEBUG] タロット鑑定中のため、ボタン表示をスキップします');
                 return;
             }
             
@@ -821,7 +851,38 @@ const YukinoHandler = {
             });
             
             buttonWrapper.appendChild(tarotButton);
+            console.group('✅ [DEBUG] タロットボタン作成完了');
+            console.log('buttonWrapper存在:', !!buttonWrapper);
+            console.log('tarotButton存在:', !!tarotButton);
+            console.log('messageDiv存在:', !!messageDiv);
+            console.log('messageDiv ID:', messageDiv?.id);
+            console.log('messageDivがDOMに存在:', !!messageDiv.parentNode);
+            console.groupEnd();
+            
             messageDiv.appendChild(buttonWrapper);
+            
+            console.group('✅ [DEBUG] タロットボタンDOM追加完了');
+            const buttonInDOM = messageDiv.querySelector('.tarot-button');
+            console.log('ボタンがDOMに存在:', !!buttonInDOM);
+            console.log('messageDivの子要素数:', messageDiv.children.length);
+            console.log('messageDivがDOMに存在:', !!messageDiv.parentNode);
+            if (buttonInDOM) {
+                console.log('✅ ボタンが正常に追加されました！');
+            } else {
+                console.error('❌ ボタンがDOMに見つかりません！');
+            }
+            console.groupEnd();
+        } else {
+            // 条件が満たされていない場合のログ
+            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+                console.group('❌ [DEBUG] [SUGGEST_TAROT]検出 - 条件不一致（ボタン表示されません）');
+                console.warn('typeMatches:', typeMatches, '(期待: true)');
+                console.warn('hasSuggestTarot:', hasSuggestTarot, '(期待: true)');
+                console.warn('type:', type);
+                console.warn('textPreview:', text.substring(0, 100));
+                console.warn('原因:', !typeMatches ? 'typeが一致しません' : 'hasSuggestTarotがfalseです');
+                console.groupEnd();
+            }
         }
         
         // 雪乃の初回メッセージ（firstTimeGuest）の後にタロット鑑定を自動開始

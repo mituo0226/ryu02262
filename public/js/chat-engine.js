@@ -1588,6 +1588,24 @@ const ChatInit = {
                 const characterName = ChatData.characterInfo[character]?.name || character;
                 let responseText = response.message || response.response || '応答を取得できませんでした';
                 
+                // #region agent log - APIレスポンスに[SUGGEST_TAROT]タグが含まれているか確認
+                if (responseText && typeof responseText === 'string' && responseText.includes('[SUGGEST_TAROT]')) {
+                    console.group('🔍 [DEBUG] APIレスポンスに[SUGGEST_TAROT]タグを検出');
+                    console.log('responseText:', responseText);
+                    console.log('response.message:', response.message);
+                    console.log('response.response:', response.response);
+                    console.log('character:', character);
+                    console.groupEnd();
+                } else if (character === 'yukino') {
+                    console.log('[DEBUG] APIレスポンス確認（yukino）:', {
+                        hasResponseText: !!responseText,
+                        responseTextType: typeof responseText,
+                        responseTextPreview: responseText && typeof responseText === 'string' ? responseText.substring(0, 200) : String(responseText),
+                        hasSuggestTarot: responseText && typeof responseText === 'string' ? responseText.includes('[SUGGEST_TAROT]') : false
+                    });
+                }
+                // #endregion
+                
                 // [SUGGEST_TAROT]タグは削除しない
                 // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
                 

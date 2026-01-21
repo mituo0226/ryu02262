@@ -525,7 +525,32 @@ const ChatUI = {
         }
         
         if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
+            // #region agent log - コンソールログのみ（確実に読み取れる）
+            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+                console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - ハンドラー取得前');
+                console.log('キャラクター:', ChatData.currentCharacter);
+                console.log('CharacterRegistry存在:', !!window.CharacterRegistry);
+                console.log('ChatData存在:', !!ChatData);
+                console.log('登録済みハンドラー:', CharacterRegistry.getRegisteredIds());
+                console.log('yukinoハンドラー登録済み:', CharacterRegistry.has('yukino'));
+                console.log('yukinoハンドラー:', CharacterRegistry.get('yukino'));
+                console.groupEnd();
+            }
+            // #endregion
             const handler = CharacterRegistry.get(ChatData.currentCharacter);
+            // #region agent log - コンソールログのみ（確実に読み取れる）
+            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+                console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - ハンドラー取得後');
+                console.log('ハンドラー存在:', !!handler);
+                console.log('ハンドラータイプ:', handler ? typeof handler.onMessageAdded : 'null');
+                console.log('onMessageAdded存在:', handler && typeof handler.onMessageAdded === 'function');
+                console.log('ハンドラーのキー:', handler ? Object.keys(handler) : []);
+                if (handler) {
+                    console.log('ハンドラー全体:', handler);
+                }
+                console.groupEnd();
+            }
+            // #endregion
             if (handler && typeof handler.onMessageAdded === 'function') {
                 try {
                     handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
