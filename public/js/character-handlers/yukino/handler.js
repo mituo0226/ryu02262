@@ -332,12 +332,23 @@ const YukinoHandler = {
      * @param {Object} options - オプション
      */
     onMessageAdded(type, text, sender, messageDiv, messageId, options = {}) {
+        // デバッグ: onMessageAddedが呼ばれたことをログに記録
+        if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
+            console.log('[雪乃ハンドラー] onMessageAdded呼び出し - [SUGGEST_TAROT]検出:', {
+                type,
+                sender,
+                textPreview: text.substring(0, 100),
+                hasSuggestTarot: text.includes('[SUGGEST_TAROT]'),
+                typeCheck: type === 'character' || type === 'assistant' || type === 'welcome'
+            });
+        }
+        
         // 雪乃のメッセージに[SUGGEST_TAROT]マーカーが含まれている場合、「タロットカードを引く」ボタンを表示
         // 再訪問時のwelcomeメッセージにも対応するため、typeに'welcome'も追加
         if ((type === 'character' || type === 'assistant' || type === 'welcome') && 
-            text.includes('[SUGGEST_TAROT]')) {
+            text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
             
-            console.log('[雪乃ハンドラー] タロット鑑定提案を検出しました');
+            console.log('[雪乃ハンドラー] タロット鑑定提案を検出しました - ボタンを表示します');
             
             // 安全策：入力欄が無効化されている場合（3枚鑑定中）はスキップ
             const messageInput = document.getElementById('messageInput');
