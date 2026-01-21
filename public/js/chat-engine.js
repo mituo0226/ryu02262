@@ -2489,6 +2489,36 @@ window.addEventListener('DOMContentLoaded', async () => {
         window.ChatUI.init();
     }
     
+    // 送信ボタンの表示/非表示制御
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    
+    if (messageInput && sendButton) {
+        // 初期状態を設定
+        const hasText = messageInput.value.trim().length > 0;
+        if (hasText) {
+            sendButton.classList.add('visible');
+        } else {
+            sendButton.classList.remove('visible');
+        }
+        
+        // inputイベントリスナーを登録
+        messageInput.addEventListener('input', function() {
+            const hasText = messageInput.value.trim().length > 0;
+            if (hasText) {
+                sendButton.classList.add('visible');
+            } else {
+                sendButton.classList.remove('visible');
+            }
+        });
+        console.log('[初期化] 送信ボタンのイベントリスナーを登録しました');
+    } else {
+        console.warn('[初期化] 送信ボタンの要素が見つかりません:', {
+            messageInput: !!messageInput,
+            sendButton: !!sendButton
+        });
+    }
+    
     // ページを初期化
     // 入口フォームが表示されている場合は初期化をスキップ（ただし、initEntryForm()が処理中の場合を除く）
     const entryFormContainer = document.getElementById('entryFormContainer');
