@@ -346,11 +346,19 @@ const YukinoHandler = {
                 return;
             }
             
-            // [SUGGEST_TAROT]マーカーをメッセージから削除
-            const cleanedText = text.replace('[SUGGEST_TAROT]', '');
+            // [SUGGEST_TAROT]マーカーをメッセージから削除（すべての出現を削除）
+            // 既にchat-ui.jsで削除されている可能性があるが、念のため再度削除
+            const cleanedText = text.replace(/\[SUGGEST_TAROT\]/g, '');
             const textDiv = messageDiv.querySelector('.message-text');
             if (textDiv) {
-                textDiv.textContent = cleanedText;
+                // 既に削除されている可能性があるが、念のため再度削除
+                const currentText = textDiv.textContent;
+                if (currentText.includes('[SUGGEST_TAROT]')) {
+                    textDiv.textContent = currentText.replace(/\[SUGGEST_TAROT\]/g, '');
+                } else {
+                    // 既に削除されている場合は、cleanedTextを設定（念のため）
+                    textDiv.textContent = cleanedText;
+                }
             }
             
             // 「タロットカードを引く」ボタンを作成

@@ -477,8 +477,14 @@ const ChatUI = {
             displayText = displayText.replace(/\n{3,}/g, '\n\n');
         }
         
-        // [SUGGEST_TAROT]タグは削除しない
-        // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
+        // [SUGGEST_TAROT]タグは削除しない（onMessageAddedで検出してボタンを表示するため）
+        // ただし、表示テキストからは削除する（ボタン表示後にonMessageAddedで削除される）
+        // ここでは一時的に削除し、onMessageAddedでボタンが表示された後に確実に削除される
+        const hasSuggestTarot = displayText.includes('[SUGGEST_TAROT]');
+        if (hasSuggestTarot) {
+            // 表示テキストからは削除（ボタン表示はonMessageAddedで行う）
+            displayText = displayText.replace(/\[SUGGEST_TAROT\]/g, '');
+        }
         
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
