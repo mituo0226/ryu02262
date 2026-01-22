@@ -41,11 +41,11 @@ body[data-user-id] {
     opacity: 1 !important;
 }
 
-body[data-user-id] .chat-container:not(.entry-form-hidden) {
+body[data-user-id] .chat-container.entry-form-hidden {
     display: flex !important;
 }
 
-body[data-user-id] #entryFormContainer:not(.entry-form-hidden) {
+body[data-user-id] #entryFormContainer.entry-form-hidden {
     display: none !important;
 }
 
