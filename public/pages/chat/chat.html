@@ -10,7 +10,11 @@
     <!-- userIdパラメータがある場合は即座にbodyに属性を追加 -->
     <script>
     (function() {
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープで一度だけurlParamsを作成
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const userId = urlParams.get('userId');
         if (userId) {
             if (document.body) {
@@ -163,7 +167,11 @@
     <script>
     (function() {
         'use strict';
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const character = urlParams.get('character');
         const characterInfo = {
             'kaede': { name: '楓', icon: '../../photo/kaede.png' },
@@ -208,7 +216,11 @@
     <!-- URLパラメータ処理 -->
     <script>
     (function() {
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const userId = urlParams.get('userId');
         if (userId) {
             document.querySelectorAll('.navigation-links a[href="../main.html"]').forEach((link) => {
@@ -236,7 +248,11 @@
     <script>
     (async function() {
         'use strict';
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const characterId = urlParams.get('character');
         if (characterId) {
             let attempts = 0;
@@ -259,7 +275,11 @@
         function sendReadyNotification() {
             if (!window.parent || window.parent === window) return;
             try {
-                const urlParams = new URLSearchParams(window.location.search);
+                // グローバルスコープのurlParamsを使用
+                if (!window._chatUrlParams) {
+                    window._chatUrlParams = new URLSearchParams(window.location.search);
+                }
+                const urlParams = window._chatUrlParams;
                 const character = urlParams.get('character') || 'unknown';
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
@@ -289,7 +309,11 @@
     <script>
     (function() {
         'use strict';
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
         if (isAdminMode) {
             document.body.classList.add('admin-mode');
