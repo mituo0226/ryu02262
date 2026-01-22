@@ -13,7 +13,6 @@ const ChatUI = {
     characterHeaderImage: null,
     characterHeaderName: null,
     mobileHeaderTitle: null,
-    mobileHeaderInfo: null,
 
     /**
      * DOM要素を初期化
@@ -27,7 +26,6 @@ const ChatUI = {
         this.characterHeaderImage = document.getElementById('characterHeaderImage');
         this.characterHeaderName = document.getElementById('characterHeaderName');
         this.mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
-        this.mobileHeaderInfo = document.getElementById('mobileHeaderInfo');
     },
 
     /**
@@ -100,13 +98,6 @@ const ChatUI = {
             console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
             this.userStatus.textContent = '鑑定名義: 鑑定者';
             this.userStatus.className = 'user-status registered';
-            if (this.mobileHeaderInfo) {
-                this.mobileHeaderInfo.textContent = '鑑定者';
-                console.log('[ChatUI] モバイルヘッダーに「鑑定者」を表示しました:', {
-                    element: this.mobileHeaderInfo,
-                    elementVisible: this.mobileHeaderInfo.offsetHeight > 0
-                });
-            }
             return;
         }
         
@@ -131,25 +122,6 @@ const ChatUI = {
         
         this.userStatus.textContent = statusText;
         this.userStatus.className = 'user-status registered';
-        
-        // モバイルヘッダーにユーザー情報を表示
-        if (this.mobileHeaderInfo) {
-            let mobileInfoText = nickname;
-            if (deity && deity !== '未割当') {
-                // 改行ではなく、スペース区切りで表示
-                mobileInfoText += ` / ${deity}`;
-            }
-            this.mobileHeaderInfo.textContent = mobileInfoText;
-            console.log('[ChatUI] モバイルヘッダーにユーザー情報を表示しました:', {
-                nickname,
-                deity,
-                mobileInfoText,
-                element: this.mobileHeaderInfo,
-                elementVisible: this.mobileHeaderInfo.offsetHeight > 0
-            });
-        } else {
-            console.warn('[ChatUI] #mobileHeaderInfo要素が見つかりません');
-        }
     },
 
     /**

@@ -451,22 +451,6 @@ body.admin-mode .chat-container {
     flex-shrink: 0;
 }
 
-.mobile-header-info {
-    font-size: 10px;
-    color: #e8d5ff;
-    text-align: right;
-    flex-shrink: 0;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.2;
-    max-width: 80px;
-    padding-right: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-}
-
 /* ============================================
    入口フォーム
    ============================================ */
