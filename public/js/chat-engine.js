@@ -1576,10 +1576,28 @@ const ChatInit = {
                     // エラーハンドリング
                     if (error instanceof Error) {
                         if (error.message === 'USER_NOT_FOUND') {
-                            // ユーザー情報が登録されていない場合：登録画面にリダイレクト
-                            console.error('[登録完了処理] ユーザー情報が登録されていません。登録画面にリダイレクトします。');
-                            alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
-                            window.location.href = '../auth/register.html';
+                            // ユーザー情報が登録されていない場合：エントリーフォームを表示
+                            console.error('[登録完了処理] ユーザー情報が登録されていません。エントリーフォームを表示します。');
+                            
+                            // チャットコンテナを非表示にしてエントリーフォームを表示
+                            const entryFormContainer = document.getElementById('entryFormContainer');
+                            const chatContainer = document.getElementById('chatContainer');
+                            const entryFormError = document.getElementById('entryFormError');
+                            
+                            if (entryFormContainer && chatContainer) {
+                                // エントリーフォームを表示
+                                entryFormContainer.classList.remove('entry-form-hidden');
+                                // チャットコンテナを非表示
+                                chatContainer.classList.add('entry-form-hidden');
+                                
+                                // エラーメッセージを表示
+                                if (entryFormError) {
+                                    entryFormError.textContent = '会員情報が存在しないため、再度会員登録をお願いします。';
+                                    entryFormError.classList.add('show');
+                                }
+                                
+                                console.log('[登録完了処理] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
+                            }
                             return;
                         } else if (error.message === 'NETWORK_ERROR') {
                             // ネットワーク接続エラーの場合
@@ -1785,10 +1803,28 @@ const ChatInit = {
                 // エラーハンドリング
                 if (error instanceof Error) {
                     if (error.message === 'USER_NOT_FOUND') {
-                        // ユーザー情報が登録されていない場合：登録画面にリダイレクト
-                        console.error('[初期化] ユーザー情報が登録されていません。登録画面にリダイレクトします。');
-                        alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
-                        window.location.href = '../auth/register.html';
+                        // ユーザー情報が登録されていない場合：エントリーフォームを表示
+                        console.error('[初期化] ユーザー情報が登録されていません。エントリーフォームを表示します。');
+                        
+                        // チャットコンテナを非表示にしてエントリーフォームを表示
+                        const entryFormContainer = document.getElementById('entryFormContainer');
+                        const chatContainer = document.getElementById('chatContainer');
+                        const entryFormError = document.getElementById('entryFormError');
+                        
+                        if (entryFormContainer && chatContainer) {
+                            // エントリーフォームを表示
+                            entryFormContainer.classList.remove('entry-form-hidden');
+                            // チャットコンテナを非表示
+                            chatContainer.classList.add('entry-form-hidden');
+                            
+                            // エラーメッセージを表示
+                            if (entryFormError) {
+                                entryFormError.textContent = '会員情報が存在しないため、再度会員登録をお願いします。';
+                                entryFormError.classList.add('show');
+                            }
+                            
+                            console.log('[初期化] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
+                        }
                         return;
                     } else if (error.message === 'NETWORK_ERROR') {
                         // ネットワーク接続エラーの場合
@@ -3446,10 +3482,28 @@ const ChatInit = {
                 // エラーハンドリング
                 if (error instanceof Error) {
                     if (error.message === 'USER_NOT_FOUND') {
-                        // ユーザー情報が登録されていない場合：登録画面にリダイレクト
-                        console.error('[守護神の儀式] ユーザー情報が登録されていません。登録画面にリダイレクトします。');
-                        alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
-                        window.location.href = '../auth/register.html';
+                        // ユーザー情報が登録されていない場合：エントリーフォームを表示
+                        console.error('[守護神の儀式] ユーザー情報が登録されていません。エントリーフォームを表示します。');
+                        
+                        // チャットコンテナを非表示にしてエントリーフォームを表示
+                        const entryFormContainer = document.getElementById('entryFormContainer');
+                        const chatContainer = document.getElementById('chatContainer');
+                        const entryFormError = document.getElementById('entryFormError');
+                        
+                        if (entryFormContainer && chatContainer) {
+                            // エントリーフォームを表示
+                            entryFormContainer.classList.remove('entry-form-hidden');
+                            // チャットコンテナを非表示
+                            chatContainer.classList.add('entry-form-hidden');
+                            
+                            // エラーメッセージを表示
+                            if (entryFormError) {
+                                entryFormError.textContent = '会員情報が存在しないため、再度会員登録をお願いします。';
+                                entryFormError.classList.add('show');
+                            }
+                            
+                            console.log('[守護神の儀式] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
+                        }
                         return;
                     } else if (error.message === 'NETWORK_ERROR') {
                         // ネットワーク接続エラーの場合
