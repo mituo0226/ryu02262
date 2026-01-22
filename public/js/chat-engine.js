@@ -1505,11 +1505,7 @@ const ChatInit = {
         ChatData.userNickname = null;
         
         // 登録完了フラグをチェック
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
+        // urlParamsは既に1395行目で宣言済みなので、再利用
         const justRegisteredParam = urlParams.get('justRegistered') === 'true';
         
         // sessionStorageにも登録完了フラグをチェック（URLパラメータが失われた場合の代替手段）
