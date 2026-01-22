@@ -41,7 +41,7 @@ body[data-user-id] {
     opacity: 1 !important;
 }
 
-body[data-user-id] .chat-container.entry-form-hidden {
+body[data-user-id] .chat-container:not(.entry-form-hidden) {
     display: flex !important;
 }
 
@@ -706,8 +706,6 @@ body.admin-mode .chat-container {
    ============================================ */
 @media (max-width: 768px) {
     html, body {
-        height: 100%;
-        height: 100vh;
         height: 100dvh;
         min-height: 100dvh;
         overflow: hidden;
@@ -717,8 +715,6 @@ body.admin-mode .chat-container {
     }
     
     main {
-        height: 100%;
-        height: 100vh;
         height: 100dvh;
         /* iOS Safariのアドレスバー対策 */
         position: relative;
