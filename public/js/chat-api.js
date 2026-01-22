@@ -45,7 +45,11 @@ const ChatAPI = {
         
         // userInfoから取得できない場合、URLパラメータから取得（フォールバック）
         if (!userId) {
-            const urlParams = new URLSearchParams(window.location.search);
+            // グローバルスコープのurlParamsを使用
+            if (!window._chatUrlParams) {
+                window._chatUrlParams = new URLSearchParams(window.location.search);
+            }
+            const urlParams = window._chatUrlParams;
             const userIdParam = urlParams.get('userId');
             console.log('[loadConversationHistory] URLパラメータからuserIdを取得（フォールバック）:', userIdParam);
             if (userIdParam && userIdParam.trim() !== '') {
@@ -160,7 +164,11 @@ const ChatAPI = {
         // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
         // user_idを優先的に使用（より安全で効率的）
         // URLパラメータからuserIdを取得（ログイン成功時にリダイレクトURLに含まれる）
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         let userId = null;
         const userIdParam = urlParams.get('userId');
         if (userIdParam) {
@@ -318,7 +326,11 @@ const ChatAPI = {
         const { character, conversationHistory = [], visitPattern = 'first_visit' } = options;
         
         // userIdを取得
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         let userId = null;
         const userIdParam = urlParams.get('userId');
         if (userIdParam) {

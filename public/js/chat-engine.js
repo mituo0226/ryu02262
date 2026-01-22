@@ -181,7 +181,11 @@ const ChatAPI = {
         // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
         // user_idを優先的に使用（より安全で効率的）
         // URLパラメータからuserIdを取得（ログイン成功時にリダイレクトURLに含まれる）
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         let userId = null;
         const userIdParam = urlParams.get('userId');
         if (userIdParam) {
@@ -339,7 +343,11 @@ const ChatAPI = {
         const { character, conversationHistory = [], visitPattern = 'first_visit' } = options;
         
         // userIdを取得
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         let userId = null;
         const userIdParam = urlParams.get('userId');
         if (userIdParam) {
@@ -487,7 +495,11 @@ const ChatData = {
      * @returns {string} キャラクターID
      */
     getCharacterFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const character = urlParams.get('character');
         
         // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
@@ -1484,7 +1496,11 @@ const ChatInit = {
         ChatData.userNickname = null;
         
         // 登録完了フラグをチェック
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const justRegisteredParam = urlParams.get('justRegistered') === 'true';
         
         // sessionStorageにも登録完了フラグをチェック（URLパラメータが失われた場合の代替手段）
@@ -2548,7 +2564,11 @@ const ChatInit = {
         } catch (error) {
             // エラーが発生した場合、character変数がまだ定義されていない可能性があるため、
             // URLパラメータまたはChatData.currentCharacterから取得
-            const urlParams = new URLSearchParams(window.location.search);
+            // グローバルスコープのurlParamsを使用
+            if (!window._chatUrlParams) {
+                window._chatUrlParams = new URLSearchParams(window.location.search);
+            }
+            const urlParams = window._chatUrlParams;
             let character = ChatData?.currentCharacter || urlParams.get('character') || 'kaede';
             
             // #region agent log (開発環境のみ - コメントアウト)
@@ -3642,7 +3662,11 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 // URLパラメータに?test=trueがある場合、すべてのキャラクターのゲストフラグをクリア
 // これはハンドラーが読み込まれる前に実行される必要があるため、ここで処理する
 (function() {
-    const urlParams = new URLSearchParams(window.location.search);
+    // グローバルスコープのurlParamsを使用
+    if (!window._chatUrlParams) {
+        window._chatUrlParams = new URLSearchParams(window.location.search);
+    }
+    const urlParams = window._chatUrlParams;
     if (urlParams.get('test') === 'true') {
         console.log('[ChatEngine] テストモードが有効です。すべてのゲストフラグをクリアします...');
         // 【変更】localStorageの使用を削除（データベースベースの判断）
@@ -3668,7 +3692,11 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
         if (window.parent && window.parent !== window) {
             try {
                 // URLパラメータからcharacterを取得
-                const urlParams = new URLSearchParams(window.location.search);
+                // グローバルスコープのurlParamsを使用
+                if (!window._chatUrlParams) {
+                    window._chatUrlParams = new URLSearchParams(window.location.search);
+                }
+                const urlParams = window._chatUrlParams;
                 const character = urlParams.get('character') || 'unknown';
                 
                 window.parent.postMessage({
@@ -3735,7 +3763,11 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
             
             // 簡単な応答を即座に返す
             try {
-                const urlParams = new URLSearchParams(window.location.search);
+                // グローバルスコープのurlParamsを使用
+                if (!window._chatUrlParams) {
+                    window._chatUrlParams = new URLSearchParams(window.location.search);
+                }
+                const urlParams = window._chatUrlParams;
                 const character = urlParams.get('character') || 'unknown';
                 
                 const responseData = {

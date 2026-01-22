@@ -179,7 +179,11 @@ const CharacterLoader = {
 
             const script = document.createElement('script');
             // キャッシュバスティング: テストモードの場合はタイムスタンプを追加
-            const urlParams = new URLSearchParams(window.location.search);
+            // グローバルスコープのurlParamsを使用
+            if (!window._chatUrlParams) {
+                window._chatUrlParams = new URLSearchParams(window.location.search);
+            }
+            const urlParams = window._chatUrlParams;
             const isTestMode = urlParams.get('test') === 'true';
             const scriptSrc = isTestMode ? `${src}?t=${Date.now()}` : src;
             script.src = scriptSrc;
@@ -195,7 +199,11 @@ const CharacterLoader = {
      * @returns {Promise<Object|null>} 読み込んだハンドラー
      */
     async loadHandlerFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const characterId = urlParams.get('character');
 
         if (!characterId) {

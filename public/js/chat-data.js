@@ -93,7 +93,11 @@ const ChatData = {
      * @returns {string} キャラクターID
      */
     getCharacterFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const character = urlParams.get('character');
         
         // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
