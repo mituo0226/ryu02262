@@ -126,13 +126,14 @@ body.fade-in {
 main {
     width: 100%;
     max-width: 100%; /* 画面いっぱいに表示 */
-    flex: 1; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる */
+    flex: 1 1 0; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
     min-height: 0; /* flexboxの子要素が正しく縮小するように */
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
     box-sizing: border-box;
+    height: 100%; /* 親要素の高さいっぱいに広がる */
 }
 
 /* 管理者モード: チャットと分析パネルを横並び */
@@ -199,7 +200,7 @@ body.admin-mode .chat-container {
     padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
     box-shadow: none;
     border: none;
-    flex: 1; /* mainのflex子要素として高さを最大限に使用 */
+    flex: 1 1 0; /* mainのflex子要素として高さを最大限に使用（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
     min-height: 0; /* flexboxの子要素が正しく縮小するように */
     display: flex;
     flex-direction: column;
@@ -207,6 +208,7 @@ body.admin-mode .chat-container {
     overflow: hidden;
     box-sizing: border-box; /* paddingを含めた高さ計算 */
     width: 100%; /* 画面いっぱいに表示 */
+    height: 100%; /* 親要素の高さいっぱいに広がる */
 }
 
 /* キャラクターヘッダー（PC版） */
@@ -416,7 +418,7 @@ body.admin-mode .chat-container {
    メッセージエリア
    ============================================ */
 .messages {
-    flex: 1; /* チャット表示エリアを最大限に広げる */
+    flex: 1 1 0; /* チャット表示エリアを最大限に広げる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
     overflow-y: auto !important; /* PC/モバイル共に確実にスクロール可能にする */
     overflow-x: hidden;
     border-radius: 0;
@@ -434,7 +436,6 @@ body.admin-mode .chat-container {
     -webkit-overflow-scrolling: touch; /* モバイルのスムーズスクロール */
     overscroll-behavior: contain; /* スクロールチェーンの制御 */
     min-height: 0; /* flexboxの子要素が正しく縮小するように（重要：overflowを機能させるために必須） */
-    height: 0; /* flex: 1と組み合わせて親要素の高さを基準に計算（overflowを機能させるために必須） */
 }
 
 .message {
@@ -684,13 +685,14 @@ div.message.character,
     }
     
     main {
-        flex: 1; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる */
+        flex: 1 1 0; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
         max-width: 100%;
         padding: 0; /* モバイル版ではpaddingなし */
         min-height: 0; /* flexboxの子要素が正しく縮小するように */
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        height: 100%; /* 親要素の高さいっぱいに広がる */
     }
     
     .mobile-header {
@@ -699,7 +701,7 @@ div.message.character,
     
     .chat-container {
         padding: 0;
-        flex: 1; /* mainのflex子要素として高さを最大限に使用 */
+        flex: 1 1 0; /* mainのflex子要素として高さを最大限に使用（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
         min-height: 0; /* flexboxの子要素が正しく縮小するように */
         border-radius: 0;
         box-shadow: none;
@@ -711,6 +713,7 @@ div.message.character,
         flex-direction: column;
         gap: 0; /* gapを削除してチャット表示エリアを最大限に広げる */
         overflow: hidden;
+        height: 100%; /* 親要素の高さいっぱいに広がる */
     }
     
     
@@ -723,7 +726,7 @@ div.message.character,
     }
     
     .messages {
-        flex: 1; /* チャット表示エリアを最大限に広げる */
+        flex: 1 1 0; /* チャット表示エリアを最大限に広げる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
         padding: 20px 10px;
         padding-top: 20px;
         padding-bottom: 250px; /* モバイル入力エリアの高さ + 十分な余白を確保 */
@@ -733,7 +736,6 @@ div.message.character,
         -webkit-overflow-scrolling: touch; /* iOSのスムーズスクロール */
         overscroll-behavior: contain; /* スクロールチェーンの制御 */
         min-height: 0; /* flexboxの子要素が正しく縮小するように（重要：overflowを機能させるために必須） */
-        height: 0; /* flex: 1と組み合わせて親要素の高さを基準に計算（overflowを機能させるために必須） */
     }
     
     .message {
