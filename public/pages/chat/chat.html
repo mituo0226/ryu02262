@@ -112,15 +112,11 @@
         
         <!-- チャットコンテナ -->
         <div class="chat-container entry-form-hidden" id="chatContainer">
-            <!-- PC版ヘッダー -->
+            <!-- PC版ヘッダー（鑑定士情報と戻るボタン）-->
             <div class="character-header" id="characterHeader">
                 <img id="characterHeaderImage" src="" alt="" class="character-header-image">
                 <div class="character-header-name" id="characterHeaderName">鑑定士</div>
-            </div>
-            
-            <!-- ナビゲーション -->
-            <div class="navigation-links">
-                <a href="../main.html" aria-label="鑑定師一覧に戻る">鑑定師一覧に戻る</a>
+                <a href="../main.html" class="character-header-back" aria-label="鑑定師一覧に戻る">鑑定師一覧に戻る</a>
             </div>
             
             <!-- ユーザーステータス -->
@@ -238,14 +234,15 @@
         if (userId) {
             console.log('[設計継承] userIdを検出：', userId);
             
-            // 戻るボタンに userId を追加（main.html へ戻る時に userId を保持）
-            document.querySelectorAll('.navigation-links a[href="../main.html"]').forEach((link) => {
+            // PC版ヘッダーの戻るボタンに userId を追加
+            document.querySelectorAll('.character-header-back[href="../main.html"]').forEach((link) => {
                 const url = new URL(link.href, window.location.origin);
                 url.searchParams.set('userId', userId);
                 link.href = url.pathname + url.search;
-                console.log('[設計継承] ナビゲーションリンクを更新:', link.href);
+                console.log('[設計継承] PC版ヘッダー戻るボタンを更新:', link.href);
             });
             
+            // モバイル版戻るボタンに userId を追加
             document.querySelectorAll('.mobile-header-back[href="../main.html"]').forEach((link) => {
                 const url = new URL(link.href, window.location.origin);
                 url.searchParams.set('userId', userId);

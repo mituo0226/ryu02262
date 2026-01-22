@@ -96,7 +96,7 @@ body.admin-mode .chat-container {
 }
 
 /* ============================================
-   PC版ヘッダー・ナビゲーション・ユーザーステータス統合エリア
+   PC版ヘッダー（キャラクター情報と戻るボタン統合）
    ============================================ */
 .character-header {
     display: flex;
@@ -129,21 +129,7 @@ body.admin-mode .chat-container {
     flex-shrink: 0;
 }
 
-/* ============================================
-   ナビゲーション
-   ============================================ */
-.navigation-links {
-    display: flex;
-    gap: 12px;
-    margin: 0 auto;
-    flex-wrap: wrap;
-    justify-content: center;
-    flex-shrink: 0;
-    max-width: 900px;
-    width: 90%;
-}
-
-.navigation-links a {
+.character-header-back {
     display: inline-flex;
     justify-content: center;
     align-items: center;
@@ -160,13 +146,13 @@ body.admin-mode .chat-container {
     flex-shrink: 0;
 }
 
-.navigation-links a:hover {
+.character-header-back:hover {
     background: rgba(139, 61, 255, 0.25);
     border-color: rgba(139, 61, 255, 0.5);
     transform: translateY(-1px);
 }
 
-.navigation-links a:active {
+.character-header-back:active {
     transform: scale(0.98);
 }
 
@@ -753,10 +739,6 @@ body.admin-mode .chat-container {
     }
     
     .character-header {
-        display: none;
-    }
-    
-    .navigation-links {
         display: none;
     }
     
