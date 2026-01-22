@@ -102,6 +102,7 @@ const ChatUI = {
             this.userStatus.className = 'user-status registered';
             if (this.mobileHeaderInfo) {
                 this.mobileHeaderInfo.textContent = '鑑定者';
+                console.log('[ChatUI] モバイルヘッダーに「鑑定者」を表示しました');
             }
             return;
         }
@@ -135,6 +136,14 @@ const ChatUI = {
                 mobileInfoText += `\n守護: ${deity}`;
             }
             this.mobileHeaderInfo.textContent = mobileInfoText;
+            console.log('[ChatUI] モバイルヘッダーにユーザー情報を表示しました:', {
+                nickname,
+                deity,
+                mobileInfoText,
+                element: this.mobileHeaderInfo
+            });
+        } else {
+            console.warn('[ChatUI] #mobileHeaderInfo要素が見つかりません');
         }
     },
 
