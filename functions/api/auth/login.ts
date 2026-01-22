@@ -67,7 +67,21 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     guardian: user.guardian,
   };
 
-  return new Response(JSON.stringify(responseBody), { status: 200, headers });
+  // 【修正】セッションCookieを設定してユーザーIDを保持
+  // これにより、URLパラメータに依存せずにユーザー情報を引き継げる
+  const cookieValue = `userId=${user.id}; Path=/; SameSite=Lax; HttpOnly; Secure; Max-Age=86400`; // 24時間有効
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'login.ts:70',message:'ログイン成功: Cookie設定',data:{userId:user.id,nickname:user.nickname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
+  return new Response(JSON.stringify(responseBody), {
+    status: 200,
+    headers: {
+      ...headers,
+      'Set-Cookie': cookieValue,
+    },
+  });
 };
 
 
