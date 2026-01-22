@@ -85,41 +85,10 @@ export const onRequestGet: PagesFunction = async (context) => {
     const birthDay = url.searchParams.get('birthDay');
     const characterId = url.searchParams.get('character') || 'kaede';
 
-    // 【修正】CookieからユーザーIDを取得（優先）
-    // ログイン時に設定されたセッションCookieからユーザーIDを取得
-    const cookieHeader = request.headers.get('Cookie') || '';
-    let userIdFromCookie: number | null = null;
-    
-    // CookieからuserIdを抽出
-    const cookieMatch = cookieHeader.match(/userId=(\d+)/);
-    if (cookieMatch) {
-      userIdFromCookie = Number(cookieMatch[1]);
-      if (!Number.isFinite(userIdFromCookie) || userIdFromCookie <= 0) {
-        userIdFromCookie = null;
-      }
-    }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation-history.ts:95',message:'ユーザーID取得: Cookie確認',data:{userIdFromCookie,userIdParam,cookieHeader:cookieHeader.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-
     let user: UserRecord | null = null;
 
-    // 【変更】Cookieから取得したuserIdを最優先で使用
-    if (userIdFromCookie) {
-      user = await env.DB.prepare<UserRecord>(
-        'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE id = ?'
-      )
-        .bind(userIdFromCookie)
-        .first();
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation-history.ts:105',message:'Cookieからユーザー取得',data:{userIdFromCookie,userFound:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-    }
-
-    // 【変更】Cookieで取得できない場合、URLパラメータから取得（フォールバック）
-    if (!user && userIdParam) {
+    // 【変更】user_idを優先的に使用（より安全で効率的）
+    if (userIdParam) {
       const userId = Number(userIdParam);
       if (Number.isFinite(userId) && userId > 0) {
         user = await env.DB.prepare<UserRecord>(
@@ -127,10 +96,6 @@ export const onRequestGet: PagesFunction = async (context) => {
         )
           .bind(userId)
           .first();
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversation-history.ts:118',message:'URLパラメータからユーザー取得（フォールバック）',data:{userIdParam,userFound:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
       }
     }
 
