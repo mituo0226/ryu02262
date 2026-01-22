@@ -1362,6 +1362,19 @@ const ChatInit = {
         }
         this._initPageRunning = true;
         
+        // 【追加】userIdがURLパラメータにある場合、エントリーフォームを非表示にしてチャットコンテナを表示
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        if (userId) {
+            const entryFormContainer = document.getElementById('entryFormContainer');
+            const chatContainer = document.getElementById('chatContainer');
+            if (entryFormContainer && chatContainer) {
+                entryFormContainer.classList.add('entry-form-hidden');
+                chatContainer.classList.remove('entry-form-hidden');
+                console.log('[初期化] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+            }
+        }
+        
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:27',message:'initPage関数開始',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
@@ -3881,14 +3894,26 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     
     // ページを初期化
-    // 入口フォームが表示されている場合は初期化をスキップ（ただし、initEntryForm()が処理中の場合を除く）
+    // 入口フォームが表示されている場合は初期化をスキップ（ただし、userIdがURLパラメータにある場合は除く）
     const entryFormContainer = document.getElementById('entryFormContainer');
     const chatContainer = document.getElementById('chatContainer');
     const isEntryFormVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
     
-    if (isEntryFormVisible) {
+    // userIdがURLパラメータにある場合、エントリーフォームを非表示にしてチャットコンテナを表示
+    const domUrlParams = new URLSearchParams(window.location.search);
+    const domUserId = domUrlParams.get('userId');
+    if (domUserId && isEntryFormVisible) {
+        entryFormContainer.classList.add('entry-form-hidden');
+        if (chatContainer) {
+            chatContainer.classList.remove('entry-form-hidden');
+        }
+        console.log('[chat-engine] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+    }
+    
+    // エントリーフォームが表示されている場合（userIdがない場合のみ）は初期化をスキップ
+    const isEntryFormStillVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
+    if (isEntryFormStillVisible) {
         console.log('[chat-engine] 入口フォームが表示されているため、初期化をスキップします');
-        // 【変更】initEntryForm()がチャット画面を表示した後、初期化を再試行するため、
         // 入口フォームが非表示になったら初期化を実行するイベントリスナーを設定
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -3897,7 +3922,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                     if (isNowHidden) {
                         console.log('[chat-engine] 入口フォームが非表示になったため、初期化を実行します');
                         observer.disconnect();
-                        // 重複実行を防ぐ: 既に実行中または完了している場合はスキップ
                         if (!ChatInit._initPageRunning && !ChatInit._initPageCompleted) {
                             ChatInit.initPage().catch(error => {
                                 console.error('[chat-engine] 初期化エラー:', error);

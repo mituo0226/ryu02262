@@ -241,6 +241,33 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 詳細は [CURSOR_IGNORE_SETTINGS.md](../guides/CURSOR_IGNORE_SETTINGS.md) を参照してください。
 
+## ⚠️ 作業用フォルダ（ワークツリー）が優先される構造の問題
+
+### 現象
+
+Cursor は **ワークスペースとしてワークツリー**（`C:\Users\mituo\.cursor\worktrees\kaede\*`）を開くことがあります。  
+その場合、**編集・検索の対象がワークツリーになり、メインプロジェクトには反映されない**ことがあります。
+
+- ワークスペース = ワークツリー → 相対パスや「プロジェクトルート」はワークツリーを指す
+- ルールで「メインプロジェクトで作業」と書いても、**構造的にワークツリーが優先**されやすい
+
+### 必須の運用
+
+1. **ファイル編集時は、必ずメインプロジェクトの絶対パスを使う**
+   - 使用するパス: `C:\Users\mituo\Desktop\kaede\public\js\...` など
+   - 使用しないパス: `public\js\...`（ワークツリーを開いているとワークツリー側を指す）
+2. **Cursor で開くフォルダは、可能な限りメインプロジェクトにする**
+   - 開くフォルダ: `C:\Users\mituo\Desktop\kaede`
+   - 開かないフォルダ: `C:\Users\mituo\.cursor\worktrees\kaede\xxx`
+3. **修正後は、メインプロジェクトで変更があるか必ず確認する**
+   - 例: `C:\Users\mituo\Desktop\kaede` で `git status` を実行して変更を確認
+
+### AI・エージェント向けの明示
+
+- ワークツリー内のファイルは **読み取り・編集・提案の対象にしない**
+- 編集・作成するファイルは **常に `C:\Users\mituo\Desktop\kaede` 配下の絶対パス**で指定する
+- ワークスペースがワークツリーになっていても、**作業先はメインプロジェクトに固定**する
+
 ## 関連ドキュメント
 
 - [CURSOR_IGNORE_SETTINGS.md](../guides/CURSOR_IGNORE_SETTINGS.md) - Cursor の除外設定の詳細
