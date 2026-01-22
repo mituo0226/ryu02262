@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="../../css/chat.css">
 </head>
 <body>
-    <!-- URLパラメータの統一初期化と body[data-user-id] 属性設定 -->
+    <!-- URLパラメータの統一初期化と userId 検証（設計の継承） -->
     <script>
     (function() {
         'use strict';
@@ -19,12 +19,29 @@
             window._chatUrlParams = new URLSearchParams(window.location.search);
         }
         
-        // ✅ userId パラメータを取得して body に属性を設定
-        // CSSで data-user-id 属性が使用されているため、必須
+        // 【重要】userId パラメータを取得・検証
+        // 設計：userId がない場合はエラー、ある場合はチャット画面を表示
         const userId = window._chatUrlParams.get('userId');
-        if (userId) {
+        const character = window._chatUrlParams.get('character');
+        
+        console.log('[URL検証] userId:', userId, 'character:', character);
+        
+        if (!userId) {
+            // ❌ userId がない場合：エラーメッセージを表示して、登録ページを見せる
+            console.error('[設計エラー] userIdが指定されていません。正規のflowで遷移してください。');
+            const entryFormError = document.getElementById('entryFormError');
+            if (entryFormError) {
+                entryFormError.innerHTML = '不正なアクセスです。<br>ログインしてからアクセスしてください。';
+            }
+            // entryFormContainer は表示（デフォルト状態）
+            // chatContainer は非表示（entry-form-hidden クラスが付いている）
+            document.body.removeAttribute('data-user-id');
+            console.log('[初期化] ユーザーID検証失敗：登録ページを表示します');
+        } else {
+            // ✅ userId がある場合：body に属性を設定してチャット画面を表示
             document.body.setAttribute('data-user-id', userId);
             console.log('[初期化] body[data-user-id] 属性を設定しました:', userId);
+            console.log('[初期化] Cloudflareデータベースからユーザー情報を取得します');
         }
     })();
     </script>
@@ -154,14 +171,10 @@
     // 基本的な構造のみをHTMLに保持
     </script>
     
-    <!-- 待機画面制御スクリプト -->
+    <!-- 待機画面制御スクリプト（設計継承：back.html と同じパターン） -->
     <script>
     (function() {
         'use strict';
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
         const urlParams = window._chatUrlParams;
         const character = urlParams.get('character');
         const characterInfo = {
@@ -193,60 +206,52 @@
         window.hideLoadingScreen = function() {
             console.log('[hideLoadingScreen] 関数が呼ばれました');
             const loadingScreen = document.getElementById('loadingScreen');
-            console.log('[hideLoadingScreen] loadingScreen要素:', {
-                found: !!loadingScreen,
-                hasHidden: loadingScreen?.classList.contains('hidden'),
-                parentNode: !!loadingScreen?.parentNode
-            });
             
             if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
                 console.log('[hideLoadingScreen] hiddenクラスを追加します');
                 loadingScreen.classList.add('hidden');
-                console.log('[hideLoadingScreen] hiddenクラス追加後:', {
-                    hasHidden: loadingScreen.classList.contains('hidden'),
-                    computedOpacity: window.getComputedStyle(loadingScreen).opacity
-                });
                 
                 setTimeout(() => {
                     console.log('[hideLoadingScreen] 800ms後: loadingScreenを削除します');
                     if (loadingScreen.parentNode) {
                         loadingScreen.parentNode.removeChild(loadingScreen);
                         console.log('[hideLoadingScreen] loadingScreenを削除しました');
-                    } else {
-                        console.warn('[hideLoadingScreen] loadingScreenのparentNodeが見つかりません');
                     }
                 }, 800);
-            } else {
-                if (!loadingScreen) {
-                    console.warn('[hideLoadingScreen] loadingScreen要素が見つかりません');
-                } else {
-                    console.warn('[hideLoadingScreen] loadingScreenは既にhiddenクラスが付いています');
-                }
             }
         };
     })();
     </script>
     
-    <!-- URLパラメータ処理 -->
+    <!-- URLパラメータ処理（main.html の設計を継承） -->
     <script>
     (function() {
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
+        'use strict';
         const urlParams = window._chatUrlParams;
         const userId = urlParams.get('userId');
+        const character = urlParams.get('character');
+        
+        // 【main.html と同じ設計】
+        // userId がある場合、ナビゲーションリンクに userId を追加
         if (userId) {
+            console.log('[設計継承] userIdを検出：', userId);
+            
+            // 戻るボタンに userId を追加（main.html へ戻る時に userId を保持）
             document.querySelectorAll('.navigation-links a[href="../main.html"]').forEach((link) => {
                 const url = new URL(link.href, window.location.origin);
                 url.searchParams.set('userId', userId);
                 link.href = url.pathname + url.search;
+                console.log('[設計継承] ナビゲーションリンクを更新:', link.href);
             });
+            
             document.querySelectorAll('.mobile-header-back[href="../main.html"]').forEach((link) => {
                 const url = new URL(link.href, window.location.origin);
                 url.searchParams.set('userId', userId);
                 link.href = url.pathname + url.search;
+                console.log('[設計継承] モバイルヘッダーを更新:', link.href);
             });
+        } else {
+            console.warn('[設計エラー] userIdが見つかりません');
         }
     })();
     </script>
@@ -272,12 +277,23 @@
     })();
     </script>
     
-    <!-- ハンドラーの動的読み込み -->
+    <!-- ハンドラーの動的読み込み（back.html の設計を継承） -->
     <script>
     (async function() {
         'use strict';
         const urlParams = window._chatUrlParams;
         const characterId = urlParams.get('character');
+        const userId = urlParams.get('userId');
+        
+        // 【設計検証】back.html と同じく、character と userId の両方を確認
+        if (!characterId || !userId) {
+            console.error('[ハンドラー] 不正なアクセス：characterまたはuserIdが不足しています', {
+                characterId,
+                userId
+            });
+            return;
+        }
+        
         if (characterId) {
             let attempts = 0;
             const maxAttempts = 50;
@@ -288,6 +304,7 @@
             if (window.CharacterLoader) {
                 try {
                     await CharacterLoader.loadHandler(characterId);
+                    console.log('[ハンドラー] キャラクター:', characterId, 'ユーザー:', userId);
                 } catch (error) {
                     console.error('[CharacterLoader] ハンドラー読み込みエラー:', error);
                 }
