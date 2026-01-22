@@ -1394,14 +1394,32 @@ const ChatInit = {
         }
         const urlParams = window._chatUrlParams;
         const userId = urlParams.get('userId');
+        console.log('[初期化] userIdチェック:', { userId, hasUrlParams: !!urlParams });
         if (userId) {
             const entryFormContainer = document.getElementById('entryFormContainer');
             const chatContainer = document.getElementById('chatContainer');
+            console.log('[初期化] 要素確認:', {
+                hasEntryForm: !!entryFormContainer,
+                hasChatContainer: !!chatContainer,
+                entryFormClasses: entryFormContainer?.className,
+                chatContainerClasses: chatContainer?.className
+            });
             if (entryFormContainer && chatContainer) {
                 entryFormContainer.classList.add('entry-form-hidden');
                 chatContainer.classList.remove('entry-form-hidden');
                 console.log('[初期化] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+                console.log('[初期化] クラス変更後:', {
+                    entryFormHasHidden: entryFormContainer.classList.contains('entry-form-hidden'),
+                    chatContainerHasHidden: chatContainer.classList.contains('entry-form-hidden')
+                });
+            } else {
+                console.error('[初期化] 要素が見つかりません:', {
+                    entryFormContainer: !!entryFormContainer,
+                    chatContainer: !!chatContainer
+                });
             }
+        } else {
+            console.log('[初期化] userIdがURLパラメータにありません');
         }
         
         // #region agent log (開発環境のみ - コメントアウト)
@@ -3980,12 +3998,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     const domUrlParams = window._chatUrlParams;
     const domUserId = domUrlParams.get('userId');
-    if (domUserId && isEntryFormVisible) {
-        entryFormContainer.classList.add('entry-form-hidden');
+    console.log('[DOMContentLoaded] userIdチェック:', { domUserId, isEntryFormVisible });
+    if (domUserId) {
+        // userIdがある場合、エントリーフォームを非表示にしてチャットコンテナを表示
+        if (entryFormContainer) {
+            entryFormContainer.classList.add('entry-form-hidden');
+            console.log('[DOMContentLoaded] エントリーフォームにhiddenクラスを追加しました');
+        }
         if (chatContainer) {
             chatContainer.classList.remove('entry-form-hidden');
+            console.log('[DOMContentLoaded] チャットコンテナからhiddenクラスを削除しました');
         }
-        console.log('[chat-engine] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+        console.log('[DOMContentLoaded] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+        console.log('[DOMContentLoaded] クラス変更後:', {
+            entryFormHasHidden: entryFormContainer?.classList.contains('entry-form-hidden'),
+            chatContainerHasHidden: chatContainer?.classList.contains('entry-form-hidden')
+        });
     }
     
     // エントリーフォームが表示されている場合（userIdがない場合のみ）は初期化をスキップ

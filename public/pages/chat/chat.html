@@ -17,17 +17,31 @@
         const urlParams = window._chatUrlParams;
         const userId = urlParams.get('userId');
         if (userId) {
+            // userIdがある場合、即座にエントリーフォームを非表示にしてチャットコンテナを表示
+            function hideEntryFormAndShowChat() {
+                const entryFormContainer = document.getElementById('entryFormContainer');
+                const chatContainer = document.getElementById('chatContainer');
+                if (entryFormContainer && chatContainer) {
+                    entryFormContainer.classList.add('entry-form-hidden');
+                    chatContainer.classList.remove('entry-form-hidden');
+                    console.log('[初期スクリプト] userIdがあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+                }
+            }
+            
             if (document.body) {
                 document.body.setAttribute('data-user-id', userId);
+                hideEntryFormAndShowChat();
             } else {
                 if (document.readyState === 'loading') {
                     document.addEventListener('DOMContentLoaded', function() {
                         document.body.setAttribute('data-user-id', userId);
+                        hideEntryFormAndShowChat();
                     }, { once: true });
                 } else {
                     setTimeout(function() {
                         if (document.body) {
                             document.body.setAttribute('data-user-id', userId);
+                            hideEntryFormAndShowChat();
                         }
                     }, 0);
                 }
@@ -200,27 +214,37 @@
         }
         
         window.hideLoadingScreen = function() {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:202',message:'hideLoadingScreen呼び出し',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
+            console.log('[hideLoadingScreen] 関数が呼ばれました');
             const loadingScreen = document.getElementById('loadingScreen');
+            console.log('[hideLoadingScreen] loadingScreen要素:', {
+                found: !!loadingScreen,
+                hasHidden: loadingScreen?.classList.contains('hidden'),
+                parentNode: !!loadingScreen?.parentNode
+            });
+            
             if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+                console.log('[hideLoadingScreen] hiddenクラスを追加します');
                 loadingScreen.classList.add('hidden');
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:205',message:'hideLoadingScreen: hiddenクラス追加',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
+                console.log('[hideLoadingScreen] hiddenクラス追加後:', {
+                    hasHidden: loadingScreen.classList.contains('hidden'),
+                    computedOpacity: window.getComputedStyle(loadingScreen).opacity
+                });
+                
                 setTimeout(() => {
+                    console.log('[hideLoadingScreen] 800ms後: loadingScreenを削除します');
                     if (loadingScreen.parentNode) {
                         loadingScreen.parentNode.removeChild(loadingScreen);
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:208',message:'hideLoadingScreen: loadingScreen削除',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                        // #endregion
+                        console.log('[hideLoadingScreen] loadingScreenを削除しました');
+                    } else {
+                        console.warn('[hideLoadingScreen] loadingScreenのparentNodeが見つかりません');
                     }
                 }, 800);
             } else {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:212',message:'hideLoadingScreen: loadingScreenが見つからない、または既にhidden',data:{hasLoadingScreen:!!loadingScreen,isHidden:loadingScreen?.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
+                if (!loadingScreen) {
+                    console.warn('[hideLoadingScreen] loadingScreen要素が見つかりません');
+                } else {
+                    console.warn('[hideLoadingScreen] loadingScreenは既にhiddenクラスが付いています');
+                }
             }
         };
     })();
