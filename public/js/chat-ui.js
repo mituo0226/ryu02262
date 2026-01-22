@@ -102,7 +102,10 @@ const ChatUI = {
             this.userStatus.className = 'user-status registered';
             if (this.mobileHeaderInfo) {
                 this.mobileHeaderInfo.textContent = '鑑定者';
-                console.log('[ChatUI] モバイルヘッダーに「鑑定者」を表示しました');
+                console.log('[ChatUI] モバイルヘッダーに「鑑定者」を表示しました:', {
+                    element: this.mobileHeaderInfo,
+                    elementVisible: this.mobileHeaderInfo.offsetHeight > 0
+                });
             }
             return;
         }
@@ -133,14 +136,16 @@ const ChatUI = {
         if (this.mobileHeaderInfo) {
             let mobileInfoText = nickname;
             if (deity && deity !== '未割当') {
-                mobileInfoText += `\n守護: ${deity}`;
+                // 改行ではなく、スペース区切りで表示
+                mobileInfoText += ` / ${deity}`;
             }
             this.mobileHeaderInfo.textContent = mobileInfoText;
             console.log('[ChatUI] モバイルヘッダーにユーザー情報を表示しました:', {
                 nickname,
                 deity,
                 mobileInfoText,
-                element: this.mobileHeaderInfo
+                element: this.mobileHeaderInfo,
+                elementVisible: this.mobileHeaderInfo.offsetHeight > 0
             });
         } else {
             console.warn('[ChatUI] #mobileHeaderInfo要素が見つかりません');
