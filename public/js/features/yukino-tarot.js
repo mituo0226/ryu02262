@@ -615,7 +615,11 @@
             });
             
             // ユーザー情報を取得
-            const urlParams = new URLSearchParams(window.location.search);
+            // グローバルスコープのurlParamsを使用
+            if (!window._chatUrlParams) {
+                window._chatUrlParams = new URLSearchParams(window.location.search);
+            }
+            const urlParams = window._chatUrlParams;
             let userId = null;
             const userIdParam = urlParams.get('userId');
             if (userIdParam) {
@@ -831,7 +835,11 @@ ${cardNames}
             });
             
             // ユーザー情報を取得
-            const urlParams = new URLSearchParams(window.location.search);
+            // グローバルスコープのurlParamsを使用
+            if (!window._chatUrlParams) {
+                window._chatUrlParams = new URLSearchParams(window.location.search);
+            }
+            const urlParams = window._chatUrlParams;
             let userId = null;
             const userIdParam = urlParams.get('userId');
             if (userIdParam) {

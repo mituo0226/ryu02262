@@ -62,7 +62,11 @@ const ChatAPI = {
         
         // userInfoから取得できない場合、URLパラメータから取得（フォールバック）
         if (!userId) {
-            const urlParams = new URLSearchParams(window.location.search);
+            // グローバルスコープのurlParamsを使用
+            if (!window._chatUrlParams) {
+                window._chatUrlParams = new URLSearchParams(window.location.search);
+            }
+            const urlParams = window._chatUrlParams;
             const userIdParam = urlParams.get('userId');
             console.log('[loadConversationHistory] URLパラメータからuserIdを取得（フォールバック）:', userIdParam);
             if (userIdParam && userIdParam.trim() !== '') {
@@ -1363,7 +1367,11 @@ const ChatInit = {
         this._initPageRunning = true;
         
         // 【追加】userIdがURLパラメータにある場合、エントリーフォームを非表示にしてチャットコンテナを表示
-        const urlParams = new URLSearchParams(window.location.search);
+        // グローバルスコープのurlParamsを使用
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        const urlParams = window._chatUrlParams;
         const userId = urlParams.get('userId');
         if (userId) {
             const entryFormContainer = document.getElementById('entryFormContainer');
@@ -3771,7 +3779,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     // deferにより確実に読み込まれるため、直接初期化を実行
     
     // アニメーションページからの復帰を検知
-    const urlParams = new URLSearchParams(window.location.search);
+    // グローバルスコープのurlParamsを使用
+    if (!window._chatUrlParams) {
+        window._chatUrlParams = new URLSearchParams(window.location.search);
+    }
+    const urlParams = window._chatUrlParams;
     const isTransitionComplete = urlParams.get('transition') === 'complete';
     
     if (isTransitionComplete) {
