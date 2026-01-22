@@ -7,53 +7,27 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>鑑定士チャット</title>
     
-    <!-- userIdパラメータがある場合は即座にbodyに属性を追加 -->
-    <script>
-    (function() {
-        // グローバルスコープで一度だけurlParamsを作成
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
-        const userId = urlParams.get('userId');
-        if (userId) {
-            // userIdがある場合、即座にエントリーフォームを非表示にしてチャットコンテナを表示
-            function hideEntryFormAndShowChat() {
-                const entryFormContainer = document.getElementById('entryFormContainer');
-                const chatContainer = document.getElementById('chatContainer');
-                if (entryFormContainer && chatContainer) {
-                    entryFormContainer.classList.add('entry-form-hidden');
-                    chatContainer.classList.remove('entry-form-hidden');
-                    console.log('[初期スクリプト] userIdがあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
-                }
-            }
-            
-            if (document.body) {
-                document.body.setAttribute('data-user-id', userId);
-                hideEntryFormAndShowChat();
-            } else {
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', function() {
-                        document.body.setAttribute('data-user-id', userId);
-                        hideEntryFormAndShowChat();
-                    }, { once: true });
-                } else {
-                    setTimeout(function() {
-                        if (document.body) {
-                            document.body.setAttribute('data-user-id', userId);
-                            hideEntryFormAndShowChat();
-                        }
-                    }, 0);
-                }
-            }
-        }
-    })();
-    </script>
-    
     <link rel="stylesheet" href="../../css/chat.css">
 </head>
 <body>
-    <!-- 待機画面 -->
+    <!-- URLパラメータの統一初期化と body[data-user-id] 属性設定 -->
+    <script>
+    (function() {
+        'use strict';
+        // 単一のグローバルURLパラメータキャッシュを作成
+        if (!window._chatUrlParams) {
+            window._chatUrlParams = new URLSearchParams(window.location.search);
+        }
+        
+        // ✅ userId パラメータを取得して body に属性を設定
+        // CSSで data-user-id 属性が使用されているため、必須
+        const userId = window._chatUrlParams.get('userId');
+        if (userId) {
+            document.body.setAttribute('data-user-id', userId);
+            console.log('[初期化] body[data-user-id] 属性を設定しました:', userId);
+        }
+    })();
+    </script>
     <div class="loading-screen" id="loadingScreen">
         <img id="loadingCharacterIcon" class="loading-character-icon" src="" alt="読み込み中" style="display: none;">
         <div class="loading-spinner"></div>
@@ -64,7 +38,7 @@
     <!-- モバイルヘッダー -->
     <div class="mobile-header" id="mobileHeader">
         <div class="mobile-header-content">
-            <a href="../main.html" class="mobile-header-back">≪</a>
+            <a href="../main.html" class="mobile-header-back" aria-label="前のページへ戻る">≪</a>
             <div class="mobile-header-title" id="mobileHeaderTitle">鑑定士</div>
         </div>
     </div>
@@ -72,37 +46,40 @@
     <main>
         <!-- 入口フォーム -->
         <div class="entry-form-container" id="entryFormContainer">
-            <form class="entry-form" id="entryForm">
+            <form class="entry-form" id="entryForm" aria-label="鑑定フォーム">
                 <h2 class="entry-form-title">鑑定を始める</h2>
-                <div class="entry-form-error" id="entryFormError"></div>
+                <div class="entry-form-error" id="entryFormError" role="alert" aria-live="polite"></div>
                 
                 <div class="entry-form-group">
-                    <label class="entry-form-label">
-                        ニックネーム<span class="required">*</span>
+                    <label class="entry-form-label" for="entryNickname">
+                        ニックネーム<span class="required" aria-label="必須項目">*</span>
                     </label>
-                    <input type="text" class="entry-form-input" id="entryNickname" name="nickname" required maxlength="50" placeholder="鑑定で使用する名前を入力">
+                    <input type="text" class="entry-form-input" id="entryNickname" name="nickname" required maxlength="50" placeholder="鑑定で使用する名前を入力" aria-required="true">
                 </div>
                 
                 <div class="entry-form-group">
                     <label class="entry-form-label">
-                        生年月日<span class="required">*</span>
+                        生年月日<span class="required" aria-label="必須項目">*</span>
                     </label>
                     <div class="entry-form-row">
                         <div class="entry-form-group">
-                            <input type="number" class="entry-form-input" id="entryBirthYear" name="birthYear" required min="1900" max="2100" placeholder="年">
+                            <label for="entryBirthYear" class="sr-only">生まれた年</label>
+                            <input type="number" class="entry-form-input" id="entryBirthYear" name="birthYear" required min="1900" max="2100" placeholder="年" aria-label="生年（年）" aria-required="true">
                         </div>
                         <div class="entry-form-group">
-                            <input type="number" class="entry-form-input" id="entryBirthMonth" name="birthMonth" required min="1" max="12" placeholder="月">
+                            <label for="entryBirthMonth" class="sr-only">生まれた月</label>
+                            <input type="number" class="entry-form-input" id="entryBirthMonth" name="birthMonth" required min="1" max="12" placeholder="月" aria-label="生年（月）" aria-required="true">
                         </div>
                         <div class="entry-form-group">
-                            <input type="number" class="entry-form-input" id="entryBirthDay" name="birthDay" required min="1" max="31" placeholder="日">
+                            <label for="entryBirthDay" class="sr-only">生まれた日</label>
+                            <input type="number" class="entry-form-input" id="entryBirthDay" name="birthDay" required min="1" max="31" placeholder="日" aria-label="生年（日）" aria-required="true">
                         </div>
                     </div>
                 </div>
                 
                 <div class="entry-form-group">
-                    <label class="entry-form-label">性別</label>
-                    <select class="entry-form-select" id="entryGender" name="gender">
+                    <label class="entry-form-label" for="entryGender">性別</label>
+                    <select class="entry-form-select" id="entryGender" name="gender" aria-label="性別">
                         <option value="">回答しない</option>
                         <option value="male">男性</option>
                         <option value="female">女性</option>
@@ -124,21 +101,21 @@
             
             <!-- ナビゲーション -->
             <div class="navigation-links">
-                <a href="../main.html">鑑定師一覧に戻る</a>
+                <a href="../main.html" aria-label="鑑定師一覧に戻る">鑑定師一覧に戻る</a>
             </div>
             
             <!-- ユーザーステータス -->
-            <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
+            <div class="user-status" id="userStatus" role="status" aria-live="polite">利用者情報を読み込んでいます...</div>
             
             <!-- メッセージ表示エリア -->
-            <div class="messages" id="messages"></div>
+            <div class="messages" id="messages" role="log" aria-live="polite" aria-label="チャット履歴"></div>
 
             <!-- 入力エリア -->
             <div class="input-area">
                 <div class="input-row">
-                    <textarea id="messageInput" placeholder="メッセージを入力" rows="1" maxlength="1000"></textarea>
-                    <button id="sendButton" onclick="sendMessage()" title="送信">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <textarea id="messageInput" placeholder="メッセージを入力" rows="1" maxlength="1000" aria-label="メッセージ入力"></textarea>
+                    <button id="sendButton" onclick="sendMessage()" title="送信" aria-label="メッセージを送信">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
                     </button>
@@ -151,7 +128,7 @@
     <div class="admin-analysis-panel hidden" id="adminAnalysisPanel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; font-size: 18px; color: #f7f5ff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;">会話分析パネル</h3>
-            <button id="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer;">🔄 更新</button>
+            <button id="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer;" aria-label="分析パネルを更新">🔄 更新</button>
         </div>
         <div class="analysis-section">
             <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">現在の状態</h4>
@@ -277,18 +254,28 @@
     <!-- スクリプト読み込み -->
     <script src="../../js/auth-state.js" defer></script>
     <script src="../../js/character-features.js" defer></script>
-    <script src="../../js/chat-engine.js" defer onload="window.chatEngineLoaded = true;"></script>
+    <script id="chatEngineScript" src="../../js/chat-engine.js" defer></script>
     <script src="../../js/character-registry.js" defer></script>
     <script src="../../js/character-loader.js" defer></script>
+    
+    <!-- chat-engine.js読み込み完了検知 -->
+    <script>
+    (function() {
+        'use strict';
+        const chatEngineScript = document.getElementById('chatEngineScript');
+        if (chatEngineScript) {
+            chatEngineScript.addEventListener('load', function() {
+                window.chatEngineLoaded = true;
+                console.log('[chat-engine] スクリプト読み込み完了');
+            });
+        }
+    })();
+    </script>
     
     <!-- ハンドラーの動的読み込み -->
     <script>
     (async function() {
         'use strict';
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
         const urlParams = window._chatUrlParams;
         const characterId = urlParams.get('character');
         if (characterId) {
@@ -299,7 +286,13 @@
                 attempts++;
             }
             if (window.CharacterLoader) {
-                await CharacterLoader.loadHandler(characterId);
+                try {
+                    await CharacterLoader.loadHandler(characterId);
+                } catch (error) {
+                    console.error('[CharacterLoader] ハンドラー読み込みエラー:', error);
+                }
+            } else {
+                console.error('[CharacterLoader] タイムアウト: CharacterLoaderが読み込まれませんでした（試行: ' + attempts + '回）');
             }
         }
     })();
@@ -309,13 +302,12 @@
     <script>
     (function() {
         'use strict';
+        let readyNotificationSent = false;
+        
         function sendReadyNotification() {
+            if (readyNotificationSent) return;
             if (!window.parent || window.parent === window) return;
             try {
-                // グローバルスコープのurlParamsを使用
-                if (!window._chatUrlParams) {
-                    window._chatUrlParams = new URLSearchParams(window.location.search);
-                }
                 const urlParams = window._chatUrlParams;
                 const character = urlParams.get('character') || 'unknown';
                 window.parent.postMessage({
@@ -325,19 +317,20 @@
                     timestamp: Date.now(),
                     ready: true
                 }, '*');
+                readyNotificationSent = true;
+                console.log('[iframe] 準備完了通知を送信しました');
             } catch (error) {
                 console.error('[iframe] 通知送信エラー:', error);
             }
         }
+        
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(sendReadyNotification, 100));
+            document.addEventListener('DOMContentLoaded', () => setTimeout(sendReadyNotification, 100), { once: true });
         } else {
             setTimeout(sendReadyNotification, 100);
         }
         if (document.readyState !== 'complete') {
-            window.addEventListener('load', () => setTimeout(sendReadyNotification, 100));
-        } else {
-            setTimeout(sendReadyNotification, 100);
+            window.addEventListener('load', () => setTimeout(sendReadyNotification, 100), { once: true });
         }
     })();
     </script>
@@ -346,18 +339,14 @@
     <script>
     (function() {
         'use strict';
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
         const urlParams = window._chatUrlParams;
         const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
         if (isAdminMode) {
             document.body.classList.add('admin-mode');
             const analysisPanel = document.getElementById('adminAnalysisPanel');
             if (analysisPanel) analysisPanel.classList.remove('hidden');
+            console.log('[admin] 管理者モードが有効になっています');
         }
-        // 管理者モードの詳細な処理は既存のスクリプトに任せる
     })();
     </script>
     

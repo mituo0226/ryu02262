@@ -339,7 +339,7 @@
                     if (userId) {
                         apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(validatedCharacter)}`;
                     } else {
-                        // userIdがない場合は、nickname+生年月日が必要なため、API呼び出しをスキップ
+                        // userIdがない場合は、API呼び出しをスキップ
                         console.log('[back.html] userIdがないため、API呼び出しをスキップします');
                         userDataReady = true;
                         return null;
@@ -350,13 +350,9 @@
                         const responseText = await response.text();
                         if (responseText) {
                             const data = JSON.parse(responseText);
-                            // sessionStorageに保存（チャット画面で使用するため）
-                            sessionStorage.setItem('preloadedUserData', JSON.stringify({
-                                character: validatedCharacter,
-                                data: data,
-                                timestamp: Date.now()
-                            }));
-                            console.log('[back.html] ユーザー情報を取得して保存しました:', data.nickname);
+                            // 【削除】sessionStorageへの保存は不要（データベースベース統一のため）
+                            // すべてのユーザー情報はCloudflareのデータベースから直接取得
+                            console.log('[back.html] ユーザー情報を取得しました:', data.nickname);
                             userDataReady = true;
                             return data;
                         }
