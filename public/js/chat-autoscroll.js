@@ -1,5 +1,5 @@
 /**
- * チャット画面のオートスクロール機能
+ * チャット画面のオートスクロール機能（LINE風）
  * PC、Mobile、iPhone、Androidすべてで適切に動作するように実装
  */
 
@@ -14,7 +14,7 @@
     let isInitialized = false;
     
     /**
-     * メッセージエリアの最下部へスクロール
+     * メッセージエリアの最下部へスクロール（LINE風の滑らかな動作）
      * @param {boolean} smooth - スムーズスクロールを使用するか
      * @param {number} delay - 遅延時間（ミリ秒）
      */
@@ -30,17 +30,29 @@
                 
                 // 既に最下部付近にいる場合はスクロールしない（ユーザーが手動スクロール中の場合）
                 const currentScroll = messagesDiv.scrollTop;
-                const threshold = 100; // 100px以内なら最下部とみなす
+                const threshold = 150; // 150px以内なら最下部とみなす（LINE風）
                 
-                if (!isUserScrolling || (maxScroll - currentScroll) <= threshold) {
-                    if (smooth) {
-                        messagesDiv.scrollTo({
-                            top: scrollHeight,
-                            behavior: 'smooth'
-                        });
-                    } else {
-                        messagesDiv.scrollTop = scrollHeight;
-                    }
+                // ユーザーが手動スクロール中で、かつ最下部から離れている場合はスクロールしない
+                if (isUserScrolling && (maxScroll - currentScroll) > threshold) {
+                    return;
+                }
+                
+                // LINE風の滑らかなスクロール
+                if (smooth) {
+                    // 複数回スクロールを試みる（DOM更新のタイミングを考慮）
+                    messagesDiv.scrollTo({
+                        top: scrollHeight,
+                        behavior: 'smooth'
+                    });
+                    // 念のため、少し遅れて再度スクロール
+                    setTimeout(() => {
+                        if (messagesDiv) {
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
+                    }, 100);
+                } else {
+                    // 即座にスクロール（アニメーションなし）
+                    messagesDiv.scrollTop = scrollHeight;
                 }
             } catch (error) {
                 // scrollToが使えない場合はscrollTopを使用
@@ -55,9 +67,11 @@
         if (delay > 0) {
             setTimeout(scroll, delay);
         } else {
-            // requestAnimationFrameを使用してより確実にスクロール
+            // requestAnimationFrameを使用してより確実にスクロール（LINE風）
             requestAnimationFrame(() => {
-                requestAnimationFrame(scroll);
+                requestAnimationFrame(() => {
+                    scroll();
+                });
             });
         }
     }
@@ -92,7 +106,38 @@
     }
     
     /**
-     * メッセージが追加されたときの処理
+     * メッセージエリアのパディングを入力エリアの高さに応じて動的に調整
+     */
+    function adjustMessagesPadding() {
+        if (!messagesDiv) return;
+        
+        const inputArea = document.querySelector('.input-area');
+        if (!inputArea) return;
+        
+        // 入力エリアの高さを取得
+        const inputAreaHeight = inputArea.offsetHeight;
+        
+        // モバイルの場合
+        if (window.innerWidth <= 768) {
+            // 入力エリアの高さ + 余白（20px）
+            const paddingBottom = inputAreaHeight + 20;
+            messagesDiv.style.paddingBottom = `${paddingBottom}px`;
+        } else {
+            // PC版も入力エリアの高さに応じて調整（より柔軟に）
+            const paddingBottom = inputAreaHeight + 18;
+            messagesDiv.style.paddingBottom = `${paddingBottom}px`;
+        }
+        
+        // パディング調整後、最下部にスクロール（ユーザーが手動スクロール中でない場合）
+        if (!isUserScrolling) {
+            setTimeout(() => {
+                scrollToBottom(true, 0);
+            }, 50);
+        }
+    }
+    
+    /**
+     * メッセージが追加されたときの処理（LINE風の自動スクロール）
      */
     function handleMessageAdded() {
         if (!messagesDiv) return;
@@ -103,8 +148,12 @@
         const scrollTop = messagesDiv.scrollTop;
         const threshold = 200; // 200px以内なら最下部とみなす
         
+        // メッセージエリアのパディングを調整
+        adjustMessagesPadding();
+        
         if (!isUserScrolling || (scrollHeight - clientHeight - scrollTop) <= threshold) {
-            // 複数回スクロールを試みる（DOM更新のタイミングを考慮）
+            // LINE風の滑らかなスクロール（複数回試行）
+            scrollToBottom(true, 0);
             scrollToBottom(true, 50);
             scrollToBottom(true, 150);
             scrollToBottom(true, 300);
@@ -112,14 +161,36 @@
     }
     
     /**
-     * 入力エリアにフォーカスしたときの処理
+     * 入力エリアにフォーカスしたときの処理（キーボード表示時）
      */
     function handleInputFocus() {
-        // キーボード表示時のスクロール調整
+        // キーボード表示時のスクロール調整（LINE風）
+        // 複数回スクロールを試みる（キーボードの表示アニメーションに合わせる）
         setTimeout(() => {
-            scrollToBottom(true, 100);
-            scrollToBottom(true, 300);
+            scrollToBottom(true, 0);
         }, 100);
+        setTimeout(() => {
+            scrollToBottom(true, 0);
+        }, 300);
+        setTimeout(() => {
+            scrollToBottom(true, 0);
+        }, 500);
+        
+        // メッセージエリアのパディングを調整（入力エリアの高さに応じて）
+        adjustMessagesPadding();
+    }
+    
+    /**
+     * 入力エリアからフォーカスが外れたときの処理
+     */
+    function handleInputBlur() {
+        // キーボード非表示時のスクロール調整
+        setTimeout(() => {
+            scrollToBottom(true, 0);
+        }, 100);
+        
+        // メッセージエリアのパディングを調整
+        adjustMessagesPadding();
     }
     
     /**
@@ -127,6 +198,7 @@
      */
     function handleResize() {
         // リサイズ後、最下部にスクロール
+        adjustMessagesPadding();
         setTimeout(() => {
             if (!isUserScrolling) {
                 scrollToBottom(false, 100);
@@ -181,10 +253,24 @@
             subtree: true
         });
         
-        // 入力エリアのフォーカスイベント
+        // 入力エリアのフォーカス/ブラーイベント
         const messageInput = document.getElementById('messageInput');
         if (messageInput) {
             messageInput.addEventListener('focus', handleInputFocus, { passive: true });
+            messageInput.addEventListener('blur', handleInputBlur, { passive: true });
+            // 入力中の高さ変化を監視（複数行入力対応）
+            messageInput.addEventListener('input', () => {
+                adjustMessagesPadding();
+            }, { passive: true });
+        }
+        
+        // 入力エリアの高さ変化を監視（ResizeObserver）
+        const inputArea = document.querySelector('.input-area');
+        if (inputArea && window.ResizeObserver) {
+            const inputAreaResizeObserver = new ResizeObserver(() => {
+                adjustMessagesPadding();
+            });
+            inputAreaResizeObserver.observe(inputArea);
         }
         
         // ウィンドウリサイズイベント
@@ -202,11 +288,22 @@
         
         // 初期スクロール（既存のメッセージがある場合）
         setTimeout(() => {
-            scrollToBottom(false, 100);
+            adjustMessagesPadding();
+            scrollToBottom(false, 0);
         }, 200);
         
+        // ビューポートの高さ変化を監視（キーボード表示/非表示）
+        if (window.VisualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                adjustMessagesPadding();
+                if (!isUserScrolling) {
+                    scrollToBottom(true, 100);
+                }
+            });
+        }
+        
         isInitialized = true;
-        console.log('[オートスクロール] 初期化完了');
+        console.log('[オートスクロール] 初期化完了（LINE風）');
     }
     
     /**

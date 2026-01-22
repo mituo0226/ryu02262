@@ -13,43 +13,38 @@
 }
 
 /* ============================================
-   基本レイアウト
+   基本レイアウト（画面いっぱいに表示）
    ============================================ */
 html {
     height: 100%;
-    height: 100vh; /* ウィンドウの高さいっぱいに表示 */
     width: 100%;
+    overflow: hidden;
     -webkit-overflow-scrolling: touch;
 }
 
 body {
     font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     margin: 0;
+    padding: 0;
     height: 100%;
-    height: 100vh; /* ウィンドウの高さいっぱいに表示 */
     width: 100%;
-    min-height: 100vh; /* 最小高さを確保 */
     background: var(--bg-gradient);
-    display: flex;
-    flex-direction: column; /* 縦方向に配置 */
-    padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
     color: var(--text-light);
-    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     opacity: 0;
     transition: opacity 1s ease-in;
 }
 
-/* 【重要】userIdパラメータがある場合、bodyを即座に表示（CSSだけで制御） */
 body[data-user-id] {
     opacity: 1 !important;
 }
 
-/* 【重要】userIdパラメータがある場合、チャット画面を即座に表示（CSSだけで制御） */
 body[data-user-id] .chat-container.entry-form-hidden {
     display: flex !important;
 }
 
-/* 【重要】userIdパラメータがある場合、エントリーフォームを非表示（CSSだけで制御） */
 body[data-user-id] #entryFormContainer:not(.entry-form-hidden) {
     display: none !important;
 }
@@ -58,87 +53,18 @@ body.fade-in {
     opacity: 1;
 }
 
-/* ============================================
-   守護神のメッセージ待機中のローディングアニメーション
-   ============================================ */
-@keyframes guardian-breathe {
-    0%, 100% {
-        transform: scale(0.9);
-        opacity: 0.75;
-        box-shadow: 
-            0 0 12px rgba(138, 43, 226, 0.4),
-            inset 0 0 12px rgba(138, 43, 226, 0.6);
-    }
-    50% {
-        transform: scale(1.08);
-        opacity: 1;
-        box-shadow: 
-            0 0 24px rgba(255, 215, 0, 0.8),
-            0 0 40px rgba(138, 43, 226, 0.6),
-            inset 0 0 20px rgba(255, 215, 0, 0.4);
-    }
-}
-
-@keyframes guardian-mystic-glow-text {
-    0%, 100% {
-        text-shadow: 
-            0 0 10px rgba(255, 215, 0, 0.8),
-            0 0 20px rgba(138, 43, 226, 0.6),
-            0 0 30px rgba(255, 107, 157, 0.4);
-        opacity: 0.85;
-    }
-    50% {
-        text-shadow: 
-            0 0 20px rgba(255, 215, 0, 1),
-            0 0 40px rgba(138, 43, 226, 0.9),
-            0 0 60px rgba(255, 107, 157, 0.7),
-            0 0 80px rgba(196, 69, 105, 0.5);
-        opacity: 1;
-        color: #ffed4e;
-    }
-}
-
-@keyframes guardian-mystic-shimmer {
-    0%, 100% {
-        color: #ffd700;
-    }
-    33% {
-        color: #ff6b9d;
-    }
-    66% {
-        color: #c44569;
-    }
-}
-
-.message.loading-message {
-    animation: guardian-mystic-float-message 4s ease-in-out infinite;
-}
-
-@keyframes guardian-mystic-float-message {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-3px);
-    }
-}
-
 main {
-    width: 100%;
-    max-width: 100%; /* 画面いっぱいに表示 */
-    flex: 1 1 0; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
-    min-height: 0; /* flexboxの子要素が正しく縮小するように */
+    flex: 1 1 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
-    box-sizing: border-box;
-    height: 100%; /* 親要素の高さいっぱいに広がる */
+    width: 100%;
+    height: 100%;
 }
 
-/* 管理者モード: チャットと分析パネルを横並び */
+/* 管理者モード */
 body.admin-mode main {
-    max-width: 100%;
     flex-direction: row;
     gap: 20px;
     padding: 0 20px;
@@ -151,80 +77,37 @@ body.admin-mode .chat-container {
 }
 
 /* ============================================
-   ナビゲーション
+   チャットコンテナ（画面いっぱいに表示）
    ============================================ */
-.navigation-links {
+.chat-container {
+    position: relative;
+    background: var(--bg-gradient);
+    flex: 1 1 0;
+    min-height: 0;
     display: flex;
-    gap: 10px;
-    margin-bottom: 0; /* gapを削除したのでmarginも削除 */
-    margin-left: 18px; /* 左側に余白を追加 */
-    margin-right: 18px; /* 右側に余白を追加 */
-    flex-wrap: wrap;
-    justify-content: center;
-    flex-shrink: 0; /* ナビゲーションは固定サイズ */
+    flex-direction: column;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
 }
 
-.navigation-links a {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 12px 24px;
-    background: rgba(139, 61, 255, 0.2);
-    color: var(--text-light);
-    text-decoration: none;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(139, 61, 255, 0.4);
-    min-width: 180px;
-    max-width: 100%;
-}
-
-.navigation-links a:hover {
-    background: rgba(139, 61, 255, 0.3);
-    border-color: rgba(139, 61, 255, 0.6);
-}
-
-.navigation-links a:active {
-    transform: scale(0.97);
+.entry-form-hidden {
+    display: none;
 }
 
 /* ============================================
-   チャットコンテナ
+   PC版ヘッダー
    ============================================ */
-.chat-container {
-    position: relative; /* 待機画面の基準位置として */
-    background: var(--bg-gradient);
-    border-radius: 0; /* PC版でも角丸を削除して画面いっぱいに */
-    padding: 0; /* PC版でもpaddingを削除して画面いっぱいに */
-    box-shadow: none;
-    border: none;
-    flex: 1 1 0; /* mainのflex子要素として高さを最大限に使用（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
-    min-height: 0; /* flexboxの子要素が正しく縮小するように */
-    display: flex;
-    flex-direction: column;
-    gap: 0; /* gapを削除してチャット表示エリアを最大限に広げる */
-    overflow: hidden;
-    box-sizing: border-box; /* paddingを含めた高さ計算 */
-    width: 100%; /* 画面いっぱいに表示 */
-    height: 100%; /* 親要素の高さいっぱいに広がる */
-}
-
-/* キャラクターヘッダー（PC版） */
 .character-header {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin-bottom: 0; /* gapを削除したのでmarginも削除 */
-    margin-top: 18px; /* 上部に余白を追加 */
-    margin-left: 18px; /* 左側に余白を追加 */
-    margin-right: 18px; /* 右側に余白を追加 */
+    margin: 18px 18px 0 18px;
     padding: 12px 16px;
     background: rgba(75, 0, 130, 0.3);
     border-radius: 16px;
-    flex-shrink: 0; /* ヘッダーは固定サイズ */
+    flex-shrink: 0;
 }
 
 .character-header-image {
@@ -241,12 +124,46 @@ body.admin-mode .chat-container {
     color: var(--text-light);
 }
 
-@media (max-width: 768px) {
-    .character-header {
-        display: none;
-    }
+/* ============================================
+   ナビゲーション
+   ============================================ */
+.navigation-links {
+    display: flex;
+    gap: 10px;
+    margin: 0 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
+.navigation-links a {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 24px;
+    background: rgba(139, 61, 255, 0.2);
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(139, 61, 255, 0.4);
+    min-width: 180px;
+}
+
+.navigation-links a:hover {
+    background: rgba(139, 61, 255, 0.3);
+    border-color: rgba(139, 61, 255, 0.6);
+}
+
+.navigation-links a:active {
+    transform: scale(0.97);
+}
+
+/* ============================================
+   ユーザーステータス
+   ============================================ */
 .user-status {
     background: rgba(75, 0, 130, 0.2);
     color: var(--text-light);
@@ -257,10 +174,8 @@ body.admin-mode .chat-container {
     border: 1px solid rgba(139, 61, 255, 0.2);
     line-height: 1.6;
     word-break: break-word;
-    flex-shrink: 0; /* プロフィールは固定サイズ */
-    margin-bottom: 0; /* gapを削除したのでmarginも削除 */
-    margin-left: 18px; /* 左側に余白を追加 */
-    margin-right: 18px; /* 右側に余白を追加 */
+    flex-shrink: 0;
+    margin: 0 18px;
 }
 
 .user-status.guest {
@@ -284,6 +199,254 @@ body.admin-mode .chat-container {
 }
 
 /* ============================================
+   メッセージエリア（最重要：画面いっぱいに広がる）
+   ============================================ */
+.messages {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px 18px;
+    padding-bottom: calc(18px + 80px); /* 入力エリアの高さ分の余白 */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    /* LINE風のスクロール動作 */
+    scroll-padding-bottom: 20px;
+}
+
+.message {
+    padding: 12px 16px;
+    border-radius: 20px;
+    animation: fadeIn 0.25s ease;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    font-size: 15px;
+    max-width: 92%;
+    word-break: break-word;
+    position: relative;
+    /* LINE風のメッセージ表示 */
+    box-sizing: border-box;
+    /* メッセージ間のスペースを確保 */
+    margin-bottom: 2px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+    margin-left: auto;
+    background: var(--user-bubble);
+    color: var(--text-on-primary);
+    border-bottom-right-radius: 6px;
+    box-shadow: var(--shadow-sm);
+    /* LINE風のユーザーメッセージ */
+    margin-right: 0;
+}
+
+.message.character {
+    margin-right: auto;
+    background: rgba(75, 0, 130, 0.9) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-bottom-left-radius: 6px;
+    box-shadow: none !important;
+    /* LINE風のキャラクターメッセージ */
+    margin-left: 0;
+}
+
+.message.welcome {
+    margin-right: auto;
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.message.error {
+    background: transparent;
+    color: #ff6b7d;
+    border: none;
+}
+
+.message.loading {
+    background: transparent;
+    border: none;
+    text-align: center;
+    color: var(--text-light);
+    font-weight: 600;
+    animation: loadingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.message-header {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    opacity: 0.85;
+}
+
+.message.user .message-header {
+    color: #b794ff !important;
+}
+
+.message.character .message-header {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ============================================
+   入力エリア（フッター：固定）
+   ============================================ */
+.input-area {
+    flex-shrink: 0;
+    background: rgba(75, 0, 130, 0.95);
+    padding: 18px;
+    z-index: 10;
+    /* モバイルでのキーボード表示時の挙動を改善 */
+    position: relative;
+    /* 影を追加して入力エリアを明確に */
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.input-area textarea {
+    flex: 1;
+    padding: 14px 18px;
+    border: 1px solid #ffffff;
+    border-radius: 999px;
+    font-size: 16px;
+    background: transparent;
+    color: var(--text-light);
+    resize: none;
+    line-height: 1.5;
+    min-height: 46px;
+    max-height: 46px;
+    overflow: hidden;
+    font-family: inherit;
+}
+
+.input-area textarea::placeholder {
+    color: #ffffff;
+    opacity: 1.0;
+}
+
+.input-area textarea:focus {
+    outline: none;
+    border: 1px solid #ffffff;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-light);
+}
+
+.input-area button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.input-area button.visible {
+    display: flex;
+    opacity: 1;
+    transform: scale(1);
+}
+
+.input-area button:active {
+    transform: scale(0.95);
+}
+
+.input-area button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.input-area button svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+/* ============================================
+   モバイルヘッダー
+   ============================================ */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: transparent;
+}
+
+.mobile-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: rgba(75, 0, 130, 0.9);
+}
+
+.mobile-header-back {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #ffffff;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    text-decoration: none;
+}
+
+.mobile-header-title {
+    flex: 1;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mobile-header-title img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: none;
+}
+
+/* ============================================
    入口フォーム
    ============================================ */
 .entry-form-container {
@@ -293,9 +456,9 @@ body.admin-mode .chat-container {
     justify-content: center;
     min-height: 100%;
     padding: 20px;
+    width: 100%;
 }
 
-/* userIdパラメータがある場合は、API呼び出し完了まで非表示 */
 .entry-form-container.loading {
     display: none;
 }
@@ -410,488 +573,6 @@ body.admin-mode .chat-container {
     display: block;
 }
 
-.entry-form-hidden {
-    display: none;
-}
-
-/* ============================================
-   メッセージエリア
-   ============================================ */
-.messages {
-    flex: 1 1 0; /* チャット表示エリアを最大限に広げる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
-    overflow-y: auto !important; /* PC/モバイル共に確実にスクロール可能にする */
-    overflow-x: hidden;
-    border-radius: 0;
-    padding: 18px 12px;
-    padding-top: 24px;
-    padding-bottom: 200px; /* 入力エリアの高さ + 十分な余白を確保 */
-    padding-left: 18px; /* PC版で左側に余白を追加 */
-    padding-right: 18px; /* PC版で右側に余白を追加 */
-    background: transparent;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: relative;
-    -webkit-overflow-scrolling: touch; /* モバイルのスムーズスクロール */
-    overscroll-behavior: contain; /* スクロールチェーンの制御 */
-    min-height: 0; /* flexboxの子要素が正しく縮小するように（重要：overflowを機能させるために必須） */
-}
-
-.message {
-    padding: 12px 16px;
-    border-radius: 20px;
-    animation: fadeIn 0.25s ease;
-    white-space: pre-wrap;
-    line-height: 1.6;
-    font-size: 15px;
-    max-width: 92%;
-    word-break: break-word;
-    position: relative;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.message.user {
-    margin-left: auto;
-    background: var(--user-bubble);
-    color: var(--text-on-primary);
-    border-bottom-right-radius: 6px;
-    box-shadow: var(--shadow-sm);
-}
-
-.message.character,
-div.message.character,
-.messages .message.character {
-    margin-right: auto;
-    background: rgba(75, 0, 130, 0.9) !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-bottom-left-radius: 6px;
-    box-shadow: none !important;
-}
-
-.message.welcome {
-    margin-right: auto;
-    background: transparent;
-    border: none;
-    color: var(--text-light);
-    font-weight: 500;
-}
-
-.message.error {
-    background: transparent;
-    color: #ff6b7d;
-    border: none;
-}
-
-.message.loading {
-    background: transparent;
-    border: none;
-    text-align: center;
-    color: var(--text-light);
-    font-weight: 600;
-    animation: loadingPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes loadingPulse {
-    0%, 100% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 1;
-    }
-}
-
-.message-header {
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    opacity: 0.85;
-}
-
-.message.user .message-header {
-    color: #b794ff !important;
-}
-
-.message.character .message-header {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* ============================================
-   モバイルヘッダー
-   ============================================ */
-.mobile-header {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    background: transparent;
-}
-
-.mobile-header-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px;
-    background: rgba(75, 0, 130, 0.9);
-    border-bottom: none;
-    position: relative;
-}
-
-.mobile-header-back {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #ffffff;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    text-decoration: none;
-}
-
-.mobile-header-title {
-    flex: 1;
-    text-align: center;
-    font-size: 18px;
-    font-weight: 600;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.mobile-header-title img {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: none;
-}
-
-/* ============================================
-   入力エリア
-   ============================================ */
-.input-area {
-    position: sticky;
-    bottom: 0;
-    background: rgba(75, 0, 130, 0.9);
-    padding-top: 6px;
-    padding-left: 18px; /* PC版で左側に余白を追加 */
-    padding-right: 18px; /* PC版で右側に余白を追加 */
-    padding-bottom: 18px; /* PC版で下部に余白を追加 */
-    flex-shrink: 0; /* 入力エリアは固定サイズ（フッター） */
-    z-index: 10;
-    margin-top: 0; /* gapを削除したのでmarginも削除 */
-}
-
-.input-row {
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-    position: relative;
-}
-
-.input-area textarea {
-    flex: 1;
-    padding: 14px 18px;
-    border: 1px solid #ffffff;
-    border-radius: 999px;
-    font-size: 16px;
-    background: transparent;
-    color: var(--text-light);
-    resize: none;
-    line-height: 1.5;
-    min-height: 46px;
-    max-height: 46px;
-    overflow: hidden;
-}
-
-.input-area textarea::placeholder {
-    color: #ffffff;
-    opacity: 1.0;
-}
-
-.input-area textarea:focus {
-    outline: none;
-    border: 1px solid #ffffff;
-    background: transparent;
-    box-shadow: none;
-    color: var(--text-light);
-}
-
-.input-area button {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transform: scale(0.8);
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.input-area button.visible {
-    display: flex;
-    opacity: 1;
-    transform: scale(1);
-}
-
-.input-area button:active {
-    transform: scale(0.95);
-}
-
-.input-area button:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.input-area button svg {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-}
-
-/* ============================================
-   レスポンシブデザイン
-   ============================================ */
-@media (max-width: 768px) {
-    html, body {
-        width: 100%;
-        height: 100%;
-        height: 100vh; /* 標準のビューポート高さ */
-        height: 100dvh; /* 動的ビューポート高さ（iPhone/Androidのノッチ・ナビゲーションバー対応） */
-        min-height: 100dvh; /* 最小高さを確保 */
-    }
-    
-    body {
-        padding: 0;
-    }
-    
-    main {
-        flex: 1 1 0; /* bodyのflexboxレイアウトに従って高さいっぱいに広がる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
-        max-width: 100%;
-        padding: 0; /* モバイル版ではpaddingなし */
-        min-height: 0; /* flexboxの子要素が正しく縮小するように */
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        height: 100%; /* 親要素の高さいっぱいに広がる */
-    }
-    
-    .mobile-header {
-        display: block;
-    }
-    
-    .chat-container {
-        padding: 0;
-        flex: 1 1 0; /* mainのflex子要素として高さを最大限に使用（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
-        min-height: 0; /* flexboxの子要素が正しく縮小するように */
-        border-radius: 0;
-        box-shadow: none;
-        padding-top: 48px; /* モバイルヘッダーの高さ分 */
-        padding-bottom: 0; /* 入力エリアは固定なのでpadding不要 */
-        background: var(--bg-gradient);
-        box-sizing: border-box; /* paddingを含めた高さ計算 */
-        display: flex;
-        flex-direction: column;
-        gap: 0; /* gapを削除してチャット表示エリアを最大限に広げる */
-        overflow: hidden;
-        height: 100%; /* 親要素の高さいっぱいに広がる */
-    }
-    
-    
-    .navigation-links {
-        display: none;
-    }
-    
-    .user-status {
-        display: none;
-    }
-    
-    .messages {
-        flex: 1 1 0; /* チャット表示エリアを最大限に広げる（flex-grow: 1, flex-shrink: 1, flex-basis: 0） */
-        padding: 20px 10px;
-        padding-top: 20px;
-        padding-bottom: 250px; /* モバイル入力エリアの高さ + 十分な余白を確保 */
-        margin-top: 0;
-        overflow-y: auto !important; /* モバイルでも確実にタッチスクロール可能にする */
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch; /* iOSのスムーズスクロール */
-        overscroll-behavior: contain; /* スクロールチェーンの制御 */
-        min-height: 0; /* flexboxの子要素が正しく縮小するように（重要：overflowを機能させるために必須） */
-    }
-    
-    .message {
-        max-width: 85%;
-        font-size: 14px;
-    }
-    
-    .input-area {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: rgba(75, 0, 130, 0.9);
-        padding: 12px;
-        border-top: none;
-        box-shadow: none;
-    }
-    
-    .input-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        width: 100%;
-    }
-    
-    .input-area textarea {
-        flex: 1;
-        min-height: 40px;
-        max-height: 40px;
-        padding: 10px 16px;
-        font-size: 16px;
-        resize: none;
-        overflow: hidden;
-        border: 1px solid #ffffff;
-        background: transparent;
-    }
-    
-    .input-area textarea:focus {
-        border: 1px solid #ffffff;
-        box-shadow: none;
-    }
-    
-    .input-area button {
-        width: 40px;
-        height: 40px;
-        color: #ffffff;
-        display: none;
-    }
-    
-    .input-area button.visible {
-        display: flex;
-    }
-    
-    .input-area button svg {
-        width: 20px;
-        height: 20px;
-        fill: currentColor;
-    }
-    
-    .message.character {
-        background: rgba(75, 0, 130, 0.9) !important;
-        color: #ffffff !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-}
-
-/* 守護神の儀式への同意ボタン */
-.ritual-consent-container {
-    position: fixed;
-    bottom: 180px; /* メッセージ入力欄（約80px）の上に配置 */
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    background: rgba(139, 61, 255, 0.95);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 10px 40px rgba(139, 61, 255, 0.5);
-    backdrop-filter: blur(10px);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
-    max-width: 90%;
-    width: 500px; /* 質問文が長いため、幅を広げる */
-}
-
-.ritual-consent-container.visible {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(-10px);
-}
-
-.ritual-consent-question {
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-    color: #ffffff;
-    margin-bottom: 20px;
-    line-height: 1.6;
-}
-
-.ritual-consent-buttons {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-}
-
-.ritual-consent-button {
-    flex: 1;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    color: #ffffff;
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(56, 142, 60, 0.8));
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
-.ritual-consent-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.6);
-}
-
-.ritual-consent-button:active {
-    transform: translateY(0);
-}
-
-.ritual-consent-button.no {
-    background: linear-gradient(135deg, rgba(158, 158, 158, 0.8), rgba(97, 97, 97, 0.8));
-    box-shadow: 0 4px 12px rgba(158, 158, 158, 0.4);
-}
-
-.ritual-consent-button.no:hover {
-    box-shadow: 0 6px 16px rgba(158, 158, 158, 0.6);
-}
-
-@media (max-width: 768px) {
-    .ritual-consent-container {
-        width: 90%;
-        padding: 20px;
-        bottom: 160px; /* モバイルでも入力欄の上に配置 */
-    }
-
-    .ritual-consent-question {
-        font-size: 14px;
-    }
-
-    .ritual-consent-button {
-        padding: 12px 20px;
-        font-size: 14px;
-    }
-}
-
 /* ============================================
    待機画面
    ============================================ */
@@ -911,13 +592,11 @@ div.message.character,
     transition: opacity 0.8s ease-out;
 }
 
-/* JSで.hiddenクラスが追加されたらフェードアウト */
 .loading-screen.hidden {
     opacity: 0;
     pointer-events: none;
 }
 
-/* ローディングアニメーション */
 .loading-spinner {
     width: 80px;
     height: 80px;
@@ -932,7 +611,6 @@ div.message.character,
     to { transform: rotate(360deg); }
 }
 
-/* ローディングテキスト */
 .loading-text {
     color: #e8d5ff;
     font-size: 18px;
@@ -947,7 +625,6 @@ div.message.character,
     50% { opacity: 1; }
 }
 
-/* サブテキスト */
 .loading-subtext {
     color: #b794ff;
     font-size: 14px;
@@ -955,7 +632,6 @@ div.message.character,
     opacity: 0.8;
 }
 
-/* キャラクターアイコン（オプション） */
 .loading-character-icon {
     width: 100px;
     height: 100px;
@@ -1025,6 +701,116 @@ div.message.character,
     color: #e8d5ff;
 }
 
+/* ============================================
+   レスポンシブデザイン（モバイル）
+   ============================================ */
+@media (max-width: 768px) {
+    html, body {
+        height: 100%;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+        /* iOS Safariのアドレスバー対策 */
+        position: fixed;
+        width: 100%;
+    }
+    
+    main {
+        height: 100%;
+        height: 100vh;
+        height: 100dvh;
+        /* iOS Safariのアドレスバー対策 */
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .mobile-header {
+        display: block;
+        /* iOS Safariの安全領域を考慮 */
+        padding-top: env(safe-area-inset-top);
+    }
+    
+    .character-header {
+        display: none;
+    }
+    
+    .navigation-links {
+        display: none;
+    }
+    
+    .user-status {
+        display: none;
+    }
+    
+    .chat-container {
+        padding-top: calc(48px + env(safe-area-inset-top, 0px));
+        /* モバイルでの高さを確実に */
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .messages {
+        /* 入力エリアの高さに応じて動的に調整（JavaScriptで調整） */
+        padding: 20px 10px;
+        padding-bottom: calc(20px + 70px); /* デフォルトの入力エリア高さ分 */
+        /* キーボード表示時はJavaScriptで動的に調整 */
+        flex: 1 1 0;
+        min-height: 0;
+    }
+    
+    .message {
+        max-width: 85%;
+        font-size: 14px;
+    }
+    
+    .input-area {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px;
+        /* iOS Safariの安全領域を考慮 */
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        /* キーボード表示時の挙動を改善 */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+    }
+    
+    .input-area textarea {
+        min-height: 40px;
+        max-height: 120px; /* 複数行入力に対応 */
+        padding: 10px 16px;
+        font-size: 16px;
+        /* iOS Safariでのフォントサイズ調整を防ぐ */
+        -webkit-text-size-adjust: 100%;
+        /* キーボード表示時の挙動を改善 */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+    }
+    
+    .input-area button {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .input-area button svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* キーボード表示時のビューポート調整 */
+    @supports (height: 100dvh) {
+        html, body {
+            height: 100dvh;
+        }
+        main {
+            height: 100dvh;
+        }
+    }
+}
+
 /* PC版: 管理者モードは横並び */
 @media (min-width: 769px) {
     body.admin-mode main {
@@ -1043,5 +829,95 @@ div.message.character,
     .admin-analysis-panel {
         width: 100%;
         max-height: 400px;
+    }
+}
+
+/* ============================================
+   守護神の儀式への同意ボタン
+   ============================================ */
+.ritual-consent-container {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(139, 61, 255, 0.95);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(139, 61, 255, 0.5);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
+    max-width: 90%;
+    width: 400px;
+}
+
+.ritual-consent-container.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-10px);
+}
+
+.ritual-consent-question {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 20px;
+}
+
+.ritual-consent-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.ritual-consent-button {
+    flex: 1;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(56, 142, 60, 0.8));
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.ritual-consent-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.6);
+}
+
+.ritual-consent-button:active {
+    transform: translateY(0);
+}
+
+.ritual-consent-button.no {
+    background: linear-gradient(135deg, rgba(158, 158, 158, 0.8), rgba(97, 97, 97, 0.8));
+    box-shadow: 0 4px 12px rgba(158, 158, 158, 0.4);
+}
+
+.ritual-consent-button.no:hover {
+    box-shadow: 0 6px 16px rgba(158, 158, 158, 0.6);
+}
+
+@media (max-width: 768px) {
+    .ritual-consent-container {
+        width: 90%;
+        padding: 20px;
+        bottom: 100px;
+    }
+
+    .ritual-consent-question {
+        font-size: 16px;
+    }
+
+    .ritual-consent-button {
+        padding: 12px 20px;
+        font-size: 14px;
     }
 }

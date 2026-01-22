@@ -6,27 +6,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>鑑定士チャット</title>
-    <!-- 【重要】userIdパラメータがある場合は即座にbodyに属性を追加（CSSで表示制御） -->
+    
+    <!-- userIdパラメータがある場合は即座にbodyに属性を追加 -->
     <script>
     (function() {
-        // URLパラメータからuserIdを取得（即座に実行）
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
-        
-        // userIdがある場合、bodyにdata-user-id属性を追加（CSSで表示制御）
-        // これにより、JavaScriptの読み込みを待たずにCSSだけで表示される
         if (userId) {
-            // bodyが存在するか確認（存在しない場合は即座に追加を試みる）
             if (document.body) {
                 document.body.setAttribute('data-user-id', userId);
             } else {
-                // bodyがまだ存在しない場合、DOMContentLoadedを待つ
                 if (document.readyState === 'loading') {
                     document.addEventListener('DOMContentLoaded', function() {
                         document.body.setAttribute('data-user-id', userId);
                     }, { once: true });
                 } else {
-                    // 既にDOMContentLoadedが完了している場合
                     setTimeout(function() {
                         if (document.body) {
                             document.body.setAttribute('data-user-id', userId);
@@ -37,34 +31,16 @@
         }
     })();
     </script>
+    
     <link rel="stylesheet" href="../../css/chat.css">
 </head>
 <body>
-    <!-- ============================================
-         待機画面（最初に表示される）
-         ============================================ -->
+    <!-- 待機画面 -->
     <div class="loading-screen" id="loadingScreen">
-        <!-- キャラクターアイコン（オプション） -->
-        <img 
-            id="loadingCharacterIcon" 
-            class="loading-character-icon" 
-            src="" 
-            alt="読み込み中"
-            style="display: none;"
-        >
-        
-        <!-- ローディングスピナー -->
+        <img id="loadingCharacterIcon" class="loading-character-icon" src="" alt="読み込み中" style="display: none;">
         <div class="loading-spinner"></div>
-        
-        <!-- メインテキスト -->
-        <div class="loading-text" id="loadingText">
-            鑑定の準備をしています...
-        </div>
-        
-        <!-- サブテキスト -->
-        <div class="loading-subtext" id="loadingSubtext">
-            少々お待ちください
-        </div>
+        <div class="loading-text" id="loadingText">鑑定の準備をしています...</div>
+        <div class="loading-subtext" id="loadingSubtext">少々お待ちください</div>
     </div>
     
     <!-- モバイルヘッダー -->
@@ -76,7 +52,7 @@
     </div>
 
     <main>
-        <!-- 入口フォーム（ゲストユーザー作成用） -->
+        <!-- 入口フォーム -->
         <div class="entry-form-container" id="entryFormContainer">
             <form class="entry-form" id="entryForm">
                 <h2 class="entry-form-title">鑑定を始める</h2>
@@ -86,15 +62,7 @@
                     <label class="entry-form-label">
                         ニックネーム<span class="required">*</span>
                     </label>
-                    <input
-                        type="text"
-                        class="entry-form-input"
-                        id="entryNickname"
-                        name="nickname"
-                        required
-                        maxlength="50"
-                        placeholder="鑑定で使用する名前を入力"
-                    >
+                    <input type="text" class="entry-form-input" id="entryNickname" name="nickname" required maxlength="50" placeholder="鑑定で使用する名前を入力">
                 </div>
                 
                 <div class="entry-form-group">
@@ -103,48 +71,19 @@
                     </label>
                     <div class="entry-form-row">
                         <div class="entry-form-group">
-                            <input
-                                type="number"
-                                class="entry-form-input"
-                                id="entryBirthYear"
-                                name="birthYear"
-                                required
-                                min="1900"
-                                max="2100"
-                                placeholder="年"
-                            >
+                            <input type="number" class="entry-form-input" id="entryBirthYear" name="birthYear" required min="1900" max="2100" placeholder="年">
                         </div>
                         <div class="entry-form-group">
-                            <input
-                                type="number"
-                                class="entry-form-input"
-                                id="entryBirthMonth"
-                                name="birthMonth"
-                                required
-                                min="1"
-                                max="12"
-                                placeholder="月"
-                            >
+                            <input type="number" class="entry-form-input" id="entryBirthMonth" name="birthMonth" required min="1" max="12" placeholder="月">
                         </div>
                         <div class="entry-form-group">
-                            <input
-                                type="number"
-                                class="entry-form-input"
-                                id="entryBirthDay"
-                                name="birthDay"
-                                required
-                                min="1"
-                                max="31"
-                                placeholder="日"
-                            >
+                            <input type="number" class="entry-form-input" id="entryBirthDay" name="birthDay" required min="1" max="31" placeholder="日">
                         </div>
                     </div>
                 </div>
                 
                 <div class="entry-form-group">
-                    <label class="entry-form-label">
-                        性別
-                    </label>
+                    <label class="entry-form-label">性別</label>
                     <select class="entry-form-select" id="entryGender" name="gender">
                         <option value="">回答しない</option>
                         <option value="male">男性</option>
@@ -153,42 +92,30 @@
                     </select>
                 </div>
                 
-                <button type="submit" class="entry-form-submit" id="entryFormSubmit">
-                    鑑定を始める
-                </button>
+                <button type="submit" class="entry-form-submit" id="entryFormSubmit">鑑定を始める</button>
             </form>
         </div>
         
-        <!-- チャットコンテナ（初期状態では非表示） -->
-        <!-- 【重要】userIdパラメータがある場合は<head>内のスクリプトで即座に表示されます -->
+        <!-- チャットコンテナ -->
         <div class="chat-container entry-form-hidden" id="chatContainer">
-            <!-- PC版キャラクターヘッダー -->
+            <!-- PC版ヘッダー -->
             <div class="character-header" id="characterHeader">
                 <img id="characterHeaderImage" src="" alt="" class="character-header-image">
                 <div class="character-header-name" id="characterHeaderName">鑑定士</div>
             </div>
             
+            <!-- ナビゲーション -->
             <div class="navigation-links">
                 <a href="../main.html">鑑定師一覧に戻る</a>
             </div>
+            
+            <!-- ユーザーステータス -->
             <div class="user-status" id="userStatus">利用者情報を読み込んでいます...</div>
             
+            <!-- メッセージ表示エリア -->
             <div class="messages" id="messages"></div>
 
-            <!-- 守護神の儀式への同意ボタン（フェードインで表示） -->
-            <!-- 注意: イベントリスナーはハンドラー側で動的に設定されます -->
-            <div class="ritual-consent-container" id="ritualConsentContainer" style="display: none;">
-                <div class="ritual-consent-question" id="ritualConsentQuestion">守護神の儀式を始めますか？</div>
-                <div class="ritual-consent-buttons">
-                    <button class="ritual-consent-button" id="ritualYesButton">
-                        はい
-                    </button>
-                    <button class="ritual-consent-button no" id="ritualNoButton">
-                        いいえ
-                    </button>
-                </div>
-            </div>
-
+            <!-- 入力エリア -->
             <div class="input-area">
                 <div class="input-row">
                     <textarea id="messageInput" placeholder="メッセージを入力" rows="1" maxlength="1000"></textarea>
@@ -206,1161 +133,175 @@
     <div class="admin-analysis-panel hidden" id="adminAnalysisPanel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; font-size: 18px; color: #f7f5ff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;">会話分析パネル</h3>
-            <button id="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer;">
-                🔄 更新
-            </button>
+            <button id="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px; min-width: auto; background: rgba(138, 43, 226, 0.3); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 6px; color: #f7f5ff; cursor: pointer;">🔄 更新</button>
         </div>
         <div class="analysis-section">
             <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">現在の状態</h4>
-            <div id="adminCurrentState" class="analysis-content">
-                <p>読み込み中...</p>
-            </div>
+            <div id="adminCurrentState" class="analysis-content"><p>読み込み中...</p></div>
         </div>
         <div class="analysis-section">
             <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">フェーズ情報</h4>
-            <div id="adminPhaseInfo" class="analysis-content">
-                <p>読み込み中...</p>
-            </div>
+            <div id="adminPhaseInfo" class="analysis-content"><p>読み込み中...</p></div>
         </div>
         <div class="analysis-section">
             <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">会話履歴構造</h4>
-            <div id="adminHistory" class="analysis-content">
-                <p>読み込み中...</p>
-            </div>
+            <div id="adminHistory" class="analysis-content"><p>読み込み中...</p></div>
         </div>
-        
-        <!-- 管理者用: 守護神の儀式を再発動 -->
-        <div class="analysis-section" id="adminRitualSection" style="display: none;">
-            <h4 style="margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;">テスト用機能</h4>
-            <div class="analysis-content">
-                <button id="adminRitualButton" style="width: 100%; padding: 10px; font-size: 14px; background: rgba(139, 61, 255, 0.6); border: 1px solid rgba(139, 61, 255, 0.8); border-radius: 8px; color: white; cursor: pointer; transition: background 0.3s ease;">
-                    🔮 守護神の儀式を再発動
-                </button>
-                <p style="margin-top: 8px; font-size: 11px; color: #9da2c6;">現在の会話履歴を使って、守護神の儀式を再度開始します</p>
-            </div>
+        <!-- キャラクター固有の機能はハンドラー側で動的に生成 -->
+        <div class="analysis-section" id="adminCharacterFeatures">
+            <!-- キャラクター固有の機能（例：守護神の儀式再発動など）はハンドラー側で動的に追加 -->
         </div>
     </div>
 
-           <script>
-           // ============================================
-           // 入口フォーム処理
-           // ============================================
-           (function() {
-               'use strict';
-               
-               // DOMContentLoadedで実行（DOM要素が確実に読み込まれた後に実行）
-               // 【変更】データベースから直接読み込んで、その結果に基づいて表示を決定
-              async function initEntryForm() {
-                  const entryFormContainer = document.getElementById('entryFormContainer');
-                  const chatContainer = document.getElementById('chatContainer');
-                  const entryForm = document.getElementById('entryForm');
-                  const entryFormError = document.getElementById('entryFormError');
-                  const entryFormSubmit = document.getElementById('entryFormSubmit');
-                  
-                  if (!entryFormContainer || !chatContainer || !entryForm) {
-                      console.error('[入口フォーム] DOM要素が見つかりません');
-                      return;
-                  }
-                  
-                  // 【重要】まず、userIdがある場合はチャット画面を先に表示
-                  // chat-engine.jsの読み込みを待つ前に表示する
-                  const urlParams = new URLSearchParams(window.location.search);
-                  const userId = urlParams.get('userId');
-                  
-                  if (userId) {
-                      // エントリーフォームを非表示
-                      entryFormContainer.classList.add('entry-form-hidden');
-                      // チャット画面を表示（データ取得前でも表示）
-                      chatContainer.classList.remove('entry-form-hidden');
-                      
-                      // 【重要】チャット画面が確実に表示されるように、強制的にスタイルを適用
-                      chatContainer.style.display = 'block';
-                      chatContainer.style.visibility = 'visible';
-                      chatContainer.style.opacity = '1';
-                      
-                      console.log('[入口フォーム] チャット画面を先に表示しました（chat-engine.js読み込み前）', {
-                          hasEntryFormHidden: chatContainer.classList.contains('entry-form-hidden'),
-                          display: window.getComputedStyle(chatContainer).display,
-                          visibility: window.getComputedStyle(chatContainer).visibility,
-                          opacity: window.getComputedStyle(chatContainer).opacity
-                      });
-                      
-                  }
-                  
-                  // 【統合後】chat-engine.jsに統合されたため、読み込み待機ループは不要
-                  // deferにより、DOMContentLoaded後に確実に読み込まれる
-                  console.log('[入口フォーム] chat-engine.jsの読み込みを確認（統合後）');
-                   
-                   // 【変更】データベースから直接ユーザー情報を取得
-                   // URLパラメータからcharacterとuserIdを取得
-                   const character = urlParams.get('character') || 'kaede';
-                   // userIdは既に上で取得済み
-                   
-                   try {
-                       // 【追加】back.htmlで事前に取得したデータを確認
-                       // これにより、API呼び出しのタイムラグを解消
-                       let historyData = null;
-                       const preloadedDataKey = 'preloadedUserData';
-                       const preloadedDataStr = sessionStorage.getItem(preloadedDataKey);
-                       
-                       if (preloadedDataStr) {
-                           try {
-                               const preloadedData = JSON.parse(preloadedDataStr);
-                               // キャラクターが一致し、5分以内のデータか確認
-                               const dataAge = Date.now() - (preloadedData.timestamp || 0);
-                               if (preloadedData.character === character && dataAge < 5 * 60 * 1000) {
-                                   historyData = preloadedData.data;
-                                   console.log('[入口フォーム] back.htmlで事前取得したデータを使用します');
-                                   // 使用後は削除
-                                   sessionStorage.removeItem(preloadedDataKey);
-                               } else {
-                                   // 古いデータまたはキャラクターが不一致の場合は削除
-                                   sessionStorage.removeItem(preloadedDataKey);
-                               }
-                           } catch (error) {
-                               console.error('[入口フォーム] 事前取得データの解析エラー:', error);
-                               sessionStorage.removeItem(preloadedDataKey);
-                           }
-                       }
-                       
-                       // 事前取得データがない場合、APIから取得
-                       if (!historyData) {
-                           console.log('[入口フォーム] データベースからユーザー情報を読み込み中...', {
-                               character,
-                               userId,
-                               userIdType: typeof userId,
-                               userIdExists: !!userId,
-                               userIdNumber: userId ? Number(userId) : null
-                           });
-                           
-                          // 【重要】userIdが指定されていない場合はエントリーフォームを表示
-                          if (!userId) {
-                              console.warn('[入口フォーム] userIdが指定されていません。エントリーフォームを表示します。');
-                              entryFormContainer.classList.remove('entry-form-hidden');
-                              chatContainer.classList.add('entry-form-hidden');
-                              return;
-                          }
-                           
-                           try {
-                               if (window.ChatAPI && typeof window.ChatAPI.loadConversationHistory === 'function') {
-                                   // userIdを数値に変換（文字列の場合は数値に変換）
-                                   const userIdNumber = userId ? Number(userId) : null;
-                                  if (!userIdNumber || !Number.isFinite(userIdNumber) || userIdNumber <= 0) {
-                                      console.error('[入口フォーム] userIdが無効です:', userId);
-                                      entryFormContainer.classList.remove('entry-form-hidden');
-                                      chatContainer.classList.add('entry-form-hidden');
-                                      return;
-                                  }
-                                   
-                                   // userIdを引数として渡す
-                                   const userInfoParam = { userId: userIdNumber };
-                                   console.log('[入口フォーム] ChatAPI.loadConversationHistory()を呼び出します:', {
-                                       character,
-                                       userInfo: userInfoParam
-                                   });
-                                   historyData = await window.ChatAPI.loadConversationHistory(character, userInfoParam);
-                                   console.log('[入口フォーム] ChatAPI.loadConversationHistory()の結果:', {
-                                       hasHistoryData: !!historyData,
-                                       hasNickname: !!(historyData && historyData.nickname),
-                                       nickname: historyData?.nickname
-                                   });
-                               } else {
-                                   // ChatAPIが読み込まれていない場合、直接APIを呼び出す（userIdのみを使用）
-                                      if (!userId) {
-                                          console.warn('[入口フォーム] userIdが指定されていません');
-                                          // userIdがない場合はエントリーフォームを表示
-                                          entryFormContainer.classList.remove('entry-form-hidden');
-                                          chatContainer.classList.add('entry-form-hidden');
-                                          return;
-                                      }
-                                   
-                                   const apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(character)}`;
-                                   const response = await fetch(apiUrl);
-                                   
-                                   if (response.ok) {
-                                       const responseText = await response.text();
-                                       if (responseText) {
-                                           historyData = JSON.parse(responseText);
-                                       }
-                                   } else if (response.status === 404) {
-                                       // ユーザーが見つからない場合（404エラー）
-                                       console.error('[入口フォーム] ユーザー情報が見つかりません（404）');
-                                       alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
-                                       window.location.href = '../auth/register.html';
-                                       return;
-                                   } else {
-                                       // その他のエラー（ネットワークエラーなど）
-                                       console.error('[入口フォーム] API呼び出しエラー:', response.status);
-                                       // userIdがある場合はチャット画面を表示したままにする
-                                       if (userId) {
-                                           // チャット画面にエラーメッセージを表示（チャット画面は表示したまま）
-                                           console.error('[入口フォーム] データ取得エラーが発生しましたが、チャット画面は表示したままです');
-                                       } else {
-                                           // userIdがない場合はエントリーフォームを表示
-                                           entryFormContainer.classList.remove('loading');
-                                           entryFormContainer.classList.remove('entry-form-hidden');
-                                           chatContainer.classList.add('entry-form-hidden');
-                                           const errorMsg = document.createElement('div');
-                                           errorMsg.className = 'result-message error';
-                                           errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
-                                           entryFormContainer.appendChild(errorMsg);
-                                       }
-                                       return;
-                                   }
-                               }
-                           } catch (error) {
-                               // エラーハンドリング
-                               console.error('[入口フォーム] データベースからの情報取得エラー:', error);
-                               if (error instanceof Error) {
-                                   if (error.message === 'USER_NOT_FOUND') {
-                                       // ユーザー情報が登録されていない場合：登録画面にリダイレクト
-                                       alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
-                                       window.location.href = '../auth/register.html';
-                                       return;
-                                   } else if (error.message === 'NETWORK_ERROR') {
-                                      // ネットワーク接続エラーの場合
-                                      // userIdがある場合はチャット画面を表示したままにする
-                                      if (userId) {
-                                          console.error('[入口フォーム] ネットワークエラーが発生しましたが、チャット画面は表示したままです');
-                                      } else {
-                                          entryFormContainer.classList.remove('entry-form-hidden');
-                                          chatContainer.classList.add('entry-form-hidden');
-                                          const errorMsg = document.createElement('div');
-                                          errorMsg.className = 'result-message error';
-                                          errorMsg.textContent = 'インターネット接続エラーが発生しました。しばらく経ってから再度お試しください。';
-                                          entryFormContainer.appendChild(errorMsg);
-                                      }
-                                      return;
-                                   }
-                               }
-                              // その他のエラー
-                              // userIdがある場合はチャット画面を表示したままにする
-                              if (userId) {
-                                  console.error('[入口フォーム] エラーが発生しましたが、チャット画面は表示したままです');
-                              } else {
-                                  entryFormContainer.classList.remove('entry-form-hidden');
-                                  chatContainer.classList.add('entry-form-hidden');
-                              }
-                              return;
-                           }
-                       }
-                       
-                      // 【重要】userIdが指定されている場合、historyDataが存在すればチャットに入室可能
-                      // nicknameの有無に関わらず、userIdが存在すればユーザーは特定できる
-                      if (historyData) {
-                          console.log('[入口フォーム] データベースからユーザー情報を取得しました', {
-                              nickname: historyData.nickname,
-                              birthYear: historyData.birthYear,
-                              birthMonth: historyData.birthMonth,
-                              birthDay: historyData.birthDay,
-                              gender: historyData.gender,
-                              hasHistory: historyData.hasHistory,
-                              userId: userId
-                          });
-                          
-                          // エントリーフォームを非表示（既に非表示の可能性があるが、念のため）
-                          entryFormContainer.classList.add('entry-form-hidden');
-                          
-                          // チャット画面は既に表示されている（userIdがある場合は先に表示済み）
-                          // 念のため、再度表示を確認
-                          chatContainer.classList.remove('entry-form-hidden');
-                          console.log('[入口フォーム] チャット画面の表示を確認しました');
-                          
-                          // 【重要】ChatData.conversationHistoryを設定（chat-engine.jsで使用される）
-                          if (window.ChatData) {
-                              window.ChatData.conversationHistory = historyData;
-                              window.ChatData.userNickname = historyData.nickname;
-                          }
-                          
-                          // 【追加】ユーザー情報をチャット画面のuserStatusに表示
-                          if (window.ChatUI && typeof window.ChatUI.updateUserStatus === 'function') {
-                              window.ChatUI.updateUserStatus(true, {
-                                  nickname: historyData.nickname,
-                                  birthYear: historyData.birthYear,
-                                  birthMonth: historyData.birthMonth,
-                                  birthDay: historyData.birthDay,
-                                  assignedDeity: historyData.assignedDeity
-                              });
-                              console.log('[入口フォーム] ユーザー情報をチャット画面に表示しました');
-                          }
-                          
-                          // 【統合後】chat-engine.jsの初期化を実行（deferにより確実に読み込まれる）
-                          // 統合により読み込み順序の問題が解決されたため、直接呼び出し
-                          if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                              console.log('[入口フォーム] chat-engine.jsの初期化を実行します（統合後）');
-                              await window.ChatInit.initPage();
-                          } else {
-                              console.warn('[入口フォーム] ChatInit.initPageが見つかりません。deferにより後で読み込まれます。');
-                          }
-                          
-                          return;
-                      }
-                       
-                      // 【重要】historyDataが存在しない場合
-                      // userIdが指定されているのにhistoryDataがnullの場合、エラー（404）として扱う
-                      // userIdが指定されていない場合は、入口フォームを表示
-                      if (userId) {
-                          // userIdが指定されているのにデータが取得できなかった場合はエラー
-                          console.error('[入口フォーム] userIdが指定されているのに、データベースからユーザー情報を取得できませんでした', {
-                              userId: userId,
-                              character: character,
-                              historyData: historyData
-                          });
-                          // エラー時は入口フォームを表示（登録が必要）
-                          alert('あなたのユーザー情報が登録されていることが確認できません。恐れ入りますが、再度ユーザー登録をお願いします。');
-                          window.location.href = '../auth/register.html';
-                          return;
-                      } else {
-                          // userIdが指定されていない場合は入口フォームを表示
-                          console.log('[入口フォーム] データベースにユーザー情報が存在しないため、入口フォームを表示します');
-                          // loadingクラスを削除してから表示
-                          entryFormContainer.classList.remove('loading');
-                          entryFormContainer.classList.remove('entry-form-hidden');
-                          chatContainer.classList.add('entry-form-hidden');
-                      }
-                  } catch (error) {
-                      console.error('[入口フォーム] データベース読み込みエラー:', error);
-                      // エラー時は入口フォームを表示
-                      // loadingクラスを削除してから表示
-                      entryFormContainer.classList.remove('entry-form-hidden');
-                      chatContainer.classList.add('entry-form-hidden');
-                  }
-               
-                   // 入口フォームの送信処理（ユーザー情報が存在しない場合のみ設定）
-                   entryForm.addEventListener('submit', async (e) => {
-                   e.preventDefault();
-                   
-                   const nickname = document.getElementById('entryNickname').value.trim();
-                   const birthYear = parseInt(document.getElementById('entryBirthYear').value, 10);
-                   const birthMonth = parseInt(document.getElementById('entryBirthMonth').value, 10);
-                   const birthDay = parseInt(document.getElementById('entryBirthDay').value, 10);
-                   const gender = document.getElementById('entryGender').value;
-                   
-                   // バリデーション
-                   if (!nickname) {
-                       showError('ニックネームを入力してください。');
-                       return;
-                   }
-                   if (!birthYear || !birthMonth || !birthDay) {
-                       showError('生年月日を入力してください。');
-                       return;
-                   }
-                   if (birthYear < 1900 || birthYear > 2100) {
-                       showError('年は1900年から2100年の間で入力してください。');
-                       return;
-                   }
-                   if (birthMonth < 1 || birthMonth > 12) {
-                       showError('月は1から12の間で入力してください。');
-                       return;
-                   }
-                   if (birthDay < 1 || birthDay > 31) {
-                       showError('日は1から31の間で入力してください。');
-                       return;
-                   }
-                   
-                   // 送信ボタンを無効化
-                   entryFormSubmit.disabled = true;
-                   entryFormSubmit.textContent = '作成中...';
-                   hideError();
-                   
-                   try {
-                       // ゲストユーザー作成APIを呼び出し
-                       const response = await fetch('/api/auth/create-guest', {
-                           method: 'POST',
-                           headers: {
-                               'Content-Type': 'application/json',
-                           },
-                           body: JSON.stringify({
-                               nickname,
-                               birthYear,
-                               birthMonth,
-                               birthDay,
-                               gender: gender || undefined,
-                           }),
-                       });
-                       
-                       if (!response.ok) {
-                           const errorData = await response.json();
-                           throw new Error(errorData.error || 'ゲストユーザーの作成に失敗しました。');
-                       }
-                       
-                       const data = await response.json();
-                       
-                       // 【変更】ユーザー情報をlocalStorageに保存しない（データベースベースの判断）
-                       // すべてのユーザー情報はデータベースで管理されるため、localStorageへの保存は不要
-                       
-                       // 入口フォームを非表示にしてチャット画面を表示
-                       entryFormContainer.classList.add('entry-form-hidden');
-                       chatContainer.classList.remove('entry-form-hidden');
-                       
-                       // 待機画面は既にchat-container内に配置されているため、移動処理は不要
-                       
-                       // チャットエンジンの初期化をトリガー（既に読み込まれている場合）
-                       if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                           await window.ChatInit.initPage();
-                       } else {
-                           // ChatInitが読み込まれるのを待つ（最大10秒）
-                           console.warn('[入口フォーム] ChatInit.initPageが見つかりません。後で再試行します。');
-                           let attempts = 0;
-                           const maxAttempts = 100; // 10秒間待機（100ms × 100）
-                           while (!window.ChatInit && attempts < maxAttempts) {
-                               await new Promise(resolve => setTimeout(resolve, 100));
-                               attempts++;
-                           }
-                           if (window.ChatInit && typeof window.ChatInit.initPage === 'function') {
-                               console.log('[入口フォーム] ChatInit.initPageを実行します（再試行）');
-                               await window.ChatInit.initPage();
-                           } else {
-                               console.error('[入口フォーム] ChatInit.initPageが見つかりませんでした。chat-engine.jsが正しく読み込まれているか確認してください。');
-                           }
-                       }
-                   } catch (error) {
-                       console.error('[entry-form] エラー:', error);
-                       showError(error.message || 'エラーが発生しました。もう一度お試しください。');
-                       entryFormSubmit.disabled = false;
-                       entryFormSubmit.textContent = '鑑定を始める';
-                   }
-                   });
-                   
-                   function showError(message) {
-                       entryFormError.textContent = message;
-                       entryFormError.classList.add('show');
-                   }
-                   
-                   function hideError() {
-                       entryFormError.classList.remove('show');
-                   }
-               }
-               
-               // 【重要】チャット画面を先に表示してから、chat-engine.jsの読み込みを待つ
-               // DOMContentLoadedを待ってから実行
-               if (document.readyState === 'loading') {
-                   document.addEventListener('DOMContentLoaded', () => {
-                       initEntryForm();
-                   }, { once: true });
-               } else {
-                   // 既にDOMContentLoadedが完了している場合は即座に実行
-                   initEntryForm();
-               }
-           })();
-           
-           // #region agent log (開発環境のみ - コメントアウト)
-           // ローカルロギングサーバーへの接続は開発環境でのみ有効
-           // (function() {
-           //     const urlParams = new URLSearchParams(window.location.search);
-           //     const character = urlParams.get('character') || 'unknown';
-           //     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-           //         fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:756',message:'チャット画面読み込み',data:{url:window.location.href,character:character,search:window.location.search},timestamp:Date.now(),runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-           //     }
-           // })();
-           // #endregion
-           
-           // 【追加】URLパラメータからuserIdを取得して、ナビゲーションリンクに追加
-           (function() {
-               const urlParams = new URLSearchParams(window.location.search);
-               const userId = urlParams.get('userId');
-               
-               if (userId) {
-                   // 「鑑定師一覧に戻る」リンクにuserIdを追加
-                   document.querySelectorAll('.navigation-links a[href="../main.html"]').forEach((link) => {
-                       const url = new URL(link.href, window.location.origin);
-                       url.searchParams.set('userId', userId);
-                       link.href = url.pathname + url.search;
-                       console.log('[chat] ナビゲーションリンクにuserIdを追加:', link.href);
-                   });
-                   
-                   // モバイルヘッダーの戻るリンクにuserIdを追加
-                   document.querySelectorAll('.mobile-header-back[href="../main.html"]').forEach((link) => {
-                       const url = new URL(link.href, window.location.origin);
-                       url.searchParams.set('userId', userId);
-                       link.href = url.pathname + url.search;
-                       console.log('[chat] モバイルヘッダーの戻るリンクにuserIdを追加:', link.href);
-                   });
-               }
-           })();
-           </script>
-          
-          <!-- ============================================
-               待機画面制御スクリプト（最小限のコア）
-               ============================================ -->
-          <script>
-          (function() {
-              'use strict';
-              
-              // URLパラメータを取得
-              const urlParams = new URLSearchParams(window.location.search);
-              const character = urlParams.get('character');
-              
-              // キャラクター情報のマッピング（簡易版）
-              const characterInfo = {
-                  'kaede': {
-                      name: '楓',
-                      icon: '../../photo/kaede.png'
-                  },
-                  'yukino': {
-                      name: '雪乃',
-                      icon: '../../photo/yukino.png'
-                  },
-                  'sora': {
-                      name: 'ソラ',
-                      icon: '../../photo/sora.png'
-                  },
-                  'kaon': {
-                      name: '花音',
-                      icon: '../../photo/kaon.png'
-                  }
-              };
-              
-              // 待機画面のカスタマイズ
-              function customizeLoadingScreen() {
-                  if (character && characterInfo[character]) {
-                      const info = characterInfo[character];
-                      const loadingText = document.getElementById('loadingText');
-                      const loadingIcon = document.getElementById('loadingCharacterIcon');
-                      
-                      if (loadingText) {
-                          loadingText.textContent = `${info.name}が準備をしています...`;
-                      }
-                      
-                      if (loadingIcon && info.icon) {
-                          loadingIcon.src = info.icon;
-                          loadingIcon.style.display = 'block';
-                      }
-                  }
-              }
-              
-              // DOMContentLoadedでカスタマイズ
-              if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', customizeLoadingScreen, { once: true });
-              } else {
-                  customizeLoadingScreen();
-              }
-              
-              // 待機画面を非表示にする関数
-              window.hideLoadingScreen = function() {
-                  const loadingScreen = document.getElementById('loadingScreen');
-                  if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
-                      loadingScreen.classList.add('hidden');
-                      // アニメーション完了後にDOMから削除
-                      setTimeout(() => {
-                          if (loadingScreen.parentNode) {
-                              loadingScreen.parentNode.removeChild(loadingScreen);
-                          }
-                      }, 800);
-                      console.log('[待機画面] 非表示にしました');
-                  }
-              };
-              
-              // 最低表示時間（体感速度の調整）
-              const MIN_LOADING_TIME = 800; // 0.8秒
-              const loadStartTime = Date.now();
-              
-              // すべてのスクリプト読み込み完了を検知
-              window.addEventListener('load', function() {
-                  const elapsed = Date.now() - loadStartTime;
-                  const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsed);
-                  
-                  // 最低表示時間を確保してから非表示
-                  // ただし、chat-engine.jsの初期化完了を待つため、ここでは自動的に非表示にはしない
-                  // chat-engine.jsから明示的にhideLoadingScreen()が呼ばれるまで待機
-              });
-          })();
-          </script>
-          
-          <!-- スクリプト読み込み順序を固定（統合後の最小構成） -->
-          <script src="../../js/auth-state.js" defer></script>
-          <script src="../../js/character-features.js" defer></script>
-          <!-- チャットエンジン（chat-api.js, chat-data.js, chat-ui.jsを統合済み） -->
-          <script src="../../js/chat-engine.js" defer onload="window.chatEngineLoaded = true;"></script>
-          <!-- プラグインアーキテクチャ -->
-          <script src="../../js/character-registry.js" defer></script>
-          <script src="../../js/character-loader.js" defer></script>
-          <!-- ハンドラーの動的読み込み -->
-          <script>
-          (async function() {
-              'use strict';
-              
-              // ===== テストモードチェック（最優先で実行） =====
-              // chat-engine.jsが読み込まれる前に実行されるため、ここでもチェックする
-              const urlParams = new URLSearchParams(window.location.search);
-              // 【変更】localStorageの使用を削除（データベースベースの判断）
-              // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
-              if (urlParams.get('test') === 'true') {
-                  console.log('[chat.html] テストモード: ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要です。');
-              }
-              
-              // URLパラメータからキャラクターIDを取得
-              const characterId = urlParams.get('character');
-              
-              if (characterId) {
-                  // CharacterLoaderが読み込まれるまで待機
-                  let attempts = 0;
-                  const maxAttempts = 50; // 5秒間待機（100ms × 50）
-                  while (!window.CharacterLoader && attempts < maxAttempts) {
-                      await new Promise(resolve => setTimeout(resolve, 100));
-                      attempts++;
-                  }
-                  
-                  if (!window.CharacterLoader) {
-                      console.error('[初期化] CharacterLoaderの読み込みがタイムアウトしました');
-                  } else {
-                      // 必要なハンドラーのみを読み込む
-                      // 注意: CharacterLoader.loadHandler()内で既にhandler.init()が呼ばれているため、
-                      // ここで再度初期化する必要はありません
-                      const success = await CharacterLoader.loadHandler(characterId);
-                      if (success) {
-                          console.log('[初期化] ハンドラーを読み込みました:', characterId);
-                      } else {
-                          console.error('[初期化] ハンドラーの読み込みに失敗しました:', characterId);
-                      }
-                  }
-              }
-              
-              // 注意: ChatInit.initPage()はchat-engine.jsのDOMContentLoadedイベントリスナー内で
-              // 自動的に呼ばれるため、ここで呼び出す必要はありません
-              // ここで呼び出すと、chat-engine.jsが読み込まれる前に実行される可能性があり、
-              // window.ChatInitが存在しないため、何も実行されません
-          })();
-          </script>
-           <!-- iframe内で確実にpostMessage通信を初期化 -->
-           <script>
-           (function() {
-               'use strict';
-               
-               console.log('[iframe] chat.html: スクリプト読み込み完了');
-               console.log('[iframe] document.readyState:', document.readyState);
-               console.log('[iframe] hasParent:', window.parent && window.parent !== window);
-               
-               // 親ウィンドウに準備完了を通知する関数
-               function sendReadyNotification() {
-                   if (!window.parent || window.parent === window) {
-                       console.log('[iframe] 親ウィンドウが存在しません');
-                       return;
-                   }
-                   
-                   try {
-                       const urlParams = new URLSearchParams(window.location.search);
-                       const character = urlParams.get('character') || 'unknown';
-                       
-                       const message = {
-                           type: 'CHAT_IFRAME_READY',
-                           character: character,
-                           messageCount: 0,
-                           timestamp: Date.now(),
-                           ready: true
-                       };
-                       
-                       window.parent.postMessage(message, '*');
-                       console.log('[iframe] ✅ 準備完了通知を送信しました:', message);
-                   } catch (error) {
-                       console.error('[iframe] ❌ 通知送信エラー:', error);
-                   }
-               }
-               
-               // REQUEST_CHAT_DATAハンドラーは設定しない
-               // chat-engine.js内のハンドラーが確実に実行されるようにするため、
-               // 初期ハンドラーは完全に削除（chat-engine.jsに任せる）
-               console.log('[iframe] 初期ハンドラー: REQUEST_CHAT_DATAはchat-engine.jsに任せます');
-               
-               // 即座に通知を送信
-               if (document.readyState === 'loading') {
-                   document.addEventListener('DOMContentLoaded', function() {
-                       setTimeout(sendReadyNotification, 100);
-                   });
-               } else {
-                   setTimeout(sendReadyNotification, 100);
-               }
-               
-               // window.load時にも通知
-               if (document.readyState !== 'complete') {
-                   window.addEventListener('load', function() {
-                       setTimeout(sendReadyNotification, 100);
-                   });
-               } else {
-                   setTimeout(sendReadyNotification, 100);
-               }
-               
-               console.log('[iframe] postMessage通信の初期化コードが実行されました');
-           })();
-           </script>
-           
-           <!-- 管理者モードの初期化 -->
-           <script>
-           (function() {
-               'use strict';
-               
-               // URLパラメータからadminをチェック
-               const urlParams = new URLSearchParams(window.location.search);
-               const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
-               
-               if (isAdminMode) {
-                   // 管理者モードとしてbodyにクラスを追加
-                   document.body.classList.add('admin-mode');
-                   
-                   // 分析パネルを表示
-                   const analysisPanel = document.getElementById('adminAnalysisPanel');
-                   if (analysisPanel) {
-                       analysisPanel.classList.remove('hidden');
-                   }
-                   
-                   console.log('[管理者モード] 有効化されました');
-               }
-               
-               // フェーズを計算する関数
-               function calculatePhase(messageCount, character) {
-                   if (character === 'kaede') {
-                       // メッセージ数が0または1の場合はフェーズ1
-                       if (messageCount === 0 || messageCount === 1) {
-                           return {
-                               name: 'フェーズ1',
-                               description: '導入＆未来イメージの選択肢提示'
-                           };
-                       } else if (messageCount === 2) {
-                           return {
-                               name: 'フェーズ2',
-                               description: '長所を聞く質問（最後の質問）'
-                           };
-                       } else if (messageCount === 3) {
-                           return {
-                               name: 'フェーズ3',
-                               description: '性格診断＋続行確認'
-                           };
-                       } else {
-                           return {
-                               name: 'フェーズ4',
-                               description: '未来鑑定＋守護神と儀式の説明'
-                           };
-                       }
-                   }
-                   // カエデ以外の鑑定士はフェーズ設定がまだないため「制作待ち」として表示
-                   const characterNames = {
-                       yukino: '笹岡雪乃',
-                       kaon: '三崎花音',
-                       sora: '水野ソラ'
-                   };
-                   const characterName = characterNames[character] || character;
-                   return {
-                       name: '制作待ち',
-                       description: `${characterName}のフェーズ設定は現在制作中です（メッセージ数: ${messageCount}件）`
-                   };
-               }
-               
-               // 分析パネルを更新する関数
-               function updateAdminAnalysisPanel() {
-                   if (!isAdminMode) return;
-                   
-                   try {
-                       // ChatDataとAuthStateが利用可能か確認
-                       if (typeof ChatData === 'undefined' || typeof window.AuthState === 'undefined') {
-                           console.log('[管理者モード] ChatDataまたはAuthStateがまだ読み込まれていません');
-                           return;
-                       }
-                       
-                       const character = ChatData?.currentCharacter || 'unknown';
-                       const isRegistered = window.AuthState?.isRegistered() || false;
-                       
-                       // メッセージカウントと会話履歴を取得
-                       let messageCount = 0;
-                       let conversationHistory = [];
-                       
-                       if (isRegistered) {
-                           // 登録ユーザーの場合
-                           const historyData = ChatData?.conversationHistory;
-                           if (historyData && historyData.recentMessages) {
-                               conversationHistory = Array.isArray(historyData.recentMessages) ? historyData.recentMessages : [];
-                               messageCount = conversationHistory.filter(msg => msg && msg.role === 'user').length;
-                           }
-                       } else {
-                           // ゲストユーザーの場合
-                           if (typeof ChatData?.getUserMessageCount === 'function') {
-                               messageCount = ChatData.getUserMessageCount(character) || 0;
-                           }
-                           if (typeof ChatData?.getConversationHistory === 'function') {
-                               conversationHistory = ChatData.getGuestHistory(character) || [];
-                           }
-                           
-                           // 会話履歴からメッセージ数を再計算
-                           if (conversationHistory && conversationHistory.length > 0) {
-                               const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
-                               if (messageCount === 0 || historyUserMessages > messageCount) {
-                                   messageCount = historyUserMessages;
-                               }
-                           }
-                       }
-                       
-                       // 現在の状態を表示
-                       const currentStateDiv = document.getElementById('adminCurrentState');
-                       if (currentStateDiv) {
-                           const characterInfo = ChatData?.characterInfo?.[character] || {};
-                           const characterName = characterInfo.name || character;
-                           
-                           currentStateDiv.innerHTML = `
-                               <div class="analysis-item">
-                                   <span class="analysis-label">ユーザータイプ:</span>
-                                   <span class="analysis-value">${isRegistered ? '登録済み' : 'ゲスト'}</span>
-                               </div>
-                               <div class="analysis-item">
-                                   <span class="analysis-label">キャラクター:</span>
-                                   <span class="analysis-value">${characterName}</span>
-                               </div>
-                               <div class="analysis-item">
-                                   <span class="analysis-label">登録状態:</span>
-                                   <span class="analysis-value">${isRegistered ? '登録済み' : '未登録'}</span>
-                               </div>
-                               <div class="analysis-item">
-                                   <span class="analysis-label">ユーザーメッセージ数:</span>
-                                   <span class="analysis-value">${messageCount}通</span>
-                               </div>
-                           `;
-                       }
-                       
-                       // フェーズ情報を表示
-                       const phase = calculatePhase(messageCount, character);
-                       const phaseInfoDiv = document.getElementById('adminPhaseInfo');
-                       if (phaseInfoDiv) {
-                           phaseInfoDiv.innerHTML = `
-                               <div class="analysis-item">
-                                   <span class="analysis-label">現在のフェーズ:</span>
-                                   <span class="analysis-value">${phase.name}</span>
-                               </div>
-                               <div class="analysis-item">
-                                   <span class="analysis-label">説明:</span>
-                                   <span class="analysis-value">${phase.description}</span>
-                               </div>
-                           `;
-                       }
-                       
-                       // 会話履歴構造を表示
-                       const historyDiv = document.getElementById('adminHistory');
-                       if (historyDiv) {
-                           const userMessages = conversationHistory.filter(m => m && m.role === 'user').length;
-                           const assistantMessages = conversationHistory.filter(m => m && m.role === 'assistant').length;
-                           historyDiv.innerHTML = `
-                               <div class="analysis-item">
-                                   <span class="analysis-label">総メッセージ数:</span>
-                                   <span class="analysis-value">${conversationHistory.length}件</span>
-                               </div>
-                               <div class="analysis-item">
-                                   <span class="analysis-label">ユーザーメッセージ:</span>
-                                   <span class="analysis-value">${userMessages}件</span>
-                               </div>
-                               <div class="analysis-item">
-                                   <span class="analysis-label">アシスタントメッセージ:</span>
-                                   <span class="analysis-value">${assistantMessages}件</span>
-                               </div>
-                           `;
-                       }
-                       
-                       // 守護神の儀式を再発動ボタンを表示（カエデで登録済みユーザーの場合のみ）
-                       const ritualSection = document.getElementById('adminRitualSection');
-                       if (ritualSection) {
-                           if (character === 'kaede' && isRegistered) {
-                               ritualSection.style.display = 'block';
-                           } else {
-                               ritualSection.style.display = 'none';
-                           }
-                       }
-                       
-                       console.log('[管理者モード] 分析パネルを更新しました', {
-                           character,
-                           messageCount,
-                           historyLength: conversationHistory.length,
-                           showRitualButton: character === 'kaede' && isRegistered
-                       });
-                   } catch (error) {
-                       console.error('[管理者モード] 分析パネル更新エラー:', error);
-                   }
-               }
-               
-                   // 更新ボタンのイベントリスナー
-                   const refreshBtn = document.getElementById('adminRefreshBtn');
-                   if (refreshBtn) {
-                       refreshBtn.addEventListener('click', () => {
-                           updateAdminAnalysisPanel();
-                       });
-                   }
-                   
-                  // 守護神の儀式を再発動するボタンのイベントリスナー
-                  // 注意: イベントリスナーはハンドラー側で動的に設定されます（楓専用）
-                  const ritualBtn = document.getElementById('adminRitualButton');
-                  if (ritualBtn) {
-                      // character変数を取得（管理者モードの初期化コード内で使用）
-                      // ChatDataが読み込まれていない可能性があるため、安全にアクセス
-                      const currentCharacter = (window.ChatData && window.ChatData.currentCharacter) || urlParams.get('character') || 'unknown';
-                      if (currentCharacter === 'kaede') {
-                          ritualBtn.addEventListener('click', async () => {
-                              // ハンドラー側で処理を実行
-                              const handler = window.CharacterRegistry?.get(currentCharacter);
-                              if (handler && typeof handler.handleAdminRitualButton === 'function') {
-                                  await handler.handleAdminRitualButton();
-                              } else {
-                                  alert('守護神の儀式を開始できませんでした。ページをリロードしてください。');
-                              }
-                          });
-                      }
-                  }
-               
-               // メッセージ送信時に分析パネルを更新（カスタムイベントを監視）
-               document.addEventListener('adminPanelUpdate', () => {
-                   if (isAdminMode) {
-                       setTimeout(() => {
-                           updateAdminAnalysisPanel();
-                       }, 300);
-                   }
-               });
-               
-               // グローバルにupdateAdminAnalysisPanel関数を公開（chat-engine.jsから呼び出せるように）
-               window.updateAdminAnalysisPanel = updateAdminAnalysisPanel;
-               
-               // 初期化後に分析パネルを更新（DOMContentLoadedを待つ）
-               function initAdminPanel() {
-                   // ChatDataとAuthStateが読み込まれるまで待機
-                   let attempts = 0;
-                   const maxAttempts = 20;
-                   const checkInterval = setInterval(() => {
-                       attempts++;
-                       if (typeof ChatData !== 'undefined' && typeof window.AuthState !== 'undefined') {
-                           clearInterval(checkInterval);
-                           setTimeout(() => {
-                               updateAdminAnalysisPanel();
-                           }, 500);
-                       } else if (attempts >= maxAttempts) {
-                           clearInterval(checkInterval);
-                           console.warn('[管理者モード] ChatDataまたはAuthStateの読み込みがタイムアウトしました');
-                       }
-                   }, 200);
-               }
-               
-               if (isAdminMode) {
-                   if (document.readyState === 'loading') {
-                       document.addEventListener('DOMContentLoaded', initAdminPanel);
-                   } else {
-                       initAdminPanel();
-                   }
-                   
-                   // 定期的に更新（30秒ごと）
-                   setInterval(() => {
-                       if (isAdminMode && typeof ChatData !== 'undefined') {
-                           updateAdminAnalysisPanel();
-                       }
-                   }, 30000);
-               }
-           })();
-           </script>
-           
-           <!-- 管理者モード用CSSは外部ファイル（chat.css）に移動しました -->
-           
-           <!-- Enterキー送信と自動スクロールの実装（chat-engine.jsのエラーに巻き込まれない独立実装） -->
-           <script>
-           (function() {
-               'use strict';
-               
-               // 初期化済みフラグ（重複初期化を防ぐ）
-               let isInitialized = false;
-               let enterKeyHandler = null;
-               let scrollObserver = null;
-               
-               // メッセージコンテナの最下部へスクロールする関数
-               function scrollToBottom() {
-                   try {
-                       const messagesDiv = document.getElementById('messages');
-                       if (messagesDiv) {
-                           // requestAnimationFrameを使用してより確実にスクロール
-                           requestAnimationFrame(() => {
-                               setTimeout(() => {
-                                   try {
-                                       messagesDiv.scrollTo({
-                                           top: messagesDiv.scrollHeight,
-                                           behavior: 'smooth'
-                                       });
-                                   } catch (e) {
-                                       // scrollToが使えない場合はscrollTopを使用
-                                       messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                   }
-                               }, 100);
-                           });
-                       }
-                   } catch (error) {
-                       console.warn('[自動スクロール] エラー:', error);
-                   }
-               }
-               
-               // Enterキー送信とスクロールの初期化（chat-engine.jsのエラーに巻き込まれない）
-               function initEnterKeyAndScroll() {
-                   // 既に初期化済みの場合はスキップ
-                   if (isInitialized) {
-                       return;
-                   }
-                   
-                   try {
-                       const messageInput = document.getElementById('messageInput');
-                       const sendButton = document.getElementById('sendButton');
-                       const messagesDiv = document.getElementById('messages');
-                       
-                       if (!messageInput || !sendButton || !messagesDiv) {
-                           // 要素がまだ存在しない場合は、少し待ってから再試行（最大10回）
-                           let retryCount = 0;
-                           const maxRetries = 10;
-                           const retryInterval = setInterval(() => {
-                               retryCount++;
-                               if (retryCount >= maxRetries) {
-                                   clearInterval(retryInterval);
-                                   console.warn('[Enter送信・自動スクロール] 要素が見つかりませんでした');
-                                   return;
-                               }
-                               if (document.getElementById('messageInput') && 
-                                   document.getElementById('sendButton') && 
-                                   document.getElementById('messages')) {
-                                   clearInterval(retryInterval);
-                                   initEnterKeyAndScroll();
-                               }
-                           }, 200);
-                           return;
-                       }
-                       
-                       // 既存のイベントリスナーを削除（重複を防ぐ）
-                       if (enterKeyHandler) {
-                           messageInput.removeEventListener('keydown', enterKeyHandler);
-                       }
-                       
-                       // Enterキー送信の実装（PC判定の条件緩和）
-                       enterKeyHandler = function(e) {
-                           try {
-                               // Shift + Enterは改行、日本語入力確定時のEnterは送信しない
-                               // PC判定を緩和：!e.shiftKeyであれば送信を試みる
-                               if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-                                   e.preventDefault();
-                                   e.stopPropagation();
-                                   
-                                   const btn = document.getElementById('sendButton');
-                                   if (btn && !btn.disabled) {
-                                       btn.click();
-                                   }
-                               }
-                           } catch (error) {
-                               console.warn('[Enter送信] エラー:', error);
-                           }
-                       };
-                       
-                       messageInput.addEventListener('keydown', enterKeyHandler, { passive: false });
-                       
-                       // フォーカス時に最下部へスクロール（スマホのキーボード表示時に対応）
-                       // window.scrollToBottom()を使用して確実にスクロール
-                       messageInput.addEventListener('focus', function() {
-                           if (window.scrollToBottom) {
-                               window.scrollToBottom();
-                           } else {
-                               const messagesDiv = document.getElementById('messages');
-                               if (messagesDiv) {
-                                   setTimeout(() => {
-                                       try {
-                                           messagesDiv.scrollTo({
-                                               top: messagesDiv.scrollHeight,
-                                               behavior: 'smooth'
-                                           });
-                                       } catch (e) {
-                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                       }
-                                   }, 100);
-                                   
-                                   setTimeout(() => {
-                                       try {
-                                           messagesDiv.scrollTo({
-                                               top: messagesDiv.scrollHeight,
-                                               behavior: 'smooth'
-                                           });
-                                       } catch (e) {
-                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                       }
-                                   }, 500);
-                               }
-                           }
-                       }, { passive: true });
-                       
-                       // メッセージ追加時の自動スクロール（MutationObserverを使用）
-                       if (scrollObserver) {
-                           scrollObserver.disconnect();
-                       }
-                       
-                       scrollObserver = new MutationObserver(function(mutations) {
-                           // メッセージが追加された場合のみスクロール
-                           let shouldScroll = false;
-                           for (let mutation of mutations) {
-                               if (mutation.addedNodes.length > 0) {
-                                   shouldScroll = true;
-                                   break;
-                               }
-                           }
-                           if (shouldScroll) {
-                               const messagesDiv = document.getElementById('messages');
-                               if (messagesDiv) {
-                                   // 強制スクロール：0.1秒後と0.5秒後の2回実行
-                                   setTimeout(() => {
-                                       try {
-                                           messagesDiv.scrollTo({
-                                               top: messagesDiv.scrollHeight,
-                                               behavior: 'smooth'
-                                           });
-                                       } catch (e) {
-                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                       }
-                                   }, 100);
-                                   
-                                   setTimeout(() => {
-                                       try {
-                                           messagesDiv.scrollTo({
-                                               top: messagesDiv.scrollHeight,
-                                               behavior: 'smooth'
-                                           });
-                                       } catch (e) {
-                                           messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                       }
-                                   }, 500);
-                               }
-                           }
-                       });
-                       
-                       scrollObserver.observe(messagesDiv, {
-                           childList: true,
-                           subtree: true
-                       });
-                       
-                       isInitialized = true;
-                       console.log('[Enter送信・自動スクロール] 初期化完了（独立実装）');
-                   } catch (error) {
-                       console.error('[Enter送信・自動スクロール] 初期化エラー:', error);
-                   }
-               }
-               
-               // 複数のタイミングで初期化を試みる（chat-engine.jsのエラーに巻き込まれない）
-               function tryInit() {
-                   try {
-                       initEnterKeyAndScroll();
-                   } catch (error) {
-                       console.warn('[Enter送信・自動スクロール] 初期化試行エラー:', error);
-                   }
-               }
-               
-               // DOMContentLoadedで初期化
-               if (document.readyState === 'loading') {
-                   document.addEventListener('DOMContentLoaded', tryInit, { once: true });
-               } else {
-                   // 既にDOMContentLoadedが完了している場合
-                   tryInit();
-               }
-               
-               // window.load時にも初期化（念のため）
-               window.addEventListener('load', function() {
-                   setTimeout(tryInit, 200);
-               }, { once: true });
-               
-               // 少し遅れてからも初期化を試みる（動的に追加される要素に対応）
-               setTimeout(tryInit, 500);
-               setTimeout(tryInit, 1000);
-               
-               // グローバルにscrollToBottom関数を公開（他のスクリプトからも呼び出せるように）
-               window.scrollToBottom = scrollToBottom;
-           })();
-           </script>
+    <!-- 入口フォーム処理はchat-engine.jsに統合されているため、ここでは最小限の処理のみ -->
+    <script>
+    // 入口フォーム処理はchat-engine.jsで処理される
+    // 基本的な構造のみをHTMLに保持
+    </script>
+    
+    <!-- 待機画面制御スクリプト -->
+    <script>
+    (function() {
+        'use strict';
+        const urlParams = new URLSearchParams(window.location.search);
+        const character = urlParams.get('character');
+        const characterInfo = {
+            'kaede': { name: '楓', icon: '../../photo/kaede.png' },
+            'yukino': { name: '雪乃', icon: '../../photo/yukino.png' },
+            'sora': { name: 'ソラ', icon: '../../photo/sora.png' },
+            'kaon': { name: '花音', icon: '../../photo/kaon.png' }
+        };
+        
+        function customizeLoadingScreen() {
+            if (character && characterInfo[character]) {
+                const info = characterInfo[character];
+                const loadingText = document.getElementById('loadingText');
+                const loadingIcon = document.getElementById('loadingCharacterIcon');
+                if (loadingText) loadingText.textContent = `${info.name}が準備をしています...`;
+                if (loadingIcon && info.icon) {
+                    loadingIcon.src = info.icon;
+                    loadingIcon.style.display = 'block';
+                }
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', customizeLoadingScreen, { once: true });
+        } else {
+            customizeLoadingScreen();
+        }
+        
+        window.hideLoadingScreen = function() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+                loadingScreen.classList.add('hidden');
+                setTimeout(() => {
+                    if (loadingScreen.parentNode) {
+                        loadingScreen.parentNode.removeChild(loadingScreen);
+                    }
+                }, 800);
+            }
+        };
+    })();
+    </script>
+    
+    <!-- URLパラメータ処理 -->
+    <script>
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        if (userId) {
+            document.querySelectorAll('.navigation-links a[href="../main.html"]').forEach((link) => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set('userId', userId);
+                link.href = url.pathname + url.search;
+            });
+            document.querySelectorAll('.mobile-header-back[href="../main.html"]').forEach((link) => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set('userId', userId);
+                link.href = url.pathname + url.search;
+            });
+        }
+    })();
+    </script>
+    
+    <!-- スクリプト読み込み -->
+    <script src="../../js/auth-state.js" defer></script>
+    <script src="../../js/character-features.js" defer></script>
+    <script src="../../js/chat-engine.js" defer onload="window.chatEngineLoaded = true;"></script>
+    <script src="../../js/character-registry.js" defer></script>
+    <script src="../../js/character-loader.js" defer></script>
+    
+    <!-- ハンドラーの動的読み込み -->
+    <script>
+    (async function() {
+        'use strict';
+        const urlParams = new URLSearchParams(window.location.search);
+        const characterId = urlParams.get('character');
+        if (characterId) {
+            let attempts = 0;
+            const maxAttempts = 50;
+            while (!window.CharacterLoader && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            if (window.CharacterLoader) {
+                await CharacterLoader.loadHandler(characterId);
+            }
+        }
+    })();
+    </script>
+    
+    <!-- iframe通信 -->
+    <script>
+    (function() {
+        'use strict';
+        function sendReadyNotification() {
+            if (!window.parent || window.parent === window) return;
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const character = urlParams.get('character') || 'unknown';
+                window.parent.postMessage({
+                    type: 'CHAT_IFRAME_READY',
+                    character: character,
+                    messageCount: 0,
+                    timestamp: Date.now(),
+                    ready: true
+                }, '*');
+            } catch (error) {
+                console.error('[iframe] 通知送信エラー:', error);
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => setTimeout(sendReadyNotification, 100));
+        } else {
+            setTimeout(sendReadyNotification, 100);
+        }
+        if (document.readyState !== 'complete') {
+            window.addEventListener('load', () => setTimeout(sendReadyNotification, 100));
+        } else {
+            setTimeout(sendReadyNotification, 100);
+        }
+    })();
+    </script>
+    
+    <!-- 管理者モード初期化 -->
+    <script>
+    (function() {
+        'use strict';
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
+        if (isAdminMode) {
+            document.body.classList.add('admin-mode');
+            const analysisPanel = document.getElementById('adminAnalysisPanel');
+            if (analysisPanel) analysisPanel.classList.remove('hidden');
+        }
+        // 管理者モードの詳細な処理は既存のスクリプトに任せる
+    })();
+    </script>
+    
+    <!-- オートスクロール機能 -->
+    <script src="../../js/chat-autoscroll.js" defer></script>
 </body>
 </html>
+

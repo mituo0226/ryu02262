@@ -801,6 +801,7 @@ const ChatUI = {
     /**
      * 守護神の儀式への同意ボタンを表示（汎用関数）
      * 注意: キャラクター固有のロジックはハンドラー側で処理されます
+     * 注意: ボタン要素はハンドラー側で動的に生成されます（HTMLには含めない）
      */
     showRitualConsentButtons(questionText = '守護神の儀式を始めますか？') {
         // 既に表示されている、または一度表示された場合は表示しない
@@ -811,23 +812,27 @@ const ChatUI = {
         const ritualConsentContainer = document.getElementById('ritualConsentContainer');
         const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
         
-        if (ritualConsentContainer) {
-            // 既に表示されている場合は表示しない
-            if (ritualConsentContainer.classList.contains('visible')) {
-                return;
-            }
-            
-            // 質問テキストを設定（ハンドラーから渡されたテキストを使用）
-            if (ritualConsentQuestion) {
-                ritualConsentQuestion.textContent = questionText;
-            }
-            
-            ChatData.ritualConsentShown = true;
-            ritualConsentContainer.style.display = 'block';
-            requestAnimationFrame(() => {
-                ritualConsentContainer.classList.add('visible');
-            });
+        // 要素が存在しない場合は何もしない（ハンドラー側で事前に生成する必要がある）
+        if (!ritualConsentContainer) {
+            console.warn('[ChatUI] 守護神の儀式への同意ボタンが存在しません。ハンドラー側で事前に生成してください。');
+            return;
         }
+        
+        // 既に表示されている場合は表示しない
+        if (ritualConsentContainer.classList.contains('visible')) {
+            return;
+        }
+        
+        // 質問テキストを設定（ハンドラーから渡されたテキストを使用）
+        if (ritualConsentQuestion) {
+            ritualConsentQuestion.textContent = questionText;
+        }
+        
+        ChatData.ritualConsentShown = true;
+        ritualConsentContainer.style.display = 'block';
+        requestAnimationFrame(() => {
+            ritualConsentContainer.classList.add('visible');
+        });
     },
 
     /**

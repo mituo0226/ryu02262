@@ -37,5 +37,8 @@ worktrees/
 
 # --- AIの視界からワークツリーを完全に消去する ---
 .git/worktrees/
-**/worktrees/yyi/**
+**/worktrees/**
+**/.cursor/worktrees/**
+C:\Users\mituo\.cursor\worktrees/**
 gitdir
+

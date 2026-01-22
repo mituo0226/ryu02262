@@ -37,15 +37,17 @@ const KaedeHandler = {
     init() {
         console.log('[楓ハンドラー] 初期化');
         
-        // HTMLの同意ボタンにイベントリスナーを設定
+        // 守護神の儀式への同意ボタンを動的に生成
         // DOMContentLoadedイベントで実行（HTMLが完全に読み込まれた後に実行）
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 this.initRitualConsentButtons();
+                this.initAdminFeatures();
             });
         } else {
             // 既に読み込み完了している場合は即座に実行
             this.initRitualConsentButtons();
+            this.initAdminFeatures();
         }
     },
 
@@ -1177,27 +1179,67 @@ const KaedeHandler = {
     /**
      * 初期化時にHTMLの同意ボタンにイベントリスナーを設定
      */
+    /**
+     * 守護神の儀式への同意ボタンを動的に生成（楓専用）
+     * HTMLに含めず、ハンドラー側で動的に生成することで、キャラクター固有の要素をチャットHTMLから分離
+     */
     initRitualConsentButtons() {
-        const ritualYesButton = document.getElementById('ritualYesButton');
-        const ritualNoButton = document.getElementById('ritualNoButton');
-        
-        if (ritualYesButton) {
-            // 既存のイベントリスナーを削除
-            ritualYesButton.replaceWith(ritualYesButton.cloneNode(true));
-            const newYesButton = document.getElementById('ritualYesButton');
-            newYesButton.addEventListener('click', () => {
-                this.handleRitualConsent(true);
-            });
+        // 既に存在する場合は削除して再生成（重複を防ぐ）
+        let ritualConsentContainer = document.getElementById('ritualConsentContainer');
+        if (ritualConsentContainer) {
+            ritualConsentContainer.remove();
         }
         
-        if (ritualNoButton) {
-            // 既存のイベントリスナーを削除
-            ritualNoButton.replaceWith(ritualNoButton.cloneNode(true));
-            const newNoButton = document.getElementById('ritualNoButton');
-            newNoButton.addEventListener('click', () => {
-                this.handleRitualConsent(false);
-            });
+        // コンテナを動的に生成
+        ritualConsentContainer = document.createElement('div');
+        ritualConsentContainer.id = 'ritualConsentContainer';
+        ritualConsentContainer.className = 'ritual-consent-container';
+        ritualConsentContainer.style.display = 'none';
+        
+        // 質問テキスト
+        const questionDiv = document.createElement('div');
+        questionDiv.id = 'ritualConsentQuestion';
+        questionDiv.className = 'ritual-consent-question';
+        questionDiv.textContent = '守護神の儀式を始めますか？';
+        
+        // ボタンコンテナ
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'ritual-consent-buttons';
+        
+        // 「はい」ボタン
+        const yesButton = document.createElement('button');
+        yesButton.id = 'ritualYesButton';
+        yesButton.className = 'ritual-consent-button';
+        yesButton.textContent = 'はい';
+        yesButton.addEventListener('click', () => {
+            this.handleRitualConsent(true);
+        });
+        
+        // 「いいえ」ボタン
+        const noButton = document.createElement('button');
+        noButton.id = 'ritualNoButton';
+        noButton.className = 'ritual-consent-button no';
+        noButton.textContent = 'いいえ';
+        noButton.addEventListener('click', () => {
+            this.handleRitualConsent(false);
+        });
+        
+        // 構造を組み立て
+        buttonsDiv.appendChild(yesButton);
+        buttonsDiv.appendChild(noButton);
+        ritualConsentContainer.appendChild(questionDiv);
+        ritualConsentContainer.appendChild(buttonsDiv);
+        
+        // bodyに追加（input-areaの前に挿入）
+        const inputArea = document.querySelector('.input-area');
+        if (inputArea && inputArea.parentNode) {
+            inputArea.parentNode.insertBefore(ritualConsentContainer, inputArea);
+        } else {
+            // input-areaが見つからない場合はbodyに直接追加
+            document.body.appendChild(ritualConsentContainer);
         }
+        
+        console.log('[楓ハンドラー] 守護神の儀式への同意ボタンを動的に生成しました');
     },
 
     /**
@@ -1256,6 +1298,96 @@ const KaedeHandler = {
         }
     },
 
+    /**
+     * 管理者モードの分析パネルにキャラクター固有の機能を追加（楓専用）
+     * HTMLに含めず、ハンドラー側で動的に生成することで、キャラクター固有の要素をチャットHTMLから分離
+     */
+    initAdminFeatures() {
+        // 管理者モードでない場合は何もしない
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdminMode = urlParams.has('admin') || urlParams.get('admin') === 'true' || urlParams.get('admin') === '1';
+        if (!isAdminMode) {
+            return;
+        }
+        
+        // 分析パネルのキャラクター固有機能エリアを取得
+        const adminCharacterFeatures = document.getElementById('adminCharacterFeatures');
+        if (!adminCharacterFeatures) {
+            console.warn('[楓ハンドラー] adminCharacterFeatures要素が見つかりません');
+            return;
+        }
+        
+        // 既に追加されている場合は削除して再生成（重複を防ぐ）
+        adminCharacterFeatures.innerHTML = '';
+        
+        // 守護神の儀式再発動セクションを動的に生成
+        const ritualSection = document.createElement('div');
+        ritualSection.id = 'adminRitualSection';
+        ritualSection.style.display = 'none'; // 初期状態は非表示（条件に応じて表示）
+        
+        const sectionTitle = document.createElement('h4');
+        sectionTitle.style.cssText = 'margin: 0 0 10px; font-size: 14px; color: #c7cdff; font-weight: 600;';
+        sectionTitle.textContent = 'テスト用機能';
+        
+        const sectionContent = document.createElement('div');
+        sectionContent.className = 'analysis-content';
+        
+        const ritualButton = document.createElement('button');
+        ritualButton.id = 'adminRitualButton';
+        ritualButton.style.cssText = 'width: 100%; padding: 10px; font-size: 14px; background: rgba(139, 61, 255, 0.6); border: 1px solid rgba(139, 61, 255, 0.8); border-radius: 8px; color: white; cursor: pointer; transition: background 0.3s ease;';
+        ritualButton.textContent = '🔮 守護神の儀式を再発動';
+        ritualButton.addEventListener('click', () => {
+            this.handleAdminRitualButton();
+        });
+        
+        const ritualDescription = document.createElement('p');
+        ritualDescription.style.cssText = 'margin-top: 8px; font-size: 11px; color: #9da2c6;';
+        ritualDescription.textContent = '現在の会話履歴を使って、守護神の儀式を再度開始します';
+        
+        sectionContent.appendChild(ritualButton);
+        sectionContent.appendChild(ritualDescription);
+        ritualSection.appendChild(sectionTitle);
+        ritualSection.appendChild(sectionContent);
+        adminCharacterFeatures.appendChild(ritualSection);
+        
+        // 条件に応じて表示/非表示を切り替える関数
+        const updateRitualSectionVisibility = () => {
+            const character = ChatData?.currentCharacter || 'unknown';
+            const isRegistered = window.AuthState?.isRegistered() || false;
+            
+            if (character === 'kaede' && isRegistered) {
+                ritualSection.style.display = 'block';
+            } else {
+                ritualSection.style.display = 'none';
+            }
+        };
+        
+        // 初期表示状態を設定
+        // ChatDataとAuthStateが読み込まれるまで待機
+        const checkAndUpdate = () => {
+            if (typeof ChatData !== 'undefined' && typeof window.AuthState !== 'undefined') {
+                updateRitualSectionVisibility();
+            } else {
+                setTimeout(checkAndUpdate, 100);
+            }
+        };
+        checkAndUpdate();
+        
+        // グローバルのupdateAdminAnalysisPanel関数が呼ばれたときにも更新
+        const originalUpdateAdminAnalysisPanel = window.updateAdminAnalysisPanel;
+        if (originalUpdateAdminAnalysisPanel) {
+            window.updateAdminAnalysisPanel = function() {
+                originalUpdateAdminAnalysisPanel();
+                updateRitualSectionVisibility();
+            };
+        } else {
+            // updateAdminAnalysisPanelが存在しない場合は、定期的にチェック
+            setInterval(updateRitualSectionVisibility, 2000);
+        }
+        
+        console.log('[楓ハンドラー] 管理者モードの分析パネルに守護神の儀式再発動ボタンを動的に生成しました');
+    },
+    
     /**
      * 管理者用の守護神の儀式再発動ボタンの処理
      */
