@@ -1356,9 +1356,15 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1358',message:'initPage開始',data:{isRunning:this._initPageRunning,isCompleted:this._initPageCompleted,url:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         // 重複実行を防ぐフラグをチェック
         if (this._initPageRunning) {
             console.warn('[初期化] initPageが既に実行中です。重複実行をスキップします。');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1362',message:'initPage重複実行検出→スキップ',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
             // ローカルロギングサーバーへの接続は開発環境でのみ有効
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -1369,6 +1375,9 @@ const ChatInit = {
         }
         if (this._initPageCompleted) {
             console.warn('[初期化] initPageは既に完了しています。重複実行をスキップします。');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1355',message:'initPage完了済み検出→スキップ',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:26',message:'initPage完了済み検出→スキップ',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
@@ -2525,9 +2534,20 @@ const ChatInit = {
             // #endregion
             
             // 【追加】すべての初期化が完了したら待機画面を非表示
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2504',message:'initPage完了: hideLoadingScreen呼び出し前',data:{hasHideLoadingScreen:typeof window.hideLoadingScreen === 'function',character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             if (typeof window.hideLoadingScreen === 'function') {
                 window.hideLoadingScreen();
                 console.log('[初期化] 初期化完了、待機画面を非表示にしました');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2507',message:'initPage完了: hideLoadingScreen呼び出し後',data:{character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+            } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2510',message:'initPage完了: hideLoadingScreen関数が存在しない',data:{character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                console.error('[初期化] hideLoadingScreen関数が存在しません');
             }
             
             // MutationObserverを設定して、#messagesコンテナに新しい要素が追加されたら自動スクロール
@@ -2578,9 +2598,20 @@ const ChatInit = {
             // #endregion
             
             // 【追加】エラー時も待機画面を非表示
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2553',message:'initPageエラー: hideLoadingScreen呼び出し前',data:{hasHideLoadingScreen:typeof window.hideLoadingScreen === 'function',errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             if (typeof window.hideLoadingScreen === 'function') {
                 window.hideLoadingScreen();
                 console.log('[初期化] エラー発生、待機画面を非表示にしました');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2556',message:'initPageエラー: hideLoadingScreen呼び出し後',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+            } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2559',message:'initPageエラー: hideLoadingScreen関数が存在しない',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                console.error('[初期化] エラー発生、hideLoadingScreen関数が存在しません');
             }
             
             this._initPageRunning = false;
@@ -3807,6 +3838,9 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // DOMContentLoaded時に初期化
 window.addEventListener('DOMContentLoaded', async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:3809',message:'DOMContentLoaded: initPage呼び出し前',data:{hasChatInit:typeof ChatInit !== 'undefined',hasInitPage:typeof ChatInit?.initPage === 'function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     // 【統合後】依存関係の読み込み待機は不要（統合によりchat-engine.js内で定義済み）
     // deferにより確実に読み込まれるため、直接初期化を実行
     
@@ -3944,7 +3978,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     const isEntryFormVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
     
     // userIdがURLパラメータにある場合、エントリーフォームを非表示にしてチャットコンテナを表示
-    const domUrlParams = new URLSearchParams(window.location.search);
+    // グローバルスコープのurlParamsを使用
+    if (!window._chatUrlParams) {
+        window._chatUrlParams = new URLSearchParams(window.location.search);
+    }
+    const domUrlParams = window._chatUrlParams;
     const domUserId = domUrlParams.get('userId');
     if (domUserId && isEntryFormVisible) {
         entryFormContainer.classList.add('entry-form-hidden');
