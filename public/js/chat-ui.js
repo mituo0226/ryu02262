@@ -110,7 +110,7 @@ const ChatUI = {
         // 守護神名（データベースに日本語で保存されているのでそのまま使用）
         const deity = deityId;
         
-        let statusText = `鑑定名義: ${nickname}`;
+        let statusText = `�定名義: ${nickname}`;
         
         if (birthYear && birthMonth && birthDay) {
             statusText += ` ｜ 生年月日: ${birthYear}年${birthMonth}月${birthDay}日`;
@@ -133,19 +133,16 @@ const ChatUI = {
      * @returns {string} メッセージ要素のID
      */
     addMessage(type, text, sender, options = {}) {
-        // デバッグ: オブジェクトが渡されている場合、詳細ログを出力
+        // 1. 入力値の検証
+        if (!this.messagesDiv) return null;
+        
         if (typeof text !== 'string') {
-            console.error('[ChatUI.addMessage] ⚠️ オブジェクトが渡されています！', {
+            console.error('[ChatUI.addMessage] テキストが文字列ではありません', {
                 type,
                 sender,
                 textType: typeof text,
-                textValue: text,
-                textStringified: JSON.stringify(text),
-                stackTrace: new Error().stack
             });
-            // エラーとして処理：オブジェクトを文字列に変換
             if (Array.isArray(text)) {
-                console.error('[ChatUI.addMessage] 配列が渡されました。最初の要素を表示します。', text);
                 text = text.map(item => typeof item === 'object' ? JSON.stringify(item) : String(item)).join(', ');
             } else if (text && typeof text === 'object') {
                 text = text.message || text.content || JSON.stringify(text);
@@ -154,78 +151,24 @@ const ChatUI = {
             }
         }
         
-        // #region agent log
+        // 2. 重複チェック（welcomeの場合）
         if (type === 'welcome') {
-            const stackTrace = new Error().stack;
-            // 重複チェック: 同じ内容のwelcomeメッセージが既に表示されているか確認
             const existingMessages = this.messagesDiv?.querySelectorAll('.message.welcome') || [];
             const isDuplicate = Array.from(existingMessages).some(msg => {
                 const textDiv = msg.querySelector('.message-text');
                 return textDiv && textDiv.textContent === text;
             });
             
-            // ロギングサーバーへの接続は開発環境でのみ有効（コメントアウト）
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-ui.js:138',message:'addMessage welcome呼び出し',data:{type,sender,textLength:text.length,textPreview:text.substring(0,200),containsReturningMessage:text.includes('また私に会いに来てくれてありがとう'),isDuplicate,existingWelcomeCount:existingMessages.length,stackTrace:stackTrace?.split('\n').slice(0,10).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'E'})}).catch(()=>{});
-            // }
-            
             if (isDuplicate) {
-                console.warn('[ChatUI] 重複したwelcomeメッセージを検出しました。スキップします。', text.substring(0, 100));
+                console.warn('[ChatUI] 重複したwelcomeメッセージをスキップ', text.substring(0, 100));
                 return null;
             }
         }
-        // #endregion
-        if (!this.messagesDiv) return null;
         
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type}`;
-        
-        // IDを生成（指定されていない場合）
+        // 3. メッセージ ID の生成
         const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        messageDiv.id = messageId;
         
-        if (type === 'character') {
-            messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
-            messageDiv.style.color = '#ffffff';
-            messageDiv.style.border = 'none';
-            messageDiv.style.boxShadow = 'none';
-        }
-
-        // loadingタイプのメッセージの特別な処理
-        if (type === 'loading') {
-            messageDiv.className = 'message loading-message';
-            messageDiv.style.background = 'rgba(75, 0, 130, 0.95)';
-            messageDiv.style.color = '#ffd700';
-            messageDiv.style.border = 'none';
-            messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
-            messageDiv.style.position = 'relative';
-            messageDiv.style.overflow = 'visible';
-            messageDiv.style.willChange = 'auto';
-            // ⚠️ アニメーションはJavaScriptで設定しない。CSSの.message.loading-messageルールに完全に依存する
-        }
-        
-        textDiv.textContent = displayTextWithoutTag;
-        messageDiv.appendChild(textDiv);
-
-        if (sender) {
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'message-header';
-            headerDiv.textContent = sender;
-            
-            if (type === 'character') {
-                headerDiv.style.color = 'rgba(255, 255, 255, 0.9)';
-            }
-            else if (type === 'loading') {
-                headerDiv.style.color = '#ffd700';
-                headerDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6)';
-            }
-            else if (type === 'user') {
-                headerDiv.style.color = '#b794ff';
-            }
-            
-            messageDiv.appendChild(headerDiv);
-        }
-
+        // 4. テキスト処理（タグの削除、カード情報の抽出など）
         let displayText = text;
         const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
         const hasCardInfo = cardPattern.test(text);
@@ -235,317 +178,129 @@ const ChatUI = {
             displayText = displayText.replace(/\n{3,}/g, '\n\n');
         }
         
-        // [SUGGEST_TAROT]タグはonMessageAddedで検出してボタンを表示するため、元のtextパラメータには残す
-        // ただし、表示テキストからは削除する（ユーザーには見えないようにする）
-        // onMessageAddedには元のtextパラメータ（削除前）を渡すことで、検出できるようにする
         const displayTextWithoutTag = displayText.replace(/\[SUGGEST_TAROT\]/g, '');
         
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-        if (type === 'loading') {
-            // シンプルなテキストアニメーション設定
-            textDiv.style.cssText = `
-                color: #ffd700;
-                text-shadow: 
-                    0 0 10px rgba(255, 215, 0, 0.8),
-                    0 0 20px rgba(138, 43, 226, 0.6),
-                    0 0 30px rgba(255, 107, 157, 0.4);
-                text-align: center;
-                line-height: 1.8;
-                display: block;
-                will-change: auto;
-            `;
-        }
-        textDiv.textContent = displayTextWithoutTag;
-        messageDiv.appendChild(textDiv);
-        
-        // loadingタイプの場合、動的なメッセージ変更機能を有効化
-        if (type === 'loading' && messageDiv.dataset.enableDynamicMessage === 'true') {
-            const waitingMessages = [
-                '考えています...',
-                '深く考えています...',
-                'あなたの言葉を大切に受け止めています...',
-                '最適な返答を探しています...',
-                'もう少しお待ちください...',
-                '考えをまとめています...'
-            ];
-            
-            let messageIndex = 0;
-            const startTime = Date.now();
-            
-            // ⚠️ 重要：CSSアニメーション（messageBubbleSway）に完全に依存するため、
-            // JavaScriptでの直接的なtransform操作を削除。
-            // これによりアニメーション競合を防止。
-            
-            // 動的メッセージ変更のみを実行（アニメーション効果はCSSが担当）
-            setTimeout(() => {
-                if (messageDiv.parentNode && messageIndex === 0) {
-                    messageIndex = 1;
-                    const textDivElement = messageDiv.querySelector('.message-text');
-                    if (textDivElement) {
-                        // テキストのフェードアウト/フェードイン（transformは使用しない）
-                        textDivElement.style.transition = 'opacity 0.2s ease';
-                        textDivElement.style.opacity = '0.3';
-                        
-                        setTimeout(() => {
-                            textDivElement.textContent = waitingMessages[messageIndex];
-                            textDivElement.style.opacity = '1';
-                        }, 100);
-                    }
-                }
-            }, 800); // 0.8秒後に最初の変更
-            
-            // メッセージ変更のタイマーを設定（0.8秒ごとに変更）
-            const messageChangeInterval = setInterval(() => {
-                if (!messageDiv.parentNode) {
-                    clearInterval(messageChangeInterval);
-                    return;
-                }
-                
-                // 経過時間を計算
-                const elapsed = Date.now() - startTime;
-                    messageIndex = secondsElapsed % waitingMessages.length;
-                    
-                    // テキスト要素を更新
-                    const textDivElement = messageDiv.querySelector('.message-text');
-                    if (textDivElement) {
-                        // 背景色を変化させる（transformはCSSアニメーションに任せる）
-                        const backgroundColors = [
-                            'rgba(75, 0, 130, 0.95)',
-                            'rgba(106, 13, 173, 0.95)',
-                            'rgba(75, 0, 130, 0.95)',
-                            'rgba(139, 61, 255, 0.95)',
-                            'rgba(75, 0, 130, 0.95)',
-                            'rgba(106, 13, 173, 0.95)'
-                        ];
-                        messageDiv.style.transition = 'background 0.3s ease, box-shadow 0.3s ease';
-                        messageDiv.style.background = backgroundColors[messageIndex];
-                        
-                        // テキストのフェードアウト
-                        textDivElement.style.transition = 'opacity 0.2s ease';
-                        textDivElement.style.opacity = '0.3';
-                        
-                        setTimeout(() => {
-                            // テキストを更新
-                            textDivElement.textContent = waitingMessages[messageIndex];
-                            
-                            // フェードイン
-                            setTimeout(() => {
-                                textDivElement.style.opacity = '1';
-                                
-                                // ボックスシャドウを一時的に強化
-                                messageDiv.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(138, 43, 226, 0.4)';
-                                
-                                // 少し後に元のシャドウに戻す（アニメーションに任せる）
-                                setTimeout(() => {
-                                    messageDiv.style.boxShadow = '';
-                                }, 300);
-                            }, 50);
-                        }, 100);
-                    }
-                }
-            }, 200); // 200msごとにチェック（より頻繁にチェック）
-            
-            // メッセージが削除されたらタイマーをクリア
-            messageDiv.dataset.messageChangeInterval = messageChangeInterval;
-        }
-
-        if ((type === 'character' || type === 'welcome') && window.CharacterFeatures) {
-            const sendMessageCallback = typeof window.sendMessage === 'function' ? window.sendMessage : null;
-            if (window.CharacterFeatures.detect(ChatData.currentCharacter, text)) {
-                window.CharacterFeatures.display(ChatData.currentCharacter, text, messageDiv, sendMessageCallback);
-            }
-        }
-
-        this.messagesDiv.appendChild(messageDiv);
-        
-        // loadingタイプの場合、DOM追加後にアニメーションを確実に適用
-        if (type === 'loading') {
-            // DOMに追加された後にアニメーションを確実に適用
-            requestAnimationFrame(() => {
-                // アニメーションが確実に適用されるように、一度リセットして再適用
-                const currentAnimation = messageDiv.style.animation;
-                messageDiv.style.animation = 'none';
-                requestAnimationFrame(() => {
-                    messageDiv.style.setProperty('animation', 'messageBubbleSway 2.5s ease-in-out infinite', 'important');
-                    messageDiv.style.setProperty('transform-origin', 'center center', 'important');
-                    messageDiv.style.animationPlayState = 'running';
-                });
-            });
-        }
-        
-        // メッセージ追加後、ハンドラーのコールバックを呼び出す（鑑定士固有の処理を委譲）
-        // これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
-        
-        // [SUGGEST_TAROT]が含まれている場合、必ずログを出力して原因を特定
-        if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-            console.log('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - デバッグ情報:', {
-                type,
-                sender,
-                character: ChatData?.currentCharacter,
-                hasRegistry: !!window.CharacterRegistry,
-                hasChatData: !!ChatData,
-                textPreview: text.substring(0, 100),
-                registeredIds: window.CharacterRegistry ? CharacterRegistry.getRegisteredIds() : []
-            });
-        }
-        
-        if (window.CharacterRegistry && ChatData && ChatData.currentCharacter) {
-            // #region agent log - コンソールログのみ（確実に読み取れる）
-            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - ハンドラー取得前');
-                console.log('キャラクター:', ChatData.currentCharacter);
-                console.log('CharacterRegistry存在:', !!window.CharacterRegistry);
-                console.log('ChatData存在:', !!ChatData);
-                console.log('登録済みハンドラー:', CharacterRegistry.getRegisteredIds());
-                console.log('yukinoハンドラー登録済み:', CharacterRegistry.has('yukino'));
-                console.log('yukinoハンドラー:', CharacterRegistry.get('yukino'));
-                console.groupEnd();
-            }
-            // #endregion
-            const handler = CharacterRegistry.get(ChatData.currentCharacter);
-            // #region agent log - コンソールログのみ（確実に読み取れる）
-            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                console.group('🔍 [DEBUG] [SUGGEST_TAROT]検出 - ハンドラー取得後');
-                console.log('ハンドラー存在:', !!handler);
-                console.log('ハンドラータイプ:', handler ? typeof handler.onMessageAdded : 'null');
-                console.log('onMessageAdded存在:', handler && typeof handler.onMessageAdded === 'function');
-                console.log('ハンドラーのキー:', handler ? Object.keys(handler) : []);
-                if (handler) {
-                    console.log('ハンドラー全体:', handler);
-                }
-                console.groupEnd();
-            }
-            // #endregion
-            if (handler && typeof handler.onMessageAdded === 'function') {
-                try {
-                    handler.onMessageAdded(type, text, sender, messageDiv, messageId, options);
-                } catch (error) {
-                    console.error(`[chat-ui] ハンドラーのonMessageAddedでエラーが発生しました (${ChatData.currentCharacter}):`, error);
-                    if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                        console.error('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - onMessageAddedでエラー:', error);
-                    }
-                }
-            } else {
-                // デバッグ: ハンドラーが見つからない場合
-                if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                    console.error('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - ハンドラーが見つかりません:', {
-                        type,
-                        sender,
-                        character: ChatData.currentCharacter,
-                        hasRegistry: !!window.CharacterRegistry,
-                        hasChatData: !!ChatData,
-                        hasHandler: !!handler,
-                        handlerType: handler ? typeof handler.onMessageAdded : 'null',
-                        registeredIds: CharacterRegistry.getRegisteredIds()
-                    });
-                }
-            }
-        } else {
-            // デバッグ: CharacterRegistryまたはChatDataが存在しない場合
-            if (text && typeof text === 'string' && text.includes('[SUGGEST_TAROT]')) {
-                console.error('[ChatUI.addMessage] [SUGGEST_TAROT]検出 - CharacterRegistryまたはChatDataが存在しません:', {
-                    type,
-                    sender,
-                    hasRegistry: !!window.CharacterRegistry,
-                    hasChatData: !!ChatData,
-                    currentCharacter: ChatData?.currentCharacter
-                });
-            }
-        }
-        
-        requestAnimationFrame(() => {
-            this.scrollToLatest();
-        });
-        
-        // loadingタイプのメッセージの場合、削除時にタイマーをクリアする処理を追加
-        if (type === 'loading') {
-            // 元のremoveメソッドを保存
-            const originalRemove = messageDiv.remove.bind(messageDiv);
-            
-            // removeメソッドをオーバーライドしてタイマーをクリア
-            messageDiv.remove = function() {
-                // アニメーションタイマーをクリア
-                if (this.dataset.animationInterval) {
-                    clearInterval(Number(this.dataset.animationInterval));
-                }
-                // メッセージ変更タイマーをクリア
-                if (this.dataset.messageChangeInterval) {
-                    clearInterval(Number(this.dataset.messageChangeInterval));
-                }
-                // 初期パルスアニメーションをクリア
-                if (this.dataset.initialPulseInterval) {
-                    clearInterval(Number(this.dataset.initialPulseInterval));
-                }
-                
-                // チャットウィンドウのアニメーションを解除
-                if (this.dataset.chatContainerAnimated === 'true') {
-                    const messagesDiv = document.getElementById('messages');
-                    if (messagesDiv && messagesDiv.parentElement) {
-                        const chatContainer = messagesDiv.closest('.chat-container');
-                        if (chatContainer) {
-                            chatContainer.classList.remove('waiting-for-response');
-                        }
-                    }
-                }
-                
-                // 元のremoveメソッドを呼び出し
-                originalRemove();
-            };
-        }
-        
-        // メッセージIDを返す（待機メッセージの削除などに使用）
-        return messageId;
-    },
-
-    /**
-     * メッセージを先頭に追加（会話履歴の遅延表示用）
-     * @param {string} type - メッセージタイプ ('user', 'character', 'welcome', 'error', 'loading')
-     * @param {string} text - メッセージテキスト
-     * @param {string} sender - 送信者名
-     * @param {Object} options - オプション
-     * @returns {string} メッセージ要素のID
-     */
-    prependMessage(type, text, sender, options = {}) {
-        if (!this.messagesDiv) return null;
-        
-        // addMessageと同じロジックでメッセージ要素を作成（簡略版）
+        // 5. messageDiv の作成
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type}`;
-        
-        // IDを生成（指定されていない場合）
-        const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         messageDiv.id = messageId;
         
+        // type に応じたクラス設定
+        if (type === 'loading') {
+            messageDiv.className = 'message loading-message';
+        } else {
+            messageDiv.className = `message ${type}`;
+        }
+        
+        // 6. type 別のスタイル設定
         if (type === 'character') {
             messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
             messageDiv.style.color = '#ffffff';
-            messageDiv.style.border = 'none';
-            messageDiv.style.boxShadow = 'none';
+        } else if (type === 'loading') {
+            messageDiv.style.background = 'rgba(75, 0, 130, 0.95)';
+            messageDiv.style.color = '#ffd700';
+            messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
         }
         
+        // 7. ヘッダー（送信者名）の作成
+        if (sender) {
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.textContent = sender;
+            
+            if (type === 'character') {
+                headerDiv.style.color = 'rgba(255, 255, 255, 0.9)';
+            } else if (type === 'loading') {
+                headerDiv.style.color = '#ffd700';
+                headerDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6)';
+            } else if (type === 'user') {
+                headerDiv.style.color = '#b794ff';
+            }
+            
+            messageDiv.appendChild(headerDiv);
+        }
+        
+        // 8. テキスト表示用の div を作成
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
-        textDiv.textContent = text;
-        messageDiv.appendChild(textDiv);
+        textDiv.textContent = displayTextWithoutTag;
         
-        if (sender) {
-            const senderDiv = document.createElement('div');
-            senderDiv.className = 'message-sender';
-            senderDiv.textContent = sender;
-            messageDiv.appendChild(senderDiv);
+        if (type === 'loading') {
+            textDiv.style.color = '#ffd700';
+            textDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6), 0 0 30px rgba(255, 107, 157, 0.4)';
+            textDiv.style.textAlign = 'center';
+            textDiv.style.lineHeight = '1.8';
         }
         
-        // 先頭に追加（insertBeforeを使用）
+        messageDiv.appendChild(textDiv);
+        
+        // 9. loading タイプの特殊処理
+        if (type === 'loading') {
+            // チャットコンテナに waiting-for-response クラスを追加
+            const chatContainer = this.messagesDiv.closest('.chat-container');
+            if (chatContainer) {
+                chatContainer.classList.add('waiting-for-response');
+            }
+            
+            // 動的メッセージ変更機能を設定
+            this._setupLoadingMessageAnimation(messageDiv, textDiv);
+        }
+        
+        // 10. messageDiv を DOM に追加（先頭に挿入）
         if (this.messagesDiv.firstChild) {
             this.messagesDiv.insertBefore(messageDiv, this.messagesDiv.firstChild);
         } else {
             this.messagesDiv.appendChild(messageDiv);
         }
         
-        // スクロールは行わない（古いメッセージを先頭に追加するため）
+        // 11. onMessageAdded コールバックを実行
+        if (this.onMessageAdded) {
+            this.onMessageAdded(type, text, sender);
+        }
         
         return messageId;
+    }
+
+    /**
+     * loading メッセージのアニメーション処理
+     */
+    _setupLoadingMessageAnimation(messageDiv, textDiv) {
+        const waitingMessages = [
+            '考えています...',
+            '深く考えています...',
+            'あなたの言葉を大切に受け止めています...',
+            '最適な返答を探しています...',
+            'もう少しお待ちください...',
+            '考えをまとめています...'
+        ];
+        
+        let messageIndex = 0;
+        
+        // 0.8秒ごとにメッセージを変更
+        const messageChangeInterval = setInterval(() => {
+            // メッセージが削除されたら停止
+            if (!messageDiv.parentNode) {
+                clearInterval(messageChangeInterval);
+                return;
+            }
+            
+            // メッセージインデックスを更新
+            messageIndex = (messageIndex + 1) % waitingMessages.length;
+            
+            // テキストをフェードアウト
+            textDiv.style.transition = 'opacity 0.2s ease';
+            textDiv.style.opacity = '0.3';
+            
+            // 100ms後にテキストを変更してフェードイン
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    textDiv.textContent = waitingMessages[messageIndex];
+                    textDiv.style.opacity = '1';
+                }
+            }, 100);
+        }, 800);
+        
+        // インターバル ID を保存（後でクリア可能にするため）
+        messageDiv.dataset.messageChangeInterval = messageChangeInterval;
     },
 
     /**
@@ -868,4 +623,3 @@ const ChatUI = {
 
 // グローバルスコープに公開（iframeからアクセスできるようにする）
 window.ChatUI = ChatUI;
-
