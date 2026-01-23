@@ -22,6 +22,7 @@ interface TestSuite {
   characterId: string;
   characterName: string;
   tests: TestResult[];
+  generatedPrompt?: string; // 生成されたプロンプト全体
 }
 
 export const onRequestPost: PagesFunction = async (context) => {
@@ -73,6 +74,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       characterId: 'kaede',
       characterName: '楓',
       tests: kaedeTests,
+      generatedPrompt: kaedePrompt,
     });
 
     // ===== 笹岡雪乃（yukino）のテスト =====
@@ -110,6 +112,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       characterId: 'yukino',
       characterName: '笹岡雪乃',
       tests: yukinoTests,
+      generatedPrompt: yukinoPrompt,
     });
 
     // ===== 水野ソラ（sora）のテスト =====
@@ -147,6 +150,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       characterId: 'sora',
       characterName: '水野ソラ',
       tests: soraTests,
+      generatedPrompt: soraPrompt,
     });
 
     // ===== 三崎花音（kaon）のテスト =====
@@ -184,6 +188,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       characterId: 'kaon',
       characterName: '三崎花音',
       tests: kaonTests,
+      generatedPrompt: kaonPrompt,
     });
 
     // ===== システムプロンプト生成の統合テスト =====

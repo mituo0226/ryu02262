@@ -1144,10 +1144,11 @@
       `;
 
       // 各鑑定士のテスト結果
-      testSuites.forEach(suite => {
+      testSuites.forEach((suite, index) => {
         const passedCount = suite.tests.filter(t => t.passed).length;
         const totalCount = suite.tests.length;
         const passRate = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
+        const promptId = `prompt-${suite.characterId}-${index}`;
         
         html += `
           <div style="margin-bottom: 20px; padding: 18px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;">
@@ -1172,6 +1173,21 @@
                 </div>
               `).join('')}
             </div>
+            ${suite.generatedPrompt ? `
+              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                <button 
+                  onclick="togglePrompt('${promptId}')"
+                  style="padding: 8px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;"
+                  onmouseover="this.style.background='rgba(138, 43, 226, 0.3)'"
+                  onmouseout="this.style.background='rgba(138, 43, 226, 0.2)'"
+                  id="btn-${promptId}">
+                  📄 生成されたプロンプトを表示
+                </button>
+                <div id="${promptId}" style="display: none; margin-top: 12px; padding: 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; max-height: 500px; overflow-y: auto;">
+                  <pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(suite.generatedPrompt)}</pre>
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
       });
@@ -1208,6 +1224,24 @@
       }
 
       testResults.innerHTML = html;
+    }
+
+    function togglePrompt(promptId) {
+      const promptDiv = document.getElementById(promptId);
+      const button = document.getElementById(`btn-${promptId}`);
+      if (promptDiv.style.display === 'none') {
+        promptDiv.style.display = 'block';
+        button.textContent = '📄 生成されたプロンプトを非表示';
+      } else {
+        promptDiv.style.display = 'none';
+        button.textContent = '📄 生成されたプロンプトを表示';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
     
   </script>
