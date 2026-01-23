@@ -518,6 +518,9 @@ const ChatUI = {
         textDiv.className = 'message-text';
         if (type === 'loading') {
             // アニメーションを即座に適用（will-changeで最適化）
+            // ⚠️ 重要：複数のtransformアニメーション競合を避けるため、
+            // textPulse と textShake の複数transformアニメーションを削除し、
+            // 統合された textLoadingWaitAnimation のみを使用
             textDiv.style.cssText = `
                 color: #ffd700;
                 text-shadow: 
@@ -525,15 +528,11 @@ const ChatUI = {
                     0 0 20px rgba(138, 43, 226, 0.6),
                     0 0 30px rgba(255, 107, 157, 0.4);
                 animation: 
-                    guardian-mystic-glow-text 3s ease-in-out infinite,
-                    textPulse 1.5s ease-in-out infinite,
-                    textColorShift 3s ease-in-out infinite,
-                    textShake 2.5s ease-in-out infinite,
-                    textGlowPulse 2.5s ease-in-out infinite;
+                    textLoadingWaitAnimation 3s ease-in-out infinite;
                 text-align: center;
                 line-height: 1.8;
                 transform: scale(1);
-                display: inline-block;
+                display: block;
                 will-change: transform, color, text-shadow, opacity;
             `;
             
@@ -542,99 +541,83 @@ const ChatUI = {
                 textDiv.style.animationPlayState = 'running';
             });
             
-            // テキストのパルスアニメーション、色変化、揺れ効果をCSSに追加（まだ存在しない場合）
-            if (!document.getElementById('text-pulse-animation')) {
+            // 統合されたテキストアニメーションをCSSに追加（まだ存在しない場合）
+            if (!document.getElementById('text-loading-wait-animation')) {
                 const style = document.createElement('style');
-                style.id = 'text-pulse-animation';
+                style.id = 'text-loading-wait-animation';
                 style.textContent = `
-                    @keyframes textPulse {
+                    @keyframes textLoadingWaitAnimation {
                         0%, 100% {
-                            transform: scale(1);
-                            opacity: 1;
-                        }
-                        50% {
-                            transform: scale(1.02);
-                            opacity: 0.95;
-                        }
-                    }
-                    @keyframes textColorShift {
-                        0% {
                             color: #ffd700;
-                            filter: hue-rotate(0deg);
-                        }
-                        25% {
-                            color: #ffb347;
-                            filter: hue-rotate(15deg);
-                        }
-                        50% {
-                            color: #ff6b9d;
-                            filter: hue-rotate(30deg);
-                        }
-                        75% {
-                            color: #c77dff;
-                            filter: hue-rotate(45deg);
-                        }
-                        100% {
-                            color: #ffd700;
-                            filter: hue-rotate(0deg);
-                        }
-                    }
-                    @keyframes textShake {
-                        0%, 100% {
-                            transform: translateX(0) translateY(0) rotate(0deg);
-                        }
-                        10% {
-                            transform: translateX(-1px) translateY(-1px) rotate(-0.5deg);
-                        }
-                        20% {
-                            transform: translateX(1px) translateY(1px) rotate(0.5deg);
-                        }
-                        30% {
-                            transform: translateX(-1px) translateY(0) rotate(-0.3deg);
-                        }
-                        40% {
-                            transform: translateX(1px) translateY(-1px) rotate(0.3deg);
-                        }
-                        50% {
-                            transform: translateX(0) translateY(1px) rotate(0deg);
-                        }
-                        60% {
-                            transform: translateX(-1px) translateY(0) rotate(-0.2deg);
-                        }
-                        70% {
-                            transform: translateX(1px) translateY(1px) rotate(0.2deg);
-                        }
-                        80% {
-                            transform: translateX(-1px) translateY(-1px) rotate(-0.1deg);
-                        }
-                        90% {
-                            transform: translateX(1px) translateY(0) rotate(0.1deg);
-                        }
-                    }
-                    @keyframes textGlowPulse {
-                        0%, 100% {
+                            transform: scale(1) translateX(0) translateY(0) rotate(0deg);
                             text-shadow: 
                                 0 0 10px rgba(255, 215, 0, 0.8),
                                 0 0 20px rgba(138, 43, 226, 0.6),
                                 0 0 30px rgba(255, 107, 157, 0.4);
+                            opacity: 1;
                         }
-                        25% {
+                        12.5% {
+                            color: #ffb347;
+                            transform: scale(1.02) translateX(-1px) translateY(-1px) rotate(-0.5deg);
                             text-shadow: 
                                 0 0 15px rgba(255, 179, 71, 0.9),
                                 0 0 25px rgba(138, 43, 226, 0.7),
                                 0 0 35px rgba(255, 107, 157, 0.5);
+                            opacity: 0.98;
                         }
-                        50% {
+                        25% {
+                            color: #ffb347;
+                            transform: scale(1.03) translateX(1px) translateY(1px) rotate(0.5deg);
+                            text-shadow: 
+                                0 0 15px rgba(255, 179, 71, 0.9),
+                                0 0 25px rgba(138, 43, 226, 0.7),
+                                0 0 35px rgba(255, 107, 157, 0.5);
+                            opacity: 0.95;
+                        }
+                        37.5% {
+                            color: #ff6b9d;
+                            transform: scale(1.02) translateX(-1px) translateY(0) rotate(-0.3deg);
                             text-shadow: 
                                 0 0 20px rgba(255, 107, 157, 1),
                                 0 0 30px rgba(199, 125, 255, 0.8),
                                 0 0 40px rgba(255, 215, 0, 0.6);
+                            opacity: 0.98;
                         }
-                        75% {
+                        50% {
+                            color: #ff6b9d;
+                            transform: scale(1.01) translateX(1px) translateY(-1px) rotate(0.3deg);
+                            text-shadow: 
+                                0 0 20px rgba(255, 107, 157, 1),
+                                0 0 30px rgba(199, 125, 255, 0.8),
+                                0 0 40px rgba(255, 215, 0, 0.6);
+                            opacity: 1;
+                        }
+                        62.5% {
+                            color: #c77dff;
+                            transform: scale(1.02) translateX(0) translateY(1px) rotate(0deg);
                             text-shadow: 
                                 0 0 15px rgba(199, 125, 255, 0.9),
                                 0 0 25px rgba(138, 43, 226, 0.7),
                                 0 0 35px rgba(255, 179, 71, 0.5);
+                            opacity: 0.98;
+                        }
+                        75% {
+                            color: #c77dff;
+                            transform: scale(1.01) translateX(-1px) translateY(0) rotate(-0.2deg);
+                            text-shadow: 
+                                0 0 15px rgba(199, 125, 255, 0.9),
+                                0 0 25px rgba(138, 43, 226, 0.7),
+                                0 0 35px rgba(255, 179, 71, 0.5);
+                            opacity: 0.95;
+                        }
+                        87.5% {
+                            color: #ffd700;
+                            transform: scale(1.02) translateX(1px) translateY(1px) rotate(0.2deg);
+                            text-shadow: 
+                                0 0 10px rgba(255, 215, 0, 0.8),
+                                0 0 20px rgba(138, 43, 226, 0.6),
+                                0 0 30px rgba(255, 107, 157, 0.4);
+                            opacity: 0.98;
                         }
                     }
                 `;
@@ -658,33 +641,23 @@ const ChatUI = {
             let messageIndex = 0;
             const startTime = Date.now();
             
-            // 最初からメッセージボックスにアニメーションを適用（CSSアニメーションを使用）
-            // initialPulseは削除（CSSアニメーションと競合するため）
+            // ⚠️ 重要：CSSアニメーション（messageBubbleSway）に完全に依存するため、
+            // JavaScriptでの直接的なtransform操作を削除。
+            // これによりアニメーション競合を防止。
             
-            // 最初のメッセージ変更を即座に実行（0.8秒後）
+            // 動的メッセージ変更のみを実行（アニメーション効果はCSSが担当）
             setTimeout(() => {
                 if (messageDiv.parentNode && messageIndex === 0) {
                     messageIndex = 1;
                     const textDivElement = messageDiv.querySelector('.message-text');
                     if (textDivElement) {
-                        messageDiv.style.transition = 'transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease';
-                        messageDiv.style.transform = 'scale(0.98) translateY(-2px)';
-                        messageDiv.style.background = 'rgba(106, 13, 173, 0.95)';
-                        
-                        textDivElement.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                        // テキストのフェードアウト/フェードイン（transformは使用しない）
+                        textDivElement.style.transition = 'opacity 0.2s ease';
                         textDivElement.style.opacity = '0.3';
-                        textDivElement.style.transform = 'translateY(-5px)';
                         
                         setTimeout(() => {
                             textDivElement.textContent = waitingMessages[messageIndex];
                             textDivElement.style.opacity = '1';
-                            textDivElement.style.transform = 'translateY(0)';
-                            messageDiv.style.transform = 'scale(1) translateY(0)';
-                            messageDiv.style.boxShadow = '0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(138, 43, 226, 0.3)';
-                            
-                            setTimeout(() => {
-                                messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
-                            }, 300);
                         }, 100);
                     }
                 }
@@ -699,10 +672,6 @@ const ChatUI = {
                 
                 // 経過時間を計算
                 const elapsed = Date.now() - startTime;
-                
-                // 0.8秒ごとにメッセージを変更
-                const secondsElapsed = Math.floor(elapsed / 800);
-                if (secondsElapsed > messageIndex) {
                     messageIndex = secondsElapsed % waitingMessages.length;
                     
                     // テキスト要素を更新
