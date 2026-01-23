@@ -528,7 +528,7 @@ const ChatUI = {
                     0 0 20px rgba(138, 43, 226, 0.6),
                     0 0 30px rgba(255, 107, 157, 0.4);
                 animation: 
-                    textLoadingWaitAnimation 3s ease-in-out infinite;
+                    textLoadingWaitAnimation 1.5s ease-in-out infinite;
                 text-align: center;
                 line-height: 1.8;
                 transform: scale(1);
@@ -558,34 +558,34 @@ const ChatUI = {
                         }
                         12.5% {
                             color: #ffb347;
-                            transform: scale(1.02) translateX(-1px) translateY(-1px) rotate(-0.5deg);
-                            text-shadow: 
-                                0 0 15px rgba(255, 179, 71, 0.9),
-                                0 0 25px rgba(138, 43, 226, 0.7),
-                                0 0 35px rgba(255, 107, 157, 0.5);
-                            opacity: 0.98;
-                        }
-                        25% {
-                            color: #ffb347;
-                            transform: scale(1.03) translateX(1px) translateY(1px) rotate(0.5deg);
+                            transform: scale(1.08) translateX(-4px) translateY(-4px) rotate(-2deg);
                             text-shadow: 
                                 0 0 15px rgba(255, 179, 71, 0.9),
                                 0 0 25px rgba(138, 43, 226, 0.7),
                                 0 0 35px rgba(255, 107, 157, 0.5);
                             opacity: 0.95;
                         }
+                        25% {
+                            color: #ffb347;
+                            transform: scale(1.1) translateX(5px) translateY(4px) rotate(2deg);
+                            text-shadow: 
+                                0 0 15px rgba(255, 179, 71, 0.9),
+                                0 0 25px rgba(138, 43, 226, 0.7),
+                                0 0 35px rgba(255, 107, 157, 0.5);
+                            opacity: 0.92;
+                        }
                         37.5% {
                             color: #ff6b9d;
-                            transform: scale(1.02) translateX(-1px) translateY(0) rotate(-0.3deg);
+                            transform: scale(1.08) translateX(-3px) translateY(-5px) rotate(-1.5deg);
                             text-shadow: 
                                 0 0 20px rgba(255, 107, 157, 1),
                                 0 0 30px rgba(199, 125, 255, 0.8),
                                 0 0 40px rgba(255, 215, 0, 0.6);
-                            opacity: 0.98;
+                            opacity: 0.95;
                         }
                         50% {
                             color: #ff6b9d;
-                            transform: scale(1.01) translateX(1px) translateY(-1px) rotate(0.3deg);
+                            transform: scale(1.12) translateX(4px) translateY(-3px) rotate(1.5deg);
                             text-shadow: 
                                 0 0 20px rgba(255, 107, 157, 1),
                                 0 0 30px rgba(199, 125, 255, 0.8),
@@ -594,30 +594,30 @@ const ChatUI = {
                         }
                         62.5% {
                             color: #c77dff;
-                            transform: scale(1.02) translateX(0) translateY(1px) rotate(0deg);
+                            transform: scale(1.09) translateX(-5px) translateY(3px) rotate(-1deg);
                             text-shadow: 
                                 0 0 15px rgba(199, 125, 255, 0.9),
                                 0 0 25px rgba(138, 43, 226, 0.7),
                                 0 0 35px rgba(255, 179, 71, 0.5);
-                            opacity: 0.98;
+                            opacity: 0.94;
                         }
                         75% {
                             color: #c77dff;
-                            transform: scale(1.01) translateX(-1px) translateY(0) rotate(-0.2deg);
+                            transform: scale(1.11) translateX(-3px) translateY(-3px) rotate(2deg);
                             text-shadow: 
                                 0 0 15px rgba(199, 125, 255, 0.9),
                                 0 0 25px rgba(138, 43, 226, 0.7),
                                 0 0 35px rgba(255, 179, 71, 0.5);
-                            opacity: 0.95;
+                            opacity: 0.92;
                         }
                         87.5% {
                             color: #ffd700;
-                            transform: scale(1.02) translateX(1px) translateY(1px) rotate(0.2deg);
+                            transform: scale(1.09) translateX(5px) translateY(4px) rotate(1.5deg);
                             text-shadow: 
                                 0 0 10px rgba(255, 215, 0, 0.8),
                                 0 0 20px rgba(138, 43, 226, 0.6),
                                 0 0 30px rgba(255, 107, 157, 0.4);
-                            opacity: 0.98;
+                            opacity: 0.95;
                         }
                     }
                 `;
