@@ -452,6 +452,7 @@ async function checkAndCleanupOldMessages(
 /**
  * ユーザーメッセージを保存（2段階保存の第1段階）
  * 会話開始時に即座に保存される
+ * 【改修】last_updated_atカラムも更新（訪問パターン判定用）
  */
 async function saveUserMessage(
   db: D1Database,
@@ -475,19 +476,24 @@ async function saveUserMessage(
   // 【新仕様】is_guest_messageは常に0（使用しない）
   const isGuestMessage = 0;
 
+  // 現在時刻をUTCで取得
+  const nowUtc = new Date().toISOString();
+
   // ユーザーメッセージを保存
   // 【重要】実際のデータベースにはmessageカラムが存在するため、messageカラムを使用
+  // 【改修】last_updated_atカラムも同時に更新（訪問パターン判定用）
   try {
     const result = await db.prepare(
-      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
-       VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+      `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp, last_updated_at)
+       VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP, ?)`
     )
-      .bind(userId, characterId, userMessage, isGuestMessage)
+      .bind(userId, characterId, userMessage, isGuestMessage, nowUtc)
       .run();
-    console.log('[saveUserMessage] メッセージを保存しました:', {
+    console.log('[saveUserMessage] メッセージを保存しました（last_updated_at更新済み）:', {
       userId,
       characterId,
       messageId: result.meta?.last_row_id,
+      lastUpdatedAt: nowUtc,
     });
   } catch (error) {
     console.error('[saveUserMessage] timestampカラムでの保存に失敗、created_atで再試行:', {
@@ -496,25 +502,42 @@ async function saveUserMessage(
       characterId,
     });
     try {
+      // last_updated_atカラムが存在しない場合のフォールバック
       const result = await db.prepare(
-        `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
-         VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+        `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at, last_updated_at)
+         VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP, ?)`
       )
-        .bind(userId, characterId, userMessage, isGuestMessage)
+        .bind(userId, characterId, userMessage, isGuestMessage, nowUtc)
         .run();
-      console.log('[saveUserMessage] created_atカラムでメッセージを保存しました:', {
+      console.log('[saveUserMessage] created_atカラムでメッセージを保存しました（last_updated_at更新済み）:', {
         userId,
         characterId,
         messageId: result.meta?.last_row_id,
+        lastUpdatedAt: nowUtc,
       });
     } catch (retryError) {
-      console.error('[saveUserMessage] メッセージ保存に完全に失敗:', {
-        error: retryError instanceof Error ? retryError.message : String(retryError),
-        stack: retryError instanceof Error ? retryError.stack : undefined,
-        userId,
-        characterId,
-      });
-      throw retryError; // エラーを再スローして呼び出し元で処理できるようにする
+      // last_updated_atカラムが存在しない場合（マイグレーション前）のフォールバック
+      try {
+        const result = await db.prepare(
+          `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
+           VALUES (?, ?, 'user', ?, 'normal', ?, CURRENT_TIMESTAMP)`
+        )
+          .bind(userId, characterId, userMessage, isGuestMessage)
+          .run();
+        console.log('[saveUserMessage] created_atカラムでメッセージを保存しました（last_updated_atカラムなし）:', {
+          userId,
+          characterId,
+          messageId: result.meta?.last_row_id,
+        });
+      } catch (finalError) {
+        console.error('[saveUserMessage] メッセージ保存に完全に失敗:', {
+          error: finalError instanceof Error ? finalError.message : String(finalError),
+          stack: finalError instanceof Error ? finalError.stack : undefined,
+          userId,
+          characterId,
+        });
+        throw finalError; // エラーを再スローして呼び出し元で処理できるようにする
+      }
     }
   }
 }

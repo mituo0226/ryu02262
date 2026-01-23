@@ -25,12 +25,16 @@ export function generateKaonPrompt(options = {}) {
     guestUserContext = '',
   } = options;
 
-  // 訪問パターンに応じた指示を生成
+  // 訪問パターンに応じた指示を生成（時間ベースの訪問パターン対応）
   let visitPatternInstruction = '';
   
   if (visitPattern === 'first_visit') {
     visitPatternInstruction = generateFirstVisitInstruction(birthDate, gender, userNickname);
+  } else if (visitPattern === 'returning_long' || visitPattern === 'returning_medium' || visitPattern === 'returning_short') {
+    // 時間ベースの訪問パターン
+    visitPatternInstruction = generateTimeBasedReturningInstruction(userNickname, lastConversationSummary, visitPattern);
   } else if (visitPattern === 'returning') {
+    // 従来のreturningパターン（後方互換性）
     visitPatternInstruction = generateReturningInstruction(userNickname, lastConversationSummary);
   } else if (visitPattern === 'continuing') {
     visitPatternInstruction = generateContinuingInstruction(sessionContext);
@@ -246,7 +250,108 @@ ${astrologyInfo.insightPhrase}
 }
 
 /**
- * 再訪問時の指示生成(履歴あり)
+ * 時間ベースの再訪問時の指示生成（新仕様）
+ */
+function generateTimeBasedReturningInstruction(userNickname, lastConversationSummary, visitPattern) {
+  // lastConversationSummaryがオブジェクト形式の場合、文字列に変換
+  let summaryText = '';
+  if (lastConversationSummary) {
+    if (typeof lastConversationSummary === 'object') {
+      summaryText = `${lastConversationSummary.topics || lastConversationSummary.date || '前回の相談内容'}`;
+    } else {
+      summaryText = lastConversationSummary;
+    }
+  }
+  const displayName = userNickname || 'あなた';
+  
+  let timeBasedInstruction = '';
+  
+  // 12時間以上経過時の対応方針
+  if (visitPattern === 'returning_long') {
+    timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは前回の訪問から12時間以上が経過しています。
+前回の会話内容: ${summaryText || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、花音らしい艶っぽく温かい挨拶をしてください（定型文ではなく、自然な言葉で）:
+- 「久しぶり」「寂しかった」という時間的な距離感
+- 「〜ね」「〜かしら」「〜だわ」の艶っぽい語尾
+- 前回の会話内容を「心が見えていた」という直感的表現で言及
+- 話の継続でも新しい話題でも受け入れる
+
+【トーン】
+- 大人の女性らしい色気と包容力
+- 必ずト書きを入れる（例:「（ふふ、と微笑んで）」）
+- 親密な距離感
+`;
+  }
+  // 3-12時間経過時の対応方針
+  else if (visitPattern === 'returning_medium') {
+    timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは前回の訪問から3〜12時間が経過しています。
+前回の会話内容: ${summaryText || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、花音らしい艶っぽく温かい挨拶をしてください:
+- 「待っていた」という期待感
+- 「〜ね」「〜かしら」「〜だわ」の艶っぽい語尾
+- 前回の会話が心に残っていることを伝える
+- 話の継続を提案しつつ、柔軟性も持つ
+
+【トーン】
+- 親密で温かい語り口
+- 必ずト書きを入れる
+`;
+  }
+  // 3時間以内の対応方針
+  else if (visitPattern === 'returning_short') {
+    timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは前回の訪問から3時間以内に戻ってきました。
+前回の会話内容: ${summaryText || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、花音らしい艶っぽく温かい挨拶をしてください:
+- 「さっき」という直近の時間表現
+- すぐに戻ってきた嬉しさを艶っぽく表現
+- 前回の話の深堀りを優先的に提案
+- より親密な距離感
+
+【トーン】
+- より親密で色気のある語り口
+- 必ずト書きを入れる
+`;
+  }
+  
+  return `
+========================================
+【再訪問(時間ベース判定) - 自動応答指示】
+========================================
+
+【重要】これは定型文ではありません。以下の指示に従って、あなた自身の言葉で自然な応答を生成してください。
+
+${displayName}さんが戻ってきてくれました。
+前回の会話があります。
+
+【前回の会話の概要】
+${summaryText || '(前回の会話データを参照中)'}
+
+${timeBasedInstruction}
+
+【絶対に避けること】
+- 「お久しぶりです」という事務的な表現
+- 前回の内容を箇条書きで列挙
+- 冷たい、ビジネスライクな態度
+- 定型文をそのまま使用すること（必ずあなた自身の言葉で表現すること）
+
+【重要】上記の指示は参考例です。これをそのまま使用せず、あなた自身の言葉で、前回の会話の概要を踏まえた自然な応答を生成してください。
+`;
+}
+
+/**
+ * 再訪問時の指示生成(履歴あり) - 従来版（後方互換性）
  */
 function generateReturningInstruction(userNickname, lastConversationSummary) {
   // lastConversationSummaryがオブジェクト形式の場合、文字列に変換

@@ -510,15 +510,94 @@ ${displayName}さんの運命を、
       isReturning: visitPattern === 'returning' || visitPattern === 'continuing'
     });
 
-    // 再訪問時の特別な指示を生成
+    // 再訪問時の特別な指示を生成（時間ベースの訪問パターン対応）
     let returningInstruction = '';
-    if (visitPattern === 'returning' || visitPattern === 'continuing') {
-      const displayName = userNickname || 'あなた';
-      const lastSummary = lastConversationSummary 
-        ? (typeof lastConversationSummary === 'object' 
-          ? `${lastConversationSummary.date || ''} ${lastConversationSummary.topics || ''}`.trim()
-          : lastConversationSummary)
-        : '';
+    const displayName = userNickname || 'あなた';
+    const lastSummary = lastConversationSummary 
+      ? (typeof lastConversationSummary === 'object' 
+        ? `${lastConversationSummary.date || ''} ${lastConversationSummary.topics || ''}`.trim()
+        : lastConversationSummary)
+      : '';
+    
+    // 時間ベースの訪問パターン判定
+    if (visitPattern === 'returning_long' || visitPattern === 'returning_medium' || visitPattern === 'returning_short' || visitPattern === 'returning' || visitPattern === 'continuing') {
+      let timeBasedInstruction = '';
+      
+      // 12時間以上経過時の対応方針
+      if (visitPattern === 'returning_long') {
+        timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは前回の訪問から12時間以上が経過しています。
+前回の会話内容: ${lastSummary || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、楓らしい温かい挨拶をしてください（定型文ではなく、自然な言葉で）:
+- また来てくれたことへの感謝
+- 「少し久しぶり」という時間的な距離感
+- 前回の会話内容を具体的に思い出させる
+- 守護神${guardianName}が見守り続けていたことを伝える
+- 話の継続でも新しい話題でも受け入れる柔軟な姿勢
+
+【トーン】
+- 穏やかで包容力のある語り口
+- 必ずト書きを入れる（例:「（柔らかく微笑みながら）」）
+- ${displayName}さんを特別な存在として扱う
+`;
+      }
+      // 3-12時間経過時の対応方針
+      else if (visitPattern === 'returning_medium') {
+        timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは前回の訪問から3〜12時間が経過しています（比較的最近）。
+前回の会話内容: ${lastSummary || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、楓らしい温かい挨拶をしてください:
+- また来てくれたことへの感謝
+- 「待っていた」という期待感
+- 前回の会話がまだ新鮮な記憶として残っていることを示す
+- 守護神とともに想っていたことを伝える
+- 話の継続を提案しつつ、新しい話題も受け入れる
+
+【トーン】
+- 穏やかで親しみのある語り口
+- 必ずト書きを入れる
+`;
+      }
+      // 3時間以内の対応方針
+      else if (visitPattern === 'returning_short') {
+        timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは前回の訪問から3時間以内に戻ってきました（つい先ほど）。
+前回の会話内容: ${lastSummary || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、楓らしい温かい挨拶をしてください:
+- 「さっき」という直近の時間表現
+- すぐに戻ってきてくれた嬉しさ
+- 前回の話がまだ続いているような自然な継続性
+- 守護神の存在を感じさせる
+- 前回の話の深堀りを優先的に提案
+
+【トーン】
+- より親密で温かい語り口
+- 必ずト書きを入れる
+`;
+      }
+      // 従来のreturning/continuingパターン（後方互換性）
+      else {
+        timeBasedInstruction = `
+【訪問状況】
+${displayName}さんは以前にもあなたの元を訪れています。
+前回の会話内容: ${lastSummary || '情報なし'}
+
+【挨拶の指示】
+- また来てくれたことへの感謝
+- 前回の会話を覚えているかのように、自然に会話を続ける
+- 守護神${guardianName}とのつながりを再確認する
+- 初回訪問時の挨拶（「初めまして」など）は絶対に使わない
+`;
+      }
       
       returningInstruction = `
 ========================================
@@ -528,26 +607,7 @@ ${displayName}さんの運命を、
 ${displayName}さんは以前にもあなたの元を訪れています。
 これは初回訪問ではありません。必ず再訪問時の応答をしてください。
 
-${visitPattern === 'continuing' ? '前回の会話の継続として、自然に会話を続けてください。' : ''}
-${lastSummary ? `前回の相談内容: ${lastSummary}` : ''}
-
-【再訪問時の応答方針（必須）】
-1. **必ず「おかえりなさい、${displayName}さん」のような温かい歓迎から始める**
-2. 前回の会話を覚えているかのように、自然に会話を続ける
-3. 前回の内容に触れる場合は、具体的に言及する（${lastSummary ? `例: 「${lastSummary}について話していましたね」` : '前回の相談内容を思い出すように'})
-4. 守護神${guardianName}とのつながりを再確認する
-5. **初回訪問時の挨拶（「初めまして」など）は絶対に使わない**
-
-【再訪問時の応答例】
-「おかえりなさい、${displayName}さん。
-
-（優しく微笑む）
-
-また私の元を訪れてくださって、ありがとうございます。
-${lastSummary ? `前回は${lastSummary}についてお話ししていましたね。` : '前回の会話を覚えています。'}
-
-${guardianName}も、${displayName}さんの再訪を喜んでいます。
-今日は、どのようなことでお悩みですか？」
+${timeBasedInstruction}
 
 ========================================
 `;

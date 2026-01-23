@@ -202,10 +202,70 @@ export function generateYukinoPrompt(options = {}) {
 ========================================
 `;
     console.log('[yukino] 初回訪問時のメッセージ指示を生成:', userNickname);
-  } else if (userNickname && hasPreviousConversation && visitPattern === 'returning') {
-    // 登録済みユーザーの再訪問（visitPatternが'returning'の場合）
+  } else if (userNickname && hasPreviousConversation && (visitPattern === 'returning' || visitPattern === 'returning_long' || visitPattern === 'returning_medium' || visitPattern === 'returning_short')) {
+    // 登録済みユーザーの再訪問（visitPatternが'returning'または時間ベースのパターンの場合）
     // 【重要】再訪問時は「おかえりなさい」と迎え、過去の会話を覚えていることを示す
     // タロット占いの自動開始は行わない（初回訪問時のみ）
+    
+    // 時間ベースの訪問パターンに応じた指示を生成
+    let timeBasedInstruction = '';
+    const summaryText = lastConversationSummary 
+      ? (typeof lastConversationSummary === 'object' 
+        ? `${lastConversationSummary.topics || lastConversationSummary.date || '前回の相談内容'}`
+        : lastConversationSummary)
+      : '';
+    
+    if (visitPattern === 'returning_long') {
+      timeBasedInstruction = `
+【訪問状況】
+${userNickname}さんは前回の訪問から12時間以上が経過しています。
+前回の会話内容: ${summaryText || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、雪乃らしい丁寧で温かい挨拶をしてください:
+- 「久しぶり」という時間的な距離感
+- また話せる嬉しさを丁寧に表現
+- 前回の会話が心に残っていることを伝える
+- 話の継続でも新しい話題でも受け入れる柔軟な姿勢
+
+【トーン】
+- 丁寧だが親しみやすい
+- 心理カウンセラーらしい落ち着き
+- 傾聴の姿勢
+`;
+    } else if (visitPattern === 'returning_medium') {
+      timeBasedInstruction = `
+【訪問状況】
+${userNickname}さんは前回の訪問から3〜12時間が経過しています。
+前回の会話内容: ${summaryText || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、雪乃らしい丁寧で温かい挨拶をしてください:
+- 「お待ちしていました」という期待感
+- 前回の会話が心に残っていることを丁寧に伝える
+- 話の継続を提案しつつ、柔軟性も持つ
+
+【トーン】
+- 丁寧で温かい
+- 傾聴の姿勢
+`;
+    } else if (visitPattern === 'returning_short') {
+      timeBasedInstruction = `
+【訪問状況】
+${userNickname}さんは前回の訪問から3時間以内に戻ってきました。
+前回の会話内容: ${summaryText || '情報なし'}
+
+【挨拶の指示】
+以下の要素を含めた、雪乃らしい丁寧で温かい挨拶をしてください:
+- 「さっき」という直近の時間表現
+- すぐに戻ってきてくれた嬉しさを丁寧に表現
+- 前回の話の深堀りを優先的に提案
+
+【トーン】
+- より親しみのある丁寧な語り口
+- 傾聴の姿勢
+`;
+    }
     
     // 履歴の有無を確認
     const hasHistory = conversationHistory && conversationHistory.length > 0;
@@ -284,6 +344,8 @@ export function generateYukinoPrompt(options = {}) {
 
 相談者「${userNickname}さん」は既にユーザー登録を完了しており、再訪問されました。
 これは**再訪問**であり、初回訪問ではありません。
+
+${timeBasedInstruction ? `\n${timeBasedInstruction}\n` : ''}
 
 【必須の対応】：
 以下の順序で、必ず全てを含めてメッセージを作成してください：
