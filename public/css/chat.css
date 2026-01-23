@@ -287,6 +287,22 @@ body.admin-mode .chat-container {
     50% { opacity: 1; }
 }
 
+@keyframes guardian-mystic-glow-text {
+    0%, 100% {
+        text-shadow: 
+            0 0 10px rgba(255, 215, 0, 0.8),
+            0 0 20px rgba(138, 43, 226, 0.6),
+            0 0 30px rgba(255, 107, 157, 0.4);
+    }
+    50% {
+        text-shadow: 
+            0 0 15px rgba(255, 215, 0, 1),
+            0 0 30px rgba(138, 43, 226, 0.8),
+            0 0 45px rgba(255, 107, 157, 0.6),
+            0 0 60px rgba(255, 215, 0, 0.4);
+    }
+}
+
 .message-header {
     font-size: 12px;
     font-weight: 600;

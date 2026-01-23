@@ -2975,7 +2975,7 @@ const ChatInit = {
             
             // ハンドラーが待機画面を表示しない場合は、デフォルトのローディングメッセージを表示
             if (!waitingMessageId) {
-                waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', null);
+                waitingMessageId = window.ChatUI.addMessage('loading', '考えています...', null);
             }
             
             // ハンドラーのonMessageSentを呼び出す

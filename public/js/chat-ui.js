@@ -447,6 +447,10 @@ const ChatUI = {
             
             // メッセージが削除されたらタイマーをクリア
             messageDiv.dataset.animationInterval = patternInterval;
+            
+            // 動的なメッセージ変更機能を追加（時間が経過しても待機を続けられるように）
+            // この機能は textDiv が作成された後に設定される（下記参照）
+            messageDiv.dataset.enableDynamicMessage = 'true';
         }
 
         if (sender) {
@@ -498,6 +502,53 @@ const ChatUI = {
         }
         textDiv.textContent = displayTextWithoutTag;
         messageDiv.appendChild(textDiv);
+        
+        // loadingタイプの場合、動的なメッセージ変更機能を有効化
+        if (type === 'loading' && messageDiv.dataset.enableDynamicMessage === 'true') {
+            const waitingMessages = [
+                '考えています...',
+                '深く考えています...',
+                'あなたの言葉を大切に受け止めています...',
+                '最適な返答を探しています...',
+                'もう少しお待ちください...',
+                '考えをまとめています...'
+            ];
+            
+            let messageIndex = 0;
+            const startTime = Date.now();
+            
+            // メッセージ変更のタイマーを設定（3秒ごとに変更）
+            const messageChangeInterval = setInterval(() => {
+                if (!messageDiv.parentNode) {
+                    clearInterval(messageChangeInterval);
+                    return;
+                }
+                
+                // 経過時間を計算
+                const elapsed = Date.now() - startTime;
+                
+                // 3秒ごとにメッセージを変更
+                const secondsElapsed = Math.floor(elapsed / 3000);
+                if (secondsElapsed > messageIndex) {
+                    messageIndex = secondsElapsed % waitingMessages.length;
+                    
+                    // テキスト要素を更新
+                    const textDivElement = messageDiv.querySelector('.message-text');
+                    if (textDivElement) {
+                        textDivElement.style.transition = 'opacity 0.3s ease';
+                        textDivElement.style.opacity = '0.5';
+                        
+                        setTimeout(() => {
+                            textDivElement.textContent = waitingMessages[messageIndex];
+                            textDivElement.style.opacity = '1';
+                        }, 150);
+                    }
+                }
+            }, 500); // 500msごとにチェック
+            
+            // メッセージが削除されたらタイマーをクリア
+            messageDiv.dataset.messageChangeInterval = messageChangeInterval;
+        }
 
         if ((type === 'character' || type === 'welcome') && window.CharacterFeatures) {
             const sendMessageCallback = typeof window.sendMessage === 'function' ? window.sendMessage : null;
@@ -591,6 +642,26 @@ const ChatUI = {
         requestAnimationFrame(() => {
             this.scrollToLatest();
         });
+        
+        // loadingタイプのメッセージの場合、削除時にタイマーをクリアする処理を追加
+        if (type === 'loading') {
+            // 元のremoveメソッドを保存
+            const originalRemove = messageDiv.remove.bind(messageDiv);
+            
+            // removeメソッドをオーバーライドしてタイマーをクリア
+            messageDiv.remove = function() {
+                // アニメーションタイマーをクリア
+                if (this.dataset.animationInterval) {
+                    clearInterval(Number(this.dataset.animationInterval));
+                }
+                // メッセージ変更タイマーをクリア
+                if (this.dataset.messageChangeInterval) {
+                    clearInterval(Number(this.dataset.messageChangeInterval));
+                }
+                // 元のremoveメソッドを呼び出し
+                originalRemove();
+            };
+        }
         
         // メッセージIDを返す（待機メッセージの削除などに使用）
         return messageId;
