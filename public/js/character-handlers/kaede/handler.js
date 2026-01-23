@@ -107,6 +107,16 @@ const KaedeHandler = {
     async initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, options = {}) {
         const { guardianMessageShown = false } = options;
         
+        // #region パフォーマンス測定
+        const startTime = performance.now();
+        const timings = {};
+        const markTiming = (label) => {
+            const now = performance.now();
+            timings[label] = now - startTime;
+            console.log(`[楓パフォーマンス] ${label}: ${(now - startTime).toFixed(2)}ms`);
+        };
+        // #endregion
+        
         console.log('[楓専用処理] initPage呼び出し:', {
             hasHistoryData: !!historyData,
             justRegistered,
@@ -116,15 +126,17 @@ const KaedeHandler = {
         
         // 守護神の儀式完了チェック
         const guardianConfirmationData = this.checkGuardianRitualCompletion(this.characterId, urlParams);
+        markTiming('guardianConfirmationCheck');
         if (guardianConfirmationData && historyData) {
             const completed = await this.handleGuardianRitualCompletion(
                 this.characterId,
                 guardianConfirmationData,
                 historyData
             );
+            markTiming('handleGuardianRitualCompletion');
             if (completed) {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handler.js:126',message:'楓: completed=true で返却',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handler.js:126',message:'楫: completed=true で返却',data:{timings},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
                 // #endregion
                 return { completed: true };
             }
@@ -137,6 +149,7 @@ const KaedeHandler = {
                 historyData,
                 urlParams
             );
+            markTiming('handlePostRegistrationRitualStart');
             // handlePostRegistrationRitualStartがtrueを返した場合でも、守護神の確認は続行する
             // （儀式を開始しない場合でも、守護神が未登録なら儀式を開始する必要があるため）
         } else {

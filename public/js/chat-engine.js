@@ -1356,14 +1356,22 @@ const ChatInit = {
      * ページを初期化
      */
     async initPage() {
+        // #region パフォーマンス測定
+        const initPageStartTime = performance.now();
+        const markInitPageTiming = (label) => {
+            const now = performance.now();
+            console.log(`[初期化パフォーマンス] ${label}: ${(now - initPageStartTime).toFixed(2)}ms`);
+        };
+        // #endregion
+        
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1358',message:'initPage開始',data:{isRunning:this._initPageRunning,isCompleted:this._initPageCompleted,url:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1358',message:'initPage開始',data:{isRunning:this._initPageRunning,isCompleted:this._initPageCompleted,url:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
         // #endregion
         // 重複実行を防ぐフラグをチェック
         if (this._initPageRunning) {
             console.warn('[初期化] initPageが既に実行中です。重複実行をスキップします。');
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1362',message:'initPage重複実行検出→スキップ',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1362',message:'initPage重複実行検出→スキップ',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
             // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
             // ローカルロギングサーバーへの接続は開発環境でのみ有効
@@ -2406,14 +2414,21 @@ const ChatInit = {
                 const handler = CharacterRegistry.get(character);
                 let handlerSkippedFirstMessage = false;
                 if (handler && typeof handler.initPage === 'function') {
+                    markInitPageTiming('handler.initPage呼び出し直前');
                     const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
                         guardianMessageShown
                     });
+                    markInitPageTiming('handler.initPage完了');
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2409',message:'handler.initPage完了',data:{completed:handlerResult?.completed,skip:handlerResult?.skip},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2409',message:'handler.initPage完了',data:{completed:handlerResult?.completed,skip:handlerResult?.skip},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
                     // #endregion
                     if (handlerResult && handlerResult.completed) {
                         console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        // 【修正】ハンドラーで処理完了する前に待機画面を非表示にする
+                        if (typeof window.hideLoadingScreen === 'function') {
+                            window.hideLoadingScreen();
+                            console.log('[初期化] 待機画面を非表示にしました（ハンドラー処理完了時）');
+                        }
                         return; // 処理終了
                     }
                     if (handlerResult && handlerResult.skip) {
