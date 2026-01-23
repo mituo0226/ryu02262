@@ -524,12 +524,10 @@
     
     .tab-content {
       display: none !important;
-      min-height: 0;
     }
     
     .tab-content.active {
       display: block !important;
-      min-height: 100%;
     }
     
     .hidden {
@@ -567,107 +565,107 @@
 
       <!-- ユーザー検索タブ -->
       <div class="tab-content active" id="user-search-tab">
-      <div class="dashboard-layout">
-        <div class="dashboard-columns">
-      <div class="column-left">
-        <section class="card">
-          <h2>ユーザー検索</h2>
-          <form id="searchForm">
-            <label>ニックネーム
-              <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
-            </label>
-            <div style="display:flex; gap:8px;">
-              <label style="flex:1;">年
-                <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
-              </label>
-              <label style="flex:1;">月
-                <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
-              </label>
-              <label style="flex:1;">日
-                <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
-              </label>
-            </div>
-            <div class="actions">
-              <button type="submit">検索する</button>
-              <button type="button" id="resetSearchButton">条件をクリア</button>
-            </div>
-            <p class="muted">※ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
-          </form>
-        </section>
+        <div class="dashboard-layout">
+          <div class="dashboard-columns">
+            <div class="column-left">
+              <section class="card">
+                <h2>ユーザー検索</h2>
+                <form id="searchForm">
+                  <label>ニックネーム
+                    <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
+                  </label>
+                  <div style="display:flex; gap:8px;">
+                    <label style="flex:1;">年
+                      <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
+                    </label>
+                    <label style="flex:1;">月
+                      <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
+                    </label>
+                    <label style="flex:1;">日
+                      <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
+                    </label>
+                  </div>
+                  <div class="actions">
+                    <button type="submit">検索する</button>
+                    <button type="button" id="resetSearchButton">条件をクリア</button>
+                  </div>
+                  <p class="muted">※ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
+                </form>
+              </section>
 
-        <section class="card">
-          <h2>検索結果</h2>
-          <div id="resultSummary" class="muted">検索結果 0 件</div>
-          <div class="list-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>ニックネーム</th>
-                  <th>誕生日</th>
-                  <th>合言葉</th>
-                  <th>守護神</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="userTableBody">
-                <tr><td colspan="6" class="muted">接続して読み込み...</td></tr>
-              </tbody>
-            </table>
+                    <section class="card">
+                <h2>検索結果</h2>
+                <div id="resultSummary" class="muted">検索結果 0 件</div>
+                <div class="list-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>ニックネーム</th>
+                        <th>誕生日</th>
+                        <th>合言葉</th>
+                        <th>守護神</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                      <tr><td colspan="6" class="muted">接続して読み込み...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <div class="column-right">
+              <section class="card detail-card hidden" id="detailCard">
+                <h2>ユーザー情報</h2>
+                <p class="muted" id="selectedUserLabel"></p>
+                <form id="userForm">
+                  <input type="hidden" id="formUserId">
+                  <label>ニックネーム
+                    <input type="text" id="formNickname" required>
+                  </label>
+                  <div style="display:flex; gap:8px;">
+                    <label style="flex:1;">年
+                      <input type="number" id="formYear" min="1900" max="2100" required>
+                    </label>
+                    <label style="flex:1;">月
+                      <input type="number" id="formMonth" min="1" max="12" required>
+                    </label>
+                    <label style="flex:1;">日
+                      <input type="number" id="formDay" min="1" max="31" required>
+                    </label>
+                  </div>
+                  <label>合言葉
+                    <select id="formPassphrase"></select>
+                  </label>
+                  <label>守護神
+                    <select id="formGuardian">
+                      <option value="">未決定</option>
+                      <option value="天照大神">天照大神</option>
+                      <option value="大国主命">大国主命</option>
+                      <option value="大日如来">大日如来</option>
+                      <option value="千手観音">千手観音</option>
+                      <option value="不動明王">不動明王</option>
+                    </select>
+                  </label>
+                  <div class="actions">
+                    <button type="submit">更新する</button>
+                    <button type="button" class="danger" id="deleteUserButton">退会（削除）</button>
+                  </div>
+                  <p class="muted" id="formStatus"></p>
+                </form>
+              </section>
+
+              <section class="card conversation-card hidden" id="conversationCard">
+                <h2>会話履歴（最新100件）</h2>
+                <div id="conversationList" class="conversation-list">
+                  <p class="muted">ユーザーを選択すると会話履歴を表示します。</p>
+                </div>
+              </section>
+            </div>
           </div>
-        </section>
-      </div>
-
-      <div class="column-right">
-        <section class="card detail-card hidden" id="detailCard">
-          <h2>ユーザー情報</h2>
-          <p class="muted" id="selectedUserLabel"></p>
-          <form id="userForm">
-            <input type="hidden" id="formUserId">
-            <label>ニックネーム
-              <input type="text" id="formNickname" required>
-            </label>
-            <div style="display:flex; gap:8px;">
-              <label style="flex:1;">年
-                <input type="number" id="formYear" min="1900" max="2100" required>
-              </label>
-              <label style="flex:1;">月
-                <input type="number" id="formMonth" min="1" max="12" required>
-              </label>
-              <label style="flex:1;">日
-                <input type="number" id="formDay" min="1" max="31" required>
-              </label>
-            </div>
-            <label>合言葉
-              <select id="formPassphrase"></select>
-            </label>
-            <label>守護神
-              <select id="formGuardian">
-                <option value="">未決定</option>
-                <option value="天照大神">天照大神</option>
-                <option value="大国主命">大国主命</option>
-                <option value="大日如来">大日如来</option>
-                <option value="千手観音">千手観音</option>
-                <option value="不動明王">不動明王</option>
-              </select>
-            </label>
-            <div class="actions">
-              <button type="submit">更新する</button>
-              <button type="button" class="danger" id="deleteUserButton">退会（削除）</button>
-            </div>
-            <p class="muted" id="formStatus"></p>
-          </form>
-        </section>
-
-        <section class="card conversation-card hidden" id="conversationCard">
-          <h2>会話履歴（最新100件）</h2>
-          <div id="conversationList" class="conversation-list">
-            <p class="muted">ユーザーを選択すると会話履歴を表示します。</p>
-          </div>
-        </section>
-      </div>
-      </div>
-    </div>
+        </div>
       </div>
 
       <!-- 性格設定テストタブ -->
