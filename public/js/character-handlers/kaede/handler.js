@@ -1037,6 +1037,42 @@ const KaedeHandler = {
             return `${userNickname}の守護神は${guardianName}です\nこれからは、私と守護神である${guardianName}が鑑定を進めていきます。\n${userNickname}が鑑定してほしいこと、再度、伝えていただけませんでしょうか。`;
         }
         return null;
+    },
+
+    /**
+     * フェーズ2: 守護神呼び出しが必要な場合の処理（会話中）
+     * @param {Object} response - APIレスポンス（needsGuardianInvocationフラグを含む）
+     * @returns {boolean} 処理が実行されたかどうか
+     */
+    async handleGuardianInvocationNeeded(response) {
+        if (!response || !response.needsGuardianInvocation) {
+            return false; // 処理不要
+        }
+
+        console.log('[楓パフォーマンス] フェーズ2: 守護神呼び出しが必要です');
+
+        // セッションストレージから守護神情報を取得
+        const guardianName = sessionStorage.getItem('currentUserGuardian');
+        const userNickname = sessionStorage.getItem('currentUserNickname') || 'あなた';
+
+        if (!guardianName) {
+            console.warn('[楓パフォーマンス] 守護神の名前が見つかりません（フェーズ1の処理が必要）');
+            return false;
+        }
+
+        console.log('[楓パフォーマンス] 守護神呼び出し処理を開始:', {
+            guardianName,
+            userNickname,
+        });
+
+        // 前置きメッセージを表示（楫からのメッセージ）
+        const preMessage = `（静かに目を閉じて） ${userNickname}さんの心の奥底に、守護神${guardianName}の気配が呼び寄せられています。\n少し時間をいただいて、守護神${guardianName}の言葉を降臨させますね。お待ちください。`;
+        const preMessageId = window.ChatUI?.addMessage('character', preMessage, '楓');
+        window.ChatUI?.scrollToLatest();
+
+        console.log('[楓パフォーマンス] 前置きメッセージを表示しました');
+
+        return true; // 処理が実行されたことを返す
     }
 };
 

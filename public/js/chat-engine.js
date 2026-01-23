@@ -3221,6 +3221,19 @@ const ChatInit = {
                 // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
                 // handlerは既に宣言済みなので、再取得のみ
                 handler = handler || CharacterRegistry.get(character);
+                
+                // 【フェーズ2】守護神呼び出しが必要な場合、その処理を実行
+                if (character === 'kaede' && handler && typeof handler.handleGuardianInvocationNeeded === 'function') {
+                    const guardianInvocationHandled = await handler.handleGuardianInvocationNeeded(response);
+                    if (guardianInvocationHandled) {
+                        console.log('[フェーズ2] 守護神呼び出し処理が実行されました');
+                        // 今後の処理は、フェーズ2のフロー（守護神メッセージ生成）に委ねる
+                        // 送信ボタンを再有効化
+                        if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = false;
+                        return; // 通常のレスポンス処理をスキップ
+                    }
+                }
+                
                 if (handler && typeof handler.handleResponse === 'function') {
                     handlerProcessed = await handler.handleResponse(response, character);
                     
