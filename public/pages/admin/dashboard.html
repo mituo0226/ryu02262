@@ -553,6 +553,10 @@
         ユーザー検索
         <div class="admin-nav-url">ユーザーの検索・管理</div>
       </button>
+      <button class="admin-nav-item" data-tab="character-tests">
+        性格設定テスト
+        <div class="admin-nav-url">各鑑定士の性格設定をテスト</div>
+      </button>
     </nav>
     
     <!-- メインコンテンツエリア -->
@@ -659,8 +663,26 @@
           </div>
         </section>
       </div>
+      </div>
     </div>
-    </div>
+      </div>
+
+      <!-- 性格設定テストタブ -->
+      <div class="tab-content" id="character-tests-tab">
+        <div class="dashboard-layout">
+          <section class="card">
+            <h2>各鑑定士の性格設定テスト</h2>
+            <p class="muted">各鑑定士の性格設定がAPIに正しく反映されているかをテストします。</p>
+            
+            <div class="actions" style="margin-top: 20px;">
+              <button id="runTestsButton" style="padding: 12px 24px; font-size: 16px;">
+                🧪 テストを実行
+              </button>
+            </div>
+
+            <div id="testResults" style="margin-top: 24px;"></div>
+          </section>
+        </div>
       </div>
     </div>
   </div>
@@ -1015,6 +1037,134 @@
         hideDetailSections(); // ユーザー検索タブに戻ったら詳細を隠す
       });
     });
+
+    // ============================================
+    // 性格設定テスト機能
+    // ============================================
+    const runTestsButton = document.getElementById('runTestsButton');
+    const testResults = document.getElementById('testResults');
+
+    if (runTestsButton && testResults) {
+      runTestsButton.addEventListener('click', async () => {
+        if (!currentToken) {
+          alert('まず管理者トークンを入力して接続してください。');
+          return;
+        }
+
+        runTestsButton.disabled = true;
+        runTestsButton.textContent = '⏳ テスト実行中...';
+        testResults.innerHTML = '<p class="muted">テストを実行しています...</p>';
+
+        try {
+          const response = await fetch('/api/admin/run-tests', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Admin-Token': currentToken,
+            },
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'テストの実行に失敗しました');
+          }
+
+          // テスト結果を表示
+          renderTestResults(data);
+        } catch (error) {
+          console.error('テスト実行エラー:', error);
+          testResults.innerHTML = `
+            <div style="padding: 16px; background: rgba(255, 78, 132, 0.1); border: 1px solid rgba(255, 78, 132, 0.3); border-radius: 8px;">
+              <p style="color: #ff6b9d; margin: 0;">❌ エラー: ${error.message}</p>
+            </div>
+          `;
+        } finally {
+          runTestsButton.disabled = false;
+          runTestsButton.textContent = '🧪 テストを実行';
+        }
+      });
+    }
+
+    function renderTestResults(data) {
+      const { summary, testSuites, integrationTests, timestamp } = data;
+      
+      let html = `
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 12px;">テスト結果サマリー</h3>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px;">
+            <div style="padding: 12px 20px; background: rgba(138, 43, 226, 0.2); border-radius: 8px; border: 1px solid rgba(138, 43, 226, 0.3);">
+              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">総テスト数</div>
+              <div style="font-size: 24px; font-weight: 600;">${summary.total}</div>
+            </div>
+            <div style="padding: 12px 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; border: 1px solid rgba(76, 175, 80, 0.3);">
+              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">成功</div>
+              <div style="font-size: 24px; font-weight: 600; color: #4caf50;">${summary.passed}</div>
+            </div>
+            <div style="padding: 12px 20px; background: rgba(255, 78, 132, 0.2); border-radius: 8px; border: 1px solid rgba(255, 78, 132, 0.3);">
+              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">失敗</div>
+              <div style="font-size: 24px; font-weight: 600; color: #ff4e84;">${summary.failed}</div>
+            </div>
+            <div style="padding: 12px 20px; background: rgba(138, 43, 226, 0.2); border-radius: 8px; border: 1px solid rgba(138, 43, 226, 0.3);">
+              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">成功率</div>
+              <div style="font-size: 24px; font-weight: 600;">${summary.passRate}%</div>
+            </div>
+          </div>
+          <p class="muted" style="margin: 0;">実行時刻: ${new Date(timestamp).toLocaleString('ja-JP')}</p>
+        </div>
+      `;
+
+      // 各鑑定士のテスト結果
+      testSuites.forEach(suite => {
+        const passedCount = suite.tests.filter(t => t.passed).length;
+        const totalCount = suite.tests.length;
+        const passRate = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
+        
+        html += `
+          <div style="margin-bottom: 24px; padding: 16px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;">
+            <h3 style="margin: 0 0 12px;">
+              ${suite.characterName} (${suite.characterId})
+              <span style="font-size: 14px; font-weight: normal; color: ${passRate === 100 ? '#4caf50' : passRate >= 50 ? '#ff9800' : '#ff4e84'};">
+                ${passedCount}/${totalCount} 成功 (${passRate}%)
+              </span>
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${suite.tests.map(test => `
+                <div style="padding: 10px 12px; background: ${test.passed ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 78, 132, 0.1)'}; border-left: 3px solid ${test.passed ? '#4caf50' : '#ff4e84'}; border-radius: 4px;">
+                  <div style="font-weight: 500; margin-bottom: 4px;">${test.name}</div>
+                  <div style="font-size: 13px; color: ${test.passed ? '#4caf50' : '#ff4e84'};">
+                    ${test.message}
+                  </div>
+                  ${test.details ? `<div style="font-size: 12px; color: #9da2c6; margin-top: 4px;">${test.details}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      // 統合テスト結果
+      if (integrationTests && integrationTests.length > 0) {
+        html += `
+          <div style="margin-bottom: 24px; padding: 16px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;">
+            <h3 style="margin: 0 0 12px;">システムプロンプト生成の統合テスト</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${integrationTests.map(test => `
+                <div style="padding: 10px 12px; background: ${test.passed ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 78, 132, 0.1)'}; border-left: 3px solid ${test.passed ? '#4caf50' : '#ff4e84'}; border-radius: 4px;">
+                  <div style="font-weight: 500; margin-bottom: 4px;">${test.name}</div>
+                  <div style="font-size: 13px; color: ${test.passed ? '#4caf50' : '#ff4e84'};">
+                    ${test.message}
+                  </div>
+                  ${test.details ? `<div style="font-size: 12px; color: #9da2c6; margin-top: 4px;">${test.details}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      testResults.innerHTML = html;
+    }
     
   </script>
 </body>

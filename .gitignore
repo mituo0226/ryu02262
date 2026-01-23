@@ -35,3 +35,9 @@ worktrees/
 .git/worktrees/
 **/worktrees/yyi/**
 gitdir
+
+# Node.js関連
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
