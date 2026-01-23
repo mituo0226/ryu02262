@@ -1927,6 +1927,10 @@ const ChatInit = {
                                 visitPattern
                             });
                             
+                            // パフォーマンス測定
+                            const apiCallStart = performance.now();
+                            console.log(`[パフォーマンス] ChatAPI.generateWelcomeMessage呼び出し直前: ${(apiCallStart - initPageStartTime).toFixed(2)}ms`);
+                            
                             // 【変更】conversationHistoryは渡さない（generate-welcome.tsでデータベースから取得）
                             // 履歴は表示しないが、システムプロンプト生成のためにvisitPatternを渡す
                             // バックエンドでデータベースから履歴を取得し、システムプロンプトに含める
@@ -1935,6 +1939,9 @@ const ChatInit = {
                                 conversationHistory: [], // 空配列を渡す（バックエンドでデータベースから取得）
                                 visitPattern
                             });
+                            
+                            const apiCallEnd = performance.now();
+                            console.log(`[パフォーマンス] ChatAPI.generateWelcomeMessage完了: ${(apiCallEnd - initPageStartTime).toFixed(2)}ms (所要時間: ${(apiCallEnd - apiCallStart).toFixed(2)}ms)`);
                             
                             console.log(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
                             
