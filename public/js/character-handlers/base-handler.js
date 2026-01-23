@@ -94,6 +94,9 @@ class BaseCharacterHandler {
      * @param {Object} historyData - 会話履歴データ
      */
     async handleReturningVisit(historyData) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'base-handler.js:96',message:'handleReturningVisit呼び出し',data:{characterId:this.characterId,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         // 履歴表示（最新5件を即座に表示、残りを遅延表示）
         this.displayHistory(historyData.recentMessages || []);
         
@@ -120,6 +123,9 @@ class BaseCharacterHandler {
      * @param {Array} messages - メッセージ配列
      */
     displayHistory(messages) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'base-handler.js:122',message:'displayHistory呼び出し',data:{characterId:this.characterId,messagesLength:messages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character'),firstMessageRole:messages?.[0]?.role,lastMessageRole:messages?.[messages?.length-1]?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         if (!messages || messages.length === 0 || !window.ChatUI) return;
         
         const info = ChatData.characterInfo[this.characterId];

@@ -93,6 +93,9 @@ const ChatData = {
      * @returns {string} キャラクターID
      */
     getCharacterFromURL() {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:95',message:'getCharacterFromURL呼び出し',data:{currentURL:window.location.href,searchParams:window.location.search,currentCharacter:this.currentCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         // グローバルスコープのurlParamsを使用
         if (!window._chatUrlParams) {
             window._chatUrlParams = new URLSearchParams(window.location.search);
@@ -103,6 +106,10 @@ const ChatData = {
         // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
         // 有効なキャラクターIDのリスト
         const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:107',message:'getCharacterFromURL結果',data:{character:character,isValid:character&&validCharacters.includes(character),currentCharacter:this.currentCharacter,fallbackUsed:!character||!validCharacters.includes(character)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         
         if (character && validCharacters.includes(character)) {
             return character;
@@ -205,13 +212,24 @@ const ChatData = {
      * @returns {Array} 会話履歴
      */
     getConversationHistory(character) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:207',message:'getConversationHistory呼び出し',data:{character:character,currentCharacter:this.currentCharacter,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         const storedHistory = sessionStorage.getItem(historyKey);
         
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:212',message:'sessionStorageから取得',data:{historyKey:historyKey,hasStoredHistory:!!storedHistory,storedHistoryLength:storedHistory?storedHistory.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
         if (storedHistory) {
             try {
-                return JSON.parse(storedHistory);
+                const parsed = JSON.parse(storedHistory);
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:216',message:'会話履歴をパース',data:{character:character,historyLength:parsed.length,firstMessageRole:parsed[0]?.role,lastMessageRole:parsed[parsed.length-1]?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+                return parsed;
             } catch (error) {
                 console.error('Error parsing conversation history:', error);
                 return [];
@@ -220,7 +238,11 @@ const ChatData = {
         
         // AuthStateから取得を試みる
         if (window.AuthState && typeof window.AuthState.getGuestHistory === 'function') {
-            return AuthState.getGuestHistory(character) || [];
+            const authHistory = AuthState.getGuestHistory(character) || [];
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:223',message:'AuthStateから取得',data:{character:character,authHistoryLength:authHistory.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            return authHistory;
         }
         
         return [];
@@ -241,9 +263,15 @@ const ChatData = {
      * @param {Array} history - 会話履歴
      */
     setConversationHistory(character, history) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:243',message:'setConversationHistory呼び出し',data:{character:character,historyLength:history?.length||0,currentCharacter:this.currentCharacter,urlCharacter:new URLSearchParams(window.location.search).get('character'),firstMessageRole:history?.[0]?.role,lastMessageRole:history?.[history.length-1]?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         sessionStorage.setItem(historyKey, JSON.stringify(history));
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:246',message:'sessionStorageに保存完了',data:{historyKey:historyKey,storedLength:sessionStorage.getItem(historyKey)?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
     },
 
     /**
