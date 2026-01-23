@@ -340,8 +340,8 @@ const KaedeHandler = {
         
         console.log('[楓パフォーマンス] フェーズ1処理完了: 守護神名のみを保存しました');
         
-        // フェーズ1では skip を返す（通常のウェルカムメッセージを表示するため）
-        return { skip: true };
+        // フェーズ1では false を返す（通常のウェルカムメッセージ表示処理に進むため）
+        return false;
     },
 
 
