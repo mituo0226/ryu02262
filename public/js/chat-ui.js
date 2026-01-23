@@ -505,10 +505,116 @@ const ChatUI = {
                     0 0 10px rgba(255, 215, 0, 0.8),
                     0 0 20px rgba(138, 43, 226, 0.6),
                     0 0 30px rgba(255, 107, 157, 0.4);
-                animation: guardian-mystic-glow-text 3s ease-in-out infinite;
+                animation: 
+                    guardian-mystic-glow-text 3s ease-in-out infinite,
+                    textPulse 2s ease-in-out infinite,
+                    textColorShift 4s ease-in-out infinite,
+                    textShake 3s ease-in-out infinite,
+                    textGlowPulse 3s ease-in-out infinite;
                 text-align: center;
                 line-height: 1.8;
+                transform: scale(1);
+                display: inline-block;
             `;
+            
+            // テキストのパルスアニメーション、色変化、揺れ効果をCSSに追加（まだ存在しない場合）
+            if (!document.getElementById('text-pulse-animation')) {
+                const style = document.createElement('style');
+                style.id = 'text-pulse-animation';
+                style.textContent = `
+                    @keyframes textPulse {
+                        0%, 100% {
+                            transform: scale(1);
+                            opacity: 1;
+                        }
+                        50% {
+                            transform: scale(1.02);
+                            opacity: 0.95;
+                        }
+                    }
+                    @keyframes textColorShift {
+                        0% {
+                            color: #ffd700;
+                            filter: hue-rotate(0deg);
+                        }
+                        25% {
+                            color: #ffb347;
+                            filter: hue-rotate(15deg);
+                        }
+                        50% {
+                            color: #ff6b9d;
+                            filter: hue-rotate(30deg);
+                        }
+                        75% {
+                            color: #c77dff;
+                            filter: hue-rotate(45deg);
+                        }
+                        100% {
+                            color: #ffd700;
+                            filter: hue-rotate(0deg);
+                        }
+                    }
+                    @keyframes textShake {
+                        0%, 100% {
+                            transform: translateX(0) translateY(0) rotate(0deg);
+                        }
+                        10% {
+                            transform: translateX(-1px) translateY(-1px) rotate(-0.5deg);
+                        }
+                        20% {
+                            transform: translateX(1px) translateY(1px) rotate(0.5deg);
+                        }
+                        30% {
+                            transform: translateX(-1px) translateY(0) rotate(-0.3deg);
+                        }
+                        40% {
+                            transform: translateX(1px) translateY(-1px) rotate(0.3deg);
+                        }
+                        50% {
+                            transform: translateX(0) translateY(1px) rotate(0deg);
+                        }
+                        60% {
+                            transform: translateX(-1px) translateY(0) rotate(-0.2deg);
+                        }
+                        70% {
+                            transform: translateX(1px) translateY(1px) rotate(0.2deg);
+                        }
+                        80% {
+                            transform: translateX(-1px) translateY(-1px) rotate(-0.1deg);
+                        }
+                        90% {
+                            transform: translateX(1px) translateY(0) rotate(0.1deg);
+                        }
+                    }
+                    @keyframes textGlowPulse {
+                        0%, 100% {
+                            text-shadow: 
+                                0 0 10px rgba(255, 215, 0, 0.8),
+                                0 0 20px rgba(138, 43, 226, 0.6),
+                                0 0 30px rgba(255, 107, 157, 0.4);
+                        }
+                        25% {
+                            text-shadow: 
+                                0 0 15px rgba(255, 179, 71, 0.9),
+                                0 0 25px rgba(138, 43, 226, 0.7),
+                                0 0 35px rgba(255, 107, 157, 0.5);
+                        }
+                        50% {
+                            text-shadow: 
+                                0 0 20px rgba(255, 107, 157, 1),
+                                0 0 30px rgba(199, 125, 255, 0.8),
+                                0 0 40px rgba(255, 215, 0, 0.6);
+                        }
+                        75% {
+                            text-shadow: 
+                                0 0 15px rgba(199, 125, 255, 0.9),
+                                0 0 25px rgba(138, 43, 226, 0.7),
+                                0 0 35px rgba(255, 179, 71, 0.5);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
         }
         textDiv.textContent = displayTextWithoutTag;
         messageDiv.appendChild(textDiv);
@@ -527,18 +633,44 @@ const ChatUI = {
             let messageIndex = 0;
             const startTime = Date.now();
             
-            // メッセージ変更のタイマーを設定（3秒ごとに変更）
+            // 最初からメッセージボックスにアニメーションを適用
+            messageDiv.style.transition = 'transform 0.4s ease, background 0.4s ease, box-shadow 0.4s ease';
+            
+            // 最初のアニメーションを即座に開始（パルス効果）
+            let pulseDirection = 1;
+            const initialPulse = setInterval(() => {
+                if (!messageDiv.parentNode) {
+                    clearInterval(initialPulse);
+                    return;
+                }
+                if (pulseDirection === 1) {
+                    messageDiv.style.transform = 'scale(1.01)';
+                    messageDiv.style.boxShadow = '0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(138, 43, 226, 0.3)';
+                    pulseDirection = -1;
+                } else {
+                    messageDiv.style.transform = 'scale(1)';
+                    messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
+                    pulseDirection = 1;
+                }
+            }, 1500); // 1.5秒ごとにパルス
+            
+            messageDiv.dataset.initialPulseInterval = initialPulse;
+            
+            // メッセージ変更のタイマーを設定（1.5秒ごとに変更）
             const messageChangeInterval = setInterval(() => {
                 if (!messageDiv.parentNode) {
                     clearInterval(messageChangeInterval);
+                    if (messageDiv.dataset.initialPulseInterval) {
+                        clearInterval(Number(messageDiv.dataset.initialPulseInterval));
+                    }
                     return;
                 }
                 
                 // 経過時間を計算
                 const elapsed = Date.now() - startTime;
                 
-                // 3秒ごとにメッセージを変更
-                const secondsElapsed = Math.floor(elapsed / 3000);
+                // 1.5秒ごとにメッセージを変更
+                const secondsElapsed = Math.floor(elapsed / 1500);
                 if (secondsElapsed > messageIndex) {
                     messageIndex = secondsElapsed % waitingMessages.length;
                     
@@ -588,7 +720,7 @@ const ChatUI = {
                         }, 150);
                     }
                 }
-            }, 500); // 500msごとにチェック
+            }, 200); // 200msごとにチェック（より頻繁にチェック）
             
             // メッセージが削除されたらタイマーをクリア
             messageDiv.dataset.messageChangeInterval = messageChangeInterval;
@@ -701,6 +833,10 @@ const ChatUI = {
                 // メッセージ変更タイマーをクリア
                 if (this.dataset.messageChangeInterval) {
                     clearInterval(Number(this.dataset.messageChangeInterval));
+                }
+                // 初期パルスアニメーションをクリア
+                if (this.dataset.initialPulseInterval) {
+                    clearInterval(Number(this.dataset.initialPulseInterval));
                 }
                 
                 // チャットウィンドウのアニメーションを解除
