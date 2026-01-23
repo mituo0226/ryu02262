@@ -1040,7 +1040,7 @@ const KaedeHandler = {
     },
 
     /**
-     * フェーズ2: 守護神呼び出しが必要な場合の処理（会話中）
+     * フェーズ2/3: 守護神呼び出しが必要な場合の処理（会話中）
      * @param {Object} response - APIレスポンス（needsGuardianInvocationフラグを含む）
      * @returns {boolean} 処理が実行されたかどうか
      */
@@ -1049,18 +1049,18 @@ const KaedeHandler = {
             return false; // 処理不要
         }
 
-        console.log('[楓パフォーマンス] フェーズ2: 守護神呼び出しが必要です');
+        console.log('[楓フェーズ3] 守護神呼び出しが必要です');
 
         // セッションストレージから守護神情報を取得
         const guardianName = sessionStorage.getItem('currentUserGuardian');
         const userNickname = sessionStorage.getItem('currentUserNickname') || 'あなた';
 
         if (!guardianName) {
-            console.warn('[楓パフォーマンス] 守護神の名前が見つかりません（フェーズ1の処理が必要）');
+            console.warn('[楓フェーズ3] 守護神の名前が見つかりません（フェーズ1の処理が必要）');
             return false;
         }
 
-        console.log('[楓パフォーマンス] 守護神呼び出し処理を開始:', {
+        console.log('[楓フェーズ3] 守護神呼び出し処理を開始:', {
             guardianName,
             userNickname,
         });
@@ -1070,9 +1070,57 @@ const KaedeHandler = {
         const preMessageId = window.ChatUI?.addMessage('character', preMessage, '楓');
         window.ChatUI?.scrollToLatest();
 
-        console.log('[楓パフォーマンス] 前置きメッセージを表示しました');
+        console.log('[楓フェーズ3] 前置きメッセージを表示しました');
 
-        return true; // 処理が実行されたことを返す
+        // フェーズ3: 待機画面を表示して、守護神メッセージを生成
+        try {
+            // 待機画面を表示（守護神呼び出し用の特別なメッセージ付き）
+            const waitingMessages = [
+                `守護神${guardianName}を降臨させています...`,
+                `${guardianName}との交信を行っています...`,
+                `魂の波動を整えています...`,
+                `${userNickname}さんへのメッセージを準備しています...`
+            ];
+            
+            let messageIndex = 0;
+            const waitingMessageId = window.ChatUI?.addMessage('loading', waitingMessages[messageIndex], null);
+            window.ChatUI?.scrollToLatest();
+
+            console.log('[楓フェーズ3] 守護神呼び出し用の待機メッセージを表示しました');
+
+            // 待機画面のメッセージを定期的に変更
+            const messageChangeInterval = setInterval(() => {
+                if (!document.getElementById(waitingMessageId)) {
+                    clearInterval(messageChangeInterval);
+                    return;
+                }
+                messageIndex = (messageIndex + 1) % waitingMessages.length;
+                const textDiv = document.getElementById(waitingMessageId)?.querySelector('.message-text');
+                if (textDiv) {
+                    textDiv.style.transition = 'opacity 0.6s ease-in-out';
+                    textDiv.style.opacity = '0.4';
+                    setTimeout(() => {
+                        if (textDiv) {
+                            textDiv.textContent = waitingMessages[messageIndex];
+                            textDiv.style.opacity = '1';
+                        }
+                    }, 600);
+                }
+            }, 3000); // 3秒ごとにメッセージを変更
+
+            console.log('[楓フェーズ3] 待機画面のメッセージ更新を開始しました');
+
+            // フェーズ3: APIで守護神メッセージと楫のメッセージを生成
+            // TODO: ここでAPIを呼び出して、守護神メッセージと楫のメッセージを生成する
+            // 現在は、待機画面を表示するだけで、API呼び出しは未実装
+
+            console.log('[楓フェーズ3] フェーズ3の実装準備完了');
+
+            return true; // 処理が実行されたことを返す
+        } catch (error) {
+            console.error('[楓フェーズ3] エラーが発生しました:', error);
+            return false;
+        }
     }
 };
 
