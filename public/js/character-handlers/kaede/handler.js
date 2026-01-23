@@ -1052,13 +1052,16 @@ const KaedeHandler = {
         }
 
         console.log('[楓フェーズ3] 守護神呼び出しが必要です');
+        console.log('[楓フェーズ3] ChatData.conversationHistory:', ChatData.conversationHistory);
 
         // ChatData.conversationHistoryから守護神情報を取得
         const guardianName = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || sessionStorage.getItem('currentUserGuardian');
         const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || sessionStorage.getItem('currentUserNickname') || 'あなた';
 
+        console.log('[楓フェーズ3] 取得した情報:', { guardianName, userNickname });
+
         if (!guardianName) {
-            console.warn('[楓フェーズ3] 守護神の名前が見つかりません（フェーズ1の処理が必要）');
+            console.warn('[楓フェーズ3] 守護神の名前が見つかりません');
             return false;
         }
 
@@ -1067,20 +1070,13 @@ const KaedeHandler = {
             userNickname,
         });
 
-        // 前置きメッセージを表示（楫からのメッセージ）
-        const preMessage = `（静かに目を閉じて） ${userNickname}さんの心の奥底に、守護神${guardianName}の気配が呼び寄せられています。\n少し時間をいただいて、守護神${guardianName}の言葉を降臨させますね。お待ちください。`;
-        const preMessageId = window.ChatUI?.addMessage('character', preMessage, '楓');
-        window.ChatUI?.scrollToLatest();
-
-        console.log('[楓フェーズ3] 前置きメッセージを表示しました');
-
         // フェーズ3: 待機画面を表示して、守護神メッセージを生成
         try {
             // 待機画面を表示（守護神呼び出し用の特別なメッセージ付き）
             const waitingMessages = [
+                `魂の波動を整えています...`,
                 `守護神${guardianName}を降臨させています...`,
                 `${guardianName}との交信を行っています...`,
-                `魂の波動を整えています...`,
                 `${userNickname}さんへのメッセージを準備しています...`
             ];
             
