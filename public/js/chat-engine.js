@@ -3074,6 +3074,34 @@ const ChatInit = {
                     }
                 }
                 
+                // 【強化】待機画面を確実に削除（複数の方法で試行）
+                if (waitingMessageId) {
+                    // 方法1: IDで取得して削除
+                    const waitingElementById = document.getElementById(waitingMessageId);
+                    if (waitingElementById) {
+                        waitingElementById.remove();
+                    }
+                    
+                    // 方法2: loading-messageクラスを持つ要素を検索して削除
+                    const loadingMessages = window.ChatUI.messagesDiv?.querySelectorAll('.message.loading-message');
+                    if (loadingMessages && loadingMessages.length > 0) {
+                        loadingMessages.forEach(msg => {
+                            if (msg.id === waitingMessageId || !waitingElementById) {
+                                msg.remove();
+                            }
+                        });
+                    }
+                    
+                    // 方法3: チャットウィンドウのアニメーションを解除
+                    const messagesDiv = window.ChatUI.messagesDiv;
+                    if (messagesDiv && messagesDiv.parentElement) {
+                        const chatContainer = messagesDiv.closest('.chat-container');
+                        if (chatContainer) {
+                            chatContainer.classList.remove('waiting-for-response');
+                        }
+                    }
+                }
+                
                 // 応答を処理
                 if (response.error) {
                     const errorMessage = response.message || response.error || 'エラーが発生しました';
@@ -3140,6 +3168,22 @@ const ChatInit = {
                     }
                 }
                 
+                // 【強化】応答メッセージを表示する前に、待機画面を再度確認して削除
+                if (waitingMessageId) {
+                    const finalCheck = document.getElementById(waitingMessageId);
+                    if (finalCheck) {
+                        finalCheck.remove();
+                    }
+                    // チャットウィンドウのアニメーションを確実に解除
+                    const messagesDiv = window.ChatUI.messagesDiv;
+                    if (messagesDiv && messagesDiv.parentElement) {
+                        const chatContainer = messagesDiv.closest('.chat-container');
+                        if (chatContainer) {
+                            chatContainer.classList.remove('waiting-for-response');
+                        }
+                    }
+                }
+                
                 const messageId = window.ChatUI.addMessage('character', responseText, characterName);
                 window.ChatUI.scrollToLatest();
                 
@@ -3191,6 +3235,34 @@ const ChatInit = {
                     const waitingElement = document.getElementById(waitingMessageId);
                     if (waitingElement) {
                         waitingElement.remove();
+                    }
+                }
+            }
+            
+            // 【強化】エラー時も待機画面を確実に削除
+            if (waitingMessageId) {
+                // 方法1: IDで取得して削除
+                const waitingElementById = document.getElementById(waitingMessageId);
+                if (waitingElementById) {
+                    waitingElementById.remove();
+                }
+                
+                // 方法2: loading-messageクラスを持つ要素を検索して削除
+                const loadingMessages = window.ChatUI.messagesDiv?.querySelectorAll('.message.loading-message');
+                if (loadingMessages && loadingMessages.length > 0) {
+                    loadingMessages.forEach(msg => {
+                        if (msg.id === waitingMessageId || !waitingElementById) {
+                            msg.remove();
+                        }
+                    });
+                }
+                
+                // 方法3: チャットウィンドウのアニメーションを解除
+                const messagesDiv = window.ChatUI.messagesDiv;
+                if (messagesDiv && messagesDiv.parentElement) {
+                    const chatContainer = messagesDiv.closest('.chat-container');
+                    if (chatContainer) {
+                        chatContainer.classList.remove('waiting-for-response');
                     }
                 }
             }

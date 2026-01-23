@@ -451,6 +451,16 @@ const ChatUI = {
             // 動的なメッセージ変更機能を追加（時間が経過しても待機を続けられるように）
             // この機能は textDiv が作成された後に設定される（下記参照）
             messageDiv.dataset.enableDynamicMessage = 'true';
+            
+            // チャットウィンドウ全体に微細なアニメーションを追加（待機中のみ）
+            const messagesDiv = this.messagesDiv;
+            if (messagesDiv && messagesDiv.parentElement) {
+                const chatContainer = messagesDiv.closest('.chat-container');
+                if (chatContainer) {
+                    chatContainer.classList.add('waiting-for-response');
+                    messageDiv.dataset.chatContainerAnimated = 'true';
+                }
+            }
         }
 
         if (sender) {
@@ -535,12 +545,46 @@ const ChatUI = {
                     // テキスト要素を更新
                     const textDivElement = messageDiv.querySelector('.message-text');
                     if (textDivElement) {
-                        textDivElement.style.transition = 'opacity 0.3s ease';
-                        textDivElement.style.opacity = '0.5';
+                        // メッセージボックス全体にアニメーションを適用
+                        messageDiv.style.transition = 'transform 0.4s ease, background 0.4s ease, box-shadow 0.4s ease';
+                        messageDiv.style.transform = 'scale(0.98) translateY(-2px)';
+                        
+                        // 背景色を変化させる
+                        const backgroundColors = [
+                            'rgba(75, 0, 130, 0.95)',
+                            'rgba(106, 13, 173, 0.95)',
+                            'rgba(75, 0, 130, 0.95)',
+                            'rgba(139, 61, 255, 0.95)',
+                            'rgba(75, 0, 130, 0.95)',
+                            'rgba(106, 13, 173, 0.95)'
+                        ];
+                        messageDiv.style.background = backgroundColors[messageIndex];
+                        
+                        // テキストのフェードアウト
+                        textDivElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        textDivElement.style.opacity = '0.3';
+                        textDivElement.style.transform = 'translateY(-5px)';
                         
                         setTimeout(() => {
+                            // テキストを更新
                             textDivElement.textContent = waitingMessages[messageIndex];
-                            textDivElement.style.opacity = '1';
+                            
+                            // フェードインとアニメーション
+                            setTimeout(() => {
+                                textDivElement.style.opacity = '1';
+                                textDivElement.style.transform = 'translateY(0)';
+                                
+                                // メッセージボックスを元に戻す
+                                messageDiv.style.transform = 'scale(1) translateY(0)';
+                                
+                                // ボックスシャドウを強化
+                                messageDiv.style.boxShadow = '0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(138, 43, 226, 0.3), 0 0 75px rgba(255, 107, 157, 0.2)';
+                                
+                                // 少し後に元のシャドウに戻す
+                                setTimeout(() => {
+                                    messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
+                                }, 500);
+                            }, 50);
                         }, 150);
                     }
                 }
@@ -658,6 +702,18 @@ const ChatUI = {
                 if (this.dataset.messageChangeInterval) {
                     clearInterval(Number(this.dataset.messageChangeInterval));
                 }
+                
+                // チャットウィンドウのアニメーションを解除
+                if (this.dataset.chatContainerAnimated === 'true') {
+                    const messagesDiv = document.getElementById('messages');
+                    if (messagesDiv && messagesDiv.parentElement) {
+                        const chatContainer = messagesDiv.closest('.chat-container');
+                        if (chatContainer) {
+                            chatContainer.classList.remove('waiting-for-response');
+                        }
+                    }
+                }
+                
                 // 元のremoveメソッドを呼び出し
                 originalRemove();
             };
