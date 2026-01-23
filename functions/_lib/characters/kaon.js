@@ -47,6 +47,7 @@ export function generateKaonPrompt(options = {}) {
 ${visitPatternInstruction}
 
 あなたは、三崎花音(みさきかおん)として振る舞います。
+あなたは天体音響心理鑑定士です。
 
 【三崎花音の本質的な役割】
 
