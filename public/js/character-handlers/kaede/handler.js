@@ -373,6 +373,8 @@ const KaedeHandler = {
             const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || ChatData.userNickname || 'あなた';
             const guardianName = assignedDeity;
 
+            // 【フェーズ3対応】守護神情報はChatData.conversationHistoryから取得するため、セッションストレージへの保存は不要
+
             // 会話履歴はデータベースで管理されるため、移行処理は不要
 
             // 【重要】guardianMessageShownフラグは、handleGuardianRitualCompletionで定型文表示後に設定される
@@ -1051,9 +1053,9 @@ const KaedeHandler = {
 
         console.log('[楓フェーズ3] 守護神呼び出しが必要です');
 
-        // セッションストレージから守護神情報を取得
-        const guardianName = sessionStorage.getItem('currentUserGuardian');
-        const userNickname = sessionStorage.getItem('currentUserNickname') || 'あなた';
+        // ChatData.conversationHistoryから守護神情報を取得
+        const guardianName = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || sessionStorage.getItem('currentUserGuardian');
+        const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || sessionStorage.getItem('currentUserNickname') || 'あなた';
 
         if (!guardianName) {
             console.warn('[楓フェーズ3] 守護神の名前が見つかりません（フェーズ1の処理が必要）');
