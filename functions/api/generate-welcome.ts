@@ -398,7 +398,6 @@ function generateFallbackMessage(characterId: string, user: UserRecord, visitPat
     kaede: {
       first_visit: 'ようこそ、楓の神社へ。あなたの守護神を見つけるお手伝いをさせていただきます。',
       returning: `お帰りなさい、${nickname}さん。また会えて嬉しいです。`,
-      continuing: `${nickname}さん、前回の続きですね。`,
     },
     yukino: {
       first_visit: 'いらっしゃいませ。タロットカードであなたの未来を占いましょう。',
