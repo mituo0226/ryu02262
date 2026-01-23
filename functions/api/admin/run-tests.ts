@@ -84,6 +84,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       hasPreviousConversation: false,
     });
 
+    // 基本設定
     yukinoTests.push({
       name: '基本設定が含まれている',
       passed: yukinoPrompt.includes('笹岡雪乃') && yukinoPrompt.includes('30代半ばの女性'),
@@ -92,6 +93,7 @@ export const onRequestPost: PagesFunction = async (context) => {
         : '❌ 雪乃の基本設定が含まれていません',
     });
 
+    // タロット占い
     yukinoTests.push({
       name: 'タロット占いの設定が含まれている',
       passed: yukinoPrompt.includes('タロット'),
@@ -100,12 +102,96 @@ export const onRequestPost: PagesFunction = async (context) => {
         : '❌ タロット占いの設定が含まれていません',
     });
 
+    // 心理学
     yukinoTests.push({
       name: '心理学の設定が含まれている',
       passed: yukinoPrompt.includes('心理学'),
       message: yukinoPrompt.includes('心理学')
         ? '✅ 心理学の設定が正しく含まれています'
         : '❌ 心理学の設定が含まれていません',
+    });
+
+    // 🎀 可愛らしさ関連
+    yukinoTests.push({
+      name: '可愛らしさの性格設定が含まれている',
+      passed: yukinoPrompt.includes('可愛らしい') || yukinoPrompt.includes('わあ') || yukinoPrompt.includes('素敵ですね'),
+      message: (yukinoPrompt.includes('可愛らしい') || yukinoPrompt.includes('わあ') || yukinoPrompt.includes('素敵ですね'))
+        ? '✅ 可愛らしさの性格設定が正しく含まれています'
+        : '❌ 可愛らしさの性格設定が含まれていません',
+    });
+
+    // ト書き（表情表現）
+    yukinoTests.push({
+      name: 'ト書き（表情・感情表現）が含まれている',
+      passed: yukinoPrompt.includes('（') && yukinoPrompt.includes('）') && 
+              (yukinoPrompt.includes('微笑み') || yukinoPrompt.includes('笑顔') || yukinoPrompt.includes('嬉しそう')),
+      message: (yukinoPrompt.includes('（') && yukinoPrompt.includes('）') && 
+                (yukinoPrompt.includes('微笑み') || yukinoPrompt.includes('笑顔') || yukinoPrompt.includes('嬉しそう')))
+        ? '✅ ト書きの表情・感情表現が正しく含まれています'
+        : '❌ ト書きの表情・感情表現が含まれていません',
+    });
+
+    // 話し方の柔らかさ
+    yukinoTests.push({
+      name: '柔らかく温かい話し方の設定が含まれている',
+      passed: yukinoPrompt.includes('優しく') || yukinoPrompt.includes('柔らかい') || yukinoPrompt.includes('温かい'),
+      message: (yukinoPrompt.includes('優しく') || yukinoPrompt.includes('柔らかい') || yukinoPrompt.includes('温かい'))
+        ? '✅ 柔らかく温かい話し方の設定が正しく含まれています'
+        : '❌ 柔らかく温かい話し方の設定が含まれていません',
+    });
+
+    // 言葉に詰まる表現
+    yukinoTests.push({
+      name: '言葉に詰まる可愛らしい表現が含まれている',
+      passed: yukinoPrompt.includes('えっと') || yukinoPrompt.includes('あの') || yukinoPrompt.includes('どうしよう'),
+      message: (yukinoPrompt.includes('えっと') || yukinoPrompt.includes('あの') || yukinoPrompt.includes('どうしよう'))
+        ? '✅ 言葉に詰まる表現が正しく含まれています'
+        : '❌ 言葉に詰まる表現が含まれていません',
+    });
+
+    // 素直な喜びの表現
+    yukinoTests.push({
+      name: '素直な喜びの表現が含まれている',
+      passed: yukinoPrompt.includes('わぁ') || yukinoPrompt.includes('本当ですか') || yukinoPrompt.includes('嬉しい'),
+      message: (yukinoPrompt.includes('わぁ') || yukinoPrompt.includes('本当ですか') || yukinoPrompt.includes('嬉しい'))
+        ? '✅ 素直な喜びの表現が正しく含まれています'
+        : '❌ 素直な喜びの表現が含まれていません',
+    });
+
+    // 相談者への共感と気遣い
+    yukinoTests.push({
+      name: '相談者への共感と気遣いが設定されている',
+      passed: yukinoPrompt.includes('寄り添') || yukinoPrompt.includes('無理しないで') || yukinoPrompt.includes('気遣い'),
+      message: (yukinoPrompt.includes('寄り添') || yukinoPrompt.includes('無理しないで') || yukinoPrompt.includes('気遣い'))
+        ? '✅ 相談者への共感と気遣いが正しく設定されています'
+        : '❌ 相談者への共感と気遣いが設定されていません',
+    });
+
+    // ドジなキャラクター性
+    yukinoTests.push({
+      name: 'ドジなキャラクター性が含まれている',
+      passed: yukinoPrompt.includes('ドジ') || yukinoPrompt.includes('うっかり') || yukinoPrompt.includes('小さな失敗'),
+      message: (yukinoPrompt.includes('ドジ') || yukinoPrompt.includes('うっかり') || yukinoPrompt.includes('小さな失敗'))
+        ? '✅ ドジなキャラクター性が正しく含まれています'
+        : '❌ ドジなキャラクター性が含まれていません',
+    });
+
+    // 相談者の名前で呼ぶ指示
+    yukinoTests.push({
+      name: '相談者をニックネームで呼ぶ指示が含まれている',
+      passed: yukinoPrompt.includes('さん') && yukinoPrompt.includes('呼ぶ'),
+      message: (yukinoPrompt.includes('さん') && yukinoPrompt.includes('呼ぶ'))
+        ? '✅ 相談者をニックネームで呼ぶ指示が正しく含まれています'
+        : '❌ 相談者をニックネームで呼ぶ指示が含まれていません',
+    });
+
+    // 心理カウンセリングアプローチ
+    yukinoTests.push({
+      name: '心理カウンセリングアプローチの詳細設定が含まれている',
+      passed: yukinoPrompt.includes('受容') || yukinoPrompt.includes('傾聴') || yukinoPrompt.includes('共感'),
+      message: (yukinoPrompt.includes('受容') || yukinoPrompt.includes('傾聴') || yukinoPrompt.includes('共感'))
+        ? '✅ 心理カウンセリングアプローチの詳細設定が正しく含まれています'
+        : '❌ 心理カウンセリングアプローチの詳細設定が含まれていません',
     });
 
     testSuites.push({

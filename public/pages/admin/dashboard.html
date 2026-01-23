@@ -1175,16 +1175,27 @@
             </div>
             ${suite.generatedPrompt ? `
               <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
-                <button 
-                  onclick="togglePrompt('${promptId}')"
-                  style="padding: 8px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;"
-                  onmouseover="this.style.background='rgba(138, 43, 226, 0.3)'"
-                  onmouseout="this.style.background='rgba(138, 43, 226, 0.2)'"
-                  id="btn-${promptId}">
-                  📄 生成されたプロンプトを表示
-                </button>
-                <div id="${promptId}" style="display: none; margin-top: 12px; padding: 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; max-height: 500px; overflow-y: auto;">
-                  <pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(suite.generatedPrompt)}</pre>
+                <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                  <button 
+                    onclick="togglePrompt('${promptId}')"
+                    style="padding: 8px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(138, 43, 226, 0.3)'"
+                    onmouseout="this.style.background='rgba(138, 43, 226, 0.2)'"
+                    id="btn-${promptId}">
+                    📄 生成されたプロンプトを表示
+                  </button>
+                  <input 
+                    type="text" 
+                    id="search-${promptId}" 
+                    placeholder="プロンプト内を検索..." 
+                    style="flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: #fff; font-size: 13px;"
+                    onkeyup="highlightInPrompt('${promptId}', this.value)"
+                    style="display: none; flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: #fff; font-size: 13px;"
+                    id="search-input-${promptId}">
+                  <span id="search-result-${promptId}" style="display: none; padding: 8px 12px; background: rgba(76, 175, 80, 0.15); border-radius: 6px; color: #81c784; font-size: 12px; align-self: center;"></span>
+                </div>
+                <div id="${promptId}" style="display: none; margin-top: 12px; padding: 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; max-height: 600px; overflow-y: auto;">
+                  <pre id="prompt-text-${promptId}" style="margin: 0; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(suite.generatedPrompt)}</pre>
                 </div>
               </div>
             ` : ''}
@@ -1229,12 +1240,50 @@
     function togglePrompt(promptId) {
       const promptDiv = document.getElementById(promptId);
       const button = document.getElementById(`btn-${promptId}`);
+      const searchInput = document.getElementById(`search-input-${promptId}`);
       if (promptDiv.style.display === 'none') {
         promptDiv.style.display = 'block';
+        if (searchInput) searchInput.style.display = 'block';
         button.textContent = '📄 生成されたプロンプトを非表示';
       } else {
         promptDiv.style.display = 'none';
+        if (searchInput) searchInput.style.display = 'none';
+        if (document.getElementById(`search-result-${promptId}`)) {
+          document.getElementById(`search-result-${promptId}`).style.display = 'none';
+        }
         button.textContent = '📄 生成されたプロンプトを表示';
+      }
+    }
+
+    function highlightInPrompt(promptId, searchText) {
+      const promptElement = document.getElementById(`prompt-text-${promptId}`);
+      const searchResultElement = document.getElementById(`search-result-${promptId}`);
+      
+      if (!promptElement || !searchResultElement) return;
+      
+      const originalText = promptElement.textContent;
+      
+      if (!searchText.trim()) {
+        promptElement.textContent = originalText;
+        searchResultElement.style.display = 'none';
+        return;
+      }
+      
+      // マッチ数をカウント
+      const regex = new RegExp(searchText, 'gi');
+      const matches = originalText.match(regex);
+      const matchCount = matches ? matches.length : 0;
+      
+      // ハイライト表示
+      const highlighted = originalText.replace(regex, match => `【${match}】`);
+      promptElement.textContent = highlighted;
+      
+      if (matchCount > 0) {
+        searchResultElement.textContent = `✅ ${matchCount}件見つかりました`;
+        searchResultElement.style.display = 'inline-block';
+      } else {
+        searchResultElement.textContent = `❌ 見つかりません`;
+        searchResultElement.style.display = 'inline-block';
       }
     }
 
