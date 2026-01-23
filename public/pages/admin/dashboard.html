@@ -523,13 +523,13 @@
     }
     
     .tab-content {
-      display: none;
-      height: 100%;
-      overflow-y: auto;
+      display: none !important;
+      min-height: 0;
     }
     
     .tab-content.active {
-      display: block;
+      display: block !important;
+      min-height: 100%;
     }
     
     .hidden {
@@ -1020,9 +1020,17 @@
     // タブ切り替え機能（管理メニューから）
     // ============================================
     document.querySelectorAll('.admin-nav-item').forEach(navItem => {
-      navItem.addEventListener('click', () => {
+      navItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const targetTab = navItem.dataset.tab;
-        if (!targetTab) return;
+        if (!targetTab) {
+          console.warn('[タブ切り替え] targetTabがありません:', navItem);
+          return;
+        }
+        
+        console.log('[タブ切り替え] タブを切り替えます:', targetTab);
         
         // ナビゲーションボタンのアクティブ状態を更新
         document.querySelectorAll('.admin-nav-item').forEach(item => item.classList.remove('active'));
@@ -1031,13 +1039,31 @@
         // コンテンツの表示を切り替え
         document.querySelectorAll('.tab-content').forEach(content => {
           content.classList.remove('active');
+          console.log('[タブ切り替え] タブを非表示にしました:', content.id);
         });
+        
         const targetContent = document.getElementById(`${targetTab}-tab`);
+        console.log('[タブ切り替え] 検索対象ID:', `${targetTab}-tab`);
+        console.log('[タブ切り替え] 見つかった要素:', targetContent);
+        
         if (targetContent) {
           targetContent.classList.add('active');
+          console.log('[タブ切り替え] タブを表示しました:', targetTab, targetContent);
+          
+          // スクロール位置をリセット
+          const contentArea = document.querySelector('.content-area');
+          if (contentArea) {
+            contentArea.scrollTop = 0;
+          }
+        } else {
+          console.error('[タブ切り替え] タブコンテンツが見つかりません:', `${targetTab}-tab`);
+          console.error('[タブ切り替え] 利用可能なタブ:', Array.from(document.querySelectorAll('.tab-content')).map(el => el.id));
         }
         
-        hideDetailSections(); // ユーザー検索タブに戻ったら詳細を隠す
+        // ユーザー検索タブに戻った場合のみ詳細を隠す
+        if (targetTab === 'user-search') {
+          hideDetailSections();
+        }
       });
     });
 
