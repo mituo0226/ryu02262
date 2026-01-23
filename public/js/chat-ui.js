@@ -200,9 +200,8 @@ const ChatUI = {
             messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
             messageDiv.style.position = 'relative';
             messageDiv.style.overflow = 'visible';
-            messageDiv.style.willChange = 'transform, background, box-shadow';
-            messageDiv.style.animation = 'messageBubbleSway 2.5s ease-in-out infinite !important';
-            messageDiv.style.transformOrigin = 'center center !important';
+            messageDiv.style.willChange = 'auto';
+            // ⚠️ アニメーションはJavaScriptで設定しない。CSSの.message.loading-messageルールに完全に依存する
         }
                 position: relative;
             `;
