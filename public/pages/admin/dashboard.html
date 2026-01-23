@@ -220,7 +220,7 @@
       background: rgba(0, 0, 0, 0.2);
       min-width: 0;
       min-height: 0;
-      height: 0; /* flexboxで高さを計算させる */
+      /* flexboxで高さを計算させる（height: 0は削除） */
     }
     
     .content-area::-webkit-scrollbar {
@@ -528,7 +528,8 @@
     
     .tab-content.active {
       display: block !important;
-      min-height: 1px; /* コンテンツが表示されるように最小高さを設定 */
+      min-height: 100%; /* PC画面で確実に表示されるように最小高さを設定 */
+      height: 100%; /* 親要素の高さに合わせる */
     }
     
     .hidden {
