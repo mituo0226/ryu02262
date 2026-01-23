@@ -202,10 +202,20 @@
         
         window.hideLoadingScreen = function() {
             console.log('[hideLoadingScreen] 関数が呼ばれました');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:203',message:'hideLoadingScreen called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             const loadingScreen = document.getElementById('loadingScreen');
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:210',message:'loadingScreen element check',data:{exists:!!loadingScreen,hasHidden:loadingScreen?loadingScreen.classList.contains('hidden'):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
             
             if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
                 console.log('[hideLoadingScreen] hiddenクラスを追加します');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:219',message:'Adding hidden class',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
                 loadingScreen.classList.add('hidden');
                 
                 setTimeout(() => {
@@ -215,6 +225,10 @@
                         console.log('[hideLoadingScreen] loadingScreenを削除しました');
                     }
                 }, 800);
+            } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.html:235',message:'hideLoadingScreen condition not met',data:{exists:!!loadingScreen,alreadyHidden:loadingScreen?loadingScreen.classList.contains('hidden'):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
             }
         };
     })();

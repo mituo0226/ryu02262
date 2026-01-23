@@ -2409,6 +2409,9 @@ const ChatInit = {
                     const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
                         guardianMessageShown
                     });
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2409',message:'handler.initPage完了',data:{completed:handlerResult?.completed,skip:handlerResult?.skip},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    // #endregion
                     if (handlerResult && handlerResult.completed) {
                         console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
                         return; // 処理終了

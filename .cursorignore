@@ -17,8 +17,6 @@ build/
 .wrangler/tmp/
 .wrangler/**/*
 
-# ログファイル
-*.log
 
 # 一時ファイル
 *.tmp
