@@ -53,7 +53,6 @@ interface ResponseBody {
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
   redirect?: boolean; // 汎用的なリダイレクト指示フラグ
   redirectUrl?: string; // リダイレクト先URL（汎用的）
-  needsGuardianInvocation?: boolean; // 守護神呼び出しが必要か（楫専用、フェーズ2）
 }
 
 interface UserRecord {
@@ -1691,22 +1690,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       messageLength: responseMessage.length,
     });
 
-    // ===== 13.5. 守護神呼び出し判定（楫専用、フェーズ2）=====
-    // 楫の場合のみ、LLM応答に[NEEDS_GUARDIAN_INVOCATION]タグが含まれているかチェック
-    let needsGuardianInvocation = false;
-    if (characterId === 'kaede' && !isGuardianFirstMessage && !isKaedeFollowUp) {
-      // LLMの応答から[NEEDS_GUARDIAN_INVOCATION]タグを検出
-      needsGuardianInvocation = responseMessage.includes('[NEEDS_GUARDIAN_INVOCATION]');
-      
-      if (needsGuardianInvocation) {
-        console.log('[consult] [NEEDS_GUARDIAN_INVOCATION]タグを検出しました:', {
-          characterId,
-          userId,
-          messageLength: responseMessage.length,
-        });
-      }
-    }
-
     // ===== 14. タロットカード検出（笹岡雪乃の場合のみ）=====
     const tarotKeywords = [
       'タロット',
@@ -1800,7 +1783,6 @@ export const onRequestPost: PagesFunction = async (context) => {
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
-        needsGuardianInvocation: needsGuardianInvocation, // 守護神呼び出しが必要か（楫専用、フェーズ2）
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

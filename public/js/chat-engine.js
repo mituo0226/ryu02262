@@ -3168,14 +3168,6 @@ const ChatInit = {
                 // [SUGGEST_TAROT]タグは削除しない
                 // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
                 
-                // 【フェーズ2】[NEEDS_GUARDIAN_INVOCATION]タグを検出・削除（ユーザーには表示しない）
-                const hasGuardianInvocationTag = responseText && typeof responseText === 'string' && responseText.includes('[NEEDS_GUARDIAN_INVOCATION]');
-                if (hasGuardianInvocationTag) {
-                    // タグをクリーンアップ（応答テキストから削除）
-                    responseText = responseText.replace('[NEEDS_GUARDIAN_INVOCATION]', '').trim();
-                    console.log('[フェーズ2] [NEEDS_GUARDIAN_INVOCATION]タグを検出・削除しました');
-                }
-                
                 // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
                 let shouldShowUserMessage = !skipUserMessage;
                 if (!skipUserMessage) {
@@ -3217,29 +3209,6 @@ const ChatInit = {
                     }
                 }
                 
-                // 【フェーズ2】守護神呼び出しが必要な場合、メッセージ表示**前に**前置きメッセージを表示
-                let skipGuardianInvocationMessage = false;
-                if (character === 'kaede' && response && response.needsGuardianInvocation) {
-                    handler = handler || CharacterRegistry.get(character);
-                    if (handler && typeof handler.handleGuardianInvocationNeeded === 'function') {
-                        const guardianInvocationHandled = await handler.handleGuardianInvocationNeeded(response);
-                        if (guardianInvocationHandled) {
-                            console.log('[フェーズ2] 守護神呼び出し処理が実行されました（メッセージ表示前）');
-                            skipGuardianInvocationMessage = true;
-                            
-                            // 既存の待機メッセージ（通常の「返信が来るまで...」）を削除
-                            if (waitingMessageId) {
-                                const waitingElement = document.getElementById(waitingMessageId);
-                                if (waitingElement && waitingElement.parentNode) {
-                                    console.log('[フェーズ2] 通常の待機メッセージを削除します:', waitingMessageId);
-                                    waitingElement.parentNode.removeChild(waitingElement);
-                                    waitingMessageId = null; // リセット
-                                }
-                            }
-                        }
-                    }
-                }
-                
                 const messageId = window.ChatUI.addMessage('character', responseText, characterName);
                 window.ChatUI.scrollToLatest();
                 
@@ -3252,27 +3221,6 @@ const ChatInit = {
                 // キャラクター専用ハンドラーでレスポンスを処理（統一的に処理）
                 // handlerは既に宣言済みなので、再取得のみ
                 handler = handler || CharacterRegistry.get(character);
-                
-                // 守護神呼び出しが既に処理されている場合はスキップ
-                if (skipGuardianInvocationMessage) {
-                    // 送信ボタンを再有効化
-                    if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = false;
-                    return; // 通常のレスポンス処理をスキップ
-                }
-                
-                if (handler && typeof handler.handleResponse === 'function') {
-                    handlerProcessed = await handler.handleResponse(response, character);
-                    
-                    // ハンドラーで処理された場合は、以降の処理をスキップ
-                    if (handlerProcessed) {
-                        console.log('[キャラクターハンドラー] レスポンス処理が完了しました:', character);
-                        // 送信ボタンを再有効化はハンドラー側で行う
-                        return;
-                    }
-                }
-                
-                // 登録ユーザーの場合、会話履歴はAPIから取得されるため、ここでは更新しない
-                // 必要に応じて、会話履歴を再読み込み
                 
                 // 送信ボタンを再有効化
                 if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = false;
