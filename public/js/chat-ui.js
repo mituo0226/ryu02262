@@ -261,21 +261,20 @@ const ChatUI = {
     }
 
     /**
-     * loading メッセージのアニメーション処理
+     * loading メッセージのアニメーション処理（改善版：神秘的で落ち着きのある演出）
      */
     _setupLoadingMessageAnimation(messageDiv, textDiv) {
         const waitingMessages = [
-            '考えています...',
-            '深く考えています...',
-            'あなたの言葉を大切に受け止めています...',
-            '最適な返答を探しています...',
-            'もう少しお待ちください...',
-            '考えをまとめています...'
+            '深く思索しています...',
+            'あなたの心を感じ取っています...',
+            'タロットの導きを求めています...',
+            '未来の糸を辿っています...',
+            '答えの光を探しています...'
         ];
         
         let messageIndex = 0;
         
-        // 0.8秒ごとにメッセージを変更
+        // 2.5秒ごとにメッセージを変更（落ち着きのあるペース）
         const messageChangeInterval = setInterval(() => {
             // メッセージが削除されたら停止
             if (!messageDiv.parentNode) {
@@ -286,18 +285,19 @@ const ChatUI = {
             // メッセージインデックスを更新
             messageIndex = (messageIndex + 1) % waitingMessages.length;
             
-            // テキストをフェードアウト
-            textDiv.style.transition = 'opacity 0.2s ease';
-            textDiv.style.opacity = '0.3';
+            // テキストをフェードアウト（0.6秒）
+            textDiv.style.transition = 'opacity 0.6s ease-in-out';
+            textDiv.style.opacity = '0.4';
             
-            // 100ms後にテキストを変更してフェードイン
+            // 600ms後にテキストを変更してフェードイン
             setTimeout(() => {
                 if (messageDiv.parentNode) {
                     textDiv.textContent = waitingMessages[messageIndex];
+                    textDiv.style.transition = 'opacity 0.8s ease-in-out';
                     textDiv.style.opacity = '1';
                 }
-            }, 100);
-        }, 800);
+            }, 600);
+        }, 2500);
         
         // インターバル ID を保存（後でクリア可能にするため）
         messageDiv.dataset.messageChangeInterval = messageChangeInterval;

@@ -287,29 +287,43 @@ body.admin-mode .chat-container {
     50% { opacity: 1; }
 }
 
-/* 待機画面の吹き出しがゆらゆら揺れるアニメーション（統合版） */
-@keyframes messageBubbleSway {
-    0%, 100% {
-        transform: translateY(0px) scaleY(1);
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2);
+/* 待機画面の吹き出しが神秘的に輝くアニメーション（改善版） */
+@keyframes messageBubbleMysticGlow {
+    0% {
+        box-shadow: 
+            0 0 15px rgba(138, 43, 226, 0.4),
+            0 0 30px rgba(138, 43, 226, 0.2),
+            inset 0 0 15px rgba(138, 43, 226, 0.1);
     }
     25% {
-        transform: translateY(-4px) scaleY(1.02);
-        box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(138, 43, 226, 0.3);
+        box-shadow: 
+            0 0 20px rgba(138, 43, 226, 0.6),
+            0 0 40px rgba(138, 43, 226, 0.3),
+            inset 0 0 20px rgba(138, 43, 226, 0.15);
     }
     50% {
-        transform: translateY(0px) scaleY(1);
-        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(138, 43, 226, 0.4);
+        box-shadow: 
+            0 0 25px rgba(138, 43, 226, 0.8),
+            0 0 50px rgba(138, 43, 226, 0.4),
+            inset 0 0 25px rgba(138, 43, 226, 0.2);
     }
     75% {
-        transform: translateY(4px) scaleY(0.98);
-        box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(138, 43, 226, 0.3);
+        box-shadow: 
+            0 0 20px rgba(138, 43, 226, 0.6),
+            0 0 40px rgba(138, 43, 226, 0.3),
+            inset 0 0 20px rgba(138, 43, 226, 0.15);
+    }
+    100% {
+        box-shadow: 
+            0 0 15px rgba(138, 43, 226, 0.4),
+            0 0 30px rgba(138, 43, 226, 0.2),
+            inset 0 0 15px rgba(138, 43, 226, 0.1);
     }
 }
 
 /* 待機画面のメッセージボックスにアニメーションを適用 */
 .message.loading-message {
-    animation: messageBubbleSway 3s ease-in-out infinite !important;
+    animation: messageBubbleMysticGlow 4s ease-in-out infinite !important;
     transform-origin: center center !important;
 }
 
