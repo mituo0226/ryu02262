@@ -274,17 +274,68 @@ body.admin-mode .chat-container {
 }
 
 .message.loading {
-    background: transparent;
+    background: rgba(75, 0, 130, 0.95) !important;
     border: none;
     text-align: center;
     color: var(--text-light);
     font-weight: 600;
-    animation: loadingPulse 1.5s ease-in-out infinite;
+    /* アニメーションはJavaScriptで動的に設定される */
 }
 
 @keyframes loadingPulse {
     0%, 100% { opacity: 0.6; }
     50% { opacity: 1; }
+}
+
+/* 待機画面の吹き出しがゆらゆら揺れるアニメーション */
+@keyframes messageBubbleSway {
+    0%, 100% {
+        transform: translateX(0) translateY(0) rotate(0deg);
+    }
+    10% {
+        transform: translateX(-3px) translateY(-2px) rotate(-1deg);
+    }
+    20% {
+        transform: translateX(3px) translateY(2px) rotate(1deg);
+    }
+    30% {
+        transform: translateX(-2px) translateY(-3px) rotate(-0.5deg);
+    }
+    40% {
+        transform: translateX(2px) translateY(3px) rotate(0.5deg);
+    }
+    50% {
+        transform: translateX(-3px) translateY(-1px) rotate(-1deg);
+    }
+    60% {
+        transform: translateX(3px) translateY(1px) rotate(1deg);
+    }
+    70% {
+        transform: translateX(-2px) translateY(-2px) rotate(-0.5deg);
+    }
+    80% {
+        transform: translateX(2px) translateY(2px) rotate(0.5deg);
+    }
+    90% {
+        transform: translateX(-1px) translateY(-1px) rotate(-0.3deg);
+    }
+}
+
+@keyframes messageBubblePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(138, 43, 226, 0.4);
+    }
+}
+
+/* 待機画面のメッセージボックスにアニメーションを適用 */
+.message.loading-message {
+    animation: messageBubbleSway 3s ease-in-out infinite, messageBubblePulse 2s ease-in-out infinite !important;
+    transform-origin: center center;
 }
 
 @keyframes guardian-mystic-glow-text {

@@ -202,10 +202,21 @@ const ChatUI = {
             messageDiv.style.overflow = 'visible';
             messageDiv.style.willChange = 'transform, background, box-shadow';
             
-            // アニメーションを即座に開始
-            requestAnimationFrame(() => {
-                messageDiv.style.transition = 'transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease';
-            });
+            // 吹き出し全体にゆらゆら揺れるアニメーションを即座に適用
+            // CSSクラス（.message.loading-message）で既に設定されているが、確実に適用するためインラインスタイルでも設定
+            messageDiv.style.setProperty('animation', 'messageBubbleSway 3s ease-in-out infinite, messageBubblePulse 2s ease-in-out infinite', 'important');
+            messageDiv.style.setProperty('transform-origin', 'center center', 'important');
+            
+            // アニメーションを強制的に開始（確実に動くように）
+            setTimeout(() => {
+                messageDiv.style.animationPlayState = 'running';
+                // アニメーションが確実に適用されるように、一度リセットして再適用
+                const currentAnimation = messageDiv.style.animation;
+                messageDiv.style.animation = 'none';
+                setTimeout(() => {
+                    messageDiv.style.setProperty('animation', 'messageBubbleSway 3s ease-in-out infinite, messageBubblePulse 2s ease-in-out infinite', 'important');
+                }, 10);
+            }, 0);
             
             // 神秘的なローディングアニメーションコンテナを作成
             const loadingContainer = document.createElement('div');
