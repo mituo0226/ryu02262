@@ -3168,6 +3168,14 @@ const ChatInit = {
                 // [SUGGEST_TAROT]タグは削除しない
                 // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
                 
+                // 【フェーズ2】[NEEDS_GUARDIAN_INVOCATION]タグを検出・削除（ユーザーには表示しない）
+                const hasGuardianInvocationTag = responseText && typeof responseText === 'string' && responseText.includes('[NEEDS_GUARDIAN_INVOCATION]');
+                if (hasGuardianInvocationTag) {
+                    // タグをクリーンアップ（応答テキストから削除）
+                    responseText = responseText.replace('[NEEDS_GUARDIAN_INVOCATION]', '').trim();
+                    console.log('[フェーズ2] [NEEDS_GUARDIAN_INVOCATION]タグを検出・削除しました');
+                }
+                
                 // ユーザーメッセージを表示するかどうかを判定（ハンドラーに委譲）
                 let shouldShowUserMessage = !skipUserMessage;
                 if (!skipUserMessage) {

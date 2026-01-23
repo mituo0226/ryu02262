@@ -1692,15 +1692,14 @@ export const onRequestPost: PagesFunction = async (context) => {
     });
 
     // ===== 13.5. 守護神呼び出し判定（楫専用、フェーズ2）=====
-    // 楫の場合のみ、守護神呼び出しが必要かを判定
+    // 楫の場合のみ、LLM応答に[NEEDS_GUARDIAN_INVOCATION]タグが含まれているかチェック
     let needsGuardianInvocation = false;
     if (characterId === 'kaede' && !isGuardianFirstMessage && !isKaedeFollowUp) {
-      // LLMの応答から「守護神」「神」「霊的」などのキーワードを検出
-      const guardianKeywords = ['守護神', '大国主命', '天照大御神', '神', '霊的', '降臨', '波動'];
-      needsGuardianInvocation = guardianKeywords.some(keyword => responseMessage.includes(keyword));
+      // LLMの応答から[NEEDS_GUARDIAN_INVOCATION]タグを検出
+      needsGuardianInvocation = responseMessage.includes('[NEEDS_GUARDIAN_INVOCATION]');
       
       if (needsGuardianInvocation) {
-        console.log('[consult] 守護神呼び出しが必要と判定されました:', {
+        console.log('[consult] [NEEDS_GUARDIAN_INVOCATION]タグを検出しました:', {
           characterId,
           userId,
           messageLength: responseMessage.length,
