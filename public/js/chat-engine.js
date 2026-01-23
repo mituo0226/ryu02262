@@ -3226,6 +3226,16 @@ const ChatInit = {
                         if (guardianInvocationHandled) {
                             console.log('[フェーズ2] 守護神呼び出し処理が実行されました（メッセージ表示前）');
                             skipGuardianInvocationMessage = true;
+                            
+                            // 既存の待機メッセージ（通常の「返信が来るまで...」）を削除
+                            if (waitingMessageId) {
+                                const waitingElement = document.getElementById(waitingMessageId);
+                                if (waitingElement && waitingElement.parentNode) {
+                                    console.log('[フェーズ2] 通常の待機メッセージを削除します:', waitingMessageId);
+                                    waitingElement.parentNode.removeChild(waitingElement);
+                                    waitingMessageId = null; // リセット
+                                }
+                            }
                         }
                     }
                 }

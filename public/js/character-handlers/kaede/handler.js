@@ -1072,6 +1072,15 @@ const KaedeHandler = {
 
         // フェーズ3: 待機画面を表示して、守護神メッセージを生成
         try {
+            // 既存の待機メッセージを全て削除
+            const existingLoadingMessages = document.querySelectorAll('.message.loading-message');
+            existingLoadingMessages.forEach(msg => {
+                if (msg.parentNode) {
+                    msg.parentNode.removeChild(msg);
+                }
+            });
+            console.log('[楓フェーズ3] 既存の待機メッセージを削除しました');
+
             // 待機画面を表示（守護神呼び出し用の特別なメッセージ付き）
             const waitingMessages = [
                 `魂の波動を整えています...`,
@@ -1084,7 +1093,7 @@ const KaedeHandler = {
             const waitingMessageId = window.ChatUI?.addMessage('loading', waitingMessages[messageIndex], null);
             window.ChatUI?.scrollToLatest();
 
-            console.log('[楓フェーズ3] 守護神呼び出し用の待機メッセージを表示しました');
+            console.log('[楓フェーズ3] 守護神呼び出し用の待機メッセージを表示しました:', waitingMessageId);
 
             // 待機画面のメッセージを定期的に変更
             const messageChangeInterval = setInterval(() => {
@@ -1107,6 +1116,10 @@ const KaedeHandler = {
             }, 3000); // 3秒ごとにメッセージを変更
 
             console.log('[楓フェーズ3] 待機画面のメッセージ更新を開始しました');
+            
+            // グローバルに保存（後で削除する際に使用）
+            window._kaedeGuardianWaitingMessageId = waitingMessageId;
+            window._kaedeGuardianMessageChangeInterval = messageChangeInterval;
 
             // フェーズ3: APIで守護神メッセージと楫のメッセージを生成
             // TODO: ここでAPIを呼び出して、守護神メッセージと楫のメッセージを生成する
