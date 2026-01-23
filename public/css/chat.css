@@ -345,30 +345,66 @@ body.admin-mode .chat-container {
 
 /* 待機中のチャットウィンドウ全体のアニメーション */
 .chat-container.waiting-for-response {
-    animation: chatContainerBreathing 4s ease-in-out infinite;
+    animation: chatContainerMysticBreathing 6s ease-in-out infinite;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+    position: relative;
+}
+
+.chat-container.waiting-for-response::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(138, 43, 226, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    animation: mysticalAuraShimmer 4s ease-in-out infinite;
+    z-index: 0;
 }
 
 .chat-container.waiting-for-response .messages {
-    animation: messagesSubtlePulse 3s ease-in-out infinite;
+    animation: messagesEnhancedPulse 3s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
 }
 
-@keyframes chatContainerBreathing {
+@keyframes chatContainerMysticBreathing {
     0%, 100% {
         background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
-        filter: brightness(1);
+        filter: brightness(1) saturate(1);
+    }
+    25% {
+        background: linear-gradient(135deg, #0f0f15 0%, #1f0a3e 100%);
+        filter: brightness(1.03) saturate(1.05);
     }
     50% {
-        background: linear-gradient(135deg, #0f0f0f 0%, #1f0f3e 100%);
-        filter: brightness(1.02);
+        background: linear-gradient(135deg, #12120a 0%, #220d4e 100%);
+        filter: brightness(1.06) saturate(1.1);
+    }
+    75% {
+        background: linear-gradient(135deg, #0f0f15 0%, #1f0a3e 100%);
+        filter: brightness(1.03) saturate(1.05);
     }
 }
 
-@keyframes messagesSubtlePulse {
+@keyframes mysticalAuraShimmer {
     0%, 100% {
-        transform: translateY(0);
+        opacity: 0.05;
+        transform: scale(0.95);
     }
     50% {
-        transform: translateY(-1px);
+        opacity: 0.15;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes messagesEnhancedPulse {
+    0%, 100% {
+        transform: translateY(0) scaleY(1);
+    }
+    50% {
+        transform: translateY(-2px) scaleY(1.001);
     }
 }
 

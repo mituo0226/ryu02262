@@ -3000,7 +3000,7 @@ const ChatInit = {
             
             // ハンドラーが待機画面を表示しない場合は、デフォルトのローディングメッセージを表示
             if (!waitingMessageId) {
-                waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまで少しお待ちください...', null);
+                waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
             }
             
             // ハンドラーのonMessageSentを呼び出す
@@ -3094,6 +3094,10 @@ const ChatInit = {
                     if (waitingMessageId) {
                         const waitingElement = document.getElementById(waitingMessageId);
                         if (waitingElement) {
+                            // タイマーをクリア
+                            if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
+                                window.ChatUI.clearLoadingMessageTimers(waitingElement);
+                            }
                             waitingElement.remove();
                         }
                     }
@@ -3104,6 +3108,10 @@ const ChatInit = {
                     // 方法1: IDで取得して削除
                     const waitingElementById = document.getElementById(waitingMessageId);
                     if (waitingElementById) {
+                        // タイマーをクリア
+                        if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
+                            window.ChatUI.clearLoadingMessageTimers(waitingElementById);
+                        }
                         waitingElementById.remove();
                     }
                     
@@ -3112,6 +3120,10 @@ const ChatInit = {
                     if (loadingMessages && loadingMessages.length > 0) {
                         loadingMessages.forEach(msg => {
                             if (msg.id === waitingMessageId || !waitingElementById) {
+                                // タイマーをクリア
+                                if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
+                                    window.ChatUI.clearLoadingMessageTimers(msg);
+                                }
                                 msg.remove();
                             }
                         });

@@ -262,45 +262,109 @@ const ChatUI = {
 
     /**
      * loading メッセージのアニメーション処理（改善版：神秘的で落ち着きのある演出）
+     * 複数のメッセージを指定時間ごとに表示する
      */
     _setupLoadingMessageAnimation(messageDiv, textDiv) {
-        const waitingMessages = [
-            '返信が来るまで少しお待ちください...',
-            '返信が来るまで少しお待ちください...',
-            '返信が来るまで少しお待ちください...',
-            '返信が来るまで少しお待ちください...',
-            '返信が来るまで少しお待ちください...'
+        // メッセージと表示時間（ミリ秒）
+        let waitingMessages = [
+            { text: '返信が来るまでお待ちください。', delay: 0 },
+            { text: '(キャラクター名)がこれからメッセージ入力します', delay: 3000 },
+            { text: 'メッセージ入力を始めています', delay: 6000 },
+            { text: '書き込んでいます', delay: 9000 },
+            { text: 'もう少しお待ちください', delay: 12000 },
+            { text: '返信がもうすぐ届きますのでお待ちください', delay: 17000 }
         ];
         
-        let messageIndex = 0;
-        
-        // 2.5秒ごとにメッセージを変更（落ち着きのあるペース）
-        const messageChangeInterval = setInterval(() => {
-            // メッセージが削除されたら停止
-            if (!messageDiv.parentNode) {
-                clearInterval(messageChangeInterval);
-                return;
+        // プレースホルダー「(キャラクター名)」を実際のキャラクター名に置き換え
+        if (window.ChatData && window.ChatData.currentCharacter && window.ChatData.characterInfo) {
+            const characterId = window.ChatData.currentCharacter;
+            const characterInfo = window.ChatData.characterInfo[characterId];
+            if (characterInfo && characterInfo.name) {
+                waitingMessages = waitingMessages.map(msg => ({
+                    ...msg,
+                    text: msg.text.replace('(キャラクター名)', characterInfo.name)
+                }));
             }
-            
-            // メッセージインデックスを更新
-            messageIndex = (messageIndex + 1) % waitingMessages.length;
-            
-            // テキストをフェードアウト（0.6秒）
-            textDiv.style.transition = 'opacity 0.6s ease-in-out';
-            textDiv.style.opacity = '0.4';
-            
-            // 600ms後にテキストを変更してフェードイン
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    textDiv.textContent = waitingMessages[messageIndex];
-                    textDiv.style.transition = 'opacity 0.8s ease-in-out';
-                    textDiv.style.opacity = '1';
-                }
-            }, 600);
-        }, 2500);
+        }
         
-        // インターバル ID を保存（後でクリア可能にするため）
-        messageDiv.dataset.messageChangeInterval = messageChangeInterval;
+        // テキストに揺れ効果を適用
+        textDiv.style.animation = 'subtle-shimmer 3s ease-in-out infinite';
+        
+        // テキスト揺れアニメーション用の style タグを追加（まだ存在しない場合）
+        if (!document.getElementById('loading-message-animation-styles')) {
+            const style = document.createElement('style');
+            style.id = 'loading-message-animation-styles';
+            style.textContent = `
+                @keyframes subtle-shimmer {
+                    0%, 100% {
+                        transform: translateY(0px);
+                        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(138, 43, 226, 0.2);
+                    }
+                    50% {
+                        transform: translateY(2px);
+                        text-shadow: 0 0 25px rgba(255, 215, 0, 0.7), 0 0 50px rgba(138, 43, 226, 0.3);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // タイマーを保存する配列
+        const timers = [];
+        
+        // 各メッセージのタイマーをセット
+        waitingMessages.forEach((msgObj, index) => {
+            const timer = setTimeout(() => {
+                // メッセージが削除されたら停止
+                if (!messageDiv.parentNode) {
+                    return;
+                }
+                
+                // テキストをフェードアウト（0.6秒）
+                textDiv.style.transition = 'opacity 0.6s ease-in-out';
+                textDiv.style.opacity = '0.4';
+                
+                // 600ms後にテキストを変更してフェードイン
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        textDiv.textContent = msgObj.text;
+                        textDiv.style.transition = 'opacity 0.8s ease-in-out';
+                        textDiv.style.opacity = '1';
+                    }
+                }, 600);
+            }, msgObj.delay);
+            
+            timers.push(timer);
+        });
+        
+        // タイマー ID を保存（後でクリア可能にするため）
+        messageDiv.dataset.loadingMessageTimers = JSON.stringify(timers);
+    },
+
+    /**
+     * 待機メッセージのタイマーをクリア
+     * @param {HTMLElement} messageElement - メッセージ要素
+     */
+    clearLoadingMessageTimers(messageElement) {
+        if (!messageElement) return;
+        
+        // 保存されたタイマーIDを取得
+        const timerIdsJson = messageElement.dataset.loadingMessageTimers;
+        if (timerIdsJson) {
+            try {
+                const timerIds = JSON.parse(timerIdsJson);
+                timerIds.forEach(timerId => {
+                    clearTimeout(timerId);
+                });
+            } catch (error) {
+                console.warn('[ChatUI.clearLoadingMessageTimers] タイマーのクリアに失敗:', error);
+            }
+        }
+        
+        // アニメーションを削除
+        if (messageElement.style.animation) {
+            messageElement.style.animation = 'none';
+        }
     },
 
     /**
