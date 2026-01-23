@@ -7,4 +7,7 @@ export default defineConfig({
     include: ['**/*.test.js', '**/*.test.ts'],
     exclude: ['node_modules', '.wrangler', '.cursor'],
   },
+  esbuild: {
+    target: 'node18',
+  },
 });
