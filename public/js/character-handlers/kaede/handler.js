@@ -295,497 +295,55 @@ const KaedeHandler = {
      */
     async handleGuardianRitualCompletion(character, guardianConfirmationData, historyData) {
         if (character !== 'kaede') {
-            return false; // 楓以外は処理しない
+            return false; // 楫以外は処理しない
         }
 
-        console.log('[楓専用処理] 守護神の儀式完了メッセージを表示します:', guardianConfirmationData);
+        console.log('[楓パフォーマンス] フェーズ1: 守護神名のみをストレージに保存します:', guardianConfirmationData);
 
-        // APIの指示によりチャットをクリア
-        // 【重要】clearChatがfalseの場合でも、守護神の儀式完了後はチャットをクリアする
-        const shouldClearChat = (historyData && historyData.clearChat) || true; // 常にクリア（守護神の儀式完了後は会話をゼロからスタート）
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 【処理順序が重要】以下の3ステップは必ずこの順序で実行すること
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ステップ1: UI表示用の履歴をクリア（画面から過去の吹き出しを削除）
-        // ステップ2: firstQuestionを取得（データベースまたはゲスト履歴から）
-        // ステップ3: データベース履歴（recentMessages）をクリア（UI表示防止）
-        // 
-        // ⚠️ 警告：ステップ2と3の順序を逆にすると、firstQuestionが取得できなくなります
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ステップ1: UI表示用の履歴をクリア
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        if (shouldClearChat) {
-            console.log('[楓専用処理] ステップ1: チャットをクリアします（儀式完了後）');
-
-            // チャット画面をクリア（守護神の儀式完了後は会話をゼロからスタート）
-            if (ChatUI.messagesDiv) {
-                ChatUI.messagesDiv.innerHTML = '';
-                console.log('[楓専用処理] ✓ チャット画面をクリアしました');
-            }
-
-            // ゲスト履歴もクリア（API指示により）
-            if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
-                AuthState.clearGuestHistory(character);
-            }
-            const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
-            const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
-            sessionStorage.removeItem(historyKey);
-            ChatData.setUserMessageCount(character, 0);
-            console.log('[楓専用処理] ✓ ゲスト履歴をクリアしました');
+        // フェーズ1: 守護神名をセッションストレージに保存（メッセージ生成はスキップ）
+        if (guardianConfirmationData && guardianConfirmationData.guardianName) {
+            sessionStorage.setItem('currentUserGuardian', guardianConfirmationData.guardianName);
+            sessionStorage.setItem('currentUserNickname', guardianConfirmationData.userNickname || 'あなた');
+            console.log('[楓パフォーマンス] ✓ 守護神名をセッションストレージに保存しました:', guardianConfirmationData.guardianName);
         }
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ステップ2: firstQuestionを取得（⚠️ recentMessagesクリアより前に実行必須）
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        console.log('[楓専用処理] ステップ2: firstQuestionを取得します（recentMessagesクリア前）');
-        console.log('[楓専用処理] 【検証】historyData.recentMessages件数:', historyData?.recentMessages?.length || 0);
-        
-        let firstQuestion = '';
-        
-        // 優先順位1: sessionStorageから取得（儀式開始前に保存された最初の質問）
-        const savedFirstQuestion = sessionStorage.getItem('firstQuestionBeforeRitual');
-        if (savedFirstQuestion) {
-            firstQuestion = savedFirstQuestion.trim();
-            console.log('[楓専用処理] ✓ sessionStorageからfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
-            // 使用後は削除
-            sessionStorage.removeItem('firstQuestionBeforeRitual');
-        }
-        // 優先順位2: APIから取得
-        else if (historyData && historyData.firstQuestion) {
-            firstQuestion = historyData.firstQuestion.trim();
-            console.log('[楓専用処理] ✓ APIからfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
-        }
-        // 優先順位3: ゲスト履歴から取得
-        else {
-            console.log('[楓専用処理] APIからfirstQuestionが取得できませんでした。会話履歴を確認します。');
-            if (historyData && historyData.recentMessages) {
-                const firstUserMessage = historyData.recentMessages.find(msg => msg && msg.role === 'user');
-                if (firstUserMessage && firstUserMessage.content) {
-                    firstQuestion = firstUserMessage.content.trim();
-                    console.log('[楓専用処理] ✓ 会話履歴からfirstQuestionを取得:', firstQuestion.substring(0, 50) + '...');
-                }
-            }
-        }
-        
-        console.log('[楓専用処理] ✓ firstQuestion取得完了:', firstQuestion ? `"${firstQuestion.substring(0, 30)}..."` : '(空)');
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ステップ3: recentMessagesをクリア（⚠️ firstQuestion取得後に実行必須）
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        if (shouldClearChat) {
-            console.log('[楓専用処理] ステップ3: recentMessagesをクリアします（firstQuestion取得後）');
-            
-            if (historyData && historyData.recentMessages) {
-                historyData.recentMessages = [];
-                console.log('[楓専用処理] ✓ historyData.recentMessagesをクリアしました');
-            }
-            
-            // 会話履歴もクリア（ユーザーメッセージが表示されないようにするため）
-            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                ChatData.conversationHistory.recentMessages = [];
-                console.log('[楓専用処理] ✓ ChatData.conversationHistory.recentMessagesをクリアしました');
-            }
-            
-            console.log('[楓専用処理] 【検証】クリア後のhistoryData.recentMessages件数:', historyData?.recentMessages?.length || 0);
+        // チャット画面をクリア（守護神の儀式完了後は会話をゼロからスタート）
+        const shouldClearChat = (historyData && historyData.clearChat) || true;
+        if (shouldClearChat && ChatUI.messagesDiv) {
+            ChatUI.messagesDiv.innerHTML = '';
+            console.log('[楓パフォーマンス] ✓ チャット画面をクリアしました');
         }
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 事前生成されたメッセージを取得、またはAPIで生成
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        console.log('[楓専用処理] 守護神の儀式完了後の楓からのメッセージを取得します');
-        
-        // 事前生成されたメッセージを確認（アニメーション中に生成されたもの）
-        const preGeneratedMessageStr = sessionStorage.getItem('preGeneratedKaedeMessage');
-        let kaedeMessage = null;
-        let messageSource = 'api'; // 'preGenerated' or 'api'
-        
-        if (preGeneratedMessageStr) {
-            try {
-                const preGeneratedData = JSON.parse(preGeneratedMessageStr);
-                // 5分以内のデータか確認
-                const dataAge = Date.now() - (preGeneratedData.timestamp || 0);
-                if (dataAge < 5 * 60 * 1000 && preGeneratedData.guardianName === guardianConfirmationData.guardianName) {
-                    kaedeMessage = preGeneratedData.message;
-                    messageSource = 'preGenerated';
-                    console.log('[楓専用処理] 事前生成されたメッセージを使用します（アニメーション中に生成）');
-                    // 使用後は削除
-                    sessionStorage.removeItem('preGeneratedKaedeMessage');
-                } else {
-                    console.log('[楓専用処理] 事前生成されたメッセージが古いため、再生成します');
-                    sessionStorage.removeItem('preGeneratedKaedeMessage');
-                }
-            } catch (error) {
-                console.error('[楓専用処理] 事前生成メッセージの解析エラー:', error);
-                sessionStorage.removeItem('preGeneratedKaedeMessage');
-            }
+        // ゲスト履歴をクリア
+        if (window.AuthState && typeof window.AuthState.clearGuestHistory === 'function') {
+            AuthState.clearGuestHistory(character);
         }
-        
-        // 事前生成されたメッセージがない場合、または古い場合はAPIで生成
-        if (!kaedeMessage) {
-            // 段階的な待機メッセージを表示（ユーザーを安心させ、待機時間を感じさせない）
-            const characterName = ChatData.characterInfo[character]?.name || '楓';
-            const guardianName = guardianConfirmationData.guardianName;
-            const userNickname = guardianConfirmationData.userNickname;
-            
-            // 段階的な待機メッセージのリスト
-            const waitingMessages = [
-                {
-                    text: `守護神${guardianName}の言葉を呼び出しています...\n${userNickname}さんの魂の波動を感じ取っています。`,
-                    delay: 0
-                },
-                {
-                    text: `守護神${guardianName}の気配が、この場に満ちてきました...\n${userNickname}さんの心の奥底を、深く読み取っています。`,
-                    delay: 15000 // 15秒後
-                },
-                {
-                    text: `守護神${guardianName}が、${userNickname}さんに語りかける言葉を紡いでいます...\n前世からの記憶を辿りながら、魂の声を聞いています。`,
-                    delay: 30000 // 30秒後
-                },
-                {
-                    text: `守護神${guardianName}の言葉が、次第に形を成してきました...\n${userNickname}さんの運命を導く、特別なメッセージを準備しています。`,
-                    delay: 45000 // 45秒後
-                }
-            ];
-            
-            // 最初の待機メッセージを表示（送信者名は表示しない）
-            let waitingMessageId = ChatUI.addMessage('loading', waitingMessages[0].text, null);
-            let currentMessageIndex = 0;
-            
-            // 楓専用の神秘的なローディングアイコンを追加（chat.htmlに影響を与えないように、動的にスタイルを注入）
-            if (waitingMessageId) {
-                setTimeout(() => {
-                    const waitingElement = document.getElementById(waitingMessageId);
-                    if (waitingElement) {
-                        const loadingIcon = waitingElement.querySelector('.guardian-loading-icon');
-                        if (loadingIcon) {
-                            // 動的にスタイルシートを追加（chat.htmlに影響を与えない）
-                            if (!document.getElementById('kaede-loading-styles')) {
-                                const style = document.createElement('style');
-                                style.id = 'kaede-loading-styles';
-                                style.textContent = `
-                                    @keyframes kaede-guardian-pulse {
-                                        0%, 100% {
-                                            box-shadow: 
-                                                0 0 12px rgba(138, 43, 226, 0.4),
-                                                inset 0 0 12px rgba(138, 43, 226, 0.6),
-                                                0 0 24px rgba(255, 215, 0, 0.3);
-                                        }
-                                        50% {
-                                            box-shadow: 
-                                                0 0 24px rgba(255, 215, 0, 0.8),
-                                                0 0 40px rgba(138, 43, 226, 0.6),
-                                                inset 0 0 20px rgba(255, 215, 0, 0.4),
-                                                0 0 48px rgba(255, 215, 0, 0.5);
-                                        }
-                                    }
-                                    @keyframes kaede-guardian-inner-glow {
-                                        0%, 100% {
-                                            opacity: 0.6;
-                                            transform: translate(-50%, -50%) scale(0.8);
-                                        }
-                                        50% {
-                                            opacity: 1;
-                                            transform: translate(-50%, -50%) scale(1.2);
-                                        }
-                                    }
-                                    @keyframes kaede-guardian-particle-rotate {
-                                        0% {
-                                            transform: translate(-50%, -50%) translate(25px, 0) rotate(0deg);
-                                            opacity: 0.8;
-                                        }
-                                        50% {
-                                            opacity: 1;
-                                        }
-                                        100% {
-                                            transform: translate(-50%, -50%) translate(25px, 0) rotate(360deg);
-                                            opacity: 0.8;
-                                        }
-                                    }
-                                `;
-                                document.head.appendChild(style);
-                            }
-                            
-                            // 既存のローディングアイコンを楓専用のものに置き換え
-                            const enhancedIcon = document.createElement('div');
-                            enhancedIcon.className = 'kaede-guardian-loading-icon';
-                            enhancedIcon.style.cssText = `
-                                width: 40px;
-                                height: 40px;
-                                border-radius: 50%;
-                                border: 2px solid rgba(255, 215, 0, 0.6);
-                                box-shadow: 
-                                    0 0 12px rgba(138, 43, 226, 0.4),
-                                    inset 0 0 12px rgba(138, 43, 226, 0.6),
-                                    0 0 24px rgba(255, 215, 0, 0.3);
-                                animation: guardian-breathe 1.8s ease-in-out infinite, kaede-guardian-pulse 2.5s ease-in-out infinite;
-                                margin: 0 auto 12px;
-                                position: relative;
-                            `;
-                            
-                            // 内側の光る円を追加（神秘的な演出）
-                            const innerGlow = document.createElement('div');
-                            innerGlow.style.cssText = `
-                                position: absolute;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%);
-                                width: 20px;
-                                height: 20px;
-                                border-radius: 50%;
-                                background: radial-gradient(circle, rgba(255, 215, 0, 0.8), rgba(138, 43, 226, 0.4));
-                                box-shadow: 0 0 16px rgba(255, 215, 0, 0.6);
-                                animation: kaede-guardian-inner-glow 2s ease-in-out infinite;
-                            `;
-                            enhancedIcon.appendChild(innerGlow);
-                            
-                            // 外側の光る粒子を追加（神秘的な演出）
-                            for (let i = 0; i < 6; i++) {
-                                const particle = document.createElement('div');
-                                const angle = (i * 60) * (Math.PI / 180);
-                                const radius = 25;
-                                particle.style.cssText = `
-                                    position: absolute;
-                                    top: 50%;
-                                    left: 50%;
-                                    width: 4px;
-                                    height: 4px;
-                                    border-radius: 50%;
-                                    background: rgba(255, 215, 0, 0.8);
-                                    box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
-                                    transform: translate(-50%, -50%) translate(${Math.cos(angle) * radius}px, ${Math.sin(angle) * radius}px);
-                                    animation: kaede-guardian-particle-rotate 3s linear infinite;
-                                    animation-delay: ${i * 0.5}s;
-                                `;
-                                enhancedIcon.appendChild(particle);
-                            }
-                            
-                            // 既存のアイコンを置き換え
-                            loadingIcon.replaceWith(enhancedIcon);
-                        }
-                    }
-                }, 100);
-            }
-            
-            // 段階的なメッセージ更新のタイマーを設定（スコープを確保）
-            const messageUpdateTimers = [];
-            for (let i = 1; i < waitingMessages.length; i++) {
-                const timer = setTimeout(() => {
-                    if (waitingMessageId) {
-                        const waitingElement = document.getElementById(waitingMessageId);
-                        if (waitingElement) {
-                            const textDiv = waitingElement.querySelector('.message-text');
-                            if (textDiv) {
-                                // フェードアウト → テキスト更新 → フェードイン
-                                textDiv.style.transition = 'opacity 0.5s ease-in-out';
-                                textDiv.style.opacity = '0';
-                                
-                                setTimeout(() => {
-                                    textDiv.textContent = waitingMessages[i].text;
-                                    textDiv.style.opacity = '1';
-                                    currentMessageIndex = i;
-                                }, 500);
-                            }
-                        }
-                    }
-                }, waitingMessages[i].delay);
-                messageUpdateTimers.push(timer);
-            }
-            
-            try {
-                // まず守護神のメッセージを内部で生成（楓のメッセージ生成のコンテキストとして使用）
-                const guardianResponse = await ChatAPI.sendMessage(
-                    '守護神の儀式完了', // ダミーメッセージ（API側で特別処理される）
-                    character,
-                    [], // 会話履歴は空
-                    {
-                        guardianFirstMessage: true,
-                        guardianName: guardianConfirmationData.guardianName,
-                        firstQuestion: firstQuestion || null
-                    }
-                );
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
+        const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
+        sessionStorage.removeItem(historyKey);
+        ChatData.setUserMessageCount(character, 0);
 
-                let guardianMessage = '';
-                if (guardianResponse.error || !guardianResponse.message) {
-                    console.warn('[楓専用処理] 守護神メッセージ生成エラー、フォールバックを使用:', guardianResponse.error);
-                    // エラーの場合はフォールバックメッセージを使用
-                    guardianMessage = `${guardianConfirmationData.userNickname}さん、私は${guardianConfirmationData.guardianName}。あなたを、前世からずっと守り続けてきました。今、${guardianConfirmationData.userNickname}さんの心の奥底には、何か感じるものがありますね。${guardianConfirmationData.userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
-                } else {
-                    guardianMessage = guardianResponse.message;
-                }
-
-                // 守護神のメッセージをコンテキストとして、楓からのメッセージを生成
-                const kaedeResponse = await ChatAPI.sendMessage(
-                    '守護神のメッセージを受けて', // ダミーメッセージ（API側で特別処理される）
-                    character,
-                    [], // 会話履歴は空
-                    {
-                        kaedeFollowUp: true,
-                        guardianName: guardianConfirmationData.guardianName,
-                        guardianMessage: guardianMessage,
-                        firstQuestion: firstQuestion || null
-                    }
-                );
-
-                // 段階的なメッセージ更新のタイマーをクリア
-                if (typeof messageUpdateTimers !== 'undefined' && Array.isArray(messageUpdateTimers)) {
-                    messageUpdateTimers.forEach(timer => clearTimeout(timer));
-                }
-                
-                // 待機中のメッセージを削除（フェードアウト演出付き）
-                if (waitingMessageId) {
-                    const waitingElement = document.getElementById(waitingMessageId);
-                    if (waitingElement) {
-                        // フェードアウトしてから削除
-                        waitingElement.style.transition = 'opacity 0.5s ease-in-out';
-                        waitingElement.style.opacity = '0';
-                        setTimeout(() => {
-                            if (waitingElement.parentNode) {
-                                waitingElement.remove();
-                            }
-                        }, 500);
-                    }
-                }
-
-                if (kaedeResponse.error || !kaedeResponse.message) {
-                    console.error('[楓専用処理] ❌ 楓メッセージ生成エラー:', {
-                        error: kaedeResponse.error,
-                        hasMessage: !!kaedeResponse.message,
-                        guardianName: guardianConfirmationData.guardianName,
-                        userNickname: guardianConfirmationData.userNickname
-                    });
-                    
-                    // エラーの場合は、フォールバックメッセージを使用せず、再試行を促すメッセージを表示
-                    // または、API呼び出しを再試行する
-                    throw new Error(kaedeResponse.error || '楓メッセージの生成に失敗しました');
-                } else {
-                    kaedeMessage = kaedeResponse.message || '';
-                    
-                    // メッセージが空の場合はエラーとして扱う
-                    if (!kaedeMessage || kaedeMessage.trim() === '') {
-                        console.error('[楓専用処理] ❌ 楓メッセージが空です');
-                        throw new Error('メッセージが空です');
-                    }
-                }
-            } catch (error) {
-                console.error('[楓専用処理] ❌ メッセージ生成時のエラー:', {
-                    error: error instanceof Error ? error.message : String(error),
-                    stack: error instanceof Error ? error.stack : undefined,
-                    guardianName: guardianConfirmationData.guardianName,
-                    userNickname: guardianConfirmationData.userNickname
-                });
-                
-                // 段階的なメッセージ更新のタイマーをクリア
-                if (typeof messageUpdateTimers !== 'undefined' && Array.isArray(messageUpdateTimers)) {
-                    messageUpdateTimers.forEach(timer => clearTimeout(timer));
-                }
-                
-                // 待機中のメッセージを削除（フェードアウト演出付き）
-                if (waitingMessageId) {
-                    const waitingElement = document.getElementById(waitingMessageId);
-                    if (waitingElement) {
-                        // フェードアウトしてから削除
-                        waitingElement.style.transition = 'opacity 0.5s ease-in-out';
-                        waitingElement.style.opacity = '0';
-                        setTimeout(() => {
-                            if (waitingElement.parentNode) {
-                                waitingElement.remove();
-                            }
-                        }, 500);
-                    }
-                }
-                
-                // エラーが発生した場合は、フォールバックメッセージを使用せず、エラーメッセージを表示
-                // フォールバックメッセージは楓の設定を反映していないため使用しない
-                const errorMessage = `申し訳ございません。メッセージの生成に失敗しました。もう一度お試しください。`;
-                ChatUI.addMessage('error', errorMessage, 'システム');
-                
-                // kaedeMessageをnullのままにして、後続処理でエラーとして扱う
-                kaedeMessage = null;
-            }
+        // recentMessagesをクリア
+        if (historyData && historyData.recentMessages) {
+            historyData.recentMessages = [];
         }
-        
-        // メッセージを表示（表示名は「楓」）
-        if (kaedeMessage && kaedeMessage.trim() !== '') {
-            const characterName = ChatData.characterInfo[character]?.name || '楓';
-            console.log('[楓専用処理] 楓からのメッセージを表示します（表示名:', characterName, ', ソース:', messageSource, ', 長さ:', kaedeMessage.length, ')');
-            ChatUI.addMessage('character', kaedeMessage, characterName);
-            
-            // 会話履歴に追加
-            if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
-                ChatData.conversationHistory.recentMessages.push({
-                    role: 'assistant',
-                    content: kaedeMessage
-                });
-            }
-        } else {
-            console.error('[楓専用処理] ❌ 楓メッセージが取得できませんでした。メッセージを表示できません。');
-            // メッセージが取得できなかった場合は、エラーメッセージを表示
-            const errorMessage = `申し訳ございません。メッセージの生成に失敗しました。ページをリロードしてお試しください。`;
-            ChatUI.addMessage('error', errorMessage, 'システム');
+        if (ChatData.conversationHistory && ChatData.conversationHistory.recentMessages) {
+            ChatData.conversationHistory.recentMessages = [];
         }
 
-        // この部分は削除（上記のtry-catchブロック内で既に会話履歴に追加済み）
-
-        // メッセージ入力欄をクリア
-        if (ChatUI.messageInput) {
-            ChatUI.messageInput.value = '';
-            console.log('[楓専用処理] メッセージ入力欄をクリアしました');
-        }
-
-        // 送信ボタンの状態を更新
-        ChatUI.updateSendButtonVisibility();
-        console.log('[楓専用処理] 送信ボタンの状態を更新しました（文字入力時に表示されます）');
-
-        // 【重要】入力イベントリスナーを常に再設定（守護神の儀式完了後は確実に動作させるため）
-        // 【修正】イベントリスナーの重複登録を防ぐため、既存のリスナーを削除せずに追加する方法に変更
-        // （cloneNode/replaceChildは、他の処理に影響を与える可能性があるため避ける）
-        if (ChatUI.messageInput) {
-            // 既にリスナーが設定されている場合は、data属性で確認してスキップ
-            const hasListenerSet = ChatUI.messageInput.getAttribute('data-kaede-listener-set') === 'true';
-            
-            if (!hasListenerSet) {
-                // Enterキーのイベントリスナーを追加
-                ChatUI.messageInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        // 【デバッグ】重複実行を防ぐためのチェック
-                        if (ChatUI.messageInput && ChatUI.messageInput.disabled) {
-                            console.log('[楓専用処理] メッセージ入力欄が無効化されているため、送信をスキップします');
-                            return;
-                        }
-                        console.log('[楓専用処理] Enterキーが押されました。sendMessageを呼び出します');
-                        window.sendMessage();
-                    }
-                });
-                
-                // inputイベントリスナーを追加
-                ChatUI.messageInput.addEventListener('input', () => {
-                    if (window.ChatUI && typeof window.ChatUI.updateSendButtonVisibility === 'function') {
-                        window.ChatUI.updateSendButtonVisibility();
-                    }
-                });
-                
-                ChatUI.messageInput.setAttribute('data-kaede-listener-set', 'true');
-                console.log('[楓専用処理] 入力イベントリスナー（keydown/input）を追加しました（守護神の儀式完了後）');
-            } else {
-                console.log('[楓専用処理] 入力イベントリスナーは既に設定されています（スキップ）');
-            }
-        }
-
-        // 守護神の儀式完了フラグをクリア
+        // フェーズ1では守護神メッセージのAPI呼び出しは行わない
+        // フラグをクリア
         sessionStorage.removeItem('acceptedGuardianRitual');
         sessionStorage.removeItem('ritualCompleted');
-        // 【重要】lastUserMessageをクリア（handleReturnFromAnimationでユーザーメッセージが表示されないようにするため）
         sessionStorage.removeItem('lastUserMessage');
-        // 【重要】guardianMessageShownフラグを設定（会話履歴が表示されないようにするため）
         sessionStorage.setItem('guardianMessageShown', 'true');
-        console.log('[楓専用処理] ritualCompletedフラグとacceptedGuardianRitualフラグをクリアしました。lastUserMessageもクリアしました。guardianMessageShownフラグを設定しました。');
-
-        return true; // 処理完了
+        
+        console.log('[楓パフォーマンス] フェーズ1処理完了: 守護神名のみを保存しました');
+        
+        // フェーズ1では skip を返す（通常のウェルカムメッセージを表示するため）
+        return { skip: true };
     },
+
 
 
     /**
