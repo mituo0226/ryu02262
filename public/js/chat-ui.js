@@ -200,6 +200,12 @@ const ChatUI = {
             messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
             messageDiv.style.position = 'relative';
             messageDiv.style.overflow = 'visible';
+            messageDiv.style.willChange = 'transform, background, box-shadow';
+            
+            // アニメーションを即座に開始
+            requestAnimationFrame(() => {
+                messageDiv.style.transition = 'transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease';
+            });
             
             // 神秘的なローディングアニメーションコンテナを作成
             const loadingContainer = document.createElement('div');
@@ -499,6 +505,7 @@ const ChatUI = {
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
         if (type === 'loading') {
+            // アニメーションを即座に適用（will-changeで最適化）
             textDiv.style.cssText = `
                 color: #ffd700;
                 text-shadow: 
@@ -507,15 +514,21 @@ const ChatUI = {
                     0 0 30px rgba(255, 107, 157, 0.4);
                 animation: 
                     guardian-mystic-glow-text 3s ease-in-out infinite,
-                    textPulse 2s ease-in-out infinite,
-                    textColorShift 4s ease-in-out infinite,
-                    textShake 3s ease-in-out infinite,
-                    textGlowPulse 3s ease-in-out infinite;
+                    textPulse 1.5s ease-in-out infinite,
+                    textColorShift 3s ease-in-out infinite,
+                    textShake 2.5s ease-in-out infinite,
+                    textGlowPulse 2.5s ease-in-out infinite;
                 text-align: center;
                 line-height: 1.8;
                 transform: scale(1);
                 display: inline-block;
+                will-change: transform, color, text-shadow, opacity;
             `;
+            
+            // アニメーションを強制的に開始（requestAnimationFrameで確実に適用）
+            requestAnimationFrame(() => {
+                textDiv.style.animationPlayState = 'running';
+            });
             
             // テキストのパルスアニメーション、色変化、揺れ効果をCSSに追加（まだ存在しない場合）
             if (!document.getElementById('text-pulse-animation')) {
@@ -634,7 +647,7 @@ const ChatUI = {
             const startTime = Date.now();
             
             // 最初からメッセージボックスにアニメーションを適用
-            messageDiv.style.transition = 'transform 0.4s ease, background 0.4s ease, box-shadow 0.4s ease';
+            messageDiv.style.transition = 'transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease';
             
             // 最初のアニメーションを即座に開始（パルス効果）
             let pulseDirection = 1;
@@ -652,11 +665,40 @@ const ChatUI = {
                     messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
                     pulseDirection = 1;
                 }
-            }, 1500); // 1.5秒ごとにパルス
+            }, 800); // 0.8秒ごとにパルス（より頻繁に）
             
             messageDiv.dataset.initialPulseInterval = initialPulse;
             
-            // メッセージ変更のタイマーを設定（1.5秒ごとに変更）
+            // 最初のメッセージ変更を即座に実行（0.8秒後）
+            setTimeout(() => {
+                if (messageDiv.parentNode && messageIndex === 0) {
+                    messageIndex = 1;
+                    const textDivElement = messageDiv.querySelector('.message-text');
+                    if (textDivElement) {
+                        messageDiv.style.transition = 'transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease';
+                        messageDiv.style.transform = 'scale(0.98) translateY(-2px)';
+                        messageDiv.style.background = 'rgba(106, 13, 173, 0.95)';
+                        
+                        textDivElement.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                        textDivElement.style.opacity = '0.3';
+                        textDivElement.style.transform = 'translateY(-5px)';
+                        
+                        setTimeout(() => {
+                            textDivElement.textContent = waitingMessages[messageIndex];
+                            textDivElement.style.opacity = '1';
+                            textDivElement.style.transform = 'translateY(0)';
+                            messageDiv.style.transform = 'scale(1) translateY(0)';
+                            messageDiv.style.boxShadow = '0 0 25px rgba(255, 215, 0, 0.4), 0 0 50px rgba(138, 43, 226, 0.3)';
+                            
+                            setTimeout(() => {
+                                messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
+                            }, 300);
+                        }, 100);
+                    }
+                }
+            }, 800); // 0.8秒後に最初の変更
+            
+            // メッセージ変更のタイマーを設定（0.8秒ごとに変更）
             const messageChangeInterval = setInterval(() => {
                 if (!messageDiv.parentNode) {
                     clearInterval(messageChangeInterval);
@@ -669,8 +711,8 @@ const ChatUI = {
                 // 経過時間を計算
                 const elapsed = Date.now() - startTime;
                 
-                // 1.5秒ごとにメッセージを変更
-                const secondsElapsed = Math.floor(elapsed / 1500);
+                // 0.8秒ごとにメッセージを変更
+                const secondsElapsed = Math.floor(elapsed / 800);
                 if (secondsElapsed > messageIndex) {
                     messageIndex = secondsElapsed % waitingMessages.length;
                     
