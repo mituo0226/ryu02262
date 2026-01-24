@@ -2990,22 +2990,44 @@ const ChatInit = {
             // ハンドラーから待機画面のIDを取得（ハンドラーが独自の待機画面を表示する場合）
             // 注意: waitingMessageIdは関数の先頭（1305行目付近）で既に宣言済み
             let handler = CharacterRegistry.get(character);
+            console.log('[デバッグ1] handler取得完了:', !!handler); // ← デバッグログ追加
+            
             if (handler && typeof handler.beforeMessageSent === 'function') {
-                const beforeResult = handler.beforeMessageSent(messageToSend);
-                if (beforeResult && beforeResult.waitingMessageId) {
-                    waitingMessageId = beforeResult.waitingMessageId;
-                    console.log('[ChatEngine] ハンドラーから待機画面IDを取得:', waitingMessageId);
+                try {
+                    const beforeResult = handler.beforeMessageSent(messageToSend);
+                    console.log('[デバッグ2] beforeMessageSent実行完了:', beforeResult); // ← デバッグログ追加
+                    if (beforeResult && beforeResult.waitingMessageId) {
+                        waitingMessageId = beforeResult.waitingMessageId;
+                        console.log('[ChatEngine] ハンドラーから待機画面IDを取得:', waitingMessageId);
+                    }
+                } catch (handlerError) {
+                    console.error('[エラー] beforeMessageSent実行中にエラー:', handlerError); // ← エラーキャッチ追加
                 }
             }
             
             // ハンドラーが待機画面を表示しない場合は、デフォルトのローディングメッセージを表示
+            console.log('[デバッグ3] waitingMessageId確認:', waitingMessageId); // ← デバッグログ追加
+            console.log('[デバッグ4] ChatUI確認:', !!window.ChatUI, '関数確認:', typeof window.ChatUI?.addMessage); // ← デバッグログ追加
+            
             if (!waitingMessageId) {
-                waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
+                try {
+                    console.log('[デバッグ5] デフォルト待機画面を作成します'); // ← デバッグログ追加
+                    waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
+                    console.log('[デバッグ6] 待機画面作成完了:', waitingMessageId); // ← デバッグログ追加
+                } catch (uiError) {
+                    console.error('[エラー] addMessage実行中にエラー:', uiError); // ← エラーキャッチ追加
+                }
             }
             
             // ハンドラーのonMessageSentを呼び出す
+            console.log('[デバッグ7] onMessageSent確認:', typeof handler?.onMessageSent); // ← デバッグログ追加
             if (handler && typeof handler.onMessageSent === 'function') {
-                handler.onMessageSent(waitingMessageId);
+                try {
+                    handler.onMessageSent(waitingMessageId);
+                    console.log('[デバッグ8] onMessageSent実行完了'); // ← デバッグログ追加
+                } catch (onMessageError) {
+                    console.error('[エラー] onMessageSent実行中にエラー:', onMessageError); // ← エラーキャッチ追加
+                }
             }
             
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
