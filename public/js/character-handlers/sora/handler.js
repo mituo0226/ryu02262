@@ -33,19 +33,12 @@ const SoraHandler = {
 
     /**
      * API レスポンス受信後の処理
-     * @param {Object} response - API レスポンス
-     * @param {string} character - キャラクターID
-     * @returns {boolean} 処理が完了したか（true: ハンドラーで処理済み、false: 共通処理を続行）
+     * @param {string} waitingMessageId - 待機メッセージのID
+     * @returns {boolean} true: 待機画面処理は完了、false: 共通処理で削除
      */
-    async handleResponse(response, character) {
-        if (character !== this.characterId) {
-            return false; // 水野ソラ以外は処理しない
-        }
-
-        console.log('[水野ソラハンドラー] レスポンス処理:', response);
-
-        // 現在は特殊な処理なし、共通処理を続行
-        return false;
+    onResponseReceived(waitingMessageId) {
+        console.log('[水野ソラハンドラー] API応答受信 - 共通処理に委譲');
+        return false;  // false を返すと、共通処理で削除される
     },
 
     /**

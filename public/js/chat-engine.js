@@ -3109,55 +3109,47 @@ const ChatInit = {
                 
                 // ハンドラーのonResponseReceivedを呼び出す（待機画面を非表示にする）
                 const handlerForResponse = CharacterRegistry.get(character);
+                let handlerProcessed = false;
+                
                 if (handlerForResponse && typeof handlerForResponse.onResponseReceived === 'function') {
-                    handlerForResponse.onResponseReceived(waitingMessageId);
-                } else {
-                    // ハンドラーが処理しない場合は、デフォルトのローディングメッセージを削除
-                    if (waitingMessageId) {
-                        const waitingElement = document.getElementById(waitingMessageId);
-                        if (waitingElement) {
-                            // タイマーをクリア
-                            if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
-                                window.ChatUI.clearLoadingMessageTimers(waitingElement);
-                            }
-                            waitingElement.remove();
-                        }
+                    try {
+                        handlerProcessed = handlerForResponse.onResponseReceived(waitingMessageId);
+                        console.log('[ChatEngine] ハンドラーが待機画面処理を完了:', handlerProcessed);
+                    } catch (error) {
+                        console.error('[ChatEngine] onResponseReceived エラー:', error);
                     }
                 }
                 
-                // 【強化】待機画面を確実に削除（複数の方法で試行）
-                if (waitingMessageId) {
-                    // 方法1: IDで取得して削除
-                    const waitingElementById = document.getElementById(waitingMessageId);
-                    if (waitingElementById) {
-                        // タイマーをクリア
-                        if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
-                            window.ChatUI.clearLoadingMessageTimers(waitingElementById);
-                        }
-                        waitingElementById.remove();
-                    }
+                // ハンドラーが処理していない場合のみ、共通処理で削除
+                if (!handlerProcessed) {
+                    console.log('[ChatEngine] 共通処理で待機画面を削除します (遅延: 500ms)');
                     
-                    // 方法2: loading-messageクラスを持つ要素を検索して削除
-                    const loadingMessages = window.ChatUI.messagesDiv?.querySelectorAll('.message.loading-message');
-                    if (loadingMessages && loadingMessages.length > 0) {
-                        loadingMessages.forEach(msg => {
-                            if (msg.id === waitingMessageId || !waitingElementById) {
+                    // 短い遅延を入れて、タイマーの完全なクリアを待つ
+                    if (waitingMessageId) {
+                        setTimeout(() => {
+                            const waitingElement = document.getElementById(waitingMessageId);
+                            if (waitingElement && waitingElement.parentNode) {
+                                console.log('[ChatEngine] 待機画面を削除中...');
+                                
                                 // タイマーをクリア
                                 if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
-                                    window.ChatUI.clearLoadingMessageTimers(msg);
+                                    window.ChatUI.clearLoadingMessageTimers(waitingElement);
                                 }
-                                msg.remove();
+                                
+                                // チャットウィンドウのアニメーションを解除
+                                const messagesDiv = window.ChatUI.messagesDiv;
+                                if (messagesDiv && messagesDiv.parentElement) {
+                                    const chatContainer = messagesDiv.closest('.chat-container');
+                                    if (chatContainer) {
+                                        chatContainer.classList.remove('waiting-for-response');
+                                    }
+                                }
+                                
+                                // 要素を削除
+                                waitingElement.remove();
+                                console.log('[ChatEngine] 待機画面を削除完了');
                             }
-                        });
-                    }
-                    
-                    // 方法3: チャットウィンドウのアニメーションを解除
-                    const messagesDiv = window.ChatUI.messagesDiv;
-                    if (messagesDiv && messagesDiv.parentElement) {
-                        const chatContainer = messagesDiv.closest('.chat-container');
-                        if (chatContainer) {
-                            chatContainer.classList.remove('waiting-for-response');
-                        }
+                        }, 500);  // 500ms後に削除（タイマーがクリアされる時間を確保）
                     }
                 }
                 
