@@ -36,6 +36,9 @@ worktrees/
 **/worktrees/yyi/**
 gitdir
 
+# 開発環境用フォルダ
+.dev/
+
 # Node.js関連
 node_modules/
 npm-debug.log*
