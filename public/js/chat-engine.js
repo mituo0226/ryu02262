@@ -49,6 +49,7 @@ function addToTimeline(source, message) {
  */
 function debugLog(...args) {
     if (DEBUG_MODE) {
+        const message = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
         addToTimeline('debugLog', message);
         console.log(...args);
     }
