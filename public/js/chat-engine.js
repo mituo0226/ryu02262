@@ -13,6 +13,58 @@
  */
 
 // ============================================
+// デバッグ設定
+// ============================================
+const DEBUG_MODE = false; // 本番環境ではfalseに設定
+
+/**
+ * デバッグログ出力（本番では無効化）
+ * @param {...any} args - console.logに渡す引数
+ */
+function debugLog(...args) {
+    if (DEBUG_MODE) {
+        console.log(...args);
+    }
+}
+
+// ============================================
+// ユーティリティ関数
+// ============================================
+
+/**
+ * URLパラメータを取得（キャッシュ付き）
+ * @returns {URLSearchParams} URLパラメータ
+ */
+function getUrlParams() {
+    if (!window._chatUrlParams) {
+        window._chatUrlParams = new URLSearchParams(window.location.search);
+    }
+    return window._chatUrlParams;
+}
+
+/**
+ * userIdを数値型にパース（バリデーション付き）
+ * @param {any} value - パース対象の値
+ * @returns {number|null} 有効なuserIdまたはnull
+ */
+function parseUserId(value) {
+    // 数値型の場合
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+        return value;
+    }
+
+    // 文字列型の場合
+    if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed) && parsed > 0) {
+            return parsed;
+        }
+    }
+
+    return null;
+}
+
+// ============================================
 // chat-api.js の統合
 // ============================================
 /**
@@ -34,7 +86,7 @@ const ChatAPI = {
         // 【重要】基本的にuserIdのみを使用（データベースベースの判断）
         // nickname+生年月日によるユーザー確認は行わない
         
-        console.log('[loadConversationHistory] 呼び出し:', {
+        debugLog('[loadConversationHistory] 呼び出し:', {
             characterId,
             hasUserInfo: !!userInfo,
             userInfoUserId: userInfo?.userId,
@@ -42,41 +94,20 @@ const ChatAPI = {
         });
         
         if (userInfo && userInfo.userId) {
-            // userInfoからuserIdを取得（優先）
-            const userIdFromUserInfo = userInfo.userId;
-            if (typeof userIdFromUserInfo === 'number' && Number.isFinite(userIdFromUserInfo) && userIdFromUserInfo > 0) {
-                userId = userIdFromUserInfo;
-                console.log('[loadConversationHistory] userInfoからuserIdを取得（数値）:', userId);
-            } else if (typeof userIdFromUserInfo === 'string' && userIdFromUserInfo.trim() !== '') {
-                const parsedUserId = Number(userIdFromUserInfo);
-                if (Number.isFinite(parsedUserId) && parsedUserId > 0) {
-                    userId = parsedUserId;
-                    console.log('[loadConversationHistory] userInfoからuserIdを取得（文字列から数値に変換）:', userId);
-                } else {
-                    console.warn('[loadConversationHistory] userInfo.userIdが無効な値です:', userIdFromUserInfo);
-                }
+            userId = parseUserId(userInfo.userId);
+            if (userId) {
+                debugLog('[loadConversationHistory] userInfoからuserIdを取得:', userId);
             } else {
-                console.warn('[loadConversationHistory] userInfo.userIdが無効な型または値です:', userIdFromUserInfo, typeof userIdFromUserInfo);
+                console.warn('[loadConversationHistory] userInfo.userIdが無効な値です:', userInfo.userId);
             }
         }
         
         // userInfoから取得できない場合、URLパラメータから取得（フォールバック）
         if (!userId) {
-            // グローバルスコープのurlParamsを使用
-            if (!window._chatUrlParams) {
-                window._chatUrlParams = new URLSearchParams(window.location.search);
-            }
-            const urlParams = window._chatUrlParams;
+            const urlParams = getUrlParams();
             const userIdParam = urlParams.get('userId');
-            console.log('[loadConversationHistory] URLパラメータからuserIdを取得（フォールバック）:', userIdParam);
-            if (userIdParam && userIdParam.trim() !== '') {
-                const parsedUserId = Number(userIdParam);
-                if (Number.isFinite(parsedUserId) && parsedUserId > 0) {
-                    userId = parsedUserId;
-                    console.log('[loadConversationHistory] URLパラメータからuserIdを取得（数値に変換）:', userId);
-                } else {
-                    console.warn('[loadConversationHistory] URLパラメータのuserIdが無効な値です:', userIdParam);
-                }
+            if (userIdParam) {
+                userId = parseUserId(userIdParam);
             }
         }
         
@@ -93,7 +124,7 @@ const ChatAPI = {
             return null;
         }
         
-        console.log('[loadConversationHistory] userIdを確認しました（データベース検索を開始）:', userId);
+        debugLog('[loadConversationHistory] userIdを確認しました（データベース検索を開始）:', userId);
         
         try {
             // userIdのみを使用してAPIを呼び出し
@@ -115,7 +146,7 @@ const ChatAPI = {
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log('[loadConversationHistory] ユーザー情報が見つかりません（404）');
+                    debugLog('[loadConversationHistory] ユーザー情報が見つかりません（404）');
                     // 404の場合は、ユーザーが登録されていない可能性がある
                     throw new Error('USER_NOT_FOUND');
                 }
@@ -128,7 +159,7 @@ const ChatAPI = {
             // 【変更】データベースから取得した情報をlocalStorageに保存しない
             // すべてのユーザー情報はデータベースから取得する
             if (data) {
-                console.log('[loadConversationHistory] データベースから最新のユーザー情報を取得しました:', {
+                debugLog('[loadConversationHistory] データベースから最新のユーザー情報を取得しました:', {
                     nickname: data.nickname,
                     birthYear: data.birthYear,
                     birthMonth: data.birthMonth,
@@ -140,18 +171,14 @@ const ChatAPI = {
             return data;
         } catch (error) {
             console.error('[loadConversationHistory] エラー:', error);
-            // エラーの種類を判定
-            if (error instanceof Error) {
-                // 既にエラーメッセージが設定されている場合はそのまま投げる
-                if (error.message === 'USER_NOT_FOUND' || error.message === 'NETWORK_ERROR') {
-                    throw error;
-                }
+
+            // 既に定義されたエラーの場合はそのまま投げる
+            if (error instanceof Error &&
+                (error.message === 'USER_NOT_FOUND' || error.message === 'NETWORK_ERROR')) {
+                throw error;
             }
-            // fetch自体が失敗した場合（ネットワークエラー）
-            if (error instanceof TypeError || (error instanceof Error && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')))) {
-                throw new Error('NETWORK_ERROR');
-            }
-            // その他のエラーもネットワークエラーとして扱う
+
+            // その他のエラーはネットワークエラーとして扱う
             throw new Error('NETWORK_ERROR');
         }
     },
@@ -161,9 +188,8 @@ const ChatAPI = {
      * @param {string} message - 送信するメッセージ
      * @param {string} characterId - キャラクターID
      * @param {Array} conversationHistory - 会話履歴
-     * @param {Object} options - オプション
-     * @param {string} options.forceProvider - プロバイダーを強制指定（オプション: 'deepseek' | 'openai'）
-     * @param {Object} options - オプション
+     * @param {Object} options - オプション設定
+     * @param {string} [options.forceProvider] - プロバイダーを強制指定（'deepseek' | 'openai'）
      * @returns {Promise<Object>} APIレスポンス
      */
     async sendMessage(message, characterId, conversationHistory = [], options = {}) {
@@ -181,18 +207,11 @@ const ChatAPI = {
         // 【変更】ユーザー情報をChatData.conversationHistoryから取得（データベースベースの判断）
         // user_idを優先的に使用（より安全で効率的）
         // URLパラメータからuserIdを取得（ログイン成功時にリダイレクトURLに含まれる）
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
+        const urlParams = getUrlParams();
         let userId = null;
         const userIdParam = urlParams.get('userId');
         if (userIdParam) {
-            userId = Number(userIdParam);
-            if (!Number.isFinite(userId) || userId <= 0) {
-                userId = null;
-            }
+            userId = parseUserId(userIdParam);
         }
         
         // userIdがない場合、ChatData.conversationHistoryから取得を試みる
@@ -343,29 +362,22 @@ const ChatAPI = {
         const { character, conversationHistory = [], visitPattern = 'first_visit' } = options;
         
         // userIdを取得
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
+        const urlParams = getUrlParams();
         let userId = null;
         const userIdParam = urlParams.get('userId');
         if (userIdParam) {
-            userId = Number(userIdParam);
-            if (!Number.isFinite(userId) || userId <= 0) {
-                userId = null;
-            }
+            userId = parseUserId(userIdParam);
         }
-        
+
         if (!userId) {
             throw new Error('ユーザーIDが見つかりません');
         }
-        
+
         if (!character) {
             throw new Error('キャラクターIDが指定されていません');
         }
         
-        console.log('[ChatAPI] ウェルカムメッセージ生成開始（非同期）:', {
+        debugLog('[ChatAPI] ウェルカムメッセージ生成開始（非同期）:', {
             character,
             userId,
             visitPattern,
@@ -396,7 +408,7 @@ const ChatAPI = {
                 throw new Error('Invalid API response');
             }
             
-            console.log('[ChatAPI] ウェルカムメッセージ生成完了:', {
+            debugLog('[ChatAPI] ウェルカムメッセージ生成完了:', {
                 usedAPI: data.metadata?.usedAPI,
                 messageLength: data.message.length
             });
@@ -462,7 +474,7 @@ const ChatData = {
                 };
                 this.characterInfo = allCharacters;
                 
-                console.log(`[ChatData.loadCharacterData] 読み込み完了: ${characterId}`);
+                debugLog(`[ChatData.loadCharacterData] 読み込み完了: ${characterId}`);
                 return this.characterData;
             } catch (error) {
                 console.error('キャラクターデータ読み込みエラー:', error);
@@ -477,7 +489,7 @@ const ChatData = {
                 throw new Error('Failed to load character data');
             }
             this.characterInfo = await response.json();
-            console.log('[ChatData.loadCharacterData] 読み込み完了:', {
+            debugLog('[ChatData.loadCharacterData] 読み込み完了:', {
                 characters: Object.keys(this.characterInfo),
                 yukinoHasFirstTimeGuest: !!this.characterInfo.yukino?.messages?.firstTimeGuest,
                 yukinoHasFirstTime: !!this.characterInfo.yukino?.messages?.firstTime,
@@ -495,11 +507,7 @@ const ChatData = {
      * @returns {string} キャラクターID
      */
     getCharacterFromURL() {
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
+        const urlParams = getUrlParams();
         const character = urlParams.get('character');
         
         // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
@@ -544,7 +552,7 @@ const ChatData = {
         
         if (history && Array.isArray(history)) {
             const userMessageCount = history.filter(msg => msg && msg.role === 'user').length;
-            console.log(`[ChatData] getUserMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
+            debugLog(`[ChatData] getUserMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
             
             // sessionStorageの値と一致するか確認（デバッグ用）
             const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
@@ -566,7 +574,7 @@ const ChatData = {
         }
         
         // 会話履歴が存在しない場合のみ0を返す
-        console.log(`[ChatData] getUserMessageCount(${character}): 0 (会話履歴が空)`);
+        debugLog(`[ChatData] getUserMessageCount(${character}): 0 (会話履歴が空)`);
         return 0;
     },
 
@@ -589,7 +597,7 @@ const ChatData = {
         const key = GUEST_COUNT_KEY_PREFIX + character;
         sessionStorage.setItem(key, String(count));
         sessionStorage.setItem('lastGuestMessageCount', String(count - 1));
-        console.log(`[ChatData] setUserMessageCount(${character}, ${count})`);
+        debugLog(`[ChatData] setUserMessageCount(${character}, ${count})`);
     },
 
     /**
@@ -797,7 +805,7 @@ const ChatData = {
      * @returns {string} メッセージ
      */
     generateFirstTimeMessage(characterId, nickname, isGuestFirstVisit = false, hasOtherCharacterHistory = false) {
-        console.log('[ChatData.generateFirstTimeMessage] 呼び出し:', {
+        debugLog('[ChatData.generateFirstTimeMessage] 呼び出し:', {
             characterId,
             nickname,
             hasCharacterInfo: !!this.characterInfo[characterId],
@@ -807,7 +815,7 @@ const ChatData = {
         
         const character = this.characterInfo[characterId];
         if (!character || !character.messages) {
-            console.log('[ChatData.generateFirstTimeMessage] キャラクター情報が見つかりません。デフォルトメッセージを返します');
+            debugLog('[ChatData.generateFirstTimeMessage] キャラクター情報が見つかりません。デフォルトメッセージを返します');
             return `${nickname}さん、初めまして。`;
         }
         
@@ -815,24 +823,24 @@ const ChatData = {
         let messageTemplate = null;
         if (character.messages.firstTimeGuest) {
             messageTemplate = character.messages.firstTimeGuest;
-            console.log('[ChatData.generateFirstTimeMessage] firstTimeGuestを使用:', messageTemplate.substring(0, 50) + '...');
+            debugLog('[ChatData.generateFirstTimeMessage] firstTimeGuestを使用:', messageTemplate.substring(0, 50) + '...');
         } else {
-            console.log('[ChatData.generateFirstTimeMessage] firstTimeGuestが設定されていません');
+            debugLog('[ChatData.generateFirstTimeMessage] firstTimeGuestが設定されていません');
         }
         
         if (!messageTemplate) {
             // firstTimeGuestが設定されていない場合は、デフォルトメッセージを返す
-            console.log('[ChatData.generateFirstTimeMessage] デフォルトメッセージを返します');
+            debugLog('[ChatData.generateFirstTimeMessage] デフォルトメッセージを返します');
             return `${nickname}さん、初めまして。`;
         }
         
         // テンプレート変数を含まない可能性があるため、その場合はそのまま返す
         if (!messageTemplate.includes('{nickname}')) {
-            console.log('[ChatData.generateFirstTimeMessage] テンプレート変数なし。そのまま返します');
+            debugLog('[ChatData.generateFirstTimeMessage] テンプレート変数なし。そのまま返します');
             return messageTemplate;
         }
         
-        console.log('[ChatData.generateFirstTimeMessage] テンプレート変数を置換します');
+        debugLog('[ChatData.generateFirstTimeMessage] テンプレート変数を置換します');
         const finalMessage = this.replaceMessageTemplate(messageTemplate, nickname, null, null, characterId);
         return finalMessage;
     }
@@ -1360,7 +1368,7 @@ const ChatInit = {
         const initPageStartTime = performance.now();
         const markInitPageTiming = (label) => {
             const now = performance.now();
-            console.log(`[初期化パフォーマンス] ${label}: ${(now - initPageStartTime).toFixed(2)}ms`);
+            debugLog(`[初期化パフォーマンス] ${label}: ${(now - initPageStartTime).toFixed(2)}ms`);
         };
         // #endregion
         
@@ -1396,17 +1404,13 @@ const ChatInit = {
         this._initPageRunning = true;
         
         // 【追加】userIdがURLパラメータにある場合、エントリーフォームを非表示にしてチャットコンテナを表示
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
+        const urlParams = getUrlParams();
         const userId = urlParams.get('userId');
-        console.log('[初期化] userIdチェック:', { userId, hasUrlParams: !!urlParams });
+        debugLog('[初期化] userIdチェック:', { userId, hasUrlParams: !!urlParams });
         if (userId) {
             const entryFormContainer = document.getElementById('entryFormContainer');
             const chatContainer = document.getElementById('chatContainer');
-            console.log('[初期化] 要素確認:', {
+            debugLog('[初期化] 要素確認:', {
                 hasEntryForm: !!entryFormContainer,
                 hasChatContainer: !!chatContainer,
                 entryFormClasses: entryFormContainer?.className,
@@ -1415,8 +1419,8 @@ const ChatInit = {
             if (entryFormContainer && chatContainer) {
                 entryFormContainer.classList.add('entry-form-hidden');
                 chatContainer.classList.remove('entry-form-hidden');
-                console.log('[初期化] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
-                console.log('[初期化] クラス変更後:', {
+                debugLog('[初期化] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+                debugLog('[初期化] クラス変更後:', {
                     entryFormHasHidden: entryFormContainer.classList.contains('entry-form-hidden'),
                     chatContainerHasHidden: chatContainer.classList.contains('entry-form-hidden')
                 });
@@ -1427,7 +1431,7 @@ const ChatInit = {
                 });
             }
         } else {
-            console.log('[初期化] userIdがURLパラメータにありません');
+            debugLog('[初期化] userIdがURLパラメータにありません');
         }
         
         // #region agent log (開発環境のみ - コメントアウト)
@@ -1447,9 +1451,9 @@ const ChatInit = {
             if (chatContainer && !chatContainer.classList.contains('entry-form-hidden')) {
                 // チャット画面が表示されている場合、待機画面を表示
                 waitingOverlay.classList.remove('hidden');
-                console.log('[初期化] 待機画面を表示しました（チャット画面表示中）');
+                debugLog('[初期化] 待機画面を表示しました（チャット画面表示中）');
             }
-            console.log('[初期化] 待機画面の状態を確認します（初期化開始時）');
+            debugLog('[初期化] 待機画面の状態を確認します（初期化開始時）');
             // 待機画面は、historyData取得後に判定して非表示にする
         }
         
@@ -1508,7 +1512,7 @@ const ChatInit = {
             sessionStorage.removeItem('guardianMessageShown');
             // 【修正】キャラクター切り替え時に会話履歴をクリア
             ChatData.conversationHistory = null;
-            console.log('[初期化] キャラクターが切り替わりました。lastUserMessage、guardianMessageShown、conversationHistoryをクリアしました:', {
+            debugLog('[初期化] キャラクターが切り替わりました。lastUserMessage、guardianMessageShown、conversationHistoryをクリアしました:', {
                 previousCharacter,
                 newCharacter: character
             });
@@ -1518,7 +1522,7 @@ const ChatInit = {
         }
         
         // #region agent log
-        console.log('🔍🔍🔍 [キャラクター初期化]', {
+        debugLog('🔍🔍🔍 [キャラクター初期化]', {
             URLから取得: character,
             現在のURL: window.location.href,
             URLSearchParams: Object.fromEntries(new URLSearchParams(window.location.search)),
@@ -1547,24 +1551,24 @@ const ChatInit = {
         // （データベースベースの判断に移行するため、ここではURLパラメータのみをチェック）
         const shouldTriggerRegistrationFlow = justRegistered;
         
-        console.log('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'character:', character);
+        debugLog('[初期化] justRegistered:', justRegistered, 'justRegisteredParam:', justRegisteredParam, 'justRegisteredSession:', justRegisteredSession, 'shouldTriggerRegistrationFlow:', shouldTriggerRegistrationFlow, 'character:', character);
 
         // 登録完了時の処理を先にチェック（会話履歴を読み込む前に実行）
         // 【変更】hasValidSessionのチェックを削除（historyDataの取得後に判定）
         if (justRegistered || shouldTriggerRegistrationFlow) {
-            console.log('[登録完了処理] 開始 - character:', character);
+            debugLog('[登録完了処理] 開始 - character:', character);
             
             // 待機画面を表示
             const waitingOverlay = document.getElementById('waitingOverlay');
             if (waitingOverlay) {
                 waitingOverlay.classList.remove('hidden');
-                console.log('[登録完了処理] 待機画面を表示しました');
+                debugLog('[登録完了処理] 待機画面を表示しました');
             }
             
             try {
                 // 【重要】データベースから最新のユーザー情報を取得
                 // これにより、APIが確実にデータベースからユーザー情報を読み込んでいることを確認
-                console.log('[登録完了処理] データベースからユーザー情報を取得中...');
+                debugLog('[登録完了処理] データベースからユーザー情報を取得中...');
                 let historyData = null;
                 let dbUserNickname = null;
                 try {
@@ -1585,13 +1589,13 @@ const ChatInit = {
                         dbUserNickname = historyData.nickname;
                         // 【変更】データベースから取得した情報をlocalStorageに保存しない
                         ChatData.userNickname = dbUserNickname;
-                        console.log('[登録完了処理] データベースからユーザー情報を取得しました:', {
+                        debugLog('[登録完了処理] データベースからユーザー情報を取得しました:', {
                             nickname: dbUserNickname,
                             hasHistory: historyData.hasHistory
                         });
                     } else {
                         // データベースにユーザー情報がない場合（初回登録直後）
-                        console.log('[登録完了処理] データベースにユーザー情報が見つかりません（初回登録のため正常）');
+                        debugLog('[登録完了処理] データベースにユーザー情報が見つかりません（初回登録のため正常）');
                         // 【変更】localStorageから取得しない（データベースベースの判断）
                         dbUserNickname = 'あなた';
                         ChatData.userNickname = dbUserNickname;
@@ -1621,7 +1625,7 @@ const ChatInit = {
                                     entryFormError.classList.add('show');
                                 }
                                 
-                                console.log('[登録完了処理] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
+                                debugLog('[登録完了処理] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
                             }
                             return;
                         } else if (error.message === 'NETWORK_ERROR') {
@@ -1646,7 +1650,7 @@ const ChatInit = {
                 // 待機画面を非表示
                 if (waitingOverlay) {
                     waitingOverlay.classList.add('hidden');
-                    console.log('[登録完了処理] 待機画面を非表示にしました');
+                    debugLog('[登録完了処理] 待機画面を非表示にしました');
                 }
                 
                 // キャラクター専用ハンドラーの初期化処理を呼び出す
@@ -1654,11 +1658,11 @@ const ChatInit = {
                 if (handler && typeof handler.initPage === 'function') {
                     const result = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow);
                     if (result && result.completed) {
-                        console.log('[登録完了処理] ハンドラーで処理完了。処理を終了します。');
+                        debugLog('[登録完了処理] ハンドラーで処理完了。処理を終了します。');
                         return; // 処理終了
                     }
                     if (result && result.skip) {
-                        console.log('[登録完了処理] ハンドラーで処理スキップ。処理を終了します。');
+                        debugLog('[登録完了処理] ハンドラーで処理スキップ。処理を終了します。');
                         return; // 処理終了
                     }
                 }
@@ -1678,7 +1682,7 @@ const ChatInit = {
                 
                 // 会話履歴を表示（historyDataから取得）
                 if (conversationHistory.length > 0) {
-                    console.log('[登録完了処理] 会話履歴を画面に表示します:', conversationHistory.length, '件');
+                    debugLog('[登録完了処理] 会話履歴を画面に表示します:', conversationHistory.length, '件');
                     
                     // 【重要】先に会話履歴を画面に表示
                     conversationHistory.forEach((entry) => {
@@ -1686,7 +1690,7 @@ const ChatInit = {
                         if (entry.isSystemMessage) {
                             const content = entry.content || entry.message || '';
                             if (content) {
-                                console.log('[登録完了処理] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
+                                debugLog('[登録完了処理] システムメッセージをスキップ:', typeof content === 'string' ? content.substring(0, 30) + '...' : '[非文字列コンテンツ]');
                             }
                             return;
                         }
@@ -1698,7 +1702,7 @@ const ChatInit = {
                             window.ChatUI.addMessage(type, content, sender);
                         }
                     });
-                    console.log('[登録完了処理] 会話履歴の表示完了');
+                    debugLog('[登録完了処理] 会話履歴の表示完了');
                     
                     // 最後のユーザーメッセージを抽出
                     let lastUserMessage = '';
@@ -1727,13 +1731,13 @@ const ChatInit = {
                     if (window.ChatUI) {
                         window.ChatUI.addMessage('character', welcomeBackMessage, info.name);
                     }
-                    console.log('[登録完了処理] おかえりなさいメッセージを表示しました');
+                    debugLog('[登録完了処理] おかえりなさいメッセージを表示しました');
                 } else {
                     // 会話履歴がない場合：新規ユーザーとして初回メッセージを表示
                     // 【重要】データベースから取得したニックネームを使用
-                    console.log('[登録完了処理] 会話履歴なし。新規ユーザーとして初回メッセージを表示します');
+                    debugLog('[登録完了処理] 会話履歴なし。新規ユーザーとして初回メッセージを表示します');
                     const nicknameForMessage = dbUserNickname || ChatData.userNickname || 'あなた';
-                    console.log('[登録完了処理] 初回メッセージに使用するニックネーム:', nicknameForMessage);
+                    debugLog('[登録完了処理] 初回メッセージに使用するニックネーム:', nicknameForMessage);
                     // 登録直後のため、他のキャラクターとの会話履歴はないと仮定
                     const firstTimeMessage = ChatData.generateFirstTimeMessage(character, nicknameForMessage, false, false);
                     if (window.ChatUI) {
@@ -1746,7 +1750,7 @@ const ChatInit = {
                 ChatData.setUserMessageCount(character, 0);
                 
                 // 【重要】登録後のイベントリスナーを設定
-                console.log('[登録完了処理] イベントリスナーを設定します');
+                debugLog('[登録完了処理] イベントリスナーを設定します');
                 if (window.ChatUI.messageInput) {
                     // 既存のリスナーを削除（重複登録を防ぐ）
                     const newInput = window.ChatUI.messageInput.cloneNode(true);
@@ -1773,7 +1777,7 @@ const ChatInit = {
                         }
                     });
                     
-                    console.log('[登録完了処理] イベントリスナーの設定完了');
+                    debugLog('[登録完了処理] イベントリスナーの設定完了');
                 }
                 
                 // キャラクター固有のフラグをクリア（ハンドラーに委譲）
@@ -1805,7 +1809,7 @@ const ChatInit = {
             if (previousCharacter && previousCharacter !== character) {
                 if (window.ChatUI && typeof window.ChatUI.clearMessages === 'function') {
                     window.ChatUI.clearMessages();
-                    console.log('[初期化] キャラクターが切り替わりました。メッセージをクリアしました:', {
+                    debugLog('[初期化] キャラクターが切り替わりました。メッセージをクリアしました:', {
                         previousCharacter,
                         newCharacter: character
                     });
@@ -1854,7 +1858,7 @@ const ChatInit = {
                                 entryFormError.classList.add('show');
                             }
                             
-                            console.log('[初期化] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
+                            debugLog('[初期化] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
                         }
                         return;
                     } else if (error.message === 'NETWORK_ERROR') {
@@ -1900,7 +1904,7 @@ const ChatInit = {
                 // 会話履歴がある場合：非同期メッセージ生成方式
                 // 【改善】履歴を即座に表示し、「考え中...」を表示してからバックグラウンドで動的メッセージを生成
                 if (historyData && historyData.hasHistory) {
-                    console.log('[初期化] 再訪問ユーザー。非同期メッセージ生成方式を使用します');
+                    debugLog('[初期化] 再訪問ユーザー。非同期メッセージ生成方式を使用します');
                     
                     // 【削除】フラグは不要（awaitにより同期処理になるため）
                     
@@ -1908,7 +1912,7 @@ const ChatInit = {
                     const waitingOverlay = document.getElementById('waitingOverlay');
                     if (waitingOverlay) {
                         waitingOverlay.classList.remove('hidden');
-                        console.log('[初期化] 待機画面を表示しました（再訪問時のメッセージ生成中）');
+                        debugLog('[初期化] 待機画面を表示しました（再訪問時のメッセージ生成中）');
                     }
                     
                     // 【重要】待機画面が表示されている間は「考え中...」メッセージを表示しない
@@ -1922,14 +1926,14 @@ const ChatInit = {
                         try {
                             const visitPattern = historyData.visitPattern || 'returning';
                             
-                            console.log(`[初期化] ${info.name}の再訪問時：バックグラウンドで動的メッセージを生成します`, {
+                            debugLog(`[初期化] ${info.name}の再訪問時：バックグラウンドで動的メッセージを生成します`, {
                                 character,
                                 visitPattern
                             });
                             
                             // パフォーマンス測定
                             const apiCallStart = performance.now();
-                            console.log(`[パフォーマンス] ChatAPI.generateWelcomeMessage呼び出し直前: ${(apiCallStart - initPageStartTime).toFixed(2)}ms`);
+                            debugLog(`[パフォーマンス] ChatAPI.generateWelcomeMessage呼び出し直前: ${(apiCallStart - initPageStartTime).toFixed(2)}ms`);
                             
                             // 【変更】conversationHistoryは渡さない（generate-welcome.tsでデータベースから取得）
                             // 履歴は表示しないが、システムプロンプト生成のためにvisitPatternを渡す
@@ -1941,26 +1945,26 @@ const ChatInit = {
                             });
                             
                             const apiCallEnd = performance.now();
-                            console.log(`[パフォーマンス] ChatAPI.generateWelcomeMessage完了: ${(apiCallEnd - initPageStartTime).toFixed(2)}ms (所要時間: ${(apiCallEnd - apiCallStart).toFixed(2)}ms)`);
+                            debugLog(`[パフォーマンス] ChatAPI.generateWelcomeMessage完了: ${(apiCallEnd - initPageStartTime).toFixed(2)}ms (所要時間: ${(apiCallEnd - apiCallStart).toFixed(2)}ms)`);
                             
-                            console.log(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
+                            debugLog(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
                             
                             // 待機画面を非表示（メッセージ表示前に実行）
                             if (waitingOverlay) {
                                 waitingOverlay.classList.add('hidden');
-                                console.log('[初期化] 待機画面を非表示にしました（メッセージ生成完了）');
+                                debugLog('[初期化] 待機画面を非表示にしました（メッセージ生成完了）');
                             }
                             
                             // bodyのfade-inクラスを追加（チャット画面を表示）
                             if (document.body) {
                                 document.body.classList.add('fade-in');
-                                console.log('[初期化] bodyにfade-inクラスを追加しました（チャット画面を表示）');
+                                debugLog('[初期化] bodyにfade-inクラスを追加しました（チャット画面を表示）');
                             }
                             
                             // メッセージを直接表示（「考え中...」メッセージは表示していないため、直接追加）
                             if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', welcomeMessage, info.name);
-                                console.log('[初期化] ウェルカムメッセージを表示しました');
+                                debugLog('[初期化] ウェルカムメッセージを表示しました');
                             } else {
                                 console.error('[初期化] ChatUIが利用できません');
                             }
@@ -1972,13 +1976,13 @@ const ChatInit = {
                             // 待機画面を非表示（エラー時も）
                             if (waitingOverlay) {
                                 waitingOverlay.classList.add('hidden');
-                                console.log('[初期化] 待機画面を非表示にしました（エラー時）');
+                                debugLog('[初期化] 待機画面を非表示にしました（エラー時）');
                             }
                             
                             // bodyのfade-inクラスを追加（チャット画面を表示）
                             if (document.body) {
                                 document.body.classList.add('fade-in');
-                                console.log('[初期化] bodyにfade-inクラスを追加しました（エラー時、チャット画面を表示）');
+                                debugLog('[初期化] bodyにfade-inクラスを追加しました（エラー時、チャット画面を表示）');
                             }
                             
                             // エラー時はフォールバック（定型文）
@@ -1986,7 +1990,7 @@ const ChatInit = {
                             const fallbackMessage = ChatData.generateInitialMessage(character, historyData);
                             if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', fallbackMessage || 'お帰りなさい。', info.name);
-                                console.log('[初期化] フォールバックメッセージを表示しました（エラー時）');
+                                debugLog('[初期化] フォールバックメッセージを表示しました（エラー時）');
                             }
                             
                             // 【削除】フラグは不要（awaitにより同期処理になるため）
@@ -1997,7 +2001,7 @@ const ChatInit = {
                     // これにより、initPage()の最終チェックが実行される前にメッセージが表示される
                     try {
                         await generateMessageAsync();
-                        console.log('[初期化] 再訪問時のメッセージ生成が完了しました');
+                        debugLog('[初期化] 再訪問時のメッセージ生成が完了しました');
                     } catch (error) {
                         console.error(`[初期化] ${info.name}の再訪問時：generateMessageAsyncエラー:`, error);
                         
@@ -2005,13 +2009,13 @@ const ChatInit = {
                         const waitingOverlayError = document.getElementById('waitingOverlay');
                         if (waitingOverlayError) {
                             waitingOverlayError.classList.add('hidden');
-                            console.log('[初期化] 待機画面を非表示にしました（generateMessageAsyncエラー時）');
+                            debugLog('[初期化] 待機画面を非表示にしました（generateMessageAsyncエラー時）');
                         }
                         
                         // bodyのfade-inクラスを追加（チャット画面を表示）
                         if (document.body) {
                             document.body.classList.add('fade-in');
-                            console.log('[初期化] bodyにfade-inクラスを追加しました（generateMessageAsyncエラー時、チャット画面を表示）');
+                            debugLog('[初期化] bodyにfade-inクラスを追加しました（generateMessageAsyncエラー時、チャット画面を表示）');
                         }
                         
                         // エラー時はフォールバックメッセージを表示
@@ -2019,7 +2023,7 @@ const ChatInit = {
                         if (window.ChatUI) {
                             const fallbackMessage = ChatData.generateInitialMessage(character, historyData) || 'お帰りなさい。';
                             window.ChatUI.addMessage('welcome', fallbackMessage, info.name);
-                            console.log('[初期化] フォールバックメッセージを表示しました（generateMessageAsyncエラー時）');
+                            debugLog('[初期化] フォールバックメッセージを表示しました（generateMessageAsyncエラー時）');
                         }
                         
                         // 【削除】フラグは不要（awaitにより同期処理になるため）
@@ -2048,10 +2052,10 @@ const ChatInit = {
                     switch (visitPattern) {
                         case 'continuing':
                             // 【再訪問時（履歴なし）】継続セッションとして処理
-                            console.log('[初期化] 再訪問ユーザー（履歴なし）。継続セッションとしてAPIから動的メッセージを生成します');
+                            debugLog('[初期化] 再訪問ユーザー（履歴なし）。継続セッションとしてAPIから動的メッセージを生成します');
                             
                             try {
-                                console.log(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を生成します`, {
+                                debugLog(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を生成します`, {
                                     character,
                                     userNickname: historyData.nickname || ChatData.userNickname || 'あなた',
                                     visitPattern: 'continuing'
@@ -2069,7 +2073,7 @@ const ChatInit = {
                                     if (window.ChatUI) {
                                         window.ChatUI.addMessage('welcome', response.message, info.name);
                                     }
-                                    console.log(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得しました`);
+                                    debugLog(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得しました`);
                                     return true;
                                 } else {
                                     console.warn(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得できませんでした`);
@@ -2096,7 +2100,7 @@ const ChatInit = {
                         
                         case 'first_visit':
                             // 【初回訪問時】非同期メッセージ生成方式
-                            console.log('[初期化] 初回ユーザー。非同期メッセージ生成方式を使用します');
+                            debugLog('[初期化] 初回ユーザー。非同期メッセージ生成方式を使用します');
                             
                             // 【重要】待機画面が表示されている場合は「考え中...」メッセージを表示しない
                             // 待機画面が表示されているため、追加の「考え中...」メッセージは不要
@@ -2115,7 +2119,7 @@ const ChatInit = {
                                     const visitPattern = 'first_visit';
                                     const conversationHistory = [];
                                     
-                                    console.log(`[初期化] ${info.name}の初回訪問時：バックグラウンドで動的メッセージを生成します`, {
+                                    debugLog(`[初期化] ${info.name}の初回訪問時：バックグラウンドで動的メッセージを生成します`, {
                                         character,
                                         visitPattern
                                     });
@@ -2126,12 +2130,12 @@ const ChatInit = {
                                         visitPattern
                                     });
                                     
-                                    console.log(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成完了`);
+                                    debugLog(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成完了`);
                                     
                                     // 待機画面を非表示（メッセージ表示前に実行）
                                     if (waitingOverlayFirst) {
                                         waitingOverlayFirst.classList.add('hidden');
-                                        console.log('[初期化] 待機画面を非表示にしました（初回訪問時のメッセージ生成完了）');
+                                        debugLog('[初期化] 待機画面を非表示にしました（初回訪問時のメッセージ生成完了）');
                                     }
                                     
                                     // 「考え中...」を動的メッセージに置き換え
@@ -2150,7 +2154,7 @@ const ChatInit = {
                                     // 待機画面を非表示（エラー時も）
                                     if (waitingOverlayFirst) {
                                         waitingOverlayFirst.classList.add('hidden');
-                                        console.log('[初期化] 待機画面を非表示にしました（初回訪問時のエラー時）');
+                                        debugLog('[初期化] 待機画面を非表示にしました（初回訪問時のエラー時）');
                                     }
                                     
                                     // エラー時はフォールバック（定型文）
@@ -2176,7 +2180,7 @@ const ChatInit = {
                             // これにより、initPage()の最終チェックが実行される前にメッセージが表示される
                             try {
                                 await generateFirstMessageAsync();
-                                console.log('[初期化] 初回訪問時のメッセージ生成が完了しました');
+                                debugLog('[初期化] 初回訪問時のメッセージ生成が完了しました');
                             } catch (error) {
                                 console.error(`[初期化] ${info.name}の初回訪問時：generateFirstMessageAsyncエラー:`, error);
                                 
@@ -2184,7 +2188,7 @@ const ChatInit = {
                                 const waitingOverlayErrorFirst = document.getElementById('waitingOverlay');
                                 if (waitingOverlayErrorFirst) {
                                     waitingOverlayErrorFirst.classList.add('hidden');
-                                    console.log('[初期化] 待機画面を非表示にしました（generateFirstMessageAsyncエラー時）');
+                                    debugLog('[初期化] 待機画面を非表示にしました（generateFirstMessageAsyncエラー時）');
                                 }
                                 
                                 // エラー時はフォールバックメッセージを表示
@@ -2201,7 +2205,7 @@ const ChatInit = {
                         
                         default:
                             // その他のパターン（returningなど）は既に処理済み
-                            console.log(`[初期化] visitPattern: ${visitPattern} は既に処理済みです`);
+                            debugLog(`[初期化] visitPattern: ${visitPattern} は既に処理済みです`);
                             break;
                     }
                 } else if (handlerForFirstMessage && typeof handlerForFirstMessage.getGuardianConfirmationMessage === 'function' && !guardianMessageShown && !handlerSkippedFirstMessage) {
@@ -2211,7 +2215,7 @@ const ChatInit = {
                     // 【楓専用処理】楓の場合は、APIが守護神情報を確認して返答を生成する
                     if (character === 'kaede' && historyData && historyData.assignedDeity) {
                         try {
-                            console.log('[初期化] 楓の再訪問時（履歴なし）：APIから返答を生成します', {
+                            debugLog('[初期化] 楓の再訪問時（履歴なし）：APIから返答を生成します', {
                                 hasHistory: false,
                                 assignedDeity: historyData.assignedDeity,
                                 userNickname
@@ -2229,14 +2233,14 @@ const ChatInit = {
                                 if (window.ChatUI) {
                                     window.ChatUI.addMessage('welcome', response.message, info.name);
                                 }
-                                console.log('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得しました');
+                                debugLog('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得しました');
                                 return true;
                             } else {
                                 console.warn('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得できませんでした。ハンドラーのメッセージを使用します');
                                 // APIから返答を取得できなかった場合は、ハンドラーのメッセージを使用
                                 const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
                                 if (guardianConfirmationMessage) {
-                                    console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
+                                    debugLog('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
                                     if (window.ChatUI) {
                                         window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                                     }
@@ -2248,7 +2252,7 @@ const ChatInit = {
                             // エラーの場合は、ハンドラーのメッセージを使用
                             const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
                             if (guardianConfirmationMessage) {
-                                console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
+                                debugLog('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します');
                                 if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                             }
@@ -2261,7 +2265,7 @@ const ChatInit = {
                         if (character === 'kaede') {
                             const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
                             if (guardianConfirmationMessage) {
-                                console.log('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します（楓専用）');
+                                debugLog('[初期化] 守護神が既に決定されているため、守護神確認メッセージを表示します（楓専用）');
                                 if (window.ChatUI) {
                                     window.ChatUI.addMessage('welcome', guardianConfirmationMessage, info.name);
                                 }
@@ -2279,7 +2283,7 @@ const ChatInit = {
             //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:220',message:'loadConversationHistory呼び出し後',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,nickname:historyData?.nickname,recentMessagesLength:historyData?.recentMessages?.length||0},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // }
             // #endregion
-            console.log('[初期化] historyData取得結果:', {
+            debugLog('[初期化] historyData取得結果:', {
                 hasHistoryData: !!historyData,
                 hasHistory: historyData?.hasHistory,
                 hasNickname: !!historyData?.nickname,
@@ -2308,7 +2312,7 @@ const ChatInit = {
             // 【変更】会話履歴は表示しない
             // 鑑定士の挨拶メッセージで過去の会話を記憶していることを示すため、履歴表示は不要
             // 常に最初のチャットから始まり、鑑定士が挨拶で過去の会話を参照する
-            console.log('[初期化] 会話履歴は表示しません（鑑定士の挨拶で過去の会話を記憶していることを示します）');
+            debugLog('[初期化] 会話履歴は表示しません（鑑定士の挨拶で過去の会話を記憶していることを示します）');
             
             // 雪乃の個別相談モード開始直後の定型文を表示（現在は使用されていない）
             if (false && character === 'yukino') {
@@ -2316,7 +2320,7 @@ const ChatInit = {
                 const messageCount = parseInt(sessionStorage.getItem('yukinoConsultationMessageCount') || '0', 10);
                 
                 if (consultationStarted && messageCount === 0) {
-                    console.log('[初期化] 雪乃の個別相談モード開始：定型文を表示');
+                    debugLog('[初期化] 雪乃の個別相談モード開始：定型文を表示');
                     const info = ChatData.characterInfo[character];
                     const welcomeMessage = 'あなたの運勢はタロットカードによって導かれました。これから先はあなたが私に相談したいことがあれば語りかけてください。どんな相談でもお答えいたします。';
                     if (window.ChatUI) {
@@ -2332,7 +2336,7 @@ const ChatInit = {
                         window.ChatUI.sendButton.disabled = false;
                     }
                     
-                    console.log('[初期化] 個別相談モード：メッセージ入力を有効化しました');
+                    debugLog('[初期化] 個別相談モード：メッセージ入力を有効化しました');
                     // 初回メッセージ表示をスキップするため、ここで処理を終了
                     return;
                 }
@@ -2369,7 +2373,7 @@ const ChatInit = {
                             role: 'assistant',
                             content: pendingGuardianMessage
                         });
-                        console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました');
+                        debugLog('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました');
                     }
                     sessionStorage.removeItem('pendingGuardianMessage');
                 }
@@ -2401,7 +2405,7 @@ const ChatInit = {
                             role: 'assistant',
                             content: guardianConfirmationMessage
                         });
-                        console.log('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompleted/assignedDeityチェック、楓専用）');
+                        debugLog('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompleted/assignedDeityチェック、楓専用）');
                     }
                 }
                 
@@ -2430,16 +2434,16 @@ const ChatInit = {
                     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2409',message:'handler.initPage完了',data:{completed:handlerResult?.completed,skip:handlerResult?.skip},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
                     // #endregion
                     if (handlerResult && handlerResult.completed) {
-                        console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        debugLog('[初期化] ハンドラーで処理完了。処理を終了します。');
                         // 【修正】ハンドラーで処理完了する前に待機画面を非表示にする
                         if (typeof window.hideLoadingScreen === 'function') {
                             window.hideLoadingScreen();
-                            console.log('[初期化] 待機画面を非表示にしました（ハンドラー処理完了時）');
+                            debugLog('[初期化] 待機画面を非表示にしました（ハンドラー処理完了時）');
                         }
                         return; // 処理終了
                     }
                     if (handlerResult && handlerResult.skip) {
-                        console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
+                        debugLog('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 }
@@ -2488,7 +2492,7 @@ const ChatInit = {
                     attempts++;
                 }
                 
-                console.log('[初期化] ハンドラー取得結果:', {
+                debugLog('[初期化] ハンドラー取得結果:', {
                     character,
                     hasHandler: !!handler,
                     hasInitPage: handler && typeof handler.initPage === 'function',
@@ -2497,20 +2501,20 @@ const ChatInit = {
                 });
                 let handlerSkippedFirstMessage = false;
                 if (handler && typeof handler.initPage === 'function') {
-                    console.log('[初期化] ハンドラーのinitPageを呼び出します:', character);
+                    debugLog('[初期化] ハンドラーのinitPageを呼び出します:', character);
                     const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
                         guardianMessageShown
                     });
-                    console.log('[初期化] ハンドラーのinitPage呼び出し完了:', {
+                    debugLog('[初期化] ハンドラーのinitPage呼び出し完了:', {
                         character,
                         result: handlerResult
                     });
                     if (handlerResult && handlerResult.completed) {
-                        console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        debugLog('[初期化] ハンドラーで処理完了。処理を終了します。');
                         return; // 処理終了
                     }
                     if (handlerResult && handlerResult.skip) {
-                        console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
+                        debugLog('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 } else if (!handler) {
@@ -2570,21 +2574,21 @@ const ChatInit = {
                 
                 let handlerSkippedFirstMessage = false;
                 if (handler && typeof handler.initPage === 'function') {
-                    console.log('[初期化] ハンドラーのinitPageを呼び出します（historyDataなし）:', character);
+                    debugLog('[初期化] ハンドラーのinitPageを呼び出します（historyDataなし）:', character);
                     // historyDataが取得できなかった場合でも、ハンドラーにnullを渡して処理を委譲
                     const handlerResult = await handler.initPage(urlParams, historyData, justRegistered, shouldTriggerRegistrationFlow, {
                         guardianMessageShown
                     });
-                    console.log('[初期化] ハンドラーのinitPage呼び出し完了（historyDataなし）:', {
+                    debugLog('[初期化] ハンドラーのinitPage呼び出し完了（historyDataなし）:', {
                         character,
                         result: handlerResult
                     });
                     if (handlerResult && handlerResult.completed) {
-                        console.log('[初期化] ハンドラーで処理完了。処理を終了します。');
+                        debugLog('[初期化] ハンドラーで処理完了。処理を終了します。');
                         return; // 処理終了
                     }
                     if (handlerResult && handlerResult.skip) {
-                        console.log('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
+                        debugLog('[初期化] ハンドラーで処理スキップ。共通処理をスキップします。');
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 } else if (!handler) {
@@ -2637,7 +2641,7 @@ const ChatInit = {
             // #endregion
             if (typeof window.hideLoadingScreen === 'function') {
                 window.hideLoadingScreen();
-                console.log('[初期化] 初期化完了、待機画面を非表示にしました');
+                debugLog('[初期化] 初期化完了、待機画面を非表示にしました');
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2507',message:'initPage完了: hideLoadingScreen呼び出し後',data:{character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
@@ -2674,7 +2678,7 @@ const ChatInit = {
                     subtree: true
                 });
                 
-                console.log('[初期化] MutationObserverを設定しました（自動スクロール監視）');
+                debugLog('[初期化] MutationObserverを設定しました（自動スクロール監視）');
             }
             
             this._initPageRunning = false;
@@ -2682,11 +2686,7 @@ const ChatInit = {
         } catch (error) {
             // エラーが発生した場合、character変数がまだ定義されていない可能性があるため、
             // URLパラメータまたはChatData.currentCharacterから取得
-            // グローバルスコープのurlParamsを使用
-            if (!window._chatUrlParams) {
-                window._chatUrlParams = new URLSearchParams(window.location.search);
-            }
-            const urlParams = window._chatUrlParams;
+            const urlParams = getUrlParams();
             let character = ChatData?.currentCharacter || urlParams.get('character') || 'kaede';
             
             // #region agent log (開発環境のみ - コメントアウト)
@@ -2701,7 +2701,7 @@ const ChatInit = {
             // #endregion
             if (typeof window.hideLoadingScreen === 'function') {
                 window.hideLoadingScreen();
-                console.log('[初期化] エラー発生、待機画面を非表示にしました');
+                debugLog('[初期化] エラー発生、待機画面を非表示にしました');
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2556',message:'initPageエラー: hideLoadingScreen呼び出し後',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
@@ -2729,11 +2729,11 @@ const ChatInit = {
                     guardianMessageShown
                 });
                 if (handlerResult && handlerResult.completed) {
-                    console.log('[初期化] ハンドラーで処理完了（エラー分岐）。処理を終了します。');
+                    debugLog('[初期化] ハンドラーで処理完了（エラー分岐）。処理を終了します。');
                     return; // 処理終了
                 }
                 if (handlerResult && handlerResult.skip) {
-                    console.log('[初期化] ハンドラーで処理スキップ（エラー分岐）。共通処理をスキップします。');
+                    debugLog('[初期化] ハンドラーで処理スキップ（エラー分岐）。共通処理をスキップします。');
                     handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                 }
             }
@@ -2767,25 +2767,25 @@ const ChatInit = {
                 if (hasMessages) {
                     // メッセージが表示されている場合、待機画面を非表示にする
                     waitingOverlayFinal.classList.add('hidden');
-                    console.log('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後）');
+                    debugLog('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後）');
                 } else {
                     // メッセージが表示されていない場合、少し待ってから再確認
                     setTimeout(() => {
                         const hasMessagesAfterWait = window.ChatUI && window.ChatUI.messagesDiv && window.ChatUI.messagesDiv.children.length > 0;
                         if (hasMessagesAfterWait && waitingOverlayFinal) {
                             waitingOverlayFinal.classList.add('hidden');
-                            console.log('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後・遅延確認）');
+                            debugLog('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後・遅延確認）');
                         }
                     }, 500);
                 }
             } else {
                 // ChatUIが利用できない場合、待機画面を非表示にする
                 waitingOverlayFinal.classList.add('hidden');
-                console.log('[初期化] 待機画面を非表示にしました（初回訪問時、ChatUI未利用）');
+                debugLog('[初期化] 待機画面を非表示にしました（初回訪問時、ChatUI未利用）');
             }
         } else if (waitingOverlayFinal && finalHistoryData && finalHistoryData.hasHistory) {
             // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは何もしない
-            console.log('[初期化] 待機画面は再訪問時のメッセージ生成中に管理されます');
+            debugLog('[初期化] 待機画面は再訪問時のメッセージ生成中に管理されます');
         }
         
         window.ChatUI.updateSendButtonVisibility();
@@ -2806,7 +2806,7 @@ const ChatInit = {
         
         // メッセージ入力欄が無効化されている場合は送信をブロック
         if (window.ChatUI.messageInput && window.ChatUI.messageInput.disabled) {
-            console.log('[メッセージ送信] メッセージ入力欄が無効化されているため、送信をブロックします');
+            debugLog('[メッセージ送信] メッセージ入力欄が無効化されているため、送信をブロックします');
             return;
         }
         
@@ -2823,7 +2823,7 @@ const ChatInit = {
         
         // 【デバッグ】sendMessageの呼び出しを追跡
         const callStack = new Error().stack;
-        console.log('[メッセージ送信] sendMessage呼び出し:', {
+        debugLog('[メッセージ送信] sendMessage呼び出し:', {
             message: message.substring(0, 50),
             character,
             skipUserMessage,
@@ -2862,7 +2862,7 @@ const ChatInit = {
                 
                 // 会話履歴が正しく保存されたことを確認
                 const savedHistory = ChatData.getConversationHistory(character);
-                console.log('[メッセージ送信] 会話履歴に追加後の確認:', {
+                debugLog('[メッセージ送信] 会話履歴に追加後の確認:', {
                     character,
                     historyLength: savedHistory.length,
                     userMessages: savedHistory.filter(msg => msg && msg.role === 'user').length,
@@ -2880,7 +2880,7 @@ const ChatInit = {
                 
                 const isFirstMessage = currentCount === 0;
                 if (isFirstMessage) {
-                    console.log('[メッセージ送信] 🎯 最初のメッセージを送信しました（カウント=1からスタート）:', {
+                    debugLog('[メッセージ送信] 🎯 最初のメッセージを送信しました（カウント=1からスタート）:', {
                         character,
                         message: message.substring(0, 50) + '...',
                         messageCount: messageCount,
@@ -2893,7 +2893,7 @@ const ChatInit = {
                         handlerForFirstMessage2.onFirstMessageInSession(message, isTarotExplanationTrigger);
                     }
                 } else {
-                    console.log('[メッセージ送信] メッセージを送信しました:', {
+                    debugLog('[メッセージ送信] メッセージを送信しました:', {
                         character,
                         message: message.substring(0, 50) + '...',
                         beforeCount: currentCount,
@@ -2905,7 +2905,7 @@ const ChatInit = {
                 // reading-animation.htmlでAPIリクエスト時にメッセージカウントを送信できるように、sessionStorageに保存
                 // この時点で、会話履歴にメッセージが追加されていることを確認済み
                 sessionStorage.setItem('lastGuestMessageCount', String(messageCount));
-                console.log('[メッセージ送信] sessionStorageにメッセージカウントを保存:', {
+                debugLog('[メッセージ送信] sessionStorageにメッセージカウントを保存:', {
                     key: 'lastGuestMessageCount',
                     value: messageCount,
                 });
@@ -2919,7 +2919,7 @@ const ChatInit = {
                             messageCount: messageCount,
                             timestamp: Date.now()
                         }, '*');
-                        console.log('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
+                        debugLog('[iframe] メッセージ送信を親ウィンドウに通知しました（送信時）', {
                             character,
                             messageCount
                         });
@@ -2960,7 +2960,7 @@ const ChatInit = {
                 if (messageExists) {
                     console.warn('[メッセージ送信] ⚠️ 既に同じユーザーメッセージが表示されています。重複追加をスキップします:', messageToSend.substring(0, 50));
                 } else {
-                    console.log('[メッセージ送信] ユーザーメッセージを画面に追加:', messageToSend.substring(0, 50));
+                    debugLog('[メッセージ送信] ユーザーメッセージを画面に追加:', messageToSend.substring(0, 50));
                     window.ChatUI.addMessage('user', messageToSend, 'あなた');
                     await this.delay(100);
                     window.ChatUI.scrollToLatest();
@@ -2990,15 +2990,15 @@ const ChatInit = {
             // ハンドラーから待機画面のIDを取得（ハンドラーが独自の待機画面を表示する場合）
             // 注意: waitingMessageIdは関数の先頭（1305行目付近）で既に宣言済み
             let handler = CharacterRegistry.get(character);
-            console.log('[デバッグ1] handler取得完了:', !!handler); // ← デバッグログ追加
+            debugLog('[デバッグ1] handler取得完了:', !!handler); // ← デバッグログ追加
             
             if (handler && typeof handler.beforeMessageSent === 'function') {
                 try {
                     const beforeResult = handler.beforeMessageSent(messageToSend);
-                    console.log('[デバッグ2] beforeMessageSent実行完了:', beforeResult); // ← デバッグログ追加
+                    debugLog('[デバッグ2] beforeMessageSent実行完了:', beforeResult); // ← デバッグログ追加
                     if (beforeResult && beforeResult.waitingMessageId) {
                         waitingMessageId = beforeResult.waitingMessageId;
-                        console.log('[ChatEngine] ハンドラーから待機画面IDを取得:', waitingMessageId);
+                        debugLog('[ChatEngine] ハンドラーから待機画面IDを取得:', waitingMessageId);
                     }
                 } catch (handlerError) {
                     console.error('[エラー] beforeMessageSent実行中にエラー:', handlerError); // ← エラーキャッチ追加
@@ -3006,25 +3006,25 @@ const ChatInit = {
             }
             
             // ハンドラーが待機画面を表示しない場合は、デフォルトのローディングメッセージを表示
-            console.log('[デバッグ3] waitingMessageId確認:', waitingMessageId); // ← デバッグログ追加
-            console.log('[デバッグ4] ChatUI確認:', !!window.ChatUI, '関数確認:', typeof window.ChatUI?.addMessage); // ← デバッグログ追加
+            debugLog('[デバッグ3] waitingMessageId確認:', waitingMessageId); // ← デバッグログ追加
+            debugLog('[デバッグ4] ChatUI確認:', !!window.ChatUI, '関数確認:', typeof window.ChatUI?.addMessage); // ← デバッグログ追加
             
             if (!waitingMessageId) {
                 try {
-                    console.log('[デバッグ5] デフォルト待機画面を作成します'); // ← デバッグログ追加
+                    debugLog('[デバッグ5] デフォルト待機画面を作成します'); // ← デバッグログ追加
                     waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
-                    console.log('[デバッグ6] 待機画面作成完了:', waitingMessageId); // ← デバッグログ追加
+                    debugLog('[デバッグ6] 待機画面作成完了:', waitingMessageId); // ← デバッグログ追加
                 } catch (uiError) {
                     console.error('[エラー] addMessage実行中にエラー:', uiError); // ← エラーキャッチ追加
                 }
             }
             
             // ハンドラーのonMessageSentを呼び出す
-            console.log('[デバッグ7] onMessageSent確認:', typeof handler?.onMessageSent); // ← デバッグログ追加
+            debugLog('[デバッグ7] onMessageSent確認:', typeof handler?.onMessageSent); // ← デバッグログ追加
             if (handler && typeof handler.onMessageSent === 'function') {
                 try {
                     handler.onMessageSent(waitingMessageId);
-                    console.log('[デバッグ8] onMessageSent実行完了'); // ← デバッグログ追加
+                    debugLog('[デバッグ8] onMessageSent実行完了'); // ← デバッグログ追加
                 } catch (onMessageError) {
                     console.error('[エラー] onMessageSent実行中にエラー:', onMessageError); // ← エラーキャッチ追加
                 }
@@ -3067,7 +3067,7 @@ const ChatInit = {
                                 });
                             }
                             
-                            console.log('[メッセージ送信] 守護神確認メッセージを会話履歴に追加しました（API送信前）');
+                            debugLog('[メッセージ送信] 守護神確認メッセージを会話履歴に追加しました（API送信前）');
                         }
                     }
                 }
@@ -3085,7 +3085,7 @@ const ChatInit = {
                     // 個別相談モードの場合は、ハンドラーからカウントを取得
                     const currentCount = handler.getConsultationMessageCount();
                     messageCountForAPI = currentCount;
-                    console.log('[個別相談] APIに送信するメッセージカウント:', {
+                    debugLog('[個別相談] APIに送信するメッセージカウント:', {
                         鑑定士: character,
                         現在の個別相談カウント: currentCount,
                         APIに送信する値: messageCountForAPI,
@@ -3114,7 +3114,7 @@ const ChatInit = {
                 if (handlerForResponse && typeof handlerForResponse.onResponseReceived === 'function') {
                     try {
                         handlerProcessed = handlerForResponse.onResponseReceived(waitingMessageId);
-                        console.log('[ChatEngine] ハンドラーが待機画面処理を完了:', handlerProcessed);
+                        debugLog('[ChatEngine] ハンドラーが待機画面処理を完了:', handlerProcessed);
                     } catch (error) {
                         console.error('[ChatEngine] onResponseReceived エラー:', error);
                     }
@@ -3122,14 +3122,14 @@ const ChatInit = {
                 
                 // ハンドラーが処理していない場合のみ、共通処理で削除
                 if (!handlerProcessed) {
-                    console.log('[ChatEngine] 共通処理で待機画面を削除します (遅延: 500ms)');
+                    debugLog('[ChatEngine] 共通処理で待機画面を削除します (遅延: 500ms)');
                     
                     // 短い遅延を入れて、タイマーの完全なクリアを待つ
                     if (waitingMessageId) {
                         setTimeout(() => {
                             const waitingElement = document.getElementById(waitingMessageId);
                             if (waitingElement && waitingElement.parentNode) {
-                                console.log('[ChatEngine] 待機画面を削除中...');
+                                debugLog('[ChatEngine] 待機画面を削除中...');
                                 
                                 // タイマーをクリア
                                 if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
@@ -3147,7 +3147,7 @@ const ChatInit = {
                                 
                                 // 要素を削除
                                 waitingElement.remove();
-                                console.log('[ChatEngine] 待機画面を削除完了');
+                                debugLog('[ChatEngine] 待機画面を削除完了');
                             }
                         }, 500);  // 500ms後に削除（タイマーがクリアされる時間を確保）
                     }
@@ -3164,7 +3164,7 @@ const ChatInit = {
 
                 // 汎用的なリダイレクト指示をチェック（特定のページへの依存を避ける）
                 if (response.redirect && response.redirectUrl) {
-                    console.log('[ChatEngine] リダイレクト指示を受信:', response.redirectUrl);
+                    debugLog('[ChatEngine] リダイレクト指示を受信:', response.redirectUrl);
                     window.location.href = response.redirectUrl;
                     return;
                 }
@@ -3176,13 +3176,13 @@ const ChatInit = {
                 // #region agent log - APIレスポンスに[SUGGEST_TAROT]タグが含まれているか確認
                 if (responseText && typeof responseText === 'string' && responseText.includes('[SUGGEST_TAROT]')) {
                     console.group('🔍 [DEBUG] APIレスポンスに[SUGGEST_TAROT]タグを検出');
-                    console.log('responseText:', responseText);
-                    console.log('response.message:', response.message);
-                    console.log('response.response:', response.response);
-                    console.log('character:', character);
+                    debugLog('responseText:', responseText);
+                    debugLog('response.message:', response.message);
+                    debugLog('response.response:', response.response);
+                    debugLog('character:', character);
                     console.groupEnd();
                 } else if (character === 'yukino') {
-                    console.log('[DEBUG] APIレスポンス確認（yukino）:', {
+                    debugLog('[DEBUG] APIレスポンス確認（yukino）:', {
                         hasResponseText: !!responseText,
                         responseTextType: typeof responseText,
                         responseTextPreview: responseText && typeof responseText === 'string' ? responseText.substring(0, 200) : String(responseText),
@@ -3214,7 +3214,7 @@ const ChatInit = {
                         const messageText = lastUserMessage.querySelector('div:last-child')?.textContent?.trim();
                         if (messageText === messageToSend) {
                             lastUserMessage.remove();
-                            console.log('[楓専用処理] ユーザーメッセージを削除しました:', messageToSend);
+                            debugLog('[楓専用処理] ユーザーメッセージを削除しました:', messageToSend);
                         }
                     }
                 }
@@ -3323,7 +3323,7 @@ const ChatInit = {
         
         // 【デバッグ】handleReturnFromAnimationの呼び出しを追跡
         const callStack = new Error().stack;
-        console.log('[handleReturnFromAnimation] 関数呼び出し:', {
+        debugLog('[handleReturnFromAnimation] 関数呼び出し:', {
             hasLastUserMessage: !!lastUserMessage,
             hasConsultResponse: !!consultResponse,
             hasConsultError: !!consultError,
@@ -3334,7 +3334,7 @@ const ChatInit = {
         const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
         const ritualCompleted = sessionStorage.getItem('ritualCompleted') === 'true';
         
-        console.log('[handleReturnFromAnimation] フラグ確認:', {
+        debugLog('[handleReturnFromAnimation] フラグ確認:', {
             guardianMessageShown,
             ritualCompleted,
             hasLastUserMessage: !!lastUserMessage
@@ -3342,7 +3342,7 @@ const ChatInit = {
         
         // 【修正】守護神の儀式完了直後（ritualCompletedまたはguardianMessageShown）の場合は、lastUserMessageを完全に無視
         if ((guardianMessageShown || ritualCompleted) && lastUserMessage) {
-            console.log('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを表示しません。', {
+            debugLog('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを表示しません。', {
                 guardianMessageShown,
                 ritualCompleted,
                 lastUserMessage: lastUserMessage.substring(0, 50)
@@ -3361,7 +3361,7 @@ const ChatInit = {
         // 【重要】guardianMessageShownまたはritualCompletedが設定されている場合、lastUserMessageは完全に無視
         // （上で既に削除済みだが、念のため再度チェック）
         if (lastUserMessage && (guardianMessageShown || ritualCompleted)) {
-            console.log('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを完全に無視します（2回目のチェック）');
+            debugLog('[handleReturnFromAnimation] 守護神の儀式完了後です。lastUserMessageを完全に無視します（2回目のチェック）');
             sessionStorage.removeItem('lastUserMessage');
             lastUserMessage = null; // 後続の処理で使用されないようにする
         }
@@ -3391,12 +3391,12 @@ const ChatInit = {
                 const messageExists = messageTexts.some(text => text.trim() === messageToCheck);
                 
                 if (!messageExists) {
-                    console.log('[handleReturnFromAnimation] lastUserMessageからユーザーメッセージを表示:', messageToCheck.substring(0, 50));
+                    debugLog('[handleReturnFromAnimation] lastUserMessageからユーザーメッセージを表示:', messageToCheck.substring(0, 50));
                     window.ChatUI.addMessage('user', userMsgData.message, 'あなた');
                     if (window.ChatUI.messageInput) window.ChatUI.messageInput.blur();
                     setTimeout(() => window.ChatUI.scrollToLatest(), 200);
                 } else {
-                    console.log('[handleReturnFromAnimation] 既に同じメッセージが表示されているため、スキップします:', messageToCheck.substring(0, 50));
+                    debugLog('[handleReturnFromAnimation] 既に同じメッセージが表示されているため、スキップします:', messageToCheck.substring(0, 50));
                 }
                 
                 sessionStorage.removeItem('lastUserMessage');
@@ -3457,7 +3457,7 @@ const ChatInit = {
                             const isRegistered = window.AuthState?.isRegistered() || false;
                             const messageCount = ChatData?.getUserMessageCount(character) || 0;
                             
-                            console.log('[応答受信] 親ウィンドウに通知:', {
+                            debugLog('[応答受信] 親ウィンドウに通知:', {
                                 character,
                                 messageCount
                             });
@@ -3468,7 +3468,7 @@ const ChatInit = {
                                 messageCount: messageCount,
                                 timestamp: Date.now()
                             }, '*');
-                            console.log('[iframe] メッセージ送信完了を親ウィンドウに通知しました（応答受信後）', {
+                            debugLog('[iframe] メッセージ送信完了を親ウィンドウに通知しました（応答受信後）', {
                                 character,
                                 messageCount
                             });
@@ -3486,7 +3486,7 @@ const ChatInit = {
                         const historyUserMessages = history.filter(msg => msg && msg.role === 'user').length;
                         const currentCount = ChatData.getUserMessageCount(ChatData.currentCharacter);
                         
-                        console.log('[応答受信] メッセージカウントを再確認:', {
+                        debugLog('[応答受信] メッセージカウントを再確認:', {
                             character: ChatData.currentCharacter,
                             currentCount: currentCount,
                             historyUserMessages: historyUserMessages,
@@ -3495,7 +3495,7 @@ const ChatInit = {
                         
                         // 会話履歴から計算した値の方が大きい、または現在のカウントが0の場合は更新
                         if (historyUserMessages > currentCount || currentCount === 0) {
-                            console.log('[応答受信] ⚠️ メッセージカウントを修正:', {
+                            debugLog('[応答受信] ⚠️ メッセージカウントを修正:', {
                                 oldCount: currentCount,
                                 newCount: historyUserMessages
                             });
@@ -3597,10 +3597,10 @@ const ChatInit = {
      * @param {string} character - キャラクターID
      */
     async startGuardianRitual(character) {
-        console.log('[守護神の儀式] 開始:', character);
+        debugLog('[守護神の儀式] 開始:', character);
         
             // 【登録ユーザーの場合のみ、以下の処理を実行】
-        console.log('[守護神の儀式] 登録ユーザーとして儀式を開始します');
+        debugLog('[守護神の儀式] 登録ユーザーとして儀式を開始します');
         
         // 送信ボタンを無効化
         if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = true;
@@ -3616,7 +3616,7 @@ const ChatInit = {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1815',message:'loadConversationHistory呼び出し後（通常フロー）',data:{character:character,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
-                console.log('[守護神の儀式] 会話履歴データ:', historyData);
+                debugLog('[守護神の儀式] 会話履歴データ:', historyData);
             } catch (error) {
                 // エラーハンドリング
                 if (error instanceof Error) {
@@ -3641,7 +3641,7 @@ const ChatInit = {
                                 entryFormError.classList.add('show');
                             }
                             
-                            console.log('[守護神の儀式] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
+                            debugLog('[守護神の儀式] エントリーフォームを表示しました（ユーザー情報が見つかりません）');
                         }
                         return;
                     } else if (error.message === 'NETWORK_ERROR') {
@@ -3663,7 +3663,7 @@ const ChatInit = {
             
             // 【重要】データベースのguardianカラムから守護神が既に決定されているかチェック（優先）
             if (historyData && historyData.assignedDeity && historyData.assignedDeity.trim() !== '') {
-                console.log('[守護神の儀式] データベースで守護神が既に決定されていることを確認（' + historyData.assignedDeity + '）。儀式を開始しません。');
+                debugLog('[守護神の儀式] データベースで守護神が既に決定されていることを確認（' + historyData.assignedDeity + '）。儀式を開始しません。');
                 // 【変更】localStorageに保存しない（データベースベースの判断）
                 if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = false;
                 return; // 儀式を開始しない
@@ -3676,7 +3676,7 @@ const ChatInit = {
             // 1. 登録ユーザーの会話履歴がある場合はそれを使用
             if (historyData && historyData.hasHistory && historyData.recentMessages && historyData.recentMessages.length > 0) {
                 conversationHistory = [...historyData.recentMessages];
-                console.log('[守護神の儀式] 登録ユーザーの会話履歴を使用:', conversationHistory.length);
+                debugLog('[守護神の儀式] 登録ユーザーの会話履歴を使用:', conversationHistory.length);
                 
                 // ChatData.conversationHistoryを更新
                 ChatData.conversationHistory = historyData;
@@ -3684,20 +3684,20 @@ const ChatInit = {
             // 2. 会話履歴がない場合は空配列
             else {
                 conversationHistory = [];
-                console.log('[守護神の儀式] 会話履歴が空です（新規会話）');
+                debugLog('[守護神の儀式] 会話履歴が空です（新規会話）');
             }
             
-            console.log('[守護神の儀式] 使用する会話履歴:', conversationHistory);
+            debugLog('[守護神の儀式] 使用する会話履歴:', conversationHistory);
             
             // 【重要】ゲスト履歴の移行が必要な場合は、ダミーメッセージを送信してデータベースに保存
             if (needsMigration && conversationHistory.length > 0) {
-                console.log('[守護神の儀式] ゲスト履歴をデータベースに移行します:', conversationHistory.length, '件');
+                debugLog('[守護神の儀式] ゲスト履歴をデータベースに移行します:', conversationHistory.length, '件');
                 
                 // 最初のユーザーメッセージを取得してsessionStorageに保存
                 const firstUserMessage = conversationHistory.find(msg => msg.role === 'user');
                 if (firstUserMessage && firstUserMessage.content) {
                     sessionStorage.setItem('firstQuestionBeforeRitual', firstUserMessage.content);
-                    console.log('[守護神の儀式] 最初の質問をsessionStorageに保存:', firstUserMessage.content.substring(0, 50) + '...');
+                    debugLog('[守護神の儀式] 最初の質問をsessionStorageに保存:', firstUserMessage.content.substring(0, 50) + '...');
                 }
                 
                 // 会話履歴はデータベースで管理されるため、移行処理は不要
@@ -3708,7 +3708,7 @@ const ChatInit = {
             const characterName = ChatData.characterInfo[character]?.name || '楓';
             const ritualStartMessage = 'それではこれより守護神のイベントを開始いたします。\n画面が切り替わりますので、儀式を体験してください。';
             
-            console.log('[守護神の儀式] 儀式開始前のメッセージを表示:', ritualStartMessage);
+            debugLog('[守護神の儀式] 儀式開始前のメッセージを表示:', ritualStartMessage);
             
             // メッセージを確実に表示するため、DOM更新を待つ
             window.ChatUI.addMessage('character', ritualStartMessage, characterName);
@@ -3730,7 +3730,7 @@ const ChatInit = {
             if (AuthState.isRegistered() && ChatData.conversationHistory) {
                 // このメッセージはデータベースには保存しない（一時的なメッセージ）
                 // ChatData.conversationHistory.recentMessages = conversationHistory;
-                console.log('[守護神の儀式] 儀式開始メッセージはデータベースに保存しません（一時メッセージ）');
+                debugLog('[守護神の儀式] 儀式開始メッセージはデータベースに保存しません（一時メッセージ）');
             }
             
             // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
@@ -3748,7 +3748,7 @@ const ChatInit = {
                 const url = new URL(ritualUrl, window.location.href);
                 url.searchParams.set('userId', String(historyData.userId));
                 ritualUrl = url.pathname + url.search;
-                console.log('[守護神の儀式] userIdをURLパラメータに追加:', historyData.userId);
+                debugLog('[守護神の儀式] userIdをURLパラメータに追加:', historyData.userId);
             } else {
                 // historyDataにuserIdがない場合、現在のURLから取得を試みる
                 const currentUrlParams = new URLSearchParams(window.location.search);
@@ -3758,11 +3758,11 @@ const ChatInit = {
                     const url = new URL(ritualUrl, window.location.href);
                     url.searchParams.set('userId', userId);
                     ritualUrl = url.pathname + url.search;
-                    console.log('[守護神の儀式] 現在のURLからuserIdを取得して追加:', userId);
+                    debugLog('[守護神の儀式] 現在のURLからuserIdを取得して追加:', userId);
                 }
             }
 
-            console.log('[守護神の儀式] guardian-ritual.htmlに遷移:', ritualUrl);
+            debugLog('[守護神の儀式] guardian-ritual.htmlに遷移:', ritualUrl);
             window.location.href = ritualUrl;
             return; // 遷移するため、以降の処理は実行されない
             
@@ -3796,7 +3796,7 @@ const ChatInit = {
         
         // ボタンを追加
         window.ChatUI.addRitualStartButton(messageElement, async () => {
-            console.log('[守護神の儀式] ボタンがクリックされました（再表示）');
+            debugLog('[守護神の儀式] ボタンがクリックされました（再表示）');
             
             // ボタンを非表示
             const button = messageElement.querySelector('.ritual-start-button');
@@ -3832,7 +3832,7 @@ window.ChatTestUtils = {
     clearGuestFlags(characterId = null) {
         // 【変更】localStorageの使用を削除（データベースベースの判断）
         // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
-        console.log('[ChatTestUtils] ゲストフラグのクリアはデータベースベースの判断に移行したため、localStorageのクリアは不要です。');
+        debugLog('[ChatTestUtils] ゲストフラグのクリアはデータベースベースの判断に移行したため、localStorageのクリアは不要です。');
     },
     
     /**
@@ -3852,11 +3852,11 @@ window.ChatTestUtils = {
             const countKey = `guestMessageCount_${c}`;
             if (sessionStorage.getItem(historyKey)) {
                 sessionStorage.removeItem(historyKey);
-                console.log(`[ChatTestUtils] ✅ ${historyKey} をクリアしました`);
+                debugLog(`[ChatTestUtils] ✅ ${historyKey} をクリアしました`);
             }
             if (sessionStorage.getItem(countKey)) {
                 sessionStorage.removeItem(countKey);
-                console.log(`[ChatTestUtils] ✅ ${countKey} をクリアしました`);
+                debugLog(`[ChatTestUtils] ✅ ${countKey} をクリアしました`);
             }
         });
         
@@ -3865,10 +3865,10 @@ window.ChatTestUtils = {
             targets.forEach(c => {
                 window.AuthState.clearGuestHistory(c);
             });
-            console.log('[ChatTestUtils] ✅ AuthStateのゲスト履歴をクリアしました');
+            debugLog('[ChatTestUtils] ✅ AuthStateのゲスト履歴をクリアしました');
         }
         
-        console.log('[ChatTestUtils] すべてのゲストデータのクリアが完了しました。ページをリロードしてください。');
+        debugLog('[ChatTestUtils] すべてのゲストデータのクリアが完了しました。ページをリロードしてください。');
     },
     
     /**
@@ -3900,18 +3900,14 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 // URLパラメータに?test=trueがある場合、すべてのキャラクターのゲストフラグをクリア
 // これはハンドラーが読み込まれる前に実行される必要があるため、ここで処理する
 (function() {
-    // グローバルスコープのurlParamsを使用
-    if (!window._chatUrlParams) {
-        window._chatUrlParams = new URLSearchParams(window.location.search);
-    }
-    const urlParams = window._chatUrlParams;
+    const urlParams = getUrlParams();
     if (urlParams.get('test') === 'true') {
-        console.log('[ChatEngine] テストモードが有効です。すべてのゲストフラグをクリアします...');
+        debugLog('[ChatEngine] テストモードが有効です。すべてのゲストフラグをクリアします...');
         // 【変更】localStorageの使用を削除（データベースベースの判断）
         // ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要
         const characters = ['kaede', 'yukino', 'sora', 'kaon'];
-        console.log('[ChatEngine] テストモード: ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要です。');
-        console.log('[ChatEngine] テストモード: すべてのゲストフラグのクリアが完了しました');
+        debugLog('[ChatEngine] テストモード: ゲストフラグはデータベースで管理されるため、localStorageのクリアは不要です。');
+        debugLog('[ChatEngine] テストモード: すべてのゲストフラグのクリアが完了しました');
     }
 })();
 
@@ -3919,7 +3915,7 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 (async function initPostMessageCommunication() {
     'use strict';
     
-    console.log('[iframe] postMessage通信を初期化しています...', {
+    debugLog('[iframe] postMessage通信を初期化しています...', {
         documentReadyState: document.readyState,
         hasParent: window.parent && window.parent !== window,
         origin: window.location.origin
@@ -3929,14 +3925,9 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
     function notifyParentReady() {
         if (window.parent && window.parent !== window) {
             try {
-                // URLパラメータからcharacterを取得
-                // グローバルスコープのurlParamsを使用
-                if (!window._chatUrlParams) {
-                    window._chatUrlParams = new URLSearchParams(window.location.search);
-                }
-                const urlParams = window._chatUrlParams;
+                const urlParams = getUrlParams();
                 const character = urlParams.get('character') || 'unknown';
-                
+
                 window.parent.postMessage({
                     type: 'CHAT_IFRAME_READY',
                     character: character,
@@ -3945,7 +3936,7 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                     ready: true
                 }, '*');
                 
-                console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました（初期通知）', {
+                debugLog('[iframe] ✅ 親ウィンドウに準備完了を通知しました（初期通知）', {
                     character,
                     origin: window.location.origin
                 });
@@ -3997,17 +3988,13 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
         }
         
         if (event.data && event.data.type === 'REQUEST_CHAT_DATA') {
-            console.log('[iframe] 📨 REQUEST_CHAT_DATAを受信しました（初期ハンドラー）');
+            debugLog('[iframe] 📨 REQUEST_CHAT_DATAを受信しました（初期ハンドラー）');
             
             // 簡単な応答を即座に返す
             try {
-                // グローバルスコープのurlParamsを使用
-                if (!window._chatUrlParams) {
-                    window._chatUrlParams = new URLSearchParams(window.location.search);
-                }
-                const urlParams = window._chatUrlParams;
+                const urlParams = getUrlParams();
                 const character = urlParams.get('character') || 'unknown';
-                
+
                 const responseData = {
                     type: 'CHAT_DATA_RESPONSE',
                     data: {
@@ -4026,10 +4013,10 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
                 
                 if (event.source && event.source.postMessage) {
                     event.source.postMessage(responseData, event.origin);
-                    console.log('[iframe] ✅ 初期ハンドラーでチャットデータを送信しました');
+                    debugLog('[iframe] ✅ 初期ハンドラーでチャットデータを送信しました');
                 } else if (window.parent && window.parent !== window) {
                     window.parent.postMessage(responseData, '*');
-                    console.log('[iframe] ✅ 初期ハンドラーでwindow.parentに送信しました');
+                    debugLog('[iframe] ✅ 初期ハンドラーでwindow.parentに送信しました');
                 }
             } catch (error) {
                 console.error('[iframe] ❌ 初期ハンドラーでエラー:', error);
@@ -4037,7 +4024,7 @@ window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
         }
     });
     
-    console.log('[iframe] postMessage通信の初期化完了', {
+    debugLog('[iframe] postMessage通信の初期化完了', {
         hasParent: window.parent && window.parent !== window,
         documentReadyState: document.readyState
     });
@@ -4052,15 +4039,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     // deferにより確実に読み込まれるため、直接初期化を実行
     
     // アニメーションページからの復帰を検知
-    // グローバルスコープのurlParamsを使用
-    if (!window._chatUrlParams) {
-        window._chatUrlParams = new URLSearchParams(window.location.search);
-    }
-    const urlParams = window._chatUrlParams;
+    const urlParams = getUrlParams();
     const isTransitionComplete = urlParams.get('transition') === 'complete';
     
     if (isTransitionComplete) {
-        console.log('[初期化] アニメーションページから復帰しました - フェードイン開始');
+        debugLog('[初期化] アニメーションページから復帰しました - フェードイン開始');
         
         // フェードインオーバーレイを作成
         const fadeOverlay = document.createElement('div');
@@ -4102,7 +4085,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // 【重要】ページ読み込み完了後、イベントリスナーを確実に設定
     window.addEventListener('load', () => {
-        console.log('[DOMContentLoaded] load イベント: イベントリスナーを設定します');
+        debugLog('[DOMContentLoaded] load イベント: イベントリスナーを設定します');
         if (window.ChatUI.messageInput && window.ChatUI.sendButton) {
             // 既存のリスナーを削除（重複登録を防ぐ）
             const newInput = window.ChatUI.messageInput.cloneNode(true);
@@ -4129,7 +4112,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 }
             });
             
-            console.log('[DOMContentLoaded] load イベント: イベントリスナーの設定完了');
+            debugLog('[DOMContentLoaded] load イベント: イベントリスナーの設定完了');
         }
     });
     
@@ -4170,7 +4153,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 sendButton.classList.remove('visible');
             }
         });
-        console.log('[初期化] 送信ボタンのイベントリスナーを登録しました');
+        debugLog('[初期化] 送信ボタンのイベントリスナーを登録しました');
     } else {
         console.warn('[初期化] 送信ボタンの要素が見つかりません:', {
             messageInput: !!messageInput,
@@ -4185,25 +4168,21 @@ window.addEventListener('DOMContentLoaded', async () => {
     const isEntryFormVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
     
     // userIdがURLパラメータにある場合、エントリーフォームを非表示にしてチャットコンテナを表示
-    // グローバルスコープのurlParamsを使用
-    if (!window._chatUrlParams) {
-        window._chatUrlParams = new URLSearchParams(window.location.search);
-    }
-    const domUrlParams = window._chatUrlParams;
+    const domUrlParams = getUrlParams();
     const domUserId = domUrlParams.get('userId');
-    console.log('[DOMContentLoaded] userIdチェック:', { domUserId, isEntryFormVisible });
+    debugLog('[DOMContentLoaded] userIdチェック:', { domUserId, isEntryFormVisible });
     if (domUserId) {
         // userIdがある場合、エントリーフォームを非表示にしてチャットコンテナを表示
         if (entryFormContainer) {
             entryFormContainer.classList.add('entry-form-hidden');
-            console.log('[DOMContentLoaded] エントリーフォームにhiddenクラスを追加しました');
+            debugLog('[DOMContentLoaded] エントリーフォームにhiddenクラスを追加しました');
         }
         if (chatContainer) {
             chatContainer.classList.remove('entry-form-hidden');
-            console.log('[DOMContentLoaded] チャットコンテナからhiddenクラスを削除しました');
+            debugLog('[DOMContentLoaded] チャットコンテナからhiddenクラスを削除しました');
         }
-        console.log('[DOMContentLoaded] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
-        console.log('[DOMContentLoaded] クラス変更後:', {
+        debugLog('[DOMContentLoaded] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
+        debugLog('[DOMContentLoaded] クラス変更後:', {
             entryFormHasHidden: entryFormContainer?.classList.contains('entry-form-hidden'),
             chatContainerHasHidden: chatContainer?.classList.contains('entry-form-hidden')
         });
@@ -4212,21 +4191,21 @@ window.addEventListener('DOMContentLoaded', async () => {
     // エントリーフォームが表示されている場合（userIdがない場合のみ）は初期化をスキップ
     const isEntryFormStillVisible = entryFormContainer && !entryFormContainer.classList.contains('entry-form-hidden');
     if (isEntryFormStillVisible) {
-        console.log('[chat-engine] 入口フォームが表示されているため、初期化をスキップします');
+        debugLog('[chat-engine] 入口フォームが表示されているため、初期化をスキップします');
         // 入口フォームが非表示になったら初期化を実行するイベントリスナーを設定
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     const isNowHidden = entryFormContainer.classList.contains('entry-form-hidden');
                     if (isNowHidden) {
-                        console.log('[chat-engine] 入口フォームが非表示になったため、初期化を実行します');
+                        debugLog('[chat-engine] 入口フォームが非表示になったため、初期化を実行します');
                         observer.disconnect();
                         if (!ChatInit._initPageRunning && !ChatInit._initPageCompleted) {
                             ChatInit.initPage().catch(error => {
                                 console.error('[chat-engine] 初期化エラー:', error);
                             });
                         } else {
-                            console.log('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
+                            debugLog('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
                         }
                     }
                 }
@@ -4240,7 +4219,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!ChatInit._initPageRunning && !ChatInit._initPageCompleted) {
         await ChatInit.initPage();
     } else {
-        console.log('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
+        debugLog('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
     }
     
     // アニメーション画面から戻ってきた時の処理
@@ -4262,7 +4241,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     messageCount: messageCount,
                     timestamp: Date.now()
                 }, '*');
-                console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました', {
+                debugLog('[iframe] ✅ 親ウィンドウに準備完了を通知しました', {
                     character,
                     messageCount,
                     origin: window.location.origin
@@ -4284,7 +4263,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 通知を送信する関数（重複を防ぐ）
     function tryNotifyParent() {
         if (hasNotified) {
-            console.log('[iframe] 通知は既に送信済みです');
+            debugLog('[iframe] 通知は既に送信済みです');
             return true; // 既に通知済みの場合は成功として扱う
         }
         
@@ -4292,7 +4271,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         const hasChatData = typeof ChatData !== 'undefined' && ChatData !== null;
         const hasAuthState = typeof window.AuthState !== 'undefined' && window.AuthState !== null;
         
-        console.log('[iframe] 通知を送信しようとしています...', {
+        debugLog('[iframe] 通知を送信しようとしています...', {
             hasChatData: hasChatData,
             hasAuthState: hasAuthState,
             currentCharacter: ChatData?.currentCharacter || 'unknown',
@@ -4317,7 +4296,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     ready: true
                 }, '*');
                 
-                console.log('[iframe] ✅ 親ウィンドウに準備完了を通知しました（最小限の情報）', {
+                debugLog('[iframe] ✅ 親ウィンドウに準備完了を通知しました（最小限の情報）', {
                     character,
                     messageCount,
                     hasChatData,
@@ -4338,7 +4317,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             // 親ウィンドウが存在しない場合（通常のブラウジング）
             // ログは最初の1回だけ出力
             if (!noParentLogged) {
-                console.log('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました（通常のブラウジング）');
+                debugLog('[iframe] 親ウィンドウが存在しないため、準備完了通知をスキップしました（通常のブラウジング）');
                 noParentLogged = true;
             }
             return false;
@@ -4352,14 +4331,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         // 1. DOMContentLoaded時に即座に1回通知
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                console.log('[iframe] DOMContentLoaded - 準備完了通知を送信（1秒後）');
+                debugLog('[iframe] DOMContentLoaded - 準備完了通知を送信（1秒後）');
                 setTimeout(() => {
                     tryNotifyParent();
                 }, 1000);
             });
         } else {
             // 既にDOMContentLoaded済みの場合は即座に実行
-            console.log('[iframe] DOMContentLoaded済み - 準備完了通知を送信（1秒後）');
+            debugLog('[iframe] DOMContentLoaded済み - 準備完了通知を送信（1秒後）');
             setTimeout(() => {
                 tryNotifyParent();
             }, 1000);
@@ -4368,20 +4347,20 @@ window.addEventListener('DOMContentLoaded', async () => {
         // 2. window.load時に1回通知（リソース読み込み完了後）
         if (document.readyState !== 'complete') {
             window.addEventListener('load', () => {
-                console.log('[iframe] window.load - 準備完了通知を送信（1秒後）');
+                debugLog('[iframe] window.load - 準備完了通知を送信（1秒後）');
                 setTimeout(() => {
                     tryNotifyParent();
                 }, 1000);
             });
         } else {
             // 既にload済みの場合も試行
-            console.log('[iframe] window.load済み - 準備完了通知を送信（1秒後）');
+            debugLog('[iframe] window.load済み - 準備完了通知を送信（1秒後）');
             setTimeout(() => {
                 tryNotifyParent();
             }, 1000);
         }
     } else {
-        console.log('[iframe] 親ウィンドウが存在しないため、イベントリスナーの登録をスキップします（通常のブラウジング）');
+        debugLog('[iframe] 親ウィンドウが存在しないため、イベントリスナーの登録をスキップします（通常のブラウジング）');
     }
     
     // 3. 念のため定期通知（最大10回、2秒ごと）
@@ -4389,10 +4368,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (window.parent && window.parent !== window) {
         notifyInterval = setInterval(() => {
             notifyAttempts++;
-            console.log(`[iframe] 定期通知 - 試行${notifyAttempts}/${maxNotifyAttempts}`);
+            debugLog(`[iframe] 定期通知 - 試行${notifyAttempts}/${maxNotifyAttempts}`);
             if (tryNotifyParent()) {
                 // 通知成功したら停止
-                console.log('[iframe] 定期通知を終了（通知成功）');
+                debugLog('[iframe] 定期通知を終了（通知成功）');
                 return;
             }
             
@@ -4406,13 +4385,13 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         }, 2000); // 2秒ごとに試行
     } else {
-        console.log('[iframe] 親ウィンドウが存在しないため、定期通知をスキップします');
+        debugLog('[iframe] 親ウィンドウが存在しないため、定期通知をスキップします');
     }
     
     // デバッグ用: notifyParentReadyをグローバルに公開
     window.notifyParentReady = notifyParentReady;
     
-    console.log('[iframe] postMessage通信が初期化されました', {
+    debugLog('[iframe] postMessage通信が初期化されました', {
         hasChatData: typeof ChatData !== 'undefined',
         hasAuthState: typeof window.AuthState !== 'undefined',
         hasParent: window.parent && window.parent !== window,
@@ -4420,7 +4399,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
     
     // 即座に1回通知を試行（ChatData/AuthStateの初期化を待たない）
-    console.log('[iframe] 即座に準備完了通知を試行（0.5秒後）...');
+    debugLog('[iframe] 即座に準備完了通知を試行（0.5秒後）...');
     setTimeout(() => {
         tryNotifyParent();
     }, 500);
@@ -4428,7 +4407,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 管理者用コマンドハンドラー（postMessage）
     window.addEventListener('message', async (event) => {
         // デバッグ: すべてのメッセージをログに記録
-        console.log('[iframe] メッセージ受信:', {
+        debugLog('[iframe] メッセージ受信:', {
             type: event.data?.type,
             origin: event.origin,
             expectedOrigin: window.location.origin,
@@ -4508,8 +4487,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                 
             case 'REQUEST_CHAT_DATA':
                 // 分析パネルからのデータリクエスト
-                console.log('[iframe] 📨 メッセージ受信: REQUEST_CHAT_DATA');
-                console.log('[iframe] 📨 REQUEST_CHAT_DATAを受信しました');
+                debugLog('[iframe] 📨 メッセージ受信: REQUEST_CHAT_DATA');
+                debugLog('[iframe] 📨 REQUEST_CHAT_DATAを受信しました');
                 try {
                     // ChatData, AuthState の存在確認
                     if (typeof ChatData === 'undefined') {
@@ -4525,7 +4504,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     const character = ChatData?.currentCharacter || 'unknown';
                     const isRegistered = window.AuthState?.isRegistered() || false;
                     
-                    console.log('[iframe] データ取得開始:', {
+                    debugLog('[iframe] データ取得開始:', {
                         character,
                         isRegistered,
                         hasChatData: !!ChatData,
@@ -4547,7 +4526,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         // ゲストユーザーの場合
                         if (typeof ChatData?.getUserMessageCount === 'function') {
                             messageCount = ChatData.getUserMessageCount(character) || 0;
-                            console.log('[iframe] ゲストメッセージ数を取得:', {
+                            debugLog('[iframe] ゲストメッセージ数を取得:', {
                                 character,
                                 messageCount,
                                 method: 'getGuestMessageCount'
@@ -4558,7 +4537,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         
                         if (typeof ChatData?.getConversationHistory === 'function') {
                             conversationHistory = ChatData.getConversationHistory(character) || [];
-                            console.log('[iframe] ゲスト会話履歴を取得:', {
+                            debugLog('[iframe] ゲスト会話履歴を取得:', {
                                 character,
                                 historyLength: conversationHistory.length,
                                 userMessages: conversationHistory.filter(msg => msg && msg.role === 'user').length
@@ -4571,7 +4550,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         // messageCountが0でも、会話履歴があれば正しい値を計算
                         if (conversationHistory && conversationHistory.length > 0) {
                             const historyUserMessages = conversationHistory.filter(msg => msg && msg.role === 'user').length;
-                            console.log('[iframe] 会話履歴からメッセージ数を計算:', {
+                            debugLog('[iframe] 会話履歴からメッセージ数を計算:', {
                                 historyLength: conversationHistory.length,
                                 userMessages: historyUserMessages,
                                 currentMessageCount: messageCount
@@ -4579,7 +4558,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                             
                             // messageCountが0または、履歴から計算した値の方が大きい場合は更新
                             if (messageCount === 0 || historyUserMessages > messageCount) {
-                                console.log('[iframe] ⚠️ メッセージ数を修正:', {
+                                debugLog('[iframe] ⚠️ メッセージ数を修正:', {
                                     oldCount: messageCount,
                                     newCount: historyUserMessages,
                                     reason: messageCount === 0 ? 'messageCountが0のため' : '履歴の方が大きいため'
@@ -4589,7 +4568,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                                 // 修正した値をsessionStorageに保存（次回から正しい値が取得できるように）
                                 if (typeof ChatData?.setGuestMessageCount === 'function') {
                                     ChatData.setUserMessageCount(character, historyUserMessages);
-                                    console.log('[iframe] ✅ 修正したメッセージ数をsessionStorageに保存しました');
+                                    debugLog('[iframe] ✅ 修正したメッセージ数をsessionStorageに保存しました');
                                 }
                             }
                         } else if (messageCount === 0) {
@@ -4616,7 +4595,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         }
                     };
                     
-                    console.log('[iframe] 📤 チャットデータを送信します:', {
+                    debugLog('[iframe] 📤 チャットデータを送信します:', {
                         character,
                         messageCount,
                         historyLength: conversationHistory.length,
@@ -4627,13 +4606,13 @@ window.addEventListener('DOMContentLoaded', async () => {
                     // 親ウィンドウにデータを送信
                     if (event.source && event.source.postMessage) {
                         event.source.postMessage(responseData, event.origin);
-                        console.log('[iframe] ✅ チャットデータを親ウィンドウに送信しました', currentState);
+                        debugLog('[iframe] ✅ チャットデータを親ウィンドウに送信しました', currentState);
                     } else {
                         console.error('[iframe] ❌ event.sourceが無効です:', event.source);
                         // フォールバック: window.parentに送信
                         if (window.parent && window.parent !== window) {
                             window.parent.postMessage(responseData, '*');
-                            console.log('[iframe] ✅ フォールバック: window.parentに送信しました');
+                            debugLog('[iframe] ✅ フォールバック: window.parentに送信しました');
                         }
                     }
                 } catch (error) {
@@ -4658,12 +4637,12 @@ window.addEventListener('DOMContentLoaded', async () => {
 // 雪乃の登録ボタン表示関数
 // ========================================
 function showYukinoRegistrationButtons() {
-    console.log('[雪乃登録ボタン] ボタン表示関数が呼ばれました');
+    debugLog('[雪乃登録ボタン] ボタン表示関数が呼ばれました');
     
     // 既存のコンテナがあれば削除
     const existingContainer = document.getElementById('yukinoRegistrationContainer');
     if (existingContainer) {
-        console.log('[雪乃登録ボタン] 既存のボタンを削除します');
+        debugLog('[雪乃登録ボタン] 既存のボタンを削除します');
         existingContainer.remove();
     }
     
@@ -4675,60 +4654,37 @@ function showYukinoRegistrationButtons() {
     // コンテナを作成（メッセージコンテナ内に表示）
     const container = document.createElement('div');
     container.id = 'yukinoRegistrationContainer';
-    container.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-        padding: 25px 30px;
-        margin: 20px 10px 30px 10px;
-        background: rgba(255, 255, 255, 0.98);
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        border: 2px solid rgba(102, 126, 234, 0.2);
-        opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.5s ease, transform 0.5s ease;
-        visibility: visible !important;
-    `;
-    
-    // 説明テキスト
-    const explanation = document.createElement('p');
-    explanation.textContent = 'ここから先はユーザー登録が必要となります。';
-    explanation.style.cssText = 'margin: 0 0 10px 0; font-size: 16px; color: #333; text-align: center; line-height: 1.6; font-weight: 500;';
-    container.appendChild(explanation);
-    
-    // 詳細説明（安心情報）
+    container.className = 'registration-prompt-container';
+
+    // タイトル
+    const title = document.createElement('h3');
+    title.className = 'registration-prompt-title';
+    title.textContent = 'ユーザー登録のご案内';
+    container.appendChild(title);
+
+    // 詳細説明
     const detailInfo = document.createElement('div');
-    detailInfo.style.cssText = `
-        margin: 0 0 15px 0;
-        padding: 12px 16px;
-        background: rgba(102, 126, 234, 0.05);
-        border-radius: 8px;
-        border-left: 3px solid rgba(102, 126, 234, 0.4);
-    `;
-    
+    detailInfo.className = 'registration-prompt-detail';
+
     const detailText1 = document.createElement('p');
     detailText1.textContent = 'ニックネームと生年月日を登録するだけの作業、それ以外の個人情報の入力はありませんので安心してください。';
-    detailText1.style.cssText = 'margin: 0 0 8px 0; font-size: 13px; color: #555; text-align: left; line-height: 1.7;';
     detailInfo.appendChild(detailText1);
-    
+
     const detailText2 = document.createElement('p');
     detailText2.textContent = 'ユーザー登録で料金の請求の発生はありません。';
-    detailText2.style.cssText = 'margin: 0; font-size: 13px; color: #555; text-align: left; line-height: 1.7; font-weight: 600;';
     detailInfo.appendChild(detailText2);
-    
+
     container.appendChild(detailInfo);
-    
+
     // 質問テキスト
     const question = document.createElement('p');
+    question.className = 'registration-prompt-question';
     question.textContent = 'ユーザー登録をしますか？';
-    question.style.cssText = 'margin: 0 0 15px 0; font-size: 17px; font-weight: 600; color: #222; text-align: center;';
     container.appendChild(question);
-    
+
     // ボタンコンテナ
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;';
+    buttonContainer.className = 'registration-prompt-buttons';
     
     // 元のイベントを保存する配列
     const originalEvents = [];
@@ -4739,49 +4695,39 @@ function showYukinoRegistrationButtons() {
         if (window.ChatUI.messageInput) {
             window.ChatUI.messageInput.disabled = false;
             window.ChatUI.messageInput.placeholder = 'メッセージを入力...';
-            console.log('[雪乃登録ボタン] メッセージ入力欄を有効化しました');
+            debugLog('[雪乃登録ボタン] メッセージ入力欄を有効化しました');
         }
         
         // タロットボタンを元に戻す
         originalEvents.forEach(({ button, originalOnClick }) => {
             button.onclick = originalOnClick;
-            console.log('[雪乃登録ボタン] タロットカードボタンのイベントを復元しました:', button.textContent);
+            debugLog('[雪乃登録ボタン] タロットカードボタンのイベントを復元しました:', button.textContent);
         });
     };
     
     // 「はい」ボタン
     const yesButton = document.createElement('button');
+    yesButton.className = 'registration-prompt-btn registration-prompt-btn-yes';
     yesButton.textContent = 'はい';
-    yesButton.style.cssText = 'padding: 14px 40px; font-size: 16px; font-weight: 600; color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);';
     yesButton.onclick = () => {
-        console.log('[雪乃登録ボタン] 「はい」がクリックされました');
-        
+        debugLog('[雪乃登録ボタン] 「はい」がクリックされました');
+
         // タロットボタンと入力欄を元に戻す
         restoreOriginalState();
-        
+
         container.remove();
         // 登録画面へ遷移
         setTimeout(() => {
             window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
         }, 300);
     };
-    
-    // ホバーエフェクト
-    yesButton.onmouseenter = () => {
-        yesButton.style.transform = 'translateY(-2px)';
-        yesButton.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.5)';
-    };
-    yesButton.onmouseleave = () => {
-        yesButton.style.transform = 'translateY(0)';
-        yesButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-    };
-    
+
     // 「いいえ」ボタン
     const noButton = document.createElement('button');
+    noButton.className = 'registration-prompt-btn registration-prompt-btn-no';
     noButton.textContent = 'いいえ';
-    noButton.style.cssText = 'padding: 14px 40px; font-size: 16px; font-weight: 600; color: #666; background: #f5f5f5; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.3s ease;';
     noButton.onclick = () => {
-        console.log('[雪乃登録ボタン] 「いいえ」がクリックされました');
+        debugLog('[雪乃登録ボタン] 「いいえ」がクリックされました');
         
         // タロットボタンと入力欄を元に戻す
         restoreOriginalState();
@@ -4815,17 +4761,7 @@ function showYukinoRegistrationButtons() {
             window.location.href = '../main.html';
         }, 3000);
     };
-    
-    // ホバーエフェクト
-    noButton.onmouseenter = () => {
-        noButton.style.background = '#e8e8e8';
-        noButton.style.borderColor = '#ccc';
-    };
-    noButton.onmouseleave = () => {
-        noButton.style.background = '#f5f5f5';
-        noButton.style.borderColor = '#ddd';
-    };
-    
+
     buttonContainer.appendChild(yesButton);
     buttonContainer.appendChild(noButton);
     container.appendChild(buttonContainer);
@@ -4833,20 +4769,19 @@ function showYukinoRegistrationButtons() {
     // メッセージコンテナに追加
     if (window.ChatUI && window.ChatUI.messagesDiv) {
         window.ChatUI.messagesDiv.appendChild(container);
-        console.log('[雪乃登録ボタン] メッセージコンテナに追加しました');
+        debugLog('[雪乃登録ボタン] メッセージコンテナに追加しました');
         
         // フェードインアニメーション
         setTimeout(() => {
-            container.style.opacity = '1';
-            container.style.transform = 'translateY(0)';
-            console.log('[雪乃登録ボタン] フェードイン完了');
+            container.classList.add('show');
+            debugLog('[雪乃登録ボタン] フェードイン完了');
         }, 100);
         
         // スクロールして表示
         setTimeout(() => {
             if (window.ChatUI.scrollToLatest) {
                 window.ChatUI.scrollToLatest();
-                console.log('[雪乃登録ボタン] スクロール完了');
+                debugLog('[雪乃登録ボタン] スクロール完了');
             }
         }, 200);
         
@@ -4854,7 +4789,7 @@ function showYukinoRegistrationButtons() {
         if (window.ChatUI.messageInput) {
             window.ChatUI.messageInput.disabled = true;
             window.ChatUI.messageInput.placeholder = 'ユーザー登録後にメッセージの送信ができますのでお待ちください';
-            console.log('[雪乃登録ボタン] メッセージ入力欄を無効化しました');
+            debugLog('[雪乃登録ボタン] メッセージ入力欄を無効化しました');
         }
         
         // タロットカードボタンが存在する場合、クリックイベントをオーバーライド
@@ -4880,7 +4815,7 @@ function showYukinoRegistrationButtons() {
                         'システム'
                     );
                     
-                    console.log('[雪乃登録ボタン] タロットカードボタンがクリックされましたが、登録案内中のため無効化しました');
+                    debugLog('[雪乃登録ボタン] タロットカードボタンがクリックされましたが、登録案内中のため無効化しました');
                     
                     // スクロールして表示
                     setTimeout(() => {
@@ -4890,7 +4825,7 @@ function showYukinoRegistrationButtons() {
                     }, 100);
                 };
                 
-                console.log('[雪乃登録ボタン] タロットカードボタンのクリックイベントをオーバーライドしました:', button.textContent);
+                debugLog('[雪乃登録ボタン] タロットカードボタンのクリックイベントをオーバーライドしました:', button.textContent);
             }
         });
         
