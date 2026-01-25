@@ -564,6 +564,10 @@
         実時間チャットテスト
         <div class="admin-nav-url">現在の設定で実際に動作確認</div>
       </button>
+      <button class="admin-nav-item" data-tab="loading-message-test">
+        待機画面テスト
+        <div class="admin-nav-url">待機中のチャットウィンドウ表示確認</div>
+      </button>
     </nav>
     
     <!-- メインコンテンツエリア -->
@@ -741,6 +745,53 @@
                 • 現在設定されているプロンプトが適用されたAI返答を確認<br>
                 • ローディング表示とアニメーション動作を確認<br>
                 • 返答の品質と性格設定の反映を確認
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- 待機画面テストタブ -->
+      <div class="tab-content" id="loading-message-test-tab">
+        <div class="dashboard-layout" style="padding-bottom: 40px;">
+          <section class="card">
+            <h2>待機画面テスト</h2>
+            <p class="muted">待機中のチャットウィンドウ表示を確認します。現在のCSSとアニメーション設定がそのまま適用されます。</p>
+            
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <label style="margin-bottom: 12px;">
+                  テストするキャラクター
+                  <select id="loadingTestCharacterSelect" style="margin-top: 6px;">
+                    <option value="kaede">楓（かえで）</option>
+                    <option value="yukino">笹岡雪乃（ゆきの）</option>
+                    <option value="sora">水野ソラ（そら）</option>
+                    <option value="kaon">三崎花音（かおん）</option>
+                  </select>
+                </label>
+              </div>
+              
+              <div class="actions">
+                <button id="startLoadingTestButton" style="padding: 12px 24px; font-size: 16px;">
+                  ⏳ 待機画面を表示
+                </button>
+                <button id="stopLoadingTestButton" style="padding: 12px 24px; font-size: 16px; background: linear-gradient(135deg, rgba(200, 100, 100, 0.9), rgba(150, 50, 50, 0.9));">
+                  ✕ テスト停止
+                </button>
+              </div>
+            </div>
+
+            <div id="loadingTestContainer" style="margin-top: 24px; padding: 20px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; min-height: 400px; max-height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+
+            <div style="margin-top: 20px; padding: 16px; background: rgba(76, 175, 80, 0.08); border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px;">
+              <p style="margin: 0; color: #81c784; font-size: 13px;">
+                <strong>📊 テスト内容：</strong><br>
+                • ローディングメッセージの表示確認<br>
+                • テキストのアニメーション動作（上下の揺れ）<br>
+                • 影の変化と光の効果を確認<br>
+                • 3秒ごとのメッセージ変更が見えるか確認<br>
+                • メッセージ変更時のフェード効果を確認<br>
+                • CSS設定（chat-ui.css）が正しく適用されているか確認
               </p>
             </div>
           </section>
@@ -1494,6 +1545,126 @@
         sendTestMessage.textContent = '📤 メッセージ送信';
       }
     });
+
+    // ============================================
+    // 待機画面テスト機能（現在のコードをそのまま使用）
+    // ============================================
+    const loadingTestCharacterSelect = document.getElementById('loadingTestCharacterSelect');
+    const startLoadingTestButton = document.getElementById('startLoadingTestButton');
+    const stopLoadingTestButton = document.getElementById('stopLoadingTestButton');
+    const loadingTestContainer = document.getElementById('loadingTestContainer');
+    
+    let loadingMessageTimers = [];
+    let testMessageElement = null;
+
+    function getCharacterName(characterId) {
+      const names = {
+        'kaede': '楓',
+        'yukino': '笹岡雪乃',
+        'sora': '水野ソラ',
+        'kaon': '三崎花音'
+      };
+      return names[characterId] || characterId;
+    }
+
+    function clearLoadingTest() {
+      // タイマーをクリア
+      loadingMessageTimers.forEach(timerId => clearTimeout(timerId));
+      loadingMessageTimers = [];
+      
+      // コンテナをクリア
+      loadingTestContainer.innerHTML = '';
+      const defaultMsg = document.createElement('div');
+      defaultMsg.style.cssText = 'color: #9da2c6; text-align: center; padding: 40px 20px;';
+      defaultMsg.innerHTML = `
+        <p style="margin: 0;">「⏳ 待機画面を表示」ボタンをクリックするとテストが開始されます</p>
+        <p style="margin: 10px 0 0 0; font-size: 12px;">現在のCSSとアニメーション設定で待機メッセージが表示されます</p>
+      `;
+      loadingTestContainer.appendChild(defaultMsg);
+    }
+
+    startLoadingTestButton.addEventListener('click', () => {
+      const characterId = loadingTestCharacterSelect.value;
+      const characterName = getCharacterName(characterId);
+      
+      // テストをクリア
+      clearLoadingTest();
+      
+      // 待機メッセージ要素を作成（chat-ui.jsの_setupLoadingMessageAnimationと同じ構造）
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message loading-message';
+      
+      const textDiv = document.createElement('div');
+      textDiv.className = 'message-text';
+      textDiv.textContent = '返信が来るまでお待ちください。';
+      
+      messageDiv.appendChild(textDiv);
+      loadingTestContainer.appendChild(messageDiv);
+      
+      // 待機メッセージのテキスト更新設定（chat-ui.jsの_setupLoadingMessageAnimationと同じロジック）
+      const waitingMessages = [
+        { text: '返信が来るまでお待ちください。', delay: 0 },
+        { text: `${characterName}がこれからメッセージ入力します`, delay: 3000 },
+        { text: 'メッセージ入力を始めています', delay: 6000 },
+        { text: '書き込んでいます', delay: 9000 },
+        { text: 'もう少しお待ちください', delay: 12000 },
+        { text: '返信がもうすぐ届きますのでお待ちください', delay: 17000 }
+      ];
+      
+      console.log('[待機画面テスト] 開始:', {
+        characterId,
+        characterName,
+        messageCount: waitingMessages.length
+      });
+      
+      // 各メッセージのタイマーをセット
+      waitingMessages.forEach((msgObj, index) => {
+        const timer = setTimeout(() => {
+          if (!messageDiv.parentNode) {
+            console.log('[待機画面テスト] メッセージが削除されているため停止');
+            return;
+          }
+          
+          // テキストをフェードアウト
+          textDiv.style.transition = 'opacity 0.6s ease-in-out';
+          textDiv.style.opacity = '0.4';
+          
+          console.log('[待機画面テスト] フェードアウト開始:', {
+            index,
+            delay: msgObj.delay,
+            text: msgObj.text.substring(0, 30)
+          });
+          
+          // 600ms後にテキストを変更してフェードイン
+          const innerTimer = setTimeout(() => {
+            if (messageDiv.parentNode) {
+              textDiv.textContent = msgObj.text;
+              textDiv.style.transition = 'opacity 0.8s ease-in-out';
+              textDiv.style.opacity = '1';
+              console.log('[待機画面テスト] テキスト変更完了:', {
+                index,
+                newText: msgObj.text.substring(0, 30)
+              });
+            }
+          }, 600);
+          
+          loadingMessageTimers.push(innerTimer);
+        }, msgObj.delay);
+        
+        loadingMessageTimers.push(timer);
+        console.log('[待機画面テスト] タイマーセット:', { index, delay: msgObj.delay });
+      });
+      
+      console.log('[待機画面テスト] 初期化完了:', { timerCount: loadingMessageTimers.length });
+    });
+
+    stopLoadingTestButton.addEventListener('click', () => {
+      clearLoadingTest();
+      console.log('[待機画面テスト] 停止');
+    });
+    
+    // 初期状態でクリア
+    clearLoadingTest();
     
     
   </script>
