@@ -696,16 +696,28 @@
       <div class="tab-content" id="waiting-screen-debug-tab">
         <div class="dashboard-layout" style="padding-bottom: 40px;">
           <section class="card">
-            <h2>待機画面テストツール</h2>
-            <p class="muted">全キャラクター共通の待機画面が正常に動作するかテストします。</p>
+            <h2>待機画面デバッグツール</h2>
+            <p class="muted">待機画面の動的メッセージ表示機能をテストします。</p>
             
             <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <label style="margin-bottom: 12px;">
+                  テストするキャラクター
+                  <select id="debugCharacterSelect" style="margin-top: 6px;">
+                    <option value="kaede">楓（かえで）</option>
+                    <option value="yukino">雪乃（ゆきの）</option>
+                    <option value="sora">蒼空（そうくう）</option>
+                    <option value="kaon">三崎花音（みさきかおん）</option>
+                  </select>
+                </label>
+              </div>
+              
               <div class="actions">
                 <button id="startWaitingScreenButton" style="padding: 12px 24px; font-size: 16px;">
                   ⏳ 待機画面を表示
                 </button>
                 <button id="clearWaitingScreenButton" style="padding: 12px 24px; font-size: 16px; background: linear-gradient(135deg, rgba(200, 100, 100, 0.9), rgba(150, 50, 50, 0.9));">
-                  ✕ クリア
+                  ✕ 待機画面をクリア
                 </button>
               </div>
             </div>
@@ -715,14 +727,14 @@
             </div>
 
             <div id="debugConsoleOutput" style="margin-top: 20px; padding: 16px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; max-height: 300px; overflow-y: auto; display: none;">
-              <div style="color: #9da2c6; margin-bottom: 8px;">💬 テスト実行ログ</div>
+              <div style="color: #9da2c6; margin-bottom: 8px;">💬 デバッグコンソール</div>
               <div id="consoleLogs" style="color: #e0e0e0; line-height: 1.6; white-space: pre-wrap; word-break: break-all;"></div>
             </div>
 
             <div style="margin-top: 20px; padding: 16px; background: rgba(76, 175, 80, 0.08); border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px;">
               <p style="margin: 0; color: #81c784; font-size: 13px;">
                 <strong>📊 テスト内容：</strong><br>
-                全キャラクター共通の待機画面が表示され、動的にメッセージが変更されるかを確認します。<br>
+                待機画面が表示され、動的にメッセージが変更されるかを確認します。<br>
                 • 初期表示: &quot;返信をお待ちください。&quot;<br>
                 • 3秒後: &quot;キャラクター名がこれからメッセージ入力します&quot;<br>
                 • 6秒後: &quot;※占い・運勢は個人の娯楽です。信じすぎないでください。&quot;
@@ -1338,8 +1350,9 @@
     }
 
     // ============================================
-    // 待機画面テストツール機能
+    // 待機画面デバッグツール機能
     // ============================================
+    const debugCharacterSelect = document.getElementById('debugCharacterSelect');
     const startWaitingScreenButton = document.getElementById('startWaitingScreenButton');
     const clearWaitingScreenButton = document.getElementById('clearWaitingScreenButton');
     const waitingScreenPreview = document.getElementById('waitingScreenPreview');
@@ -1347,6 +1360,7 @@
     const consoleLogs = document.getElementById('consoleLogs');
     
     let debugLogs = [];
+    let debugMessageId = null;
 
     // コンソール出力をキャプチャ
     const originalLog = console.log;
@@ -1391,40 +1405,86 @@
       captureLog('error', ...args);
     };
 
+    function getCharacterName(characterId) {
+      const names = {
+        'kaede': '楓',
+        'yukino': '雪乃',
+        'sora': '蒼空',
+        'kaon': '花音'
+      };
+      return names[characterId] || characterId;
+    }
+
     startWaitingScreenButton.addEventListener('click', async () => {
+      const selectedCharacter = debugCharacterSelect.value;
+      const characterName = getCharacterName(selectedCharacter);
+      
       // ログをクリア
       debugLogs = [];
       consoleLogs.innerHTML = '';
       debugConsoleOutput.style.display = 'block';
 
-      console.log('[デバッグ開始] 全キャラクター共通の待機画面テスト');
+      console.log(`[デバッグ開始] キャラクター: ${selectedCharacter} (${characterName})`);
 
       // プレビューエリアをクリア
       waitingScreenPreview.innerHTML = '';
 
       try {
-        // 待機画面要素を作成（chat-ui.jsと同じ構造）
+        // 待機画面要素を作成（ChatUIと同じ構造）
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message loading-message';
         messageDiv.style.cssText = `
-          padding: 20px 24px;
-          margin: 12px 8px;
+          padding: 12px 16px;
+          margin: 8px 0;
           border-radius: 12px;
-          background: rgba(75, 0, 130, 0.95);
-          color: #ffd700;
-          box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2);
-          text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6);
-          text-align: center;
-          font-size: 16px;
-          line-height: 1.8;
+          background: rgba(138, 43, 226, 0.15);
+          border: 1px solid rgba(138, 43, 226, 0.3);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          animation: messageBubbleMysticGlow 4s ease-in-out infinite;
         `;
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'loading-text';
+        textDiv.style.cssText = `
+          color: #d6c9ff;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        `;
+        
+        const dotsSpan = document.createElement('span');
+        dotsSpan.innerHTML = '⏳ ';
+        textDiv.appendChild(dotsSpan);
 
         const textSpan = document.createElement('span');
         textSpan.id = 'debug-loading-text';
         textSpan.textContent = '返信をお待ちください。';
-        messageDiv.appendChild(textSpan);
+        textDiv.appendChild(textSpan);
 
+        messageDiv.appendChild(textDiv);
         waitingScreenPreview.appendChild(messageDiv);
+
+        // CSSアニメーションを有効にするためにスタイルを追加
+        if (!document.getElementById('debugLoadingAnimation')) {
+          const style = document.createElement('style');
+          style.id = 'debugLoadingAnimation';
+          style.textContent = `
+            @keyframes messageBubbleMysticGlow {
+              0%, 100% { 
+                box-shadow: 0 0 10px rgba(138, 43, 226, 0.3), 
+                            0 0 20px rgba(138, 43, 226, 0.1);
+              }
+              50% { 
+                box-shadow: 0 0 20px rgba(138, 43, 226, 0.5), 
+                            0 0 40px rgba(138, 43, 226, 0.2);
+              }
+            }
+          `;
+          document.head.appendChild(style);
+        }
 
         console.log('[✓] 待機画面を作成しました');
         console.log('[→] 3秒後にメッセージを更新します...');
@@ -1433,8 +1493,8 @@
         setTimeout(() => {
           const text = document.getElementById('debug-loading-text');
           if (text) {
-            text.textContent = 'キャラクターがこれからメッセージ入力します';
-            console.log('[✓] メッセージを更新: "キャラクターがこれからメッセージ入力します"');
+            text.textContent = `${characterName}がこれからメッセージ入力します`;
+            console.log(`[✓] メッセージを更新: "${characterName}がこれからメッセージ入力します"`);
             console.log('[→] 6秒後にメッセージを再度更新します...');
           }
         }, 3000);
