@@ -37,16 +37,13 @@ const KaedeHandler = {
     init() {
         console.log('[楓ハンドラー] 初期化');
         
-        // 守護神の儀式への同意ボタンを動的に生成
-        // DOMContentLoadedイベントで実行（HTMLが完全に読み込まれた後に実行）
+        // 管理者機能の初期化
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                this.initRitualConsentButtons();
                 this.initAdminFeatures();
             });
         } else {
             // 既に読み込み完了している場合は即座に実行
-            this.initRitualConsentButtons();
             this.initAdminFeatures();
         }
     },
@@ -596,67 +593,12 @@ const KaedeHandler = {
         if (character !== 'kaede') {
             return false;
         }
-        // 【削除】10通制限チェックは削除されました
         console.log('[楓専用処理] 守護神の儀式を強制開始します');
-        return await this.handleRitualConsent(true);
-    },
-
-    async handleRitualConsent(consent) {
-        const character = ChatData.currentCharacter;
-        if (character !== 'kaede') {
-            return false; // 楓以外は処理しない
+        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+            await window.ChatInit.startGuardianRitual(character);
+            return true;
         }
-
-        ChatUI.hideRitualConsentButtons();
-
-        // フラグをリセット（一度処理したので、再度表示されないようにする）
-        ChatData.ritualConsentShown = true;
-
-        if (consent) {
-            // 「はい」を押した場合 - ユーザーの最後のメッセージを削除
-            const userMessages = Array.from(document.querySelectorAll('.message.user'));
-            if (userMessages.length > 0) {
-                const lastUserMessage = userMessages[userMessages.length - 1];
-                console.log('[楓専用処理] ユーザーの最後のメッセージを削除します（handleRitualConsent）:', lastUserMessage.textContent);
-                lastUserMessage.remove();
-            }
-
-            // 「はい」を押した場合 - APIに守護神の儀式の開催を通知
-            const characterName = ChatData.characterInfo[character]?.name || '楓';
-
-            // 会話履歴を取得（データベースから取得）
-            const conversationHistory = (ChatData.conversationHistory?.recentMessages || []).map(entry => ({
-                role: entry.role || 'user',
-                content: entry.content || entry.message || ''
-            }));
-
-            // acceptedGuardianRitualフラグを保存（登録後に使用）
-            sessionStorage.setItem('acceptedGuardianRitual', 'true');
-            console.log('[楓専用処理] acceptedGuardianRitualフラグを保存しました');
-            
-            // 【重要】最初のユーザーメッセージをsessionStorageに保存（登録後に使用）
-            const firstUserMessage = conversationHistory.find(msg => msg.role === 'user');
-            if (firstUserMessage && firstUserMessage.content) {
-                sessionStorage.setItem('firstQuestionBeforeRitual', firstUserMessage.content);
-                console.log('[楓専用処理] 最初の質問をsessionStorageに保存:', firstUserMessage.content.substring(0, 50) + '...');
-            }
-
-            // ゲストユーザーの場合は登録画面に遷移（登録後に儀式が開始される）
-            console.log('[楓専用処理] 登録画面に遷移します（登録後に儀式が開始されます）');
-            // ChatInit.openRegistrationModal()を呼び出す（グローバルスコープから）
-            if (window.ChatInit && typeof window.ChatInit.openRegistrationModal === 'function') {
-                window.ChatInit.openRegistrationModal();
-            } else {
-                // フォールバック: 直接遷移
-                window.location.href = '../auth/register.html?redirect=' + encodeURIComponent(window.location.href);
-            }
-
-            return true; // 処理完了
-        } else {
-            // 「いいえ」を押した場合
-            ChatUI.addMessage('error', '守護神の儀式をスキップしました。ゲストモードで会話を続けます。', 'システム');
-            return true; // 処理完了
-        }
+        return false;
     },
 
     /**
@@ -705,8 +647,8 @@ const KaedeHandler = {
         // メッセージ表示後に少し待ってからボタンを追加（メッセージが完全に表示された後）
         setTimeout(() => {
             const messageElement = messageId ? document.getElementById(messageId) : null;
-            if (messageElement && typeof ChatUI.addRitualStartButton === 'function') {
-                ChatUI.addRitualStartButton(messageElement, async () => {
+            if (messageElement && typeof this.addRitualStartButton === 'function') {
+                this.addRitualStartButton(messageElement, async () => {
                     console.log('[楓専用処理] 守護神の儀式開始ボタンがクリックされました');
 
                     // 【重要】ユーザーの最後のメッセージを削除（ボタンクリック時に実行）
@@ -721,14 +663,8 @@ const KaedeHandler = {
                     sessionStorage.setItem('acceptedGuardianRitual', 'true');
                     console.log('[楓専用処理] acceptedGuardianRitualフラグを保存しました');
 
-                    // 楓専用のhandleRitualConsentを呼び出す
-                    if (window.KaedeRitualHandler && typeof window.KaedeRitualHandler.handleRitualConsent === 'function') {
-                        await window.KaedeRitualHandler.handleRitualConsent(true);
-                    } else {
-                        // フォールバック: 直接startGuardianRitualを呼び出す
-                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                            await window.ChatInit.startGuardianRitual(character);
-                        }
+                    if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                        await window.ChatInit.startGuardianRitual(character);
                     }
                 });
                 console.log('[楓専用処理] 守護神の儀式開始ボタンを追加しました');
@@ -736,7 +672,7 @@ const KaedeHandler = {
                 console.warn('[楓専用処理] メッセージ要素またはaddRitualStartButtonが見つかりません', {
                     messageId,
                     messageElement: !!messageElement,
-                    hasAddRitualStartButton: typeof ChatUI.addRitualStartButton === 'function'
+                    hasAddRitualStartButton: typeof this.addRitualStartButton === 'function'
                 });
             }
         }, 500); // メッセージが完全に表示されるまで少し待つ
@@ -745,69 +681,96 @@ const KaedeHandler = {
     },
 
     /**
-     * 初期化時にHTMLの同意ボタンにイベントリスナーを設定
+     * 守護神の儀式開始ボタンをメッセージの下に追加
+     * @param {HTMLElement} messageElement - メッセージ要素
+     * @param {Function} onClickHandler - ボタンクリック時のハンドラ
+     * @returns {HTMLButtonElement|null} 作成したボタン要素
      */
+    addRitualStartButton(messageElement, onClickHandler) {
+        console.log('[楓ハンドラー] 儀式開始ボタンを追加:', { messageElement, hasOnClickHandler: !!onClickHandler });
+        if (!messageElement) {
+            console.error('[楓ハンドラー] messageElementがnullです');
+            return null;
+        }
+        const existingButton = messageElement.querySelector('.ritual-start-button');
+        if (existingButton) {
+            console.log('[楓ハンドラー] 既存のボタンを削除します');
+            existingButton.remove();
+        }
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'ritual-start-button-container';
+        buttonContainer.style.cssText = `
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        `;
+        const button = document.createElement('button');
+        button.className = 'ritual-start-button';
+        button.textContent = '守護神の儀式を始める';
+        button.style.cssText = `
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.3);
+        `;
+        button.addEventListener('mouseenter', () => {
+            button.style.background = 'linear-gradient(135deg, #9B4DFF 0%, #7A1DBD 100%)';
+            button.style.boxShadow = '0 6px 16px rgba(139, 61, 255, 0.4)';
+            button.style.transform = 'translateY(-2px)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.background = 'linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%)';
+            button.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.3)';
+            button.style.transform = 'translateY(0)';
+        });
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            button.textContent = '儀式を開始しています...';
+            button.style.opacity = '0.7';
+            button.style.cursor = 'wait';
+            try {
+                await onClickHandler();
+            } catch (error) {
+                console.error('[楓ハンドラー] 儀式開始エラー:', error);
+                button.disabled = false;
+                button.textContent = '守護神の儀式を始める';
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                    window.ChatUI.addMessage('error', '守護神の儀式の開始中にエラーが発生しました。もう一度お試しください。', 'システム');
+                }
+            }
+        });
+        buttonContainer.appendChild(button);
+        messageElement.appendChild(buttonContainer);
+        console.log('[楓ハンドラー] 儀式開始ボタンを追加しました');
+        requestAnimationFrame(() => {
+            if (window.ChatUI && typeof window.ChatUI.scrollToLatest === 'function') {
+                window.ChatUI.scrollToLatest();
+            }
+        });
+        return button;
+    },
+
     /**
-     * 守護神の儀式への同意ボタンを動的に生成（楓専用）
-     * HTMLに含めず、ハンドラー側で動的に生成することで、キャラクター固有の要素をチャットHTMLから分離
+     * 守護神の儀式開始ボタンが表示されているかチェック
+     * @returns {boolean} ボタンが表示されているか
      */
-    initRitualConsentButtons() {
-        // 既に存在する場合は削除して再生成（重複を防ぐ）
-        let ritualConsentContainer = document.getElementById('ritualConsentContainer');
-        if (ritualConsentContainer) {
-            ritualConsentContainer.remove();
-        }
-        
-        // コンテナを動的に生成
-        ritualConsentContainer = document.createElement('div');
-        ritualConsentContainer.id = 'ritualConsentContainer';
-        ritualConsentContainer.className = 'ritual-consent-container';
-        ritualConsentContainer.style.display = 'none';
-        
-        // 質問テキスト
-        const questionDiv = document.createElement('div');
-        questionDiv.id = 'ritualConsentQuestion';
-        questionDiv.className = 'ritual-consent-question';
-        questionDiv.textContent = '守護神の儀式を始めますか？';
-        
-        // ボタンコンテナ
-        const buttonsDiv = document.createElement('div');
-        buttonsDiv.className = 'ritual-consent-buttons';
-        
-        // 「はい」ボタン
-        const yesButton = document.createElement('button');
-        yesButton.id = 'ritualYesButton';
-        yesButton.className = 'ritual-consent-button';
-        yesButton.textContent = 'はい';
-        yesButton.addEventListener('click', () => {
-            this.handleRitualConsent(true);
+    isRitualStartButtonVisible() {
+        const buttons = document.querySelectorAll('.ritual-start-button');
+        if (buttons.length === 0) return false;
+        const visibleButton = Array.from(buttons).find(btn => {
+            const style = window.getComputedStyle(btn);
+            return style.display !== 'none' && !btn.disabled;
         });
-        
-        // 「いいえ」ボタン
-        const noButton = document.createElement('button');
-        noButton.id = 'ritualNoButton';
-        noButton.className = 'ritual-consent-button no';
-        noButton.textContent = 'いいえ';
-        noButton.addEventListener('click', () => {
-            this.handleRitualConsent(false);
-        });
-        
-        // 構造を組み立て
-        buttonsDiv.appendChild(yesButton);
-        buttonsDiv.appendChild(noButton);
-        ritualConsentContainer.appendChild(questionDiv);
-        ritualConsentContainer.appendChild(buttonsDiv);
-        
-        // bodyに追加（input-areaの前に挿入）
-        const inputArea = document.querySelector('.input-area');
-        if (inputArea && inputArea.parentNode) {
-            inputArea.parentNode.insertBefore(ritualConsentContainer, inputArea);
-        } else {
-            // input-areaが見つからない場合はbodyに直接追加
-            document.body.appendChild(ritualConsentContainer);
-        }
-        
-        console.log('[楓ハンドラー] 守護神の儀式への同意ボタンを動的に生成しました');
+        return !!visibleButton;
     },
 
     /**

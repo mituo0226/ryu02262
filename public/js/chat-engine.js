@@ -1212,47 +1212,6 @@ const ChatUI = {
     },
 
     /**
-     * 守護神の儀式への同意ボタンを表示
-     */
-    showRitualConsentButtons(questionText = '守護神の儀式を始めますか？') {
-        if (ChatData.ritualConsentShown) {
-            return;
-        }
-        
-        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
-        const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
-        
-        if (ritualConsentContainer) {
-            if (ritualConsentContainer.classList.contains('visible')) {
-                return;
-            }
-            
-            if (ritualConsentQuestion) {
-                ritualConsentQuestion.textContent = questionText;
-            }
-            
-            ChatData.ritualConsentShown = true;
-            ritualConsentContainer.style.display = 'block';
-            requestAnimationFrame(() => {
-                ritualConsentContainer.classList.add('visible');
-            });
-        }
-    },
-
-    /**
-     * 守護神の儀式への同意ボタンを非表示
-     */
-    hideRitualConsentButtons() {
-        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
-        if (ritualConsentContainer) {
-            ritualConsentContainer.classList.remove('visible');
-            setTimeout(() => {
-                ritualConsentContainer.style.display = 'none';
-            }, 500);
-        }
-    },
-
-    /**
      * 守護神の儀式開始ボタンをメッセージの下に追加
      */
     addRitualStartButton(messageElement, onClickHandler) {
@@ -3529,62 +3488,6 @@ const ChatInit = {
     },
 
     /**
-     * 守護神の儀式への同意処理
-     * @param {boolean} consent - 同意するかどうか
-     */
-    async handleRitualConsent(consent) {
-        const character = ChatData.currentCharacter;
-        
-        // キャラクター専用ハンドラーの同意処理を呼び出す
-        const handler = CharacterRegistry.get(character);
-        if (handler && typeof handler.handleRitualConsent === 'function') {
-            const handled = await handler.handleRitualConsent(consent);
-            if (handled) {
-                return; // ハンドラーで処理完了
-            }
-        }
-        
-        // ハンドラーがない場合のフォールバック処理
-        window.ChatUI.hideRitualConsentButtons();
-        
-        // フラグをリセット（一度処理したので、再度表示されないようにする）
-        ChatData.ritualConsentShown = true;
-        
-        if (consent) {
-            // 「はい」を押した場合
-            const characterName = ChatData.characterInfo[character]?.name || '鑑定士';
-            
-            // キャラクターに応じてメッセージを取得（ハンドラーから）
-            let consentMessage = 'ユーザー登録への同意が検出されました。ボタンが表示されます。'; // デフォルト
-            if (handler && typeof handler.getConsentMessage === 'function') {
-                const customMessage = handler.getConsentMessage();
-                if (customMessage) {
-                    consentMessage = customMessage;
-                }
-            }
-            
-            window.ChatUI.addMessage('character', consentMessage, characterName);
-            
-            // メッセージを表示した後、少し待ってから登録画面に遷移
-            setTimeout(() => {
-                this.openRegistrationModal();
-            }, 2000);
-        } else {
-            // 「いいえ」を押した場合
-            // キャラクターに応じてメッセージを取得（ハンドラーから）
-            let declineMessage = 'ユーザー登録をスキップしました。引き続きゲストモードでお話しできます。'; // デフォルト
-            if (handler && typeof handler.getDeclineMessage === 'function') {
-                const customMessage = handler.getDeclineMessage();
-                if (customMessage) {
-                    declineMessage = customMessage;
-                }
-            }
-            
-            window.ChatUI.addMessage('error', declineMessage, 'システム');
-        }
-    },
-
-    /**
      * 登録モーダルを開く
      */
     openRegistrationModal() {
@@ -3794,8 +3697,12 @@ const ChatInit = {
         
         const character = ChatData.currentCharacter;
         
-        // ボタンを追加
-        window.ChatUI.addRitualStartButton(messageElement, async () => {
+        // 楓の場合のみ KaedeHandler でボタン追加
+        if (character !== 'kaede' || !window.KaedeHandler || typeof window.KaedeHandler.addRitualStartButton !== 'function') {
+            return;
+        }
+        
+        window.KaedeHandler.addRitualStartButton(messageElement, async () => {
             debugLog('[守護神の儀式] ボタンがクリックされました（再表示）');
             
             // ボタンを非表示
@@ -3894,7 +3801,6 @@ window.ChatTestUtils = {
 
 // グローバル関数として公開
 window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatInit.sendMessage(skipUserMessage, skipAnimation, messageOverride);
-window.handleRitualConsent = (consent) => ChatInit.handleRitualConsent(consent);
 
 // ===== テストモードチェック（最優先で実行） =====
 // URLパラメータに?test=trueがある場合、すべてのキャラクターのゲストフラグをクリア
