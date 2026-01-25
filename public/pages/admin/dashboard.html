@@ -1461,17 +1461,33 @@
     // iframe を初期化
     function initializeFrame(characterId) {
       const chatUrl = `/pages/chat/chat.html?userId=${testUserId}&character=${characterId}`;
+      console.log('[iframe] URL を設定:', chatUrl);
       testChatFrame.src = chatUrl;
       frameLoaded = false;
       consoleLogs = [];
       
+      // タイムアウト設定（5秒で自動的にロード完了とみなす）
+      const loadTimeout = setTimeout(() => {
+        if (!frameLoaded) {
+          console.warn('[iframe] 5秒経過してもロードされないため、強制的にロード完了とみなします');
+          frameLoaded = true;
+          interceptFrameConsole();
+        }
+      }, 5000);
+      
       // iframe 読み込み完了を待つ
       testChatFrame.onload = () => {
+        clearTimeout(loadTimeout);
         frameLoaded = true;
         console.log('[iframe] チャットフレームが読み込まれました');
         
         // iframe 内の console.log をインターセプト
         interceptFrameConsole();
+      };
+      
+      // iframe のエラーハンドリング
+      testChatFrame.onerror = () => {
+        console.error('[iframe] フレーム読み込みエラー');
       };
     }
 
@@ -1516,16 +1532,37 @@
         return;
       }
 
-      if (!frameLoaded) {
-        alert('チャットフレームが読み込まれていません。少々お待ちください。');
-        return;
-      }
-
       const characterId = testCharacterSelect.value;
+      
+      // iframe を初期化（毎回読み込む）
+      initializeFrame(characterId);
+      
+      // iframe の読み込みを待つ
+      const waitForFrame = setInterval(() => {
+        if (frameLoaded) {
+          clearInterval(waitForFrame);
+          proceedWithMessage();
+        }
+      }, 100);
+      
+      // 10秒でタイムアウト
+      setTimeout(() => {
+        clearInterval(waitForFrame);
+        if (!frameLoaded) {
+          alert('チャットフレームの読み込みがタイムアウトしました');
+          sendTestMessage.disabled = false;
+          sendTestMessage.textContent = '📤 メッセージ送信';
+        }
+      }, 10000);
+    });
+    
+    function proceedWithMessage() {
       const messageText = testMessage.value.trim();
 
       if (!messageText) {
         alert('メッセージを入力してください');
+        sendTestMessage.disabled = false;
+        sendTestMessage.textContent = '📤 メッセージ送信';
         return;
       }
 
@@ -1543,7 +1580,7 @@
           messageInput.value = messageText;
           
           // メッセージ送信イベントを発火
-          const sendButton = frameWindow.document.querySelector('button[id*="send"], button:has-text("送信")');
+          const sendButton = frameWindow.document.querySelector('button[id*="send"], [class*="send"]');
           if (sendButton) {
             // 少し待ってから送信ボタンをクリック
             setTimeout(() => {
@@ -1578,7 +1615,7 @@
           sendTestMessage.textContent = '📤 メッセージ送信';
         }, 100);
       }
-    });
+    }
 
     // タイムラインを表示
     function displayTimeline() {
