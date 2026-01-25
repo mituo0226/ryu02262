@@ -1359,6 +1359,41 @@
     const testMessage = document.getElementById('testMessage');
     const sendTestMessage = document.getElementById('sendTestMessage');
     const testChatContainer = document.getElementById('testChatContainer');
+    
+    let testUserId = null;
+
+    // テスト用ユーザーを自動作成・取得
+    async function initializeTestUser() {
+      try {
+        const response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Admin-Token': currentToken
+          },
+          body: JSON.stringify({
+            action: 'create_or_get'
+          })
+        });
+
+        const data = await response.json();
+        if (data.success && data.testUserId) {
+          testUserId = data.testUserId;
+          console.log('[✓] テスト用ユーザーを初期化しました:', testUserId);
+        } else {
+          console.error('[エラー] テスト用ユーザーの初期化に失敗:', data);
+        }
+      } catch (error) {
+        console.error('[エラー] テスト用ユーザーの初期化エラー:', error);
+      }
+    }
+
+    // トークン接続時にテスト用ユーザーも初期化
+    const originalFetchUsers = fetchUsers;
+    fetchUsers = async function() {
+      await originalFetchUsers.call(this);
+      await initializeTestUser();
+    };
 
     function addTestChatMessage(role, content) {
       const messageDiv = document.createElement('div');
@@ -1396,6 +1431,11 @@
     }
 
     sendTestMessage.addEventListener('click', async () => {
+      if (!testUserId) {
+        alert('テスト用ユーザーの初期化に失敗しました。管理者トークンで接続してください。');
+        return;
+      }
+
       const characterId = testCharacterSelect.value;
       const messageText = testMessage.value.trim();
 
@@ -1432,8 +1472,8 @@
           body: JSON.stringify({
             message: messageText,
             character: characterId,
-            userId: 999999, // テスト用ユーザーID
-            nickname: 'テスター'
+            userId: testUserId,
+            nickname: '【管理テスト用】'
           })
         });
 

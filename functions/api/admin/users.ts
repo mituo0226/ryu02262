@@ -12,9 +12,63 @@ interface UpdateBody {
   guardian?: string;
 }
 
+interface TestUserBody {
+  action: 'create_or_get';
+}
+
 export const onRequest: PagesFunction = async ({ request, env }) => {
   if (!isAdminAuthorized(request, env)) {
     return unauthorizedResponse();
+  }
+
+  // テスト用ユーザー作成・取得エンドポイント
+  if (request.method === 'POST') {
+    let body: TestUserBody;
+    try {
+      body = (await request.json()) as TestUserBody;
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: jsonHeaders });
+    }
+
+    if (body.action === 'create_or_get') {
+      // テスト用ユーザーが存在するか確認
+      const existingTestUser = await env.DB.prepare(
+        `SELECT id FROM users WHERE nickname = ? LIMIT 1`
+      ).bind('【管理テスト用】').first<{ id: number }>();
+
+      let testUserId: number;
+
+      if (existingTestUser) {
+        // 既存のテスト用ユーザーを使用
+        testUserId = existingTestUser.id;
+      } else {
+        // 新しいテスト用ユーザーを作成
+        const today = new Date();
+        const result = await env.DB.prepare(
+          `INSERT INTO users (nickname, birth_year, birth_month, birth_day, passphrase, created_at)
+           VALUES (?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          '【管理テスト用】',
+          2000,
+          1,
+          1,
+          'テスト用パスフレーズ'
+        ).run();
+
+        testUserId = result.meta.last_row_id as number;
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          testUserId,
+          nickname: '【管理テスト用】'
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: jsonHeaders });
   }
 
   if (request.method === 'GET') {
