@@ -2974,9 +2974,13 @@ const ChatInit = {
             }
             
             // 待機画面に遷移
+            const urlParams = getUrlParams();
+            const userIdForLoading = urlParams.get('userId');
+            const characterForLoading = urlParams.get('character');
+            
             const loadingParams = new URLSearchParams({
-                character: character,
-                userId: userId,
+                character: characterForLoading,
+                userId: userIdForLoading,
                 message: encodeURIComponent(messageToSend)
             });
             
