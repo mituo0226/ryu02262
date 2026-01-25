@@ -3019,6 +3019,17 @@ const ChatInit = {
                 }
             }
             
+            // ハンドラーのonMessageSentを呼び出す
+            console.log('[デバッグ7] onMessageSent確認:', typeof handler?.onMessageSent); // ← デバッグログ追加
+            if (handler && typeof handler.onMessageSent === 'function') {
+                try {
+                    handler.onMessageSent(waitingMessageId);
+                    console.log('[デバッグ8] onMessageSent実行完了'); // ← デバッグログ追加
+                } catch (onMessageError) {
+                    console.error('[エラー] onMessageSent実行中にエラー:', onMessageError); // ← エラーキャッチ追加
+                }
+            }
+            
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
                 
