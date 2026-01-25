@@ -560,9 +560,9 @@
         性格設定テスト
         <div class="admin-nav-url">各鑑定士の性格設定をテスト</div>
       </button>
-      <button class="admin-nav-item" data-tab="waiting-screen-debug">
-        待機画面デバッグ
-        <div class="admin-nav-url">待機画面の動的メッセージをテスト</div>
+      <button class="admin-nav-item" data-tab="realtime-chat-test">
+        実時間チャットテスト
+        <div class="admin-nav-url">現在の設定で実際に動作確認</div>
       </button>
     </nav>
     
@@ -692,52 +692,55 @@
         </div>
       </div>
 
-      <!-- 待機画面デバッグタブ -->
-      <div class="tab-content" id="waiting-screen-debug-tab">
+
+      <!-- 実時間チャットテストタブ -->
+      <div class="tab-content" id="realtime-chat-test-tab">
         <div class="dashboard-layout" style="padding-bottom: 40px;">
           <section class="card">
-            <h2>待機画面デバッグツール</h2>
-            <p class="muted">待機画面の動的メッセージ表示機能をテストします。</p>
+            <h2>実時間チャットテスト</h2>
+            <p class="muted">現在設定されているプロンプトで実際にメッセージを送受信してテストします。</p>
             
             <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
               <div>
                 <label style="margin-bottom: 12px;">
                   テストするキャラクター
-                  <select id="debugCharacterSelect" style="margin-top: 6px;">
+                  <select id="testCharacterSelect" style="margin-top: 6px;">
                     <option value="kaede">楓（かえで）</option>
-                    <option value="yukino">雪乃（ゆきの）</option>
-                    <option value="sora">蒼空（そうくう）</option>
-                    <option value="kaon">三崎花音（みさきかおん）</option>
+                    <option value="yukino">笹岡雪乃（ゆきの）</option>
+                    <option value="sora">水野ソラ（そら）</option>
+                    <option value="kaon">三崎花音（かおん）</option>
                   </select>
+                </label>
+              </div>
+
+              <div>
+                <label style="margin-bottom: 12px;">
+                  テストメッセージ
+                  <textarea id="testMessage" style="width: 100%; padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: #fff; font-size: 14px; min-height: 80px; font-family: inherit;" placeholder="ここにテストメッセージを入力してください">こんにちは。最近仕事でストレスを感じています。</textarea>
                 </label>
               </div>
               
               <div class="actions">
-                <button id="startWaitingScreenButton" style="padding: 12px 24px; font-size: 16px;">
-                  ⏳ 待機画面を表示
-                </button>
-                <button id="clearWaitingScreenButton" style="padding: 12px 24px; font-size: 16px; background: linear-gradient(135deg, rgba(200, 100, 100, 0.9), rgba(150, 50, 50, 0.9));">
-                  ✕ 待機画面をクリア
+                <button id="sendTestMessage" style="padding: 12px 24px; font-size: 16px;">
+                  📤 メッセージ送信
                 </button>
               </div>
             </div>
 
-            <div id="waitingScreenPreview" style="margin-top: 24px; padding: 20px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-              <p class="muted" style="margin: 0;">ここに待機画面がプレビューされます</p>
-            </div>
-
-            <div id="debugConsoleOutput" style="margin-top: 20px; padding: 16px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; max-height: 300px; overflow-y: auto; display: none;">
-              <div style="color: #9da2c6; margin-bottom: 8px;">💬 デバッグコンソール</div>
-              <div id="consoleLogs" style="color: #e0e0e0; line-height: 1.6; white-space: pre-wrap; word-break: break-all;"></div>
+            <div id="testChatContainer" style="margin-top: 24px; padding: 20px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; min-height: 400px; max-height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+              <div style="color: #9da2c6; text-align: center; padding: 40px 20px;">
+                <p style="margin: 0;">ここにチャットが表示されます</p>
+                <p style="margin: 10px 0 0 0; font-size: 12px;">メッセージを送信すると、リアルタイムで返答が表示されます</p>
+              </div>
             </div>
 
             <div style="margin-top: 20px; padding: 16px; background: rgba(76, 175, 80, 0.08); border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px;">
               <p style="margin: 0; color: #81c784; font-size: 13px;">
                 <strong>📊 テスト内容：</strong><br>
-                待機画面が表示され、動的にメッセージが変更されるかを確認します。<br>
-                • 初期表示: &quot;返信をお待ちください。&quot;<br>
-                • 3秒後: &quot;キャラクター名がこれからメッセージ入力します&quot;<br>
-                • 6秒後: &quot;※占い・運勢は個人の娯楽です。信じすぎないでください。&quot;
+                • 選択したキャラクターに実際のメッセージを送信<br>
+                • 現在設定されているプロンプトが適用されたAI返答を確認<br>
+                • ローディング表示とアニメーション動作を確認<br>
+                • 返答の品質と性格設定の反映を確認
               </p>
             </div>
           </section>
@@ -1350,179 +1353,110 @@
     }
 
     // ============================================
-    // 待機画面デバッグツール機能
+    // 実時間チャットテスト機能
     // ============================================
-    const debugCharacterSelect = document.getElementById('debugCharacterSelect');
-    const startWaitingScreenButton = document.getElementById('startWaitingScreenButton');
-    const clearWaitingScreenButton = document.getElementById('clearWaitingScreenButton');
-    const waitingScreenPreview = document.getElementById('waitingScreenPreview');
-    const debugConsoleOutput = document.getElementById('debugConsoleOutput');
-    const consoleLogs = document.getElementById('consoleLogs');
-    
-    let debugLogs = [];
-    let debugMessageId = null;
+    const testCharacterSelect = document.getElementById('testCharacterSelect');
+    const testMessage = document.getElementById('testMessage');
+    const sendTestMessage = document.getElementById('sendTestMessage');
+    const testChatContainer = document.getElementById('testChatContainer');
 
-    // コンソール出力をキャプチャ
-    const originalLog = console.log;
-    const originalError = console.error;
-
-    function captureLog(type, ...args) {
-      const timestamp = new Date().toLocaleTimeString('ja-JP');
-      const message = args.map(arg => {
-        if (typeof arg === 'object') {
-          return JSON.stringify(arg, null, 2);
-        }
-        return String(arg);
-      }).join(' ');
-      
-      debugLogs.push({
-        type,
-        timestamp,
-        message
-      });
-
-      // UIに表示
-      if (debugConsoleOutput.style.display !== 'none') {
-        const logColor = type === 'error' ? '#ff6b9d' : '#c7cdff';
-        const icon = type === 'error' ? '❌' : '✓';
-        consoleLogs.innerHTML += `<div style="color: ${logColor};">[${timestamp}] ${icon} ${message}</div>`;
-        consoleLogs.parentElement.scrollTop = consoleLogs.parentElement.scrollHeight;
-      }
-
-      // 元の関数も実行
-      if (type === 'error') {
-        originalError(...args);
+    function addTestChatMessage(role, content) {
+      const messageDiv = document.createElement('div');
+      if (role === 'user') {
+        messageDiv.className = 'message user';
+      } else if (role === 'system') {
+        messageDiv.className = 'message error';
       } else {
-        originalLog(...args);
+        messageDiv.className = 'message character';
       }
-    }
-
-    console.log = function(...args) {
-      captureLog('log', ...args);
-    };
-
-    console.error = function(...args) {
-      captureLog('error', ...args);
-    };
-
-    function getCharacterName(characterId) {
-      const names = {
-        'kaede': '楓',
-        'yukino': '雪乃',
-        'sora': '蒼空',
-        'kaon': '花音'
-      };
-      return names[characterId] || characterId;
-    }
-
-    startWaitingScreenButton.addEventListener('click', async () => {
-      const selectedCharacter = debugCharacterSelect.value;
-      const characterName = getCharacterName(selectedCharacter);
       
-      // ログをクリア
-      debugLogs = [];
-      consoleLogs.innerHTML = '';
-      debugConsoleOutput.style.display = 'block';
+      const header = document.createElement('div');
+      header.className = 'message-header';
+      header.textContent = role === 'user' ? 'ユーザー' : (role === 'system' ? 'システム' : 'AI');
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-text';
+      contentDiv.textContent = content;
+      
+      messageDiv.appendChild(header);
+      messageDiv.appendChild(contentDiv);
+      testChatContainer.appendChild(messageDiv);
+      testChatContainer.scrollTop = testChatContainer.scrollHeight;
+    }
 
-      console.log(`[デバッグ開始] キャラクター: ${selectedCharacter} (${characterName})`);
+    function clearTestChat() {
+      testChatContainer.innerHTML = '';
+      const defaultMsg = document.createElement('div');
+      defaultMsg.style.cssText = 'color: #9da2c6; text-align: center; padding: 40px 20px;';
+      defaultMsg.innerHTML = `
+        <p style="margin: 0;">ここにチャットが表示されます</p>
+        <p style="margin: 10px 0 0 0; font-size: 12px;">メッセージを送信すると、リアルタイムで返答が表示されます</p>
+      `;
+      testChatContainer.appendChild(defaultMsg);
+    }
 
-      // プレビューエリアをクリア
-      waitingScreenPreview.innerHTML = '';
+    sendTestMessage.addEventListener('click', async () => {
+      const characterId = testCharacterSelect.value;
+      const messageText = testMessage.value.trim();
+
+      if (!messageText) {
+        alert('メッセージを入力してください');
+        return;
+      }
+
+      sendTestMessage.disabled = true;
+      sendTestMessage.textContent = '⏳ 送信中...';
 
       try {
-        // 待機画面要素を作成（ChatUIと同じ構造）
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message loading-message';
-        messageDiv.style.cssText = `
-          padding: 12px 16px;
-          margin: 8px 0;
-          border-radius: 12px;
-          background: rgba(138, 43, 226, 0.15);
-          border: 1px solid rgba(138, 43, 226, 0.3);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          animation: messageBubbleMysticGlow 4s ease-in-out infinite;
-        `;
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'loading-text';
-        textDiv.style.cssText = `
-          color: #d6c9ff;
-          font-size: 14px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        `;
+        // チャットをクリア
+        clearTestChat();
         
-        const dotsSpan = document.createElement('span');
-        dotsSpan.innerHTML = '⏳ ';
-        textDiv.appendChild(dotsSpan);
+        // ユーザーメッセージを表示
+        addTestChatMessage('user', messageText);
 
-        const textSpan = document.createElement('span');
-        textSpan.id = 'debug-loading-text';
-        textSpan.textContent = '返信をお待ちください。';
-        textDiv.appendChild(textSpan);
+        // ローディング表示
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message loading-message';
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        textDiv.textContent = '返信が来るまでお待ちください。';
+        
+        loadingDiv.appendChild(textDiv);
+        testChatContainer.appendChild(loadingDiv);
 
-        messageDiv.appendChild(textDiv);
-        waitingScreenPreview.appendChild(messageDiv);
+        // API呼び出し
+        const response = await fetch('/api/consult', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: messageText,
+            character: characterId,
+            userId: 999999, // テスト用ユーザーID
+            nickname: 'テスター'
+          })
+        });
 
-        // CSSアニメーションを有効にするためにスタイルを追加
-        if (!document.getElementById('debugLoadingAnimation')) {
-          const style = document.createElement('style');
-          style.id = 'debugLoadingAnimation';
-          style.textContent = `
-            @keyframes messageBubbleMysticGlow {
-              0%, 100% { 
-                box-shadow: 0 0 10px rgba(138, 43, 226, 0.3), 
-                            0 0 20px rgba(138, 43, 226, 0.1);
-              }
-              50% { 
-                box-shadow: 0 0 20px rgba(138, 43, 226, 0.5), 
-                            0 0 40px rgba(138, 43, 226, 0.2);
-              }
-            }
-          `;
-          document.head.appendChild(style);
+        const data = await response.json();
+
+        // ローディング要素を削除
+        loadingDiv.remove();
+
+        if (data.error) {
+          addTestChatMessage('system', `エラー: ${data.error}`);
+        } else {
+          addTestChatMessage('character', data.message || data.response || '応答を取得できませんでした');
         }
-
-        console.log('[✓] 待機画面を作成しました');
-        console.log('[→] 3秒後にメッセージを更新します...');
-
-        // 3秒後にメッセージ1を表示
-        setTimeout(() => {
-          const text = document.getElementById('debug-loading-text');
-          if (text) {
-            text.textContent = `${characterName}がこれからメッセージ入力します`;
-            console.log(`[✓] メッセージを更新: "${characterName}がこれからメッセージ入力します"`);
-            console.log('[→] 6秒後にメッセージを再度更新します...');
-          }
-        }, 3000);
-
-        // 6秒後にメッセージ2を表示
-        setTimeout(() => {
-          const text = document.getElementById('debug-loading-text');
-          if (text) {
-            text.textContent = '※占い・運勢は個人の娯楽です。信じすぎないでください。';
-            console.log('[✓] メッセージを更新: "※占い・運勢は個人の娯楽です。信じすぎないでください。"');
-            console.log('[✓] テスト完了: 待機画面の動的メッセージ変更が正常に動作しました');
-          }
-        }, 6000);
-
       } catch (error) {
-        console.error(`[エラー] テスト実行中にエラーが発生: ${error.message}`);
-        waitingScreenPreview.innerHTML = `<p style="color: #ff6b9d;">❌ エラー: ${error.message}</p>`;
+        addTestChatMessage('system', `エラーが発生しました: ${error.message}`);
+      } finally {
+        sendTestMessage.disabled = false;
+        sendTestMessage.textContent = '📤 メッセージ送信';
       }
     });
-
-    clearWaitingScreenButton.addEventListener('click', () => {
-      waitingScreenPreview.innerHTML = '<p class="muted" style="margin: 0;">ここに待機画面がプレビューされます</p>';
-      debugConsoleOutput.style.display = 'none';
-      consoleLogs.innerHTML = '';
-      debugLogs = [];
-      console.log('[✓] 待機画面と出力をクリアしました');
-    });
     
+    
+  </script>
   </script>
 </body>
 </html>

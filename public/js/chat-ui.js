@@ -334,6 +334,12 @@ const ChatUI = {
             }
         }
         
+        debugLog('[_setupLoadingMessageAnimation] 初期化開始:', {
+            messageCount: waitingMessages.length,
+            messageDivId: messageDiv.id,
+            characterName: window.ChatData?.characterInfo?.[window.ChatData?.currentCharacter]?.name
+        });
+        
         // テキストに揺れ効果を適用（CSSで上書きされますが、フォールバックとして機能）
         textDiv.style.animation = 'subtle-shimmer 3s ease-in-out infinite';
         
@@ -343,8 +349,16 @@ const ChatUI = {
         // 各メッセージのタイマーをセット
         waitingMessages.forEach((msgObj, index) => {
             const timer = setTimeout(() => {
+                debugLog('[_setupLoadingMessageAnimation] タイマー発火:', {
+                    index,
+                    delay: msgObj.delay,
+                    text: msgObj.text.substring(0, 30),
+                    elementExists: !!messageDiv.parentNode
+                });
+                
                 // メッセージが削除されたら停止
                 if (!messageDiv.parentNode) {
+                    debugLog('[_setupLoadingMessageAnimation] メッセージが削除されているため停止:', { index });
                     return;
                 }
                 
@@ -352,21 +366,26 @@ const ChatUI = {
                 textDiv.style.transition = 'opacity 0.6s ease-in-out';
                 textDiv.style.opacity = '0.4';
                 
+                debugLog('[_setupLoadingMessageAnimation] フェードアウト開始:', { index, text: msgObj.text.substring(0, 30) });
+                
                 // 600ms後にテキストを変更してフェードイン
                 setTimeout(() => {
                     if (messageDiv.parentNode) {
                         textDiv.textContent = msgObj.text;
                         textDiv.style.transition = 'opacity 0.8s ease-in-out';
                         textDiv.style.opacity = '1';
+                        debugLog('[_setupLoadingMessageAnimation] テキスト変更完了:', { index, newText: msgObj.text.substring(0, 30) });
                     }
                 }, 600);
             }, msgObj.delay);
             
             timers.push(timer);
+            debugLog('[_setupLoadingMessageAnimation] タイマーセット:', { index, delay: msgObj.delay, timerId: timer });
         });
         
         // タイマー ID を保存（後でクリア可能にするため）
         messageDiv.dataset.loadingMessageTimers = JSON.stringify(timers);
+        debugLog('[_setupLoadingMessageAnimation] 初期化完了:', { timerCount: timers.length });
     },
 
     /**
