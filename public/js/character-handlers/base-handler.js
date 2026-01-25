@@ -28,22 +28,13 @@ class BaseCharacterHandler {
     }
 
     /**
-     * メッセージ送信後の処理（API応答受信前）
-     * @param {string} waitingMessageId - 待機メッセージのID
-     */
-    onMessageSent(waitingMessageId) {
-        // 通常のメッセージ送信時は、待機画面はchat-engine.jsで管理されるため、ハンドラーでは何もしない
-        console.log(`[${this.characterName}ハンドラー] メッセージ送信完了`);
-    }
-
-    /**
      * API レスポンス受信後の処理
      * @param {string} waitingMessageId - 待機メッセージのID
      * @returns {boolean} true: 待機画面処理は完了、false: 共通処理で削除
      */
     onResponseReceived(waitingMessageId) {
         console.log(`[${this.characterName}ハンドラー] API応答受信`);
-        return false;  // デフォルは共通処理に委譲
+        return false;  // デフォルトは共通処理に委譲
     }
 
     /**
@@ -100,6 +91,9 @@ class BaseCharacterHandler {
      * @param {Object} historyData - 会話履歴データ
      */
     async handleReturningVisit(historyData) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'base-handler.js:96',message:'handleReturningVisit呼び出し',data:{characterId:this.characterId,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         // 履歴表示（最新5件を即座に表示、残りを遅延表示）
         this.displayHistory(historyData.recentMessages || []);
         
@@ -126,6 +120,9 @@ class BaseCharacterHandler {
      * @param {Array} messages - メッセージ配列
      */
     displayHistory(messages) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'base-handler.js:122',message:'displayHistory呼び出し',data:{characterId:this.characterId,messagesLength:messages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character'),firstMessageRole:messages?.[0]?.role,lastMessageRole:messages?.[messages?.length-1]?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         if (!messages || messages.length === 0 || !window.ChatUI) return;
         
         const info = ChatData.characterInfo[this.characterId];
