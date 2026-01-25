@@ -2793,6 +2793,7 @@ const ChatInit = {
         // エラー時にもフラグをリセットするためにtry-finallyを使用
         // waitingMessageIdを関数スコープで宣言（catchブロックからもアクセスできるように）
         let waitingMessageId = null;
+        let loadingStartTime = null;  // 最低表示時間を計算するため
         
         try {
             // タロットカード解説トリガーマーカーを検出
@@ -2970,11 +2971,10 @@ const ChatInit = {
             
             if (!waitingMessageId) {
                 try {
-                    debugLog('[デバッグ5] デフォルト待機画面を作成します'); // ← デバッグログ追加
+                    loadingStartTime = Date.now();  // 開始時刻を記録
                     waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
-                    debugLog('[デバッグ6] 待機画面作成完了:', waitingMessageId); // ← デバッグログ追加
                 } catch (uiError) {
-                    console.error('[エラー] addMessage実行中にエラー:', uiError); // ← エラーキャッチ追加
+                    console.error('[エラー] addMessage実行中にエラー:', uiError);
                 }
             }
             
@@ -3089,17 +3089,30 @@ const ChatInit = {
                                 window.ChatUI.clearLoadingMessageTimers(waitingElement);
                             }
                             
-                            // チャットウィンドウのアニメーションを解除
-                            const messagesDiv = window.ChatUI.messagesDiv;
-                            if (messagesDiv && messagesDiv.parentElement) {
-                                const chatContainer = messagesDiv.closest('.chat-container');
-                                if (chatContainer) {
-                                    chatContainer.classList.remove('waiting-for-response');
-                                }
-                            }
+                            // 最低表示時間を計算
+                            const MIN_DISPLAY_TIME = 3000; // 3秒
+                            const elapsedTime = loadingStartTime ? (Date.now() - loadingStartTime) : 0;
+                            const remainingTime = Math.max(0, MIN_DISPLAY_TIME - elapsedTime);
                             
-                            // 要素を削除
-                            waitingElement.remove();
+                            // 残り時間だけ待ってから削除
+                            setTimeout(() => {
+                                if (waitingElement && waitingElement.parentNode) {
+                                    // チャットウィンドウのアニメーションを解除
+                                    const messagesDiv = window.ChatUI.messagesDiv;
+                                    if (messagesDiv && messagesDiv.parentElement) {
+                                        const chatContainer = messagesDiv.closest('.chat-container');
+                                        if (chatContainer) {
+                                            chatContainer.classList.remove('waiting-for-response');
+                                        }
+                                    }
+                                    
+                                    // 要素を削除
+                                    waitingElement.remove();
+                                    
+                                    // クリーンアップ
+                                    loadingStartTime = null;
+                                }
+                            }, remainingTime);
                         }
                     }
                 }
