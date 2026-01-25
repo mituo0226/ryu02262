@@ -1456,13 +1456,19 @@
         messageDiv.className = 'message character';
       }
       
+      // 管理画面用のスタイルを追加（PC版で小さいサイズ）
+      messageDiv.style.fontSize = '13px';
+      messageDiv.style.padding = '10px 14px';
+      
       const header = document.createElement('div');
       header.className = 'message-header';
       header.textContent = role === 'user' ? 'ユーザー' : (role === 'system' ? 'システム' : 'AI');
+      header.style.fontSize = '11px';
       
       const contentDiv = document.createElement('div');
       contentDiv.className = 'message-text';
       contentDiv.textContent = content;
+      contentDiv.style.fontSize = '13px';
       
       messageDiv.appendChild(header);
       messageDiv.appendChild(contentDiv);
