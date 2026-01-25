@@ -28,22 +28,13 @@ class BaseCharacterHandler {
     }
 
     /**
-     * メッセージ送信後の処理（API応答受信前）
-     * @param {string} waitingMessageId - 待機メッセージのID
-     */
-    onMessageSent(waitingMessageId) {
-        // 通常のメッセージ送信時は、待機画面はchat-engine.jsで管理されるため、ハンドラーでは何もしない
-        console.log(`[${this.characterName}ハンドラー] メッセージ送信完了`);
-    }
-
-    /**
      * API レスポンス受信後の処理
      * @param {string} waitingMessageId - 待機メッセージのID
      * @returns {boolean} true: 待機画面処理は完了、false: 共通処理で削除
      */
     onResponseReceived(waitingMessageId) {
         console.log(`[${this.characterName}ハンドラー] API応答受信`);
-        return false;  // デフォルは共通処理に委譲
+        return false;  // デフォルトは共通処理に委譲
     }
 
     /**
