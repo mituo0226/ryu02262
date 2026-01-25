@@ -731,20 +731,27 @@
               </div>
             </div>
 
-            <div id="testChatContainer" style="margin-top: 24px; padding: 20px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; min-height: 400px; max-height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-              <div style="color: #9da2c6; text-align: center; padding: 40px 20px;">
-                <p style="margin: 0;">ここにチャットが表示されます</p>
-                <p style="margin: 10px 0 0 0; font-size: 12px;">メッセージを送信すると、リアルタイムで返答が表示されます</p>
+            <div id="testChatContainer" style="margin-top: 24px; padding: 0; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; min-height: 400px; max-height: 600px; overflow: hidden; display: flex; flex-direction: column;">
+              <!-- iframe で本番環境のチャットを読み込む -->
+              <iframe id="testChatFrame" 
+                style="flex: 1; border: none; background: #0a0a0a;"
+                src="about:blank"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              ></iframe>
+              
+              <!-- ログエリア（iframe下部に表示） -->
+              <div id="timelineContainer" style="display: none; border-top: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.6); padding: 12px; max-height: 200px; overflow-y: auto;">
+                <div id="timelineContent"></div>
               </div>
             </div>
 
             <div style="margin-top: 20px; padding: 16px; background: rgba(76, 175, 80, 0.08); border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px;">
               <p style="margin: 0; color: #81c784; font-size: 13px;">
                 <strong>📊 テスト内容：</strong><br>
-                • 選択したキャラクターに実際のメッセージを送信<br>
-                • 現在設定されているプロンプトが適用されたAI返答を確認<br>
-                • ローディング表示とアニメーション動作を確認<br>
-                • 返答の品質と性格設定の反映を確認
+                • 本番環境と同じJavaScriptで実際にメッセージを送受信<br>
+                • iframe内で本番チャットと同じ環境を再現<br>
+                • コンソールログをリアルタイムでキャプチャ<br>
+                • APIレスポンス時間と実行フローを可視化
               </p>
             </div>
           </section>
@@ -1404,14 +1411,19 @@
     }
 
     // ============================================
-    // 実時間チャットテスト機能
+    // 実時間チャットテスト機能（iframe版）
     // ============================================
     const testCharacterSelect = document.getElementById('testCharacterSelect');
     const testMessage = document.getElementById('testMessage');
     const sendTestMessage = document.getElementById('sendTestMessage');
     const testChatContainer = document.getElementById('testChatContainer');
+    const testChatFrame = document.getElementById('testChatFrame');
+    const timelineContainer = document.getElementById('timelineContainer');
+    const timelineContent = document.getElementById('timelineContent');
     
     let testUserId = null;
+    let frameLoaded = false;
+    let consoleLogs = [];
 
     // テスト用ユーザーを自動作成・取得
     async function initializeTestUser() {
@@ -1446,50 +1458,66 @@
       await initializeTestUser();
     };
 
-    function addTestChatMessage(role, content) {
-      const messageDiv = document.createElement('div');
-      if (role === 'user') {
-        messageDiv.className = 'message user';
-      } else if (role === 'system') {
-        messageDiv.className = 'message error';
-      } else {
-        messageDiv.className = 'message character';
-      }
+    // iframe を初期化
+    function initializeFrame(characterId) {
+      const chatUrl = `/pages/chat/chat.html?userId=${testUserId}&character=${characterId}`;
+      testChatFrame.src = chatUrl;
+      frameLoaded = false;
+      consoleLogs = [];
       
-      // 管理画面用のスタイルを追加（PC版で小さいサイズ）
-      messageDiv.style.fontSize = '13px';
-      messageDiv.style.padding = '10px 14px';
-      
-      const header = document.createElement('div');
-      header.className = 'message-header';
-      header.textContent = role === 'user' ? 'ユーザー' : (role === 'system' ? 'システム' : 'AI');
-      header.style.fontSize = '11px';
-      
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'message-text';
-      contentDiv.textContent = content;
-      contentDiv.style.fontSize = '13px';
-      
-      messageDiv.appendChild(header);
-      messageDiv.appendChild(contentDiv);
-      testChatContainer.appendChild(messageDiv);
-      testChatContainer.scrollTop = testChatContainer.scrollHeight;
+      // iframe 読み込み完了を待つ
+      testChatFrame.onload = () => {
+        frameLoaded = true;
+        console.log('[iframe] チャットフレームが読み込まれました');
+        
+        // iframe 内の console.log をインターセプト
+        interceptFrameConsole();
+      };
     }
 
-    function clearTestChat() {
-      testChatContainer.innerHTML = '';
-      const defaultMsg = document.createElement('div');
-      defaultMsg.style.cssText = 'color: #9da2c6; text-align: center; padding: 40px 20px;';
-      defaultMsg.innerHTML = `
-        <p style="margin: 0;">ここにチャットが表示されます</p>
-        <p style="margin: 10px 0 0 0; font-size: 12px;">メッセージを送信すると、リアルタイムで返答が表示されます</p>
-      `;
-      testChatContainer.appendChild(defaultMsg);
+    // iframe 内のコンソールをインターセプト
+    function interceptFrameConsole() {
+      try {
+        const frameWindow = testChatFrame.contentWindow;
+        const originalLog = frameWindow.console.log;
+        
+        frameWindow.console.log = function(...args) {
+          const message = args.map(arg => 
+            typeof arg === 'string' ? arg : JSON.stringify(arg)
+          ).join(' ');
+          
+          const timestamp = new Date().toLocaleTimeString('ja-JP', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit', 
+            fractionalSecondDigits: 3 
+          });
+          
+          consoleLogs.push({
+            timestamp,
+            elapsed: `${Date.now() - window._testStartTime}ms`,
+            message: message.substring(0, 100)
+          });
+          
+          // 元の console.log も実行
+          originalLog.apply(frameWindow.console, args);
+        };
+        
+        console.log('[iframe] コンソールインターセプト設定完了');
+      } catch (error) {
+        console.error('[iframe] コンソールインターセプト失敗:', error);
+      }
     }
 
     sendTestMessage.addEventListener('click', async () => {
       if (!testUserId) {
         alert('テスト用ユーザーの初期化に失敗しました。管理者トークンで接続してください。');
+        return;
+      }
+
+      if (!frameLoaded) {
+        alert('チャットフレームが読み込まれていません。少々お待ちください。');
         return;
       }
 
@@ -1503,159 +1531,86 @@
 
       sendTestMessage.disabled = true;
       sendTestMessage.textContent = '⏳ 送信中...';
+      consoleLogs = [];
+      window._testStartTime = Date.now();
 
       try {
-        // ✅ テストモードを開始（タイムライン記録を有効化）
-        window._testMode = true;
-        window._debugTimeline = [];
-        window._timelineStartTime = Date.now();
+        // iframe 内のメッセージ入力にテキストを設定
+        const frameWindow = testChatFrame.contentWindow;
+        const messageInput = frameWindow.document.getElementById('messageInput');
         
-        // チャットをクリア
-        clearTestChat();
-        
-        // ユーザーメッセージを表示
-        addTestChatMessage('user', messageText);
-
-        // ローディング表示
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message loading-message';
-        
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-        textDiv.textContent = '返信が来るまでお待ちください。';
-        
-        loadingDiv.appendChild(textDiv);
-        testChatContainer.appendChild(loadingDiv);
-
-        // API呼び出し
-        const apiStartTime = Date.now();
-        const response = await fetch('/api/consult', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: messageText,
-            character: characterId,
-            userId: testUserId,
-            nickname: '【管理テスト用】'
-          })
-        });
-        const apiEndTime = Date.now();
-
-        const data = await response.json();
-
-        // ローディング要素を削除
-        loadingDiv.remove();
-
-        if (data.error) {
-          addTestChatMessage('system', `エラー: ${data.error}`);
+        if (messageInput) {
+          messageInput.value = messageText;
+          
+          // メッセージ送信イベントを発火
+          const sendButton = frameWindow.document.querySelector('button[id*="send"], button:has-text("送信")');
+          if (sendButton) {
+            // 少し待ってから送信ボタンをクリック
+            setTimeout(() => {
+              sendButton.click();
+              
+              // API実行時間を待ってからタイムラインを表示
+              setTimeout(() => {
+                displayTimeline();
+              }, 2000); // 2秒後にタイムラインを表示
+            }, 100);
+          } else {
+            // sendButton が見つからない場合、フレーム内の sendMessage 関数を直接呼び出し
+            if (typeof frameWindow.sendMessage === 'function') {
+              frameWindow.sendMessage();
+              
+              setTimeout(() => {
+                displayTimeline();
+              }, 2000);
+            } else {
+              alert('送信ボタンが見つかりません');
+            }
+          }
         } else {
-          addTestChatMessage('character', data.message || data.response || '応答を取得できませんでした');
+          alert('メッセージ入力欄が見つかりません');
         }
-        
-        // ✅ タイムライン結果を表示
-        displayTimeline(apiStartTime, apiEndTime);
-        window._testMode = false;
-        
       } catch (error) {
-        addTestChatMessage('system', `エラーが発生しました: ${error.message}`);
-        window._testMode = false;
+        console.error('[テスト] エラー:', error);
+        alert(`エラーが発生しました: ${error.message}`);
       } finally {
-        sendTestMessage.disabled = false;
-        sendTestMessage.textContent = '📤 メッセージ送信';
+        setTimeout(() => {
+          sendTestMessage.disabled = false;
+          sendTestMessage.textContent = '📤 メッセージ送信';
+        }, 100);
       }
     });
-    
-    // ✅ タイムライン表示関数
-    function displayTimeline(apiStartTime, apiEndTime) {
-      const timeline = window._debugTimeline || [];
+
+    // タイムラインを表示
+    function displayTimeline() {
+      if (consoleLogs.length === 0) {
+        timelineContainer.style.display = 'none';
+        return;
+      }
+      
+      timelineContainer.style.display = 'block';
       
       let html = `
-        <div style="margin-top: 24px; padding: 20px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 10px;">
-          <h3 style="margin: 0 0 12px; font-size: 16px; color: #d6c9ff;">📊 API実行タイムライン</h3>
-          
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px;">
-            <div style="padding: 12px; background: rgba(138, 43, 226, 0.2); border-radius: 8px;">
-              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">API実行時間</div>
-              <div style="font-size: 18px; font-weight: 700; color: #d6c9ff;">${apiEndTime - apiStartTime}ms</div>
-            </div>
-            <div style="padding: 12px; background: rgba(138, 43, 226, 0.2); border-radius: 8px;">
-              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">ログエントリ数</div>
-              <div style="font-size: 18px; font-weight: 700; color: #d6c9ff;">${timeline.length}</div>
-            </div>
-          </div>
-          
-          <div style="max-height: 400px; overflow-y: auto; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px;">
-            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-              <thead>
-                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">時刻</th>
-                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">経過</th>
-                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">ソース</th>
-                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">メッセージ</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${timeline.map((entry, idx) => `
-                  <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); ${idx % 2 === 0 ? 'background: rgba(138, 43, 226, 0.05);' : ''}">
-                    <td style="padding: 6px 8px; color: #81c784;">${entry.timestamp}</td>
-                    <td style="padding: 6px 8px; color: #64b5f6;">${entry.elapsed}</td>
-                    <td style="padding: 6px 8px; color: #ffb74d; font-weight: 500;">${entry.source}</td>
-                    <td style="padding: 6px 8px; color: #e0e0e0; word-break: break-all;">${entry.message.substring(0, 80)}${entry.message.length > 80 ? '...' : ''}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          
-          <div style="margin-top: 12px; display: flex; gap: 8px;">
-            <button onclick="window._copyTimeline && window._copyTimeline()" style="padding: 8px 14px; background: rgba(76, 175, 80, 0.2); border: 1px solid rgba(76, 175, 80, 0.4); border-radius: 6px; color: #81c784; cursor: pointer; font-size: 12px; font-weight: 500;">
-              📋 全データをコピー
-            </button>
-            <button onclick="window._exportTimeline && window._exportTimeline()" style="padding: 8px 14px; background: rgba(76, 175, 80, 0.2); border: 1px solid rgba(76, 175, 80, 0.4); border-radius: 6px; color: #81c784; cursor: pointer; font-size: 12px; font-weight: 500;">
-              💾 JSONとしてエクスポート
-            </button>
-          </div>
+        <div style="font-size: 12px; margin-bottom: 8px; font-weight: 600; color: #d6c9ff;">
+          📊 コンソールログ（${consoleLogs.length}件）
         </div>
+        <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <th style="text-align: left; padding: 4px 6px; color: #c7cdff; font-weight: 600; width: 70px;">時刻</th>
+            <th style="text-align: left; padding: 4px 6px; color: #c7cdff; font-weight: 600; width: 60px;">経過</th>
+            <th style="text-align: left; padding: 4px 6px; color: #c7cdff; font-weight: 600;">メッセージ</th>
+          </tr>
+          ${consoleLogs.map((entry, idx) => `
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); ${idx % 2 === 0 ? 'background: rgba(138, 43, 226, 0.05);' : ''}">
+              <td style="padding: 3px 6px; color: #81c784;">${entry.timestamp}</td>
+              <td style="padding: 3px 6px; color: #64b5f6;">${entry.elapsed}</td>
+              <td style="padding: 3px 6px; color: #e0e0e0; word-break: break-all; white-space: pre-wrap;">${entry.message}</td>
+            </tr>
+          `).join('')}
+        </table>
       `;
       
-      testChatContainer.insertAdjacentHTML('afterend', html);
+      timelineContent.innerHTML = html;
     }
-    
-    // ✅ タイムラインをコピーする関数
-    window._copyTimeline = function() {
-      const timeline = window._debugTimeline || [];
-      const text = timeline.map(entry => 
-        `[${entry.timestamp}] (${entry.elapsed}) ${entry.source}: ${entry.message}`
-      ).join('\n');
-      
-      navigator.clipboard.writeText(text).then(() => {
-        alert('✅ タイムラインをコピーしました');
-      }).catch(() => {
-        // フォールバック
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('✅ タイムラインをコピーしました');
-      });
-    };
-    
-    // ✅ タイムラインをJSONでエクスポート
-    window._exportTimeline = function() {
-      const timeline = window._debugTimeline || [];
-      const json = JSON.stringify(timeline, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `timeline-${new Date().toISOString()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    };
 
     // ============================================
     // 待機画面テスト機能（現在のコードをそのまま使用）
