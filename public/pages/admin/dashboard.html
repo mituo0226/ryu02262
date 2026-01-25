@@ -1666,6 +1666,47 @@
     // 初期状態でクリア
     clearLoadingTest();
     
+    // ============================================
+    // ボタンのホバー効果設定
+    // ============================================
+    function setupButtonHoverEffects() {
+      // 待機画面テストのボタン
+      const buttons = [
+        startLoadingTestButton,
+        stopLoadingTestButton
+      ];
+      
+      buttons.forEach(button => {
+        if (!button) return;
+        
+        // ホバー時の効果
+        button.addEventListener('mouseenter', () => {
+          button.style.transform = 'translateY(-2px)';
+          button.style.boxShadow = '0 8px 20px rgba(138, 43, 226, 0.4)';
+          button.style.transition = 'all 0.2s ease';
+        });
+        
+        // ホバー終了時の効果
+        button.addEventListener('mouseleave', () => {
+          button.style.transform = 'translateY(0)';
+          button.style.boxShadow = 'none';
+        });
+        
+        // クリック時の効果
+        button.addEventListener('mousedown', () => {
+          button.style.transform = 'translateY(1px)';
+        });
+        
+        // クリック終了時の効果
+        button.addEventListener('mouseup', () => {
+          button.style.transform = 'translateY(-2px)';
+        });
+      });
+    }
+    
+    // ボタンホバー効果を初期化
+    setupButtonHoverEffects();
+    
     
   </script>
   </script>
