@@ -1,0 +1,38 @@
+/* ============================================
+   chat-ui.css
+   チャットUIのスタイル定義
+   ============================================ */
+
+/* ============================================
+   モバイルヘッダー - プロファイルリンク
+   ============================================ */
+.mobile-profile-link {
+    text-decoration: none;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* ============================================
+   メッセージスタイル
+   ============================================ */
+.message.character {
+    background: rgba(75, 0, 130, 0.9);
+    color: #ffffff;
+}
+
+.message.loading-message {
+    background: rgba(75, 0, 130, 0.95);
+    color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2);
+}
+
+.message.character .message-header {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.message.loading-message .message-header {
+    color: #ffd700;
+}

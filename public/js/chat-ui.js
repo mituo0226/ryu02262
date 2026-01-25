@@ -3,6 +3,84 @@
  * UI更新とレンダリングを担当
  */
 
+// ============================================
+// 定数定義
+// ============================================
+
+// デバッグ設定
+const DEBUG_MODE = false; // 本番環境ではfalseに設定
+
+/**
+ * デバッグログ出力（本番では無効化）
+ * @param {...any} args - console.logに渡す引数
+ */
+function debugLog(...args) {
+    if (DEBUG_MODE) {
+        console.log(...args);
+    }
+}
+
+// カラー定数
+const COLORS = {
+    // キャラクターメッセージ
+    CHARACTER_BG: 'rgba(75, 0, 130, 0.9)',
+    CHARACTER_BG_LOADING: 'rgba(75, 0, 130, 0.95)',
+    CHARACTER_TEXT: '#ffffff',
+    CHARACTER_HEADER_TEXT: 'rgba(255, 255, 255, 0.9)',
+    // ローディング
+    LOADING_TEXT: '#ffd700',
+    LOADING_SHADOW_PRIMARY: 'rgba(255, 215, 0, 0.3)',
+    LOADING_SHADOW_SECONDARY: 'rgba(138, 43, 226, 0.2)',
+    // モバイルヘッダー
+    MOBILE_HEADER_TEXT: '#ffffff',
+};
+
+// タイミング定数（ミリ秒）
+const TIMING = {
+    THINKING_REPLACE_DELAY: 200,
+    SCROLL_DELAY: 100,
+    FADE_IN_DELAY: 100,
+    SCROLL_REQUEST_DELAY: 200,
+};
+
+// メッセージタイプ定数
+const MESSAGE_TYPES = {
+    USER: 'user',
+    CHARACTER: 'character',
+    WELCOME: 'welcome',
+    ERROR: 'error',
+    LOADING: 'loading',
+};
+
+// CSS クラス名定数
+const CSS_CLASSES = {
+    MESSAGE: 'message',
+    LOADING_MESSAGE: 'loading-message',
+    MESSAGE_HEADER: 'message-header',
+    MESSAGE_TEXT: 'message-text',
+    THINKING: 'thinking',
+    VISIBLE: 'visible',
+    WELCOME: 'welcome',
+    MOBILE_CHARACTER_ICON: 'mobile-character-icon',
+    MOBILE_PROFILE_LINK: 'mobile-profile-link',
+    USER_STATUS_REGISTERED: 'user-status registered',
+};
+
+// デフォルト値定数
+const DEFAULTS = {
+    NICKNAME: '鑑定者',
+    DEITY: '未割当',
+    FALLBACK_CHARACTER: 'kaede',
+};
+
+// 正規表現パターン
+const PATTERNS = {
+    CARD_INFO: /【(過去|現在|未来)】([^\n]+)/g,
+    CARD_TAG: /【(過去|現在|未来)】[^\n]+\n?/g,
+    MULTIPLE_NEWLINES: /\n{3,}/g,
+    SUGGEST_TAROT_TAG: /\[SUGGEST_TAROT\]/g,
+};
+
 const ChatUI = {
     // DOM要素の参照
     messagesDiv: null,
@@ -34,50 +112,46 @@ const ChatUI = {
      * @param {Object} characterInfo - キャラクター情報
      */
     setCurrentCharacter(characterId, characterInfo) {
-        // #region agent log
-        console.log('🔍🔍🔍 [ChatUI.setCurrentCharacter]', {
+        debugLog('🔍🔍🔍 [ChatUI.setCurrentCharacter]', {
             引数のcharacterId: characterId,
             characterInfoが存在: !!characterInfo,
             characterInfoのキー: characterInfo ? Object.keys(characterInfo) : [],
             指定されたキャラクターが存在: characterInfo ? !!characterInfo[characterId] : false
         });
-        // #endregion
+        
+        if (!characterInfo || typeof characterInfo !== 'object') {
+            console.error('[ChatUI.setCurrentCharacter] characterInfoが無効です');
+            return;
+        }
         
         if (!characterInfo[characterId]) {
-            console.warn('[ChatUI.setCurrentCharacter] ⚠️ characterInfo[' + characterId + '] が存在しないため、kaedeにフォールバックします');
-            characterId = 'kaede';
+            console.warn(`[ChatUI.setCurrentCharacter] characterInfo[${characterId}] が存在しないため、${DEFAULTS.FALLBACK_CHARACTER}にフォールバックします`);
+            characterId = DEFAULTS.FALLBACK_CHARACTER;
+            if (!characterInfo[characterId]) {
+                console.error(`[ChatUI.setCurrentCharacter] フォールバック先 (${DEFAULTS.FALLBACK_CHARACTER}) も存在しません`);
+                return;
+            }
         }
         
         const info = characterInfo[characterId];
         
-        // PC版ヘッダー
         if (this.characterHeaderImage && this.characterHeaderName) {
             this.characterHeaderImage.src = info.image;
             this.characterHeaderImage.alt = info.name;
             this.characterHeaderName.textContent = info.name;
         }
         
-        // モバイル版ヘッダー
         if (this.mobileHeaderTitle) {
             this.mobileHeaderTitle.innerHTML = '';
-            
             const profileLink = document.createElement('a');
             profileLink.href = info.profileUrl;
-            profileLink.style.textDecoration = 'none';
-            profileLink.style.color = '#ffffff';
-            profileLink.style.display = 'flex';
-            profileLink.style.alignItems = 'center';
-            profileLink.style.justifyContent = 'center';
-            profileLink.style.gap = '8px';
-            
+            profileLink.className = CSS_CLASSES.MOBILE_PROFILE_LINK;
             const iconImg = document.createElement('img');
             iconImg.src = info.image;
             iconImg.alt = info.name;
-            iconImg.className = 'mobile-character-icon';
-            
+            iconImg.className = CSS_CLASSES.MOBILE_CHARACTER_ICON;
             const nameText = document.createElement('span');
             nameText.textContent = info.name;
-            
             profileLink.appendChild(iconImg);
             profileLink.appendChild(nameText);
             this.mobileHeaderTitle.appendChild(profileLink);
@@ -90,19 +164,18 @@ const ChatUI = {
      * @param {Object} userData - ユーザーデータ（オプション）
      */
     updateUserStatus(isRegistered, userData = null) {
-        if (!this.userStatus) return;
-        
-        // 【変更】現在はすべて登録済みユーザーのみなので、常に登録済みとして扱う
-        // userDataが提供されていない場合は、デフォルト値を表示
-        if (!userData) {
-            console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
-            this.userStatus.textContent = '鑑定名義: 鑑定者';
-            this.userStatus.className = 'user-status registered';
+        if (!this.userStatus) {
+            console.warn('[ChatUI.updateUserStatus] userStatus要素が見つかりません');
             return;
         }
-        
-        const nickname = userData.nickname || '鑑定者';
-        const deityId = userData.assignedDeity || '未割当';
+        if (!userData) {
+            console.warn('[ChatUI.updateUserStatus] userDataが提供されていません');
+            this.userStatus.textContent = `鑑定名義: ${DEFAULTS.NICKNAME}`;
+            this.userStatus.className = CSS_CLASSES.USER_STATUS_REGISTERED;
+            return;
+        }
+        const nickname = userData.nickname || DEFAULTS.NICKNAME;
+        const deityId = userData.assignedDeity || DEFAULTS.DEITY;
         const birthYear = userData.birthYear || null;
         const birthMonth = userData.birthMonth || null;
         const birthDay = userData.birthDay || null;
@@ -110,27 +183,27 @@ const ChatUI = {
         // 守護神名（データベースに日本語で保存されているのでそのまま使用）
         const deity = deityId;
         
-        let statusText = `�定名義: ${nickname}`;
+        let statusText = `鑑定名義: ${nickname}`;
         
         if (birthYear && birthMonth && birthDay) {
             statusText += ` ｜ 生年月日: ${birthYear}年${birthMonth}月${birthDay}日`;
         }
         
-        if (deity && deity !== '未割当') {
+        if (deity && deity !== DEFAULTS.DEITY) {
             statusText += ` ｜ 守護: ${deity}`;
         }
-        
         this.userStatus.textContent = statusText;
-        this.userStatus.className = 'user-status registered';
+        this.userStatus.className = CSS_CLASSES.USER_STATUS_REGISTERED;
     },
 
     /**
      * メッセージを追加
-     * @param {string} type - メッセージタイプ ('user', 'character', 'welcome', 'error', 'loading')
+     * @param {('user'|'character'|'welcome'|'error'|'loading')} type - メッセージタイプ
      * @param {string} text - メッセージテキスト
      * @param {string} sender - 送信者名
-     * @param {Object} options - オプション
-     * @returns {string} メッセージ要素のID
+     * @param {Object} [options={}] - オプション
+     * @param {string} [options.id] - メッセージID（指定しない場合は自動生成）
+     * @returns {string|null} メッセージ要素のID、または追加できなかった場合はnull
      */
     addMessage(type, text, sender, options = {}) {
         // 1. 入力値の検証
@@ -152,10 +225,10 @@ const ChatUI = {
         }
         
         // 2. 重複チェック（welcomeの場合）
-        if (type === 'welcome') {
-            const existingMessages = this.messagesDiv?.querySelectorAll('.message.welcome') || [];
+        if (type === MESSAGE_TYPES.WELCOME) {
+            const existingMessages = this.messagesDiv?.querySelectorAll(`.${CSS_CLASSES.MESSAGE}.${CSS_CLASSES.WELCOME}`) || [];
             const isDuplicate = Array.from(existingMessages).some(msg => {
-                const textDiv = msg.querySelector('.message-text');
+                const textDiv = msg.querySelector(`.${CSS_CLASSES.MESSAGE_TEXT}`);
                 return textDiv && textDiv.textContent === text;
             });
             
@@ -166,75 +239,49 @@ const ChatUI = {
         }
         
         // 3. メッセージ ID の生成
-        const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const messageId = options.id || `message-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         
         // 4. テキスト処理（タグの削除、カード情報の抽出など）
         let displayText = text;
-        const cardPattern = /【(過去|現在|未来)】([^\n]+)/g;
-        const hasCardInfo = cardPattern.test(text);
-        
+        PATTERNS.CARD_INFO.lastIndex = 0;
+        const hasCardInfo = PATTERNS.CARD_INFO.test(text);
         if (hasCardInfo) {
-            displayText = text.replace(/【(過去|現在|未来)】[^\n]+\n?/g, '').trim();
-            displayText = displayText.replace(/\n{3,}/g, '\n\n');
+            displayText = text.replace(PATTERNS.CARD_TAG, '').trim();
+            displayText = displayText.replace(PATTERNS.MULTIPLE_NEWLINES, '\n\n');
         }
-        
-        const displayTextWithoutTag = displayText.replace(/\[SUGGEST_TAROT\]/g, '');
+        const displayTextWithoutTag = displayText.replace(PATTERNS.SUGGEST_TAROT_TAG, '');
         
         // 5. messageDiv の作成
         const messageDiv = document.createElement('div');
         messageDiv.id = messageId;
         
         // type に応じたクラス設定
-        if (type === 'loading') {
-            messageDiv.className = 'message loading-message';
+        if (type === MESSAGE_TYPES.LOADING) {
+            messageDiv.className = `${CSS_CLASSES.MESSAGE} ${CSS_CLASSES.LOADING_MESSAGE}`;
         } else {
-            messageDiv.className = `message ${type}`;
+            messageDiv.className = `${CSS_CLASSES.MESSAGE} ${type}`;
         }
         
-        // 6. type 別のスタイル設定
-        if (type === 'character') {
-            messageDiv.style.background = 'rgba(75, 0, 130, 0.9)';
-            messageDiv.style.color = '#ffffff';
-        } else if (type === 'loading') {
-            messageDiv.style.background = 'rgba(75, 0, 130, 0.95)';
-            messageDiv.style.color = '#ffd700';
-            messageDiv.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2)';
-        }
-        
+        // 6. スタイルはCSSクラスで適用（chat-ui.css）
         // 7. ヘッダー（送信者名）の作成
         if (sender) {
             const headerDiv = document.createElement('div');
-            headerDiv.className = 'message-header';
+            headerDiv.className = CSS_CLASSES.MESSAGE_HEADER;
             headerDiv.textContent = sender;
-            
-            if (type === 'character') {
-                headerDiv.style.color = 'rgba(255, 255, 255, 0.9)';
-            } else if (type === 'loading') {
-                headerDiv.style.color = '#ffd700';
-                headerDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6)';
-            } else if (type === 'user') {
+            if (type === MESSAGE_TYPES.USER) {
                 headerDiv.style.color = '#b794ff';
             }
-            
             messageDiv.appendChild(headerDiv);
         }
         
         // 8. テキスト表示用の div を作成
         const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
+        textDiv.className = CSS_CLASSES.MESSAGE_TEXT;
         textDiv.textContent = displayTextWithoutTag;
-        
-        if (type === 'loading') {
-            textDiv.style.color = '#ffd700';
-            textDiv.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(138, 43, 226, 0.6), 0 0 30px rgba(255, 107, 157, 0.4)';
-            textDiv.style.textAlign = 'center';
-            textDiv.style.lineHeight = '1.8';
-        }
-        
         messageDiv.appendChild(textDiv);
         
         // 9. loading タイプの特殊処理
-        if (type === 'loading') {
+        if (type === MESSAGE_TYPES.LOADING) {
             // チャットコンテナに waiting-for-response クラスを追加
             const chatContainer = this.messagesDiv.closest('.chat-container');
             if (chatContainer) {
@@ -377,7 +424,7 @@ const ChatUI = {
                 top: this.messagesDiv.scrollHeight,
                 behavior: 'smooth'
             });
-        }, 100);
+        }, TIMING.SCROLL_DELAY);
     },
 
     /**
@@ -397,7 +444,7 @@ const ChatUI = {
         if (!this.messagesDiv) return null;
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message assistant welcome thinking';
+        messageDiv.className = `${CSS_CLASSES.MESSAGE} assistant ${CSS_CLASSES.WELCOME} ${CSS_CLASSES.THINKING}`;
         
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'message-avatar';
@@ -447,8 +494,7 @@ const ChatUI = {
         // [SUGGEST_TAROT]タグは削除しない
         // onMessageAddedで検出してボタンを表示するためのマーカーとして使用する
         const cleanedMessage = message;
-        
-        console.log('[ChatUI.replaceThinkingMessage] メッセージを置き換えます:', {
+        debugLog('[ChatUI.replaceThinkingMessage] メッセージを置き換えます:', {
             messageLength: cleanedMessage?.length || 0,
             hasContentDiv: !!contentDiv
         });
@@ -466,10 +512,10 @@ const ChatUI = {
             
             contentDiv.innerHTML = '';
             const textDiv = document.createElement('div');
-            textDiv.className = 'message-text';
+            textDiv.className = CSS_CLASSES.MESSAGE_TEXT;
             // [SUGGEST_TAROT]タグを表示テキストから削除（ユーザーには見えないようにする）
             // onMessageAddedには元のcleanedMessage（削除前）を渡すことで、検出できるようにする
-            const displayMessageWithoutTag = cleanedMessage.replace(/\[SUGGEST_TAROT\]/g, '');
+            const displayMessageWithoutTag = cleanedMessage.replace(PATTERNS.SUGGEST_TAROT_TAG, '');
             textDiv.textContent = displayMessageWithoutTag;
             contentDiv.appendChild(textDiv);
             contentDiv.style.opacity = '1';
@@ -494,12 +540,10 @@ const ChatUI = {
                 }
             }
             
-            // thinkingクラスを削除
-            thinkingElement.classList.remove('thinking');
-            
+            thinkingElement.classList.remove(CSS_CLASSES.THINKING);
             this.scrollToLatest();
-            console.log('[ChatUI.replaceThinkingMessage] メッセージの置き換えが完了しました');
-        }, 200);
+            debugLog('[ChatUI.replaceThinkingMessage] メッセージの置き換えが完了しました');
+        }, TIMING.THINKING_REPLACE_DELAY);
     },
 
     /**
@@ -510,179 +554,13 @@ const ChatUI = {
         if (!this.sendButton || !this.messageInput) return;
         
         if (this.messageInput.value.trim().length > 0) {
-            // 入力欄に文字がある → 送信ボタンを表示（いかなる場合でも）
-            this.sendButton.classList.add('visible');
+            this.sendButton.classList.add(CSS_CLASSES.VISIBLE);
             this.sendButton.disabled = false;
         } else {
-            // 入力欄が空 → 送信ボタンを非表示
-            this.sendButton.classList.remove('visible');
+            this.sendButton.classList.remove(CSS_CLASSES.VISIBLE);
         }
     },
 
-    /**
-     * 守護神の儀式への同意ボタンを表示（汎用関数）
-     * 注意: キャラクター固有のロジックはハンドラー側で処理されます
-     * 注意: ボタン要素はハンドラー側で動的に生成されます（HTMLには含めない）
-     */
-    showRitualConsentButtons(questionText = '守護神の儀式を始めますか？') {
-        // 既に表示されている、または一度表示された場合は表示しない
-        if (ChatData.ritualConsentShown) {
-            return;
-        }
-        
-        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
-        const ritualConsentQuestion = document.getElementById('ritualConsentQuestion');
-        
-        // 要素が存在しない場合は何もしない（ハンドラー側で事前に生成する必要がある）
-        if (!ritualConsentContainer) {
-            console.warn('[ChatUI] 守護神の儀式への同意ボタンが存在しません。ハンドラー側で事前に生成してください。');
-            return;
-        }
-        
-        // 既に表示されている場合は表示しない
-        if (ritualConsentContainer.classList.contains('visible')) {
-            return;
-        }
-        
-        // 質問テキストを設定（ハンドラーから渡されたテキストを使用）
-        if (ritualConsentQuestion) {
-            ritualConsentQuestion.textContent = questionText;
-        }
-        
-        ChatData.ritualConsentShown = true;
-        ritualConsentContainer.style.display = 'block';
-        requestAnimationFrame(() => {
-            ritualConsentContainer.classList.add('visible');
-        });
-    },
-
-    /**
-     * 守護神の儀式への同意ボタンを非表示
-     */
-    hideRitualConsentButtons() {
-        const ritualConsentContainer = document.getElementById('ritualConsentContainer');
-        if (ritualConsentContainer) {
-            ritualConsentContainer.classList.remove('visible');
-            setTimeout(() => {
-                ritualConsentContainer.style.display = 'none';
-            }, 500);
-        }
-    },
-
-    /**
-     * 守護神の儀式開始ボタンをメッセージの下に追加
-     * @param {HTMLElement} messageElement - メッセージ要素
-     * @param {Function} onClickHandler - ボタンクリック時のハンドラ
-     */
-    addRitualStartButton(messageElement, onClickHandler) {
-        console.log('[addRitualStartButton] 呼び出されました', { messageElement, hasOnClickHandler: !!onClickHandler });
-        if (!messageElement) {
-            console.error('[addRitualStartButton] messageElementがnullです');
-            return null;
-        }
-        
-        // 既にボタンが追加されている場合は削除
-        const existingButton = messageElement.querySelector('.ritual-start-button');
-        if (existingButton) {
-            console.log('[addRitualStartButton] 既存のボタンを削除します');
-            existingButton.remove();
-        }
-        
-        // ボタンコンテナを作成
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'ritual-start-button-container';
-        buttonContainer.style.marginTop = '15px';
-        buttonContainer.style.paddingTop = '15px';
-        buttonContainer.style.borderTop = '1px solid rgba(255, 255, 255, 0.2)';
-        
-        // ボタンを作成
-        const button = document.createElement('button');
-        button.className = 'ritual-start-button';
-        button.textContent = '守護神の儀式を始める';
-        button.style.cssText = `
-            width: 100%;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.3);
-        `;
-        
-        // ホバー効果
-        button.addEventListener('mouseenter', () => {
-            button.style.background = 'linear-gradient(135deg, #9B4DFF 0%, #7A1DBD 100%)';
-            button.style.boxShadow = '0 6px 16px rgba(139, 61, 255, 0.4)';
-            button.style.transform = 'translateY(-2px)';
-        });
-        button.addEventListener('mouseleave', () => {
-            button.style.background = 'linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%)';
-            button.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.3)';
-            button.style.transform = 'translateY(0)';
-        });
-        
-        // クリックハンドラ
-        button.addEventListener('click', async () => {
-            button.disabled = true;
-            button.textContent = '儀式を開始しています...';
-            button.style.opacity = '0.7';
-            button.style.cursor = 'wait';
-            
-            try {
-                await onClickHandler();
-            } catch (error) {
-                console.error('[守護神の儀式] 開始エラー:', error);
-                button.disabled = false;
-                button.textContent = '守護神の儀式を始める';
-                button.style.opacity = '1';
-                button.style.cursor = 'pointer';
-                ChatUI.addMessage('error', '守護神の儀式の開始中にエラーが発生しました。もう一度お試しください。', 'システム');
-            }
-        });
-        
-        buttonContainer.appendChild(button);
-        messageElement.appendChild(buttonContainer);
-        console.log('[addRitualStartButton] ボタンを追加しました', { messageElement, buttonContainer, button });
-        
-        // スクロールを最新に
-        requestAnimationFrame(() => {
-            this.scrollToLatest();
-        });
-        
-        return button;
-    },
-
-    /**
-     * 守護神の儀式開始ボタンが表示されているかチェック
-     * @returns {boolean} ボタンが表示されているか
-     */
-    isRitualStartButtonVisible() {
-        // 非表示になっているボタンは除外
-        const button = document.querySelector('.ritual-start-button');
-        if (!button) return false;
-        
-        // display: none が設定されていない、かつdisabledでないボタンを探す
-        const visibleButton = Array.from(document.querySelectorAll('.ritual-start-button')).find(btn => {
-            const style = window.getComputedStyle(btn);
-            return style.display !== 'none' && !btn.disabled;
-        });
-        
-        return visibleButton !== undefined;
-    },
-
-    /**
-     * 守護神の儀式開始ボタンを再表示（メッセージ送信時に呼ばれる）
-     * 注意: この関数は削除されました。必要に応じてハンドラー側で処理してください。
-     * @deprecated この関数は削除されました。ハンドラー側で処理してください。
-     */
-    showRitualStartPrompt() {
-        // この関数は削除されました。ハンドラー側で処理してください。
-        console.warn('[chat-ui] showRitualStartPrompt()は削除されました。ハンドラー側で処理してください。');
-    }
 };
 
 // グローバルスコープに公開（iframeからアクセスできるようにする）
