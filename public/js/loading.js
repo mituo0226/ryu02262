@@ -47,7 +47,10 @@
     
     try {
         // API呼び出し
-        const response = await fetch('/api/consult', {
+        // URLの完全なパスを構築（ドメインを含める）
+        const apiUrl = `${window.location.origin}/api/consult`;
+        
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
