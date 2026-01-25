@@ -1499,6 +1499,11 @@
       sendTestMessage.textContent = '⏳ 送信中...';
 
       try {
+        // ✅ テストモードを開始（タイムライン記録を有効化）
+        window._testMode = true;
+        window._debugTimeline = [];
+        window._timelineStartTime = Date.now();
+        
         // チャットをクリア
         clearTestChat();
         
@@ -1517,6 +1522,7 @@
         testChatContainer.appendChild(loadingDiv);
 
         // API呼び出し
+        const apiStartTime = Date.now();
         const response = await fetch('/api/consult', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1527,6 +1533,7 @@
             nickname: '【管理テスト用】'
           })
         });
+        const apiEndTime = Date.now();
 
         const data = await response.json();
 
@@ -1538,13 +1545,111 @@
         } else {
           addTestChatMessage('character', data.message || data.response || '応答を取得できませんでした');
         }
+        
+        // ✅ タイムライン結果を表示
+        displayTimeline(apiStartTime, apiEndTime);
+        window._testMode = false;
+        
       } catch (error) {
         addTestChatMessage('system', `エラーが発生しました: ${error.message}`);
+        window._testMode = false;
       } finally {
         sendTestMessage.disabled = false;
         sendTestMessage.textContent = '📤 メッセージ送信';
       }
     });
+    
+    // ✅ タイムライン表示関数
+    function displayTimeline(apiStartTime, apiEndTime) {
+      const timeline = window._debugTimeline || [];
+      
+      let html = `
+        <div style="margin-top: 24px; padding: 20px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 10px;">
+          <h3 style="margin: 0 0 12px; font-size: 16px; color: #d6c9ff;">📊 API実行タイムライン</h3>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div style="padding: 12px; background: rgba(138, 43, 226, 0.2); border-radius: 8px;">
+              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">API実行時間</div>
+              <div style="font-size: 18px; font-weight: 700; color: #d6c9ff;">${apiEndTime - apiStartTime}ms</div>
+            </div>
+            <div style="padding: 12px; background: rgba(138, 43, 226, 0.2); border-radius: 8px;">
+              <div style="font-size: 12px; color: #9da2c6; margin-bottom: 4px;">ログエントリ数</div>
+              <div style="font-size: 18px; font-weight: 700; color: #d6c9ff;">${timeline.length}</div>
+            </div>
+          </div>
+          
+          <div style="max-height: 400px; overflow-y: auto; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">時刻</th>
+                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">経過</th>
+                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">ソース</th>
+                  <th style="text-align: left; padding: 8px; color: #c7cdff; font-weight: 600;">メッセージ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${timeline.map((entry, idx) => `
+                  <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); ${idx % 2 === 0 ? 'background: rgba(138, 43, 226, 0.05);' : ''}">
+                    <td style="padding: 6px 8px; color: #81c784;">${entry.timestamp}</td>
+                    <td style="padding: 6px 8px; color: #64b5f6;">${entry.elapsed}</td>
+                    <td style="padding: 6px 8px; color: #ffb74d; font-weight: 500;">${entry.source}</td>
+                    <td style="padding: 6px 8px; color: #e0e0e0; word-break: break-all;">${entry.message.substring(0, 80)}${entry.message.length > 80 ? '...' : ''}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <button onclick="window._copyTimeline && window._copyTimeline()" style="padding: 8px 14px; background: rgba(76, 175, 80, 0.2); border: 1px solid rgba(76, 175, 80, 0.4); border-radius: 6px; color: #81c784; cursor: pointer; font-size: 12px; font-weight: 500;">
+              📋 全データをコピー
+            </button>
+            <button onclick="window._exportTimeline && window._exportTimeline()" style="padding: 8px 14px; background: rgba(76, 175, 80, 0.2); border: 1px solid rgba(76, 175, 80, 0.4); border-radius: 6px; color: #81c784; cursor: pointer; font-size: 12px; font-weight: 500;">
+              💾 JSONとしてエクスポート
+            </button>
+          </div>
+        </div>
+      `;
+      
+      testChatContainer.insertAdjacentHTML('afterend', html);
+    }
+    
+    // ✅ タイムラインをコピーする関数
+    window._copyTimeline = function() {
+      const timeline = window._debugTimeline || [];
+      const text = timeline.map(entry => 
+        `[${entry.timestamp}] (${entry.elapsed}) ${entry.source}: ${entry.message}`
+      ).join('\n');
+      
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✅ タイムラインをコピーしました');
+      }).catch(() => {
+        // フォールバック
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('✅ タイムラインをコピーしました');
+      });
+    };
+    
+    // ✅ タイムラインをJSONでエクスポート
+    window._exportTimeline = function() {
+      const timeline = window._debugTimeline || [];
+      const json = JSON.stringify(timeline, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `timeline-${new Date().toISOString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
 
     // ============================================
     // 待機画面テスト機能（現在のコードをそのまま使用）

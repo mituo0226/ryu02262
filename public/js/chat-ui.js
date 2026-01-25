@@ -16,6 +16,10 @@ const DEBUG_MODE = true; // デバッグ用: 問題追跡中のため有効化
  */
 function debugLog(...args) {
     if (DEBUG_MODE) {
+        const message = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+        if (typeof addToTimeline === 'function') {
+            addToTimeline('chat-ui.js', message);
+        }
         console.log(...args);
     }
 }

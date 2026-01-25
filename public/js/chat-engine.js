@@ -17,12 +17,39 @@
 // ============================================
 const DEBUG_MODE = true; // デバッグ用: 問題追跡中のため有効化
 
+// ============================================
+// タイムライン記録機能
+// ============================================
+if (!window._debugTimeline) {
+    window._debugTimeline = [];
+    window._timelineStartTime = Date.now();
+    window._testMode = false; // テストモードフラグ
+}
+
+/**
+ * タイムラインにエントリを追加
+ * @param {string} source - ログソース（chat-engine.js など）
+ * @param {string} message - ログメッセージ
+ */
+function addToTimeline(source, message) {
+    if (!window._testMode) return; // テストモード時のみ記録
+    
+    const elapsed = Date.now() - window._timelineStartTime;
+    window._debugTimeline.push({
+        timestamp: new Date().toLocaleTimeString('ja-JP', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 }),
+        elapsed: `${elapsed}ms`,
+        source: source,
+        message: typeof message === 'string' ? message : JSON.stringify(message)
+    });
+}
+
 /**
  * デバッグログ出力（本番では無効化）
  * @param {...any} args - console.logに渡す引数
  */
 function debugLog(...args) {
     if (DEBUG_MODE) {
+        addToTimeline('debugLog', message);
         console.log(...args);
     }
 }
@@ -2793,7 +2820,6 @@ const ChatInit = {
         // エラー時にもフラグをリセットするためにtry-finallyを使用
         // waitingMessageIdを関数スコープで宣言（catchブロックからもアクセスできるように）
         let waitingMessageId = null;
-        let loadingStartTime = null;  // 最低表示時間を計算するため
         
         try {
             // タロットカード解説トリガーマーカーを検出
@@ -2971,8 +2997,9 @@ const ChatInit = {
             
             if (!waitingMessageId) {
                 try {
-                    loadingStartTime = Date.now();  // 開始時刻を記録
+                    debugLog('[デバッグ5] デフォルト待機画面を作成します');
                     waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
+                    debugLog('[デバッグ6] 待機画面作成完了:', waitingMessageId);
                 } catch (uiError) {
                     console.error('[エラー] addMessage実行中にエラー:', uiError);
                 }
@@ -3084,35 +3111,20 @@ const ChatInit = {
                     if (waitingMessageId) {
                         const waitingElement = document.getElementById(waitingMessageId);
                         if (waitingElement && waitingElement.parentNode) {
-                            // タイマーをクリア
-                            if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
-                                window.ChatUI.clearLoadingMessageTimers(waitingElement);
+                            // 注意: clearLoadingMessageTimers を呼ばない
+                            // (タイマーをクリアするとテキスト変更が見えなくなる)
+                            
+                            // チャットウィンドウのアニメーションを解除
+                            const messagesDiv = window.ChatUI.messagesDiv;
+                            if (messagesDiv && messagesDiv.parentElement) {
+                                const chatContainer = messagesDiv.closest('.chat-container');
+                                if (chatContainer) {
+                                    chatContainer.classList.remove('waiting-for-response');
+                                }
                             }
                             
-                            // 最低表示時間を計算
-                            const MIN_DISPLAY_TIME = 3000; // 3秒
-                            const elapsedTime = loadingStartTime ? (Date.now() - loadingStartTime) : 0;
-                            const remainingTime = Math.max(0, MIN_DISPLAY_TIME - elapsedTime);
-                            
-                            // 残り時間だけ待ってから削除
-                            setTimeout(() => {
-                                if (waitingElement && waitingElement.parentNode) {
-                                    // チャットウィンドウのアニメーションを解除
-                                    const messagesDiv = window.ChatUI.messagesDiv;
-                                    if (messagesDiv && messagesDiv.parentElement) {
-                                        const chatContainer = messagesDiv.closest('.chat-container');
-                                        if (chatContainer) {
-                                            chatContainer.classList.remove('waiting-for-response');
-                                        }
-                                    }
-                                    
-                                    // 要素を削除
-                                    waitingElement.remove();
-                                    
-                                    // クリーンアップ
-                                    loadingStartTime = null;
-                                }
-                            }, remainingTime);
+                            // 要素を削除
+                            waitingElement.remove();
                         }
                     }
                 }
