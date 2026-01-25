@@ -104,12 +104,14 @@ const YukinoHandler = {
     },
 
     /**
-     * API応答受信後の処理（メッセージ表示前）
+     * API応答受信後の処理
      * @param {string} waitingMessageId - 待機メッセージのID
+     * @returns {boolean} true: 待機画面処理は完了、false: 共通処理で削除
      */
     onResponseReceived(waitingMessageId) {
-        // 待機画面はchat-engine.jsで管理されるため、ここでは何もしない
-        console.log('[雪乃ハンドラー] API応答受信');
+        // 待機画面は共通処理で削除される
+        console.log('[雪乃ハンドラー] API応答受信 - 共通処理に委譲');
+        return false;  // false を返すと、共通処理で削除される
     },
 
     /**

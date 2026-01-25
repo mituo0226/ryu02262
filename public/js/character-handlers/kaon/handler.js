@@ -37,6 +37,16 @@ class KaonHandler extends window.BaseCharacterHandler {
     }
 
     /**
+     * API応答受信後の処理
+     * @param {string} waitingMessageId - 待機メッセージのID
+     * @returns {boolean} true: 待機画面処理は完了、false: 共通処理で削除
+     */
+    onResponseReceived(waitingMessageId) {
+        console.log('[三崎花音ハンドラー] API応答受信 - 共通処理に委譲');
+        return false;  // false を返すと、共通処理で削除される
+    }
+
+    /**
      * API レスポンス受信後の処理
      * @param {Object} response - API レスポンス
      * @param {string} character - キャラクターID

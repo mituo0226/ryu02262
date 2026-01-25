@@ -29,15 +29,12 @@ class BaseCharacterHandler {
 
     /**
      * API レスポンス受信後の処理
-     * @param {Object} response - API レスポンス
-     * @param {string} character - キャラクターID
-     * @returns {boolean} 処理が完了したか（true: ハンドラーで処理済み、false: 共通処理を続行）
+     * @param {string} waitingMessageId - 待機メッセージのID
+     * @returns {boolean} true: 待機画面処理は完了、false: 共通処理で削除
      */
-    async handleResponse(response, character) {
-        if (character !== this.characterId) {
-            return false; // このキャラクター以外は処理しない
-        }
-        return false; // 共通処理を続行
+    onResponseReceived(waitingMessageId) {
+        console.log(`[${this.characterName}ハンドラー] API応答受信`);
+        return false;  // デフォルトは共通処理に委譲
     }
 
     /**
