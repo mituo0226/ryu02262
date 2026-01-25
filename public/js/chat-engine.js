@@ -2973,49 +2973,15 @@ const ChatInit = {
                 sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
             }
             
-            // reading-animation.htmlへの遷移をスキップし、チャット画面で直接APIリクエストを送信
-            // ハンドラーから待機画面のIDを取得（ハンドラーが独自の待機画面を表示する場合）
-            // 注意: waitingMessageIdは関数の先頭（1305行目付近）で既に宣言済み
-            let handler = CharacterRegistry.get(character);
-            debugLog('[デバッグ1] handler取得完了:', !!handler); // ← デバッグログ追加
+            // 待機画面に遷移
+            const loadingParams = new URLSearchParams({
+                character: character,
+                userId: userId,
+                message: encodeURIComponent(messageToSend)
+            });
             
-            if (handler && typeof handler.beforeMessageSent === 'function') {
-                try {
-                    const beforeResult = handler.beforeMessageSent(messageToSend);
-                    debugLog('[デバッグ2] beforeMessageSent実行完了:', beforeResult); // ← デバッグログ追加
-                    if (beforeResult && beforeResult.waitingMessageId) {
-                        waitingMessageId = beforeResult.waitingMessageId;
-                        debugLog('[ChatEngine] ハンドラーから待機画面IDを取得:', waitingMessageId);
-                    }
-                } catch (handlerError) {
-                    console.error('[エラー] beforeMessageSent実行中にエラー:', handlerError); // ← エラーキャッチ追加
-                }
-            }
-            
-            // ハンドラーが待機画面を表示しない場合は、デフォルトのローディングメッセージを表示
-            debugLog('[デバッグ3] waitingMessageId確認:', waitingMessageId); // ← デバッグログ追加
-            debugLog('[デバッグ4] ChatUI確認:', !!window.ChatUI, '関数確認:', typeof window.ChatUI?.addMessage); // ← デバッグログ追加
-            
-            if (!waitingMessageId) {
-                try {
-                    debugLog('[デバッグ5] デフォルト待機画面を作成します');
-                    waitingMessageId = window.ChatUI.addMessage('loading', '返信が来るまでお待ちください。', null);
-                    debugLog('[デバッグ6] 待機画面作成完了:', waitingMessageId);
-                } catch (uiError) {
-                    console.error('[エラー] addMessage実行中にエラー:', uiError);
-                }
-            }
-            
-            // ハンドラーのonMessageSentを呼び出す
-            debugLog('[デバッグ7] onMessageSent確認:', typeof handler?.onMessageSent); // ← デバッグログ追加
-            if (handler && typeof handler.onMessageSent === 'function') {
-                try {
-                    handler.onMessageSent(waitingMessageId);
-                    debugLog('[デバッグ8] onMessageSent実行完了'); // ← デバッグログ追加
-                } catch (onMessageError) {
-                    console.error('[エラー] onMessageSent実行中にエラー:', onMessageError); // ← エラーキャッチ追加
-                }
-            }
+            window.location.href = `/pages/loading/loading.html?${loadingParams}`;
+            return; // 処理を終了
             
             // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
@@ -3093,42 +3059,6 @@ const ChatInit = {
                 
                 // APIリクエストを送信
                 const response = await ChatAPI.sendMessage(messageToSend, character, conversationHistory, options);
-                
-                // ハンドラーのonResponseReceivedを呼び出す（待機画面を非表示にする）
-                const handlerForResponse = CharacterRegistry.get(character);
-                let handlerProcessed = false;
-                
-                if (handlerForResponse && typeof handlerForResponse.onResponseReceived === 'function') {
-                    try {
-                        handlerProcessed = handlerForResponse.onResponseReceived(waitingMessageId);
-                        debugLog('[ChatEngine] ハンドラーが待機画面処理を完了:', handlerProcessed);
-                    } catch (error) {
-                        console.error('[ChatEngine] onResponseReceived エラー:', error);
-                    }
-                }
-                
-                // ハンドラーが処理していない場合のみ、共通処理で削除
-                if (!handlerProcessed) {
-                    if (waitingMessageId) {
-                        const waitingElement = document.getElementById(waitingMessageId);
-                        if (waitingElement && waitingElement.parentNode) {
-                            // 注意: clearLoadingMessageTimers を呼ばない
-                            // (タイマーをクリアするとテキスト変更が見えなくなる)
-                            
-                            // チャットウィンドウのアニメーションを解除
-                            const messagesDiv = window.ChatUI.messagesDiv;
-                            if (messagesDiv && messagesDiv.parentElement) {
-                                const chatContainer = messagesDiv.closest('.chat-container');
-                                if (chatContainer) {
-                                    chatContainer.classList.remove('waiting-for-response');
-                                }
-                            }
-                            
-                            // 要素を削除
-                            waitingElement.remove();
-                        }
-                    }
-                }
                 
                 // 応答を処理
                 if (response.error) {
@@ -4147,6 +4077,41 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // 重複実行を防ぐ: 既に実行中または完了している場合はスキップ
     if (!ChatInit._initPageRunning && !ChatInit._initPageCompleted) {
+        // ========== 追加開始 ==========
+        // sessionStorageからAPIレスポンスをチェック
+        const apiResponse = sessionStorage.getItem('apiResponse');
+        const userMessage = sessionStorage.getItem('userMessage');
+        
+        if (apiResponse && userMessage) {
+            try {
+                const data = JSON.parse(apiResponse);
+                
+                // ユーザーメッセージを表示
+                if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                    window.ChatUI.addMessage('user', userMessage, 'あなた');
+                }
+                
+                // キャラクターの返答を表示
+                if (data.response) {
+                    const character = getUrlParams().get('character');
+                    const characterName = getCharacterDisplayName(character);
+                    if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+                        window.ChatUI.addMessage('character', data.response, characterName);
+                    }
+                }
+                
+                // sessionStorageをクリア
+                sessionStorage.removeItem('apiResponse');
+                sessionStorage.removeItem('userMessage');
+                
+            } catch (error) {
+                console.error('[Chat] APIレスポンスの処理エラー:', error);
+                sessionStorage.removeItem('apiResponse');
+                sessionStorage.removeItem('userMessage');
+            }
+        }
+        // ========== 追加終了 ==========
+        
         await ChatInit.initPage();
     } else {
         debugLog('[chat-engine] initPageは既に実行中または完了しているため、スキップします');
@@ -4762,4 +4727,17 @@ function showYukinoRegistrationButtons() {
     } else {
         console.error('[雪乃登録ボタン] ⚠️ window.ChatUI.messagesDiv が見つかりません');
     }
+}
+
+/**
+ * キャラクター表示名を取得
+ */
+function getCharacterDisplayName(characterId) {
+    const characterNames = {
+        'kaede': '楓',
+        'sora': '水野ソラ',
+        'yukino': '雪乃',
+        'kaon': '三崎花音'
+    };
+    return characterNames[characterId] || 'キャラクター';
 }
