@@ -1435,7 +1435,15 @@
             'X-Admin-Token': currentToken
           },
           body: JSON.stringify({
-            action: 'create_or_get'
+            action: 'create_or_get',
+            // テストユーザー情報
+            nickname: 'テストみつお',
+            birthYear: 1962,
+            birthMonth: 2,
+            birthDay: 26,
+            gender: '男性',
+            passphrase: 'テスト用合言葉',
+            guardian: '大国主命'  // デフォルトの守護神を設定
           })
         });
 
@@ -1443,6 +1451,7 @@
         if (data.success && data.testUserId) {
           testUserId = data.testUserId;
           console.log('[✓] テスト用ユーザーを初期化しました:', testUserId);
+          console.log('[✓] ユーザー情報:', { nickname: 'テストみつお', birth: '1962/2/26' });
         } else {
           console.error('[エラー] テスト用ユーザーの初期化に失敗:', data);
         }
