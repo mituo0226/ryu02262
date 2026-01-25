@@ -3081,34 +3081,26 @@ const ChatInit = {
                 
                 // ハンドラーが処理していない場合のみ、共通処理で削除
                 if (!handlerProcessed) {
-                    debugLog('[ChatEngine] 共通処理で待機画面を削除します (遅延: 500ms)');
-                    
-                    // 短い遅延を入れて、タイマーの完全なクリアを待つ
                     if (waitingMessageId) {
-                        setTimeout(() => {
-                            const waitingElement = document.getElementById(waitingMessageId);
-                            if (waitingElement && waitingElement.parentNode) {
-                                debugLog('[ChatEngine] 待機画面を削除中...');
-                                
-                                // タイマーをクリア
-                                if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
-                                    window.ChatUI.clearLoadingMessageTimers(waitingElement);
-                                }
-                                
-                                // チャットウィンドウのアニメーションを解除
-                                const messagesDiv = window.ChatUI.messagesDiv;
-                                if (messagesDiv && messagesDiv.parentElement) {
-                                    const chatContainer = messagesDiv.closest('.chat-container');
-                                    if (chatContainer) {
-                                        chatContainer.classList.remove('waiting-for-response');
-                                    }
-                                }
-                                
-                                // 要素を削除
-                                waitingElement.remove();
-                                debugLog('[ChatEngine] 待機画面を削除完了');
+                        const waitingElement = document.getElementById(waitingMessageId);
+                        if (waitingElement && waitingElement.parentNode) {
+                            // タイマーをクリア
+                            if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
+                                window.ChatUI.clearLoadingMessageTimers(waitingElement);
                             }
-                        }, 500);  // 500ms後に削除（タイマーがクリアされる時間を確保）
+                            
+                            // チャットウィンドウのアニメーションを解除
+                            const messagesDiv = window.ChatUI.messagesDiv;
+                            if (messagesDiv && messagesDiv.parentElement) {
+                                const chatContainer = messagesDiv.closest('.chat-container');
+                                if (chatContainer) {
+                                    chatContainer.classList.remove('waiting-for-response');
+                                }
+                            }
+                            
+                            // 要素を削除
+                            waitingElement.remove();
+                        }
                     }
                 }
                 
@@ -3182,8 +3174,14 @@ const ChatInit = {
                 if (waitingMessageId) {
                     const finalCheck = document.getElementById(waitingMessageId);
                     if (finalCheck) {
+                        // タイマーをクリア
+                        if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
+                            window.ChatUI.clearLoadingMessageTimers(finalCheck);
+                        }
+                        // 要素を削除
                         finalCheck.remove();
                     }
+                    
                     // チャットウィンドウのアニメーションを確実に解除
                     const messagesDiv = window.ChatUI.messagesDiv;
                     if (messagesDiv && messagesDiv.parentElement) {
