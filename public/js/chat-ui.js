@@ -334,27 +334,8 @@ const ChatUI = {
             }
         }
         
-        // テキストに揺れ効果を適用
+        // テキストに揺れ効果を適用（CSSで上書きされますが、フォールバックとして機能）
         textDiv.style.animation = 'subtle-shimmer 3s ease-in-out infinite';
-        
-        // テキスト揺れアニメーション用の style タグを追加（まだ存在しない場合）
-        if (!document.getElementById('loading-message-animation-styles')) {
-            const style = document.createElement('style');
-            style.id = 'loading-message-animation-styles';
-            style.textContent = `
-                @keyframes subtle-shimmer {
-                    0%, 100% {
-                        transform: translateY(0px);
-                        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(138, 43, 226, 0.2);
-                    }
-                    50% {
-                        transform: translateY(2px);
-                        text-shadow: 0 0 25px rgba(255, 215, 0, 0.7), 0 0 50px rgba(138, 43, 226, 0.3);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
         
         // タイマーを保存する配列
         const timers = [];

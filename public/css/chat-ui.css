@@ -36,3 +36,41 @@
 .message.loading-message .message-header {
     color: #ffd700;
 }
+
+/* ============================================
+   ローディングメッセージのアニメーション
+   ============================================ */
+
+/* 幻想的な揺れ効果 */
+@keyframes subtle-shimmer {
+    0%, 100% {
+        transform: translateY(0px);
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(138, 43, 226, 0.2);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-2px);
+        text-shadow: 0 0 25px rgba(255, 215, 0, 0.7), 0 0 50px rgba(138, 43, 226, 0.3);
+        opacity: 0.9;
+    }
+}
+
+/* ローディングメッセージのテキストにアニメーション適用 */
+.message.loading-message .message-text {
+    animation: subtle-shimmer 3s ease-in-out infinite;
+    transition: opacity 0.8s ease-in-out;
+}
+
+/* 追加の視覚効果: 背景のパルス */
+@keyframes background-pulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(138, 43, 226, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(138, 43, 226, 0.4);
+    }
+}
+
+.message.loading-message {
+    animation: background-pulse 4s ease-in-out infinite;
+}
