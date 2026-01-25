@@ -1,11 +1,1 @@
 * text eol=lf
-
-# バイナリファイルは自動行末処理を無効化
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.gif binary
-*.mp4 binary
-*.webm binary
-*.woff binary
-*.woff2 binary
