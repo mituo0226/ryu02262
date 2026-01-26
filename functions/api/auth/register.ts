@@ -116,6 +116,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     
     // データベースエラーの詳細を確認
     let errorMessage = 'ユーザー登録中にエラーが発生しました。';
+    let errorDetail = '';
     if (error instanceof Error) {
       // UNIQUE制約違反の場合の処理
       if (error.message.includes('UNIQUE constraint') || error.message.includes('UNIQUE constraint failed')) {
@@ -126,10 +127,17 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
         );
       }
       console.error('[register] エラー詳細:', error.message);
+      errorDetail = error.message;
+    }
+    
+    // 開発環境ではエラー詳細を返す
+    const responseBody: any = { error: errorMessage };
+    if (errorDetail) {
+      responseBody.detail = errorDetail;
     }
     
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify(responseBody),
       { status: 500, headers }
     );
   }

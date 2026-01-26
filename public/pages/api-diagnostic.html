@@ -59,6 +59,9 @@
                     log('✓ 成功: ユーザーID = ' + data.userId);
                 } else {
                     log('✗ エラー: ' + (data.error || 'Unknown error'));
+                    if (data.detail) {
+                        log('詳細: ' + data.detail);
+                    }
                 }
                 
                 log('');
