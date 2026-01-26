@@ -42,7 +42,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     }
 
     // まず、ニックネーム・生年月日の完全一致をチェック
-    const existingUser = await env.DB.prepare<{ id: number; nickname: string; birth_year: number; birth_month: number; birth_day: number }>(
+    const existingUser = await env['06293a91-a8c7-4bd2-9a5f-636c844ac9ff'].prepare<{ id: number; nickname: string; birth_year: number; birth_month: number; birth_day: number }>(
       'SELECT id, nickname, birth_year, birth_month, birth_day FROM users WHERE nickname = ? AND birth_year = ? AND birth_month = ? AND birth_day = ?'
     )
       .bind(trimmedNickname, birthYear, birthMonth, birthDay)
@@ -59,7 +59,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     }
 
     // ニックネームだけの重複チェック（生年月日が異なる場合）
-    const duplicateNickname = await env.DB.prepare<{ id: number; nickname: string; birth_year: number; birth_month: number; birth_day: number }>(
+    const duplicateNickname = await env['06293a91-a8c7-4bd2-9a5f-636c844ac9ff'].prepare<{ id: number; nickname: string; birth_year: number; birth_month: number; birth_day: number }>(
       'SELECT id, nickname, birth_year, birth_month, birth_day FROM users WHERE nickname = ?'
     )
       .bind(trimmedNickname)
@@ -81,7 +81,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
     // user_type: 'guest' - ニックネーム・生年月日・性別のみを登録したユーザー（デフォルト）
     const userType = 'guest';
     
-    const result = await env.DB.prepare(
+    const result = await env['06293a91-a8c7-4bd2-9a5f-636c844ac9ff'].prepare(
       `INSERT INTO users (
         nickname,
         birth_year,
