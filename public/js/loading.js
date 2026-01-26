@@ -49,6 +49,8 @@
         // API呼び出し
         // URLの完全なパスを構築（ドメインを含める）
         const apiUrl = `${window.location.origin}/api/consult`;
+        console.log('[Loading] APIを呼び出します:', apiUrl);
+        console.log('[Loading] リクエストパラメータ:', { message: decodeURIComponent(message), character, userId });
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -62,11 +64,15 @@
             })
         });
         
+        console.log('[Loading] APIレスポンスステータス:', response.status);
+        
         if (!response.ok) {
-            throw new Error('API呼び出しに失敗しました');
+            console.error('[Loading] APIエラー - ステータス:', response.status, 'テキスト:', response.statusText);
+            throw new Error(`API呼び出しに失敗しました (ステータス: ${response.status})`);
         }
         
         const data = await response.json();
+        console.log('[Loading] APIレスポンスデータ:', data);
         
         // レスポンスをsessionStorageに保存
         sessionStorage.setItem('apiResponse', JSON.stringify(data));
@@ -76,20 +82,26 @@
         clearInterval(textChangeInterval);
         
         // チャット画面に戻る
+        console.log('[Loading] チャット画面に遷移します');
         window.location.href = `/pages/chat/chat.html?character=${character}&userId=${userId}`;
         
     } catch (error) {
         console.error('[Loading] API呼び出しエラー:', error);
+        console.error('[Loading] エラーメッセージ:', error.message);
+        console.error('[Loading] エラースタック:', error.stack);
         
         // テキスト変更を停止
         clearInterval(textChangeInterval);
         
         // エラーメッセージを表示
-        textElement.textContent = 'エラーが発生しました。もう一度お試しください。';
+        textElement.textContent = `エラーが発生しました: ${error.message}`;
         textElement.style.color = '#ff6b6b';
+        
+        console.log('[Loading] エラーメッセージを表示しました。3秒後にチャット画面に戻ります');
         
         // 3秒後にチャット画面に戻る
         setTimeout(() => {
+            console.log('[Loading] チャット画面に戻ります');
             window.location.href = `/pages/chat/chat.html?character=${character}&userId=${userId}`;
         }, 3000);
     }
