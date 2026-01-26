@@ -41,11 +41,13 @@ const LoadingManager = {
                 const chatContainer = messagesDiv.closest('.chat-container');
                 if (chatContainer) {
                     chatContainer.classList.add('waiting-for-response');
+                    console.log('[LoadingManager] waiting-for-response クラスを追加しました');
                     
                     // 5秒後にアニメーションを段階的に強化
                     const timer1 = setTimeout(() => {
                         if (chatContainer && this.currentLoadingMessageId) {
                             chatContainer.classList.add('waiting-extended');
+                            console.log('[LoadingManager] 5秒経過：waiting-extended クラスを追加しました');
                         }
                     }, 5000);
                     
@@ -53,6 +55,7 @@ const LoadingManager = {
                     const timer2 = setTimeout(() => {
                         if (chatContainer && this.currentLoadingMessageId) {
                             chatContainer.classList.add('waiting-extended-max');
+                            console.log('[LoadingManager] 10秒経過：waiting-extended-max クラスを追加しました');
                         }
                     }, 10000);
                     
