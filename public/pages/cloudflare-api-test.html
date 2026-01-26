@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Pages API テスト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h2::before {
+            content: '🔧';
+            font-size: 20px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        input, textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        input {
+            flex: 1;
+            min-width: 200px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
+        }
+        .output {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .output.success {
+            border-color: #4caf50;
+            background: #f1f8f6;
+            color: #2e7d32;
+        }
+        .output.error {
+            border-color: #f44336;
+            background: #fdf0f0;
+            color: #c62828;
+        }
+        .output.loading {
+            border-color: #ff9800;
+            background: #fff3f0;
+            color: #e65100;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .status-badge.success {
+            background: #4caf50;
+            color: white;
+        }
+        .status-badge.error {
+            background: #f44336;
+            color: white;
+        }
+        .status-badge.loading {
+            background: #ff9800;
+            color: white;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #1565c0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Cloudflare Pages API テスト</h1>
+            <p>本番環境のAPIに直接アクセスしてD1データベース接続を確認</p>
+        </header>
+
+        <div class="content">
+            <!-- セクション1: ユーザー登録テスト -->
+            <div class="section">
+                <h2>ユーザー登録テスト (/api/auth/register)</h2>
+                <div class="input-group">
+                    <input type="text" id="register-nickname" placeholder="ニックネーム" value="TestUser">
+                    <input type="number" id="register-year" placeholder="生年" value="2000" min="1900" max="2100">
+                </div>
+                <div class="input-group">
+                    <input type="number" id="register-month" placeholder="月" value="1" min="1" max="12">
+                    <input type="number" id="register-day" placeholder="日" value="1" min="1" max="31">
+                </div>
+                <div class="button-group">
+                    <button onclick="testRegister()">登録実行</button>
+                    <button onclick="clearOutput('register')">クリア</button>
+                </div>
+                <div id="register-output" class="output"></div>
+            </div>
+
+            <!-- セクション2: ユーザー一覧取得 -->
+            <div class="section">
+                <h2>ユーザー一覧取得 (/api/admin/users GET)</h2>
+                <div class="input-group">
+                    <input type="password" id="admin-token" placeholder="Admin Token" value="">
+                </div>
+                <div class="button-group">
+                    <button onclick="testGetUsers()">一覧取得</button>
+                    <button onclick="clearOutput('users')">クリア</button>
+                </div>
+                <div id="users-output" class="output"></div>
+                <div class="info">💡 Admin Token を設定してください。設定がない場合は 401 Unauthorized が返されます。</div>
+            </div>
+
+            <!-- セクション3: テストユーザー作成 -->
+            <div class="section">
+                <h2>テストユーザー作成 (/api/admin/users POST)</h2>
+                <div class="input-group">
+                    <input type="password" id="admin-token-post" placeholder="Admin Token" value="">
+                </div>
+                <div class="button-group">
+                    <button onclick="testCreateTestUser()">作成実行</button>
+                    <button onclick="clearOutput('testuser')">クリア</button>
+                </div>
+                <div id="testuser-output" class="output"></div>
+            </div>
+
+            <!-- セクション4: チャットAPI テスト -->
+            <div class="section">
+                <h2>チャットAPI テスト (/api/consult)</h2>
+                <div class="input-group">
+                    <input type="number" id="chat-userid" placeholder="User ID" value="1" min="1">
+                    <input type="number" id="chat-characterid" placeholder="Character ID" value="2" min="1">
+                </div>
+                <div class="input-group">
+                    <textarea id="chat-message" placeholder="メッセージ">こんにちは</textarea>
+                </div>
+                <div class="button-group">
+                    <button onclick="testChat()">送信</button>
+                    <button onclick="clearOutput('chat')">クリア</button>
+                </div>
+                <div id="chat-output" class="output"></div>
+            </div>
+
+            <!-- セクション5: DBダイレクトクエリテスト -->
+            <div class="section">
+                <h2>カスタム API テスト</h2>
+                <div class="input-group">
+                    <input type="text" id="custom-endpoint" placeholder="エンドポイント" value="/api/auth/login">
+                </div>
+                <div class="input-group">
+                    <select id="custom-method" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <textarea id="custom-body" placeholder="リクエストボディ (JSON)" style="flex: 1; min-height: 80px;">{"nickname": "test", "birthYear": 2000, "birthMonth": 1, "birthDay": 1}</textarea>
+                </div>
+                <div class="button-group">
+                    <button onclick="testCustom()">実行</button>
+                    <button onclick="clearOutput('custom')">クリア</button>
+                </div>
+                <div id="custom-output" class="output"></div>
+            </div>
+
+            <!-- セクション6: ステータスチェック -->
+            <div class="section">
+                <h2>サーバーステータス</h2>
+                <div class="button-group">
+                    <button onclick="checkStatus()">ステータス確認</button>
+                    <button onclick="clearOutput('status')">クリア</button>
+                </div>
+                <div id="status-output" class="output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showOutput(elementId, message, status = 'loading') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `output ${status}`;
+        }
+
+        function clearOutput(elementId) {
+            document.getElementById(elementId).textContent = '';
+        }
+
+        function formatJSON(obj) {
+            return JSON.stringify(obj, null, 2);
+        }
+
+        async function testRegister() {
+            const outputId = 'register-output';
+            const nickname = document.getElementById('register-nickname').value;
+            const year = parseInt(document.getElementById('register-year').value);
+            const month = parseInt(document.getElementById('register-month').value);
+            const day = parseInt(document.getElementById('register-day').value);
+
+            if (!nickname || !year || !month || !day) {
+                showOutput(outputId, 'すべてのフィールドを入力してください', 'error');
+                return;
+            }
+
+            showOutput(outputId, 'リクエスト送信中...', 'loading');
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nickname: nickname,
+                        birthYear: year,
+                        birthMonth: month,
+                        birthDay: day
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                const output = `[${response.status}] ${response.statusText}\n\n${formatJSON(data)}`;
+                showOutput(outputId, output, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showOutput(outputId, `エラー: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetUsers() {
+            const outputId = 'users-output';
+            const token = document.getElementById('admin-token').value;
+
+            showOutput(outputId, 'リクエスト送信中...', 'loading');
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['X-Admin-Token'] = token;
+                }
+
+                const response = await fetch('/api/admin/users', {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                const data = await response.json().catch(() => ({}));
+                const output = `[${response.status}] ${response.statusText}\n\n${formatJSON(data)}`;
+                showOutput(outputId, output, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showOutput(outputId, `エラー: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCreateTestUser() {
+            const outputId = 'testuser-output';
+            const token = document.getElementById('admin-token-post').value;
+
+            if (!token) {
+                showOutput(outputId, 'Admin Token が必要です', 'error');
+                return;
+            }
+
+            showOutput(outputId, 'リクエスト送信中...', 'loading');
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': token
+                    },
+                    body: JSON.stringify({ action: 'create_or_get' })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                const output = `[${response.status}] ${response.statusText}\n\n${formatJSON(data)}`;
+                showOutput(outputId, output, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showOutput(outputId, `エラー: ${error.message}`, 'error');
+            }
+        }
+
+        async function testChat() {
+            const outputId = 'chat-output';
+            const userId = parseInt(document.getElementById('chat-userid').value);
+            const characterId = parseInt(document.getElementById('chat-characterid').value);
+            const message = document.getElementById('chat-message').value;
+
+            if (!userId || !characterId || !message) {
+                showOutput(outputId, 'すべてのフィールドを入力してください', 'error');
+                return;
+            }
+
+            showOutput(outputId, 'メッセージ送信中...', 'loading');
+
+            try {
+                const response = await fetch('/api/consult', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        characterId: characterId,
+                        message: message
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                const output = `[${response.status}] ${response.statusText}\n\n${formatJSON(data)}`;
+                showOutput(outputId, output, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showOutput(outputId, `エラー: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCustom() {
+            const outputId = 'custom-output';
+            const endpoint = document.getElementById('custom-endpoint').value;
+            const method = document.getElementById('custom-method').value;
+            const bodyText = document.getElementById('custom-body').value;
+
+            if (!endpoint) {
+                showOutput(outputId, 'エンドポイントを入力してください', 'error');
+                return;
+            }
+
+            showOutput(outputId, 'リクエスト送信中...', 'loading');
+
+            try {
+                const options = {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+
+                if (method !== 'GET' && method !== 'HEAD' && bodyText.trim()) {
+                    try {
+                        options.body = JSON.stringify(JSON.parse(bodyText));
+                    } catch {
+                        options.body = bodyText;
+                    }
+                }
+
+                const response = await fetch(endpoint, options);
+                const data = await response.json().catch(() => ({}));
+                const output = `[${response.status}] ${response.statusText}\n\n${formatJSON(data)}`;
+                showOutput(outputId, output, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showOutput(outputId, `エラー: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkStatus() {
+            const outputId = 'status-output';
+            showOutput(outputId, 'ステータス確認中...', 'loading');
+
+            try {
+                const response = await fetch('/');
+                const output = `ページロード: [${response.status}] ${response.statusText}\n\nAPIベースパス: /api\n現在時刻: ${new Date().toLocaleString('ja-JP')}`;
+                showOutput(outputId, output, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showOutput(outputId, `エラー: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
