@@ -1,0 +1,19 @@
+name = "kaede"
+type = "javascript"
+compatibility_date = "2024-01-15"
+
+# D1 Database binding
+# バインディング名を env.DB にマップするための設定
+# Cloudflare Pages で UUID バインディングが「06293a91-a8c7-4bd2-9a5f-636c844ac9ff」として存在する場合、
+# これを env.DB としてアクセスするための設定
+[[d1_databases]]
+binding = "DB"
+database_name = "tobira"
+database_id = "06293a91-a8c7-4bd2-9a5f-636c844ac9ff"
+
+# Environment variables
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.development]
+vars = { ENVIRONMENT = "development" }

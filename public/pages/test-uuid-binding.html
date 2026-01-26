@@ -5,7 +5,7 @@
     <title>UUID バインディング テスト</title>
 </head>
 <body>
-    <h1>env.DB バインディング接続テスト</h1>
+    <h1>UUIDバインディング接続テスト</h1>
     <pre id="result"></pre>
     
     <script>
@@ -13,7 +13,7 @@
             const result = document.getElementById('result');
             
             try {
-                result.textContent = 'env.DB バインディングでのテスト実行中...\n\n';
+                result.textContent = 'UUIDバインディングでのテスト実行中...\n\n';
                 
                 const res = await fetch('/api/test-uuid-binding', {
                     method: 'POST',
@@ -32,7 +32,7 @@
                 result.textContent += `レスポンス:\n${JSON.stringify(data, null, 2)}`;
                 
                 if (res.ok) {
-                    result.textContent += '\n\n✓ 成功！ env.DB バインディングで正常にアクセスできました。';
+                    result.textContent += '\n\n✓ 成功！ UUIDバインディングで正常にアクセスできました。';
                 } else {
                     result.textContent += '\n\n✗ 失敗。エラーが発生しました。';
                 }

@@ -11,14 +11,16 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
   try {
     const body = (await request.json()) as TestBody;
     
-    // env.DB を使用（本来のバインディング名）
-    const db = env.DB;
+    // 現在のCloudflareバインディング名（UUID）を使用
+    const bindingName = '06293a91-a8c7-4bd2-9a5f-636c844ac9ff';
+    const db = (env as any)[bindingName];
     
     if (!db) {
       return new Response(
         JSON.stringify({ 
-          error: 'Database binding env.DB not found',
-          message: 'Cloudflare Pages の D1 バインディング設定を確認してください'
+          error: 'Database binding not found',
+          bindingName: bindingName,
+          message: 'Cloudflareのバインディングが設定されていません'
         }),
         { status: 500, headers }
       );
@@ -40,7 +42,7 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       JSON.stringify({
         success: true,
         userId: result.meta?.last_row_id,
-        message: 'env.DB バインディングでユーザー登録成功'
+        message: 'UUIDバインディングでユーザー登録成功'
       }),
       { status: 201, headers }
     );
