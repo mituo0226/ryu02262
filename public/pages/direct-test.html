@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>直接API テスト</title>
+</head>
+<body>
+    <pre id="output"></pre>
+    <script>
+        (async () => {
+            const output = document.getElementById('output');
+            const log = (msg) => {
+                output.textContent += msg + '\n';
+                console.log(msg);
+            };
+
+            try {
+                log('=== ユーザー登録テスト ===');
+                log('POST /api/auth/register');
+                log('');
+                
+                const registerRes = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nickname: 'DirectTest_' + Date.now(),
+                        birthYear: 2000,
+                        birthMonth: 1,
+                        birthDay: 1
+                    })
+                });
+                
+                log('Status: ' + registerRes.status + ' ' + registerRes.statusText);
+                const registerData = await registerRes.json();
+                log('Response: ' + JSON.stringify(registerData, null, 2));
+                log('');
+
+                if (registerRes.ok && registerData.userId) {
+                    log('✓ ユーザー登録成功！ userId: ' + registerData.userId);
+                    log('');
+                    log('=== ユーザー一覧取得テスト ===');
+                    log('GET /api/admin/users');
+                    log('');
+                    
+                    const usersRes = await fetch('/api/admin/users', { method: 'GET' });
+                    log('Status: ' + usersRes.status + ' ' + usersRes.statusText);
+                    const usersData = await usersRes.json();
+                    log('User Count: ' + (usersData.users?.length || 0));
+                    log('First 3 users: ' + JSON.stringify(usersData.users?.slice(0, 3), null, 2));
+                } else {
+                    log('✗ ユーザー登録失敗');
+                }
+            } catch (error) {
+                log('✗ エラー: ' + error.message);
+            }
+        })();
+    </script>
+</body>
+</html>
