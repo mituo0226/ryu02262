@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>D1 API テスト結果</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        pre { background: white; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        h1 { color: #333; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Cloudflare D1 API テスト結果</h1>
+    <div id="output"></div>
+    
+    <script>
+        async function runTests() {
+            const output = document.getElementById('output');
+            const results = [];
+
+            // テスト1: ユーザー登録
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nickname: `TestUser_${Date.now()}`,
+                        birthYear: 2000,
+                        birthMonth: 1,
+                        birthDay: 1
+                    })
+                });
+                const data = await res.json();
+                results.push(`
+<h2>テスト1: ユーザー登録 (/api/auth/register)</h2>
+<p class="${res.ok ? 'success' : 'error'}">
+  Status: ${res.status} ${res.statusText}
+</p>
+<pre>${JSON.stringify(data, null, 2)}</pre>
+                `);
+            } catch (e) {
+                results.push(`<h2>テスト1: ユーザー登録</h2><p class="error">エラー: ${e.message}</p>`);
+            }
+
+            // テスト2: ユーザー一覧取得
+            try {
+                const res = await fetch('/api/admin/users', { method: 'GET' });
+                const data = await res.json();
+                results.push(`
+<h2>テスト2: ユーザー一覧取得 (/api/admin/users GET)</h2>
+<p class="${res.ok ? 'success' : 'error'}">
+  Status: ${res.status} ${res.statusText}
+</p>
+<pre>${JSON.stringify(data, null, 2).substring(0, 500)}</pre>
+                `);
+            } catch (e) {
+                results.push(`<h2>テスト2: ユーザー一覧取得</h2><p class="error">エラー: ${e.message}</p>`);
+            }
+
+            output.innerHTML = results.join('');
+        }
+
+        runTests();
+    </script>
+</body>
+</html>
