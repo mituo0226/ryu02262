@@ -11,6 +11,11 @@ const LoadingManager = {
     currentLoadingMessageId: null,
 
     /**
+     * 待機中のタイマーリスト
+     */
+    waitingTimers: [],
+
+    /**
      * ローディングメッセージを表示
      * @param {string} characterName - キャラクター名
      * @returns {string} メッセージID
@@ -36,6 +41,22 @@ const LoadingManager = {
                 const chatContainer = messagesDiv.closest('.chat-container');
                 if (chatContainer) {
                     chatContainer.classList.add('waiting-for-response');
+                    
+                    // 5秒後にアニメーションを段階的に強化
+                    const timer1 = setTimeout(() => {
+                        if (chatContainer && this.currentLoadingMessageId) {
+                            chatContainer.classList.add('waiting-extended');
+                        }
+                    }, 5000);
+                    
+                    // 10秒後にさらにアニメーションを強化
+                    const timer2 = setTimeout(() => {
+                        if (chatContainer && this.currentLoadingMessageId) {
+                            chatContainer.classList.add('waiting-extended-max');
+                        }
+                    }, 10000);
+                    
+                    this.waitingTimers.push(timer1, timer2);
                 }
             }
 
@@ -51,6 +72,10 @@ const LoadingManager = {
     hideLoading() {
         if (!this.currentLoadingMessageId) return;
 
+        // すべてのタイマーをクリア
+        this.waitingTimers.forEach(timerId => clearTimeout(timerId));
+        this.waitingTimers = [];
+
         // メッセージを削除
         const element = document.getElementById(this.currentLoadingMessageId);
         if (element) {
@@ -63,6 +88,8 @@ const LoadingManager = {
             const chatContainer = messagesDiv.closest('.chat-container');
             if (chatContainer) {
                 chatContainer.classList.remove('waiting-for-response');
+                chatContainer.classList.remove('waiting-extended');
+                chatContainer.classList.remove('waiting-extended-max');
             }
         }
 
