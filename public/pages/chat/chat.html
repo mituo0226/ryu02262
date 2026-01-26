@@ -52,6 +52,7 @@
             // chatContainer は非表示（entry-form-hidden クラスが付いている）
             document.body.removeAttribute('data-user-id');
             console.log('[初期化] ユーザーID検証失敗：登録ページを表示します');
+        } else {
             // ✅ userId がある場合：body に属性を設定してチャット画面を表示
             document.body.setAttribute('data-user-id', userIdFromCache);
             console.log('[初期化] body[data-user-id] 属性を設定しました:', userIdFromCache);
