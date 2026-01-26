@@ -1429,21 +1429,6 @@ const ChatInit = {
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
         // ここでは実行しない（重複を避ける）
         
-        // 待機画面の管理
-        // チャット画面が表示されている場合、待機画面を表示（全鑑定士共通）
-        const waitingOverlay = document.getElementById('waitingOverlay');
-        if (waitingOverlay) {
-            // チャットコンテナが表示されているか確認
-            const chatContainer = document.getElementById('chatContainer');
-            if (chatContainer && !chatContainer.classList.contains('entry-form-hidden')) {
-                // チャット画面が表示されている場合、待機画面を表示
-                waitingOverlay.classList.remove('hidden');
-                debugLog('[初期化] 待機画面を表示しました（チャット画面表示中）');
-            }
-            debugLog('[初期化] 待機画面の状態を確認します（初期化開始時）');
-            // 待機画面は、historyData取得後に判定して非表示にする
-        }
-        
         // キャラクター固有の初期化処理はハンドラーに委譲
         // ハンドラーが読み込まれる前に必要な処理がある場合は、ハンドラーのinit()で処理されます
         
@@ -1545,13 +1530,6 @@ const ChatInit = {
         if (justRegistered || shouldTriggerRegistrationFlow) {
             debugLog('[登録完了処理] 開始 - character:', character);
             
-            // 待機画面を表示
-            const waitingOverlay = document.getElementById('waitingOverlay');
-            if (waitingOverlay) {
-                waitingOverlay.classList.remove('hidden');
-                debugLog('[登録完了処理] 待機画面を表示しました');
-            }
-            
             try {
                 // 【重要】データベースから最新のユーザー情報を取得
                 // これにより、APIが確実にデータベースからユーザー情報を読み込んでいることを確認
@@ -1634,11 +1612,6 @@ const ChatInit = {
                     historyData = null;
                 }
                 
-                // 待機画面を非表示
-                if (waitingOverlay) {
-                    waitingOverlay.classList.add('hidden');
-                    debugLog('[登録完了処理] 待機画面を非表示にしました');
-                }
                 
                 // キャラクター専用ハンドラーの初期化処理を呼び出す
                 const handler = CharacterRegistry.get(character);
@@ -1893,22 +1866,7 @@ const ChatInit = {
                 if (historyData && historyData.hasHistory) {
                     debugLog('[初期化] 再訪問ユーザー。非同期メッセージ生成方式を使用します');
                     
-                    // 【削除】フラグは不要（awaitにより同期処理になるため）
-                    
-                    // 待機画面を表示（API呼び出し中）
-                    const waitingOverlay = document.getElementById('waitingOverlay');
-                    if (waitingOverlay) {
-                        waitingOverlay.classList.remove('hidden');
-                        debugLog('[初期化] 待機画面を表示しました（再訪問時のメッセージ生成中）');
-                    }
-                    
-                    // 【重要】待機画面が表示されている間は「考え中...」メッセージを表示しない
-                    // 待機画面が表示されているため、追加の「考え中...」メッセージは不要
-                    // メッセージ生成完了後に直接メッセージを表示する
-                    let thinkingElement = null;
-                    
                     // バックグラウンドで動的メッセージを生成（非同期）
-                    // 【変更】履歴は表示しないが、システムプロンプト生成のためにvisitPatternのみを渡す
                     const generateMessageAsync = async () => {
                         try {
                             const visitPattern = historyData.visitPattern || 'returning';
@@ -1936,12 +1894,6 @@ const ChatInit = {
                             
                             debugLog(`[初期化] ${info.name}の再訪問時：動的メッセージ生成完了`);
                             
-                            // 待機画面を非表示（メッセージ表示前に実行）
-                            if (waitingOverlay) {
-                                waitingOverlay.classList.add('hidden');
-                                debugLog('[初期化] 待機画面を非表示にしました（メッセージ生成完了）');
-                            }
-                            
                             // bodyのfade-inクラスを追加（チャット画面を表示）
                             if (document.body) {
                                 document.body.classList.add('fade-in');
@@ -1959,12 +1911,6 @@ const ChatInit = {
                             // 【削除】フラグは不要（awaitにより同期処理になるため）
                         } catch (error) {
                             console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
-                            
-                            // 待機画面を非表示（エラー時も）
-                            if (waitingOverlay) {
-                                waitingOverlay.classList.add('hidden');
-                                debugLog('[初期化] 待機画面を非表示にしました（エラー時）');
-                            }
                             
                             // bodyのfade-inクラスを追加（チャット画面を表示）
                             if (document.body) {
@@ -1991,13 +1937,6 @@ const ChatInit = {
                         debugLog('[初期化] 再訪問時のメッセージ生成が完了しました');
                     } catch (error) {
                         console.error(`[初期化] ${info.name}の再訪問時：generateMessageAsyncエラー:`, error);
-                        
-                        // 待機画面を非表示（エラー時も）
-                        const waitingOverlayError = document.getElementById('waitingOverlay');
-                        if (waitingOverlayError) {
-                            waitingOverlayError.classList.add('hidden');
-                            debugLog('[初期化] 待機画面を非表示にしました（generateMessageAsyncエラー時）');
-                        }
                         
                         // bodyのfade-inクラスを追加（チャット画面を表示）
                         if (document.body) {
@@ -2119,12 +2058,6 @@ const ChatInit = {
                                     
                                     debugLog(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成完了`);
                                     
-                                    // 待機画面を非表示（メッセージ表示前に実行）
-                                    if (waitingOverlayFirst) {
-                                        waitingOverlayFirst.classList.add('hidden');
-                                        debugLog('[初期化] 待機画面を非表示にしました（初回訪問時のメッセージ生成完了）');
-                                    }
-                                    
                                     // 「考え中...」を動的メッセージに置き換え
                                     if (thinkingElementFirst && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
                                         window.ChatUI.replaceThinkingMessage(thinkingElementFirst, welcomeMessage);
@@ -2137,12 +2070,6 @@ const ChatInit = {
                                     }
                                 } catch (error) {
                                     console.error(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成エラー:`, error);
-                                    
-                                    // 待機画面を非表示（エラー時も）
-                                    if (waitingOverlayFirst) {
-                                        waitingOverlayFirst.classList.add('hidden');
-                                        debugLog('[初期化] 待機画面を非表示にしました（初回訪問時のエラー時）');
-                                    }
                                     
                                     // エラー時はフォールバック（定型文）
                                     const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
@@ -2170,13 +2097,6 @@ const ChatInit = {
                                 debugLog('[初期化] 初回訪問時のメッセージ生成が完了しました');
                             } catch (error) {
                                 console.error(`[初期化] ${info.name}の初回訪問時：generateFirstMessageAsyncエラー:`, error);
-                                
-                                // 待機画面を非表示（エラー時も）
-                                const waitingOverlayErrorFirst = document.getElementById('waitingOverlay');
-                                if (waitingOverlayErrorFirst) {
-                                    waitingOverlayErrorFirst.classList.add('hidden');
-                                    debugLog('[初期化] 待機画面を非表示にしました（generateFirstMessageAsyncエラー時）');
-                                }
                                 
                                 // エラー時はフォールバックメッセージを表示
                                 if (window.ChatUI) {
@@ -2740,41 +2660,6 @@ const ChatInit = {
         // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない
         // （重複登録を防ぐため。loadイベントでcloneNodeを使って確実に1回だけ登録される）
         
-        // 待機画面を非表示にする（通常の初期化フロー）
-        // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは非表示にしない
-        // 初回訪問時のみ非表示にする
-        // 【重要】historyDataはtryブロック内で定義されているため、ここではChatData.conversationHistoryを使用
-        const waitingOverlayFinal = document.getElementById('waitingOverlay');
-        const finalHistoryData = ChatData.conversationHistory || null;
-        if (waitingOverlayFinal && (!finalHistoryData || !finalHistoryData.hasHistory)) {
-            // 初回訪問時：メッセージが表示された後に待機画面を非表示にする
-            // メッセージが表示されているか確認
-            if (window.ChatUI && window.ChatUI.messagesDiv) {
-                const hasMessages = window.ChatUI.messagesDiv.children.length > 0;
-                if (hasMessages) {
-                    // メッセージが表示されている場合、待機画面を非表示にする
-                    waitingOverlayFinal.classList.add('hidden');
-                    debugLog('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後）');
-                } else {
-                    // メッセージが表示されていない場合、少し待ってから再確認
-                    setTimeout(() => {
-                        const hasMessagesAfterWait = window.ChatUI && window.ChatUI.messagesDiv && window.ChatUI.messagesDiv.children.length > 0;
-                        if (hasMessagesAfterWait && waitingOverlayFinal) {
-                            waitingOverlayFinal.classList.add('hidden');
-                            debugLog('[初期化] 待機画面を非表示にしました（初回訪問時、メッセージ表示後・遅延確認）');
-                        }
-                    }, 500);
-                }
-            } else {
-                // ChatUIが利用できない場合、待機画面を非表示にする
-                waitingOverlayFinal.classList.add('hidden');
-                debugLog('[初期化] 待機画面を非表示にしました（初回訪問時、ChatUI未利用）');
-            }
-        } else if (waitingOverlayFinal && finalHistoryData && finalHistoryData.hasHistory) {
-            // 再訪問時は、showInitialMessage内で待機画面を管理するため、ここでは何もしない
-            debugLog('[初期化] 待機画面は再訪問時のメッセージ生成中に管理されます');
-        }
-        
         window.ChatUI.updateSendButtonVisibility();
     },
 
@@ -2973,21 +2858,15 @@ const ChatInit = {
                 sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
             }
             
-            // 待機画面に遷移
-            const urlParams = getUrlParams();
-            const userIdForLoading = urlParams.get('userId');
-            const characterForLoading = urlParams.get('character');
+            // 新しいローディングシステムを使用して待機メッセージを表示
+            const characterInfo = ChatData.characterInfo[character];
+            const characterName = characterInfo ? characterInfo.name : 'アシスタント';
             
-            const loadingParams = new URLSearchParams({
-                character: characterForLoading,
-                userId: userIdForLoading,
-                message: encodeURIComponent(messageToSend)
-            });
+            if (window.LoadingManager) {
+                window.LoadingManager.showLoading(characterName);
+            }
             
-            window.location.href = `/pages/loading/loading.html?${loadingParams}`;
-            return; // 処理を終了
-            
-            // 会話履歴を取得（メッセージ送信前に追加されたメッセージを含む）
+            // メッセージ入力欄と送信ボタンを無効化
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
                 
                 // 守護神の儀式完了後、会話履歴に守護神確認メッセージが含まれているか確認
@@ -3130,26 +3009,9 @@ const ChatInit = {
                     }
                 }
                 
-                // 【強化】応答メッセージを表示する前に、待機画面を再度確認して削除
-                if (waitingMessageId) {
-                    const finalCheck = document.getElementById(waitingMessageId);
-                    if (finalCheck) {
-                        // タイマーをクリア
-                        if (window.ChatUI && typeof window.ChatUI.clearLoadingMessageTimers === 'function') {
-                            window.ChatUI.clearLoadingMessageTimers(finalCheck);
-                        }
-                        // 要素を削除
-                        finalCheck.remove();
-                    }
-                    
-                    // チャットウィンドウのアニメーションを確実に解除
-                    const messagesDiv = window.ChatUI.messagesDiv;
-                    if (messagesDiv && messagesDiv.parentElement) {
-                        const chatContainer = messagesDiv.closest('.chat-container');
-                        if (chatContainer) {
-                            chatContainer.classList.remove('waiting-for-response');
-                        }
-                    }
+                // 新しいローディングシステムで待機メッセージを非表示にする
+                if (window.LoadingManager) {
+                    window.LoadingManager.hideLoading();
                 }
                 
                 const messageId = window.ChatUI.addMessage('character', responseText, characterName);
@@ -3179,48 +3041,14 @@ const ChatInit = {
                 
         } catch (error) {
             console.error('メッセージ送信エラー:', error);
-                
-            // ハンドラーのonErrorを呼び出す（待機画面を非表示にする）
-            const handler = CharacterRegistry.get(character);
-            if (handler && typeof handler.onError === 'function') {
-                handler.onError(waitingMessageId);
-            } else {
-                // ハンドラーが処理しない場合は、デフォルトのローディングメッセージを削除
-                if (waitingMessageId) {
-                    const waitingElement = document.getElementById(waitingMessageId);
-                    if (waitingElement) {
-                        waitingElement.remove();
-                    }
-                }
+            
+            // 新しいローディングシステムで待機メッセージを非表示にする
+            if (window.LoadingManager) {
+                window.LoadingManager.hideLoading();
             }
             
-            // 【強化】エラー時も待機画面を確実に削除
-            if (waitingMessageId) {
-                // 方法1: IDで取得して削除
-                const waitingElementById = document.getElementById(waitingMessageId);
-                if (waitingElementById) {
-                    waitingElementById.remove();
-                }
-                
-                // 方法2: loading-messageクラスを持つ要素を検索して削除
-                const loadingMessages = window.ChatUI.messagesDiv?.querySelectorAll('.message.loading-message');
-                if (loadingMessages && loadingMessages.length > 0) {
-                    loadingMessages.forEach(msg => {
-                        if (msg.id === waitingMessageId || !waitingElementById) {
-                            msg.remove();
-                        }
-                    });
-                }
-                
-                // 方法3: チャットウィンドウのアニメーションを解除
-                const messagesDiv = window.ChatUI.messagesDiv;
-                if (messagesDiv && messagesDiv.parentElement) {
-                    const chatContainer = messagesDiv.closest('.chat-container');
-                    if (chatContainer) {
-                        chatContainer.classList.remove('waiting-for-response');
-                    }
-                }
-            }
+            // ハンドラーのonErrorを呼び出す
+            const handler = CharacterRegistry.get(character);
             
             window.ChatUI.addMessage('error', `エラーが発生しました: ${error.message || 'メッセージの送信に失敗しました'}`, 'システム');
             if (window.ChatUI.sendButton) window.ChatUI.sendButton.disabled = false;

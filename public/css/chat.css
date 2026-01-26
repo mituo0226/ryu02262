@@ -273,141 +273,6 @@ body.admin-mode .chat-container {
     border: none;
 }
 
-.message.loading {
-    background: rgba(75, 0, 130, 0.95) !important;
-    border: none;
-    text-align: center;
-    color: var(--text-light);
-    font-weight: 600;
-    /* アニメーションはJavaScriptで動的に設定される */
-}
-
-@keyframes loadingPulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
-/* 待機画面の吹き出しが神秘的に輝くアニメーション（改善版） */
-@keyframes messageBubbleMysticGlow {
-    0% {
-        box-shadow: 
-            0 0 15px rgba(138, 43, 226, 0.4),
-            0 0 30px rgba(138, 43, 226, 0.2),
-            inset 0 0 15px rgba(138, 43, 226, 0.1);
-    }
-    25% {
-        box-shadow: 
-            0 0 20px rgba(138, 43, 226, 0.6),
-            0 0 40px rgba(138, 43, 226, 0.3),
-            inset 0 0 20px rgba(138, 43, 226, 0.15);
-    }
-    50% {
-        box-shadow: 
-            0 0 25px rgba(138, 43, 226, 0.8),
-            0 0 50px rgba(138, 43, 226, 0.4),
-            inset 0 0 25px rgba(138, 43, 226, 0.2);
-    }
-    75% {
-        box-shadow: 
-            0 0 20px rgba(138, 43, 226, 0.6),
-            0 0 40px rgba(138, 43, 226, 0.3),
-            inset 0 0 20px rgba(138, 43, 226, 0.15);
-    }
-    100% {
-        box-shadow: 
-            0 0 15px rgba(138, 43, 226, 0.4),
-            0 0 30px rgba(138, 43, 226, 0.2),
-            inset 0 0 15px rgba(138, 43, 226, 0.1);
-    }
-}
-
-/* 待機画面のメッセージボックスにアニメーションを適用 */
-.message.loading-message {
-    animation: messageBubbleMysticGlow 4s ease-in-out infinite !important;
-    transform-origin: center center !important;
-}
-
-@keyframes guardian-mystic-glow-text {
-    0%, 100% {
-        text-shadow: 
-            0 0 10px rgba(255, 215, 0, 0.8),
-            0 0 20px rgba(138, 43, 226, 0.6),
-            0 0 30px rgba(255, 107, 157, 0.4);
-    }
-    50% {
-        text-shadow: 
-            0 0 15px rgba(255, 215, 0, 1),
-            0 0 30px rgba(138, 43, 226, 0.8),
-            0 0 45px rgba(255, 107, 157, 0.6),
-            0 0 60px rgba(255, 215, 0, 0.4);
-    }
-}
-
-/* 待機中のチャットウィンドウ全体のアニメーション */
-.chat-container.waiting-for-response {
-    animation: chatContainerMysticBreathing 6s ease-in-out infinite;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
-    position: relative;
-}
-
-.chat-container.waiting-for-response::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(ellipse at center, rgba(138, 43, 226, 0.08) 0%, transparent 70%);
-    pointer-events: none;
-    animation: mysticalAuraShimmer 4s ease-in-out infinite;
-    z-index: 0;
-}
-
-.chat-container.waiting-for-response .messages {
-    animation: messagesEnhancedPulse 3s ease-in-out infinite;
-    position: relative;
-    z-index: 1;
-}
-
-@keyframes chatContainerMysticBreathing {
-    0%, 100% {
-        background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
-        filter: brightness(1) saturate(1);
-    }
-    25% {
-        background: linear-gradient(135deg, #0f0f15 0%, #1f0a3e 100%);
-        filter: brightness(1.03) saturate(1.05);
-    }
-    50% {
-        background: linear-gradient(135deg, #12120a 0%, #220d4e 100%);
-        filter: brightness(1.06) saturate(1.1);
-    }
-    75% {
-        background: linear-gradient(135deg, #0f0f15 0%, #1f0a3e 100%);
-        filter: brightness(1.03) saturate(1.05);
-    }
-}
-
-@keyframes mysticalAuraShimmer {
-    0%, 100% {
-        opacity: 0.05;
-        transform: scale(0.95);
-    }
-    50% {
-        opacity: 0.15;
-        transform: scale(1.05);
-    }
-}
-
-@keyframes messagesEnhancedPulse {
-    0%, 100% {
-        transform: translateY(0) scaleY(1);
-    }
-    50% {
-        transform: translateY(-2px) scaleY(1.001);
-    }
-}
-
 .message-header {
     font-size: 12px;
     font-weight: 600;
@@ -699,83 +564,81 @@ body.admin-mode .chat-container {
     display: block;
 }
 
+
 /* ============================================
-   待機画面
+   新規ローディング画面システム
    ============================================ */
-.loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+
+/* ローディングメッセージコンテナ */
+.message.loading {
+    background: rgba(75, 0, 130, 0.85) !important;
+    border: 1px solid rgba(139, 61, 255, 0.3) !important;
+    border-radius: 16px !important;
+    padding: 16px 20px !important;
+    margin: 8px 0 !important;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    opacity: 1;
-    transition: opacity 0.8s ease-out;
+    gap: 12px;
+    min-height: 56px;
+    position: relative;
+    overflow: hidden;
 }
 
-.loading-screen.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.loading-spinner {
-    width: 80px;
-    height: 80px;
-    border: 6px solid rgba(139, 61, 255, 0.2);
+/* ローディングスピナー（小型） */
+.message.loading .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(139, 61, 255, 0.2);
     border-top-color: #8b3dff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: 24px;
+    flex-shrink: 0;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-.loading-text {
-    color: #e8d5ff;
-    font-size: 18px;
-    font-weight: 600;
-    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-    margin-bottom: 12px;
-    animation: pulse 2s ease-in-out infinite;
+/* ローディングテキスト */
+.message.loading .message-text {
+    color: #e8d5ff !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    flex: 1;
+    animation: pulse-text 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 0.6; }
+@keyframes pulse-text {
+    0%, 100% { opacity: 0.8; }
     50% { opacity: 1; }
 }
 
-.loading-subtext {
-    color: #b794ff;
-    font-size: 14px;
-    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-    opacity: 0.8;
+/* ローディングメッセージの背景アニメーション */
+.message.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer-bg 2s infinite;
+    pointer-events: none;
 }
 
-.loading-character-icon {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid rgba(139, 61, 255, 0.5);
-    margin-bottom: 24px;
-    animation: float 3s ease-in-out infinite;
+@keyframes shimmer-bg {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+/* チャット全体の待機状態（微妙なアニメーション） */
+.chat-container.waiting-for-response {
+    position: relative;
 }
 
-/* ============================================
-   管理者モード: 分析パネル
-   ============================================ */
+.chat-container.waiting-for-response .messages {
+    opacity: 0.98;
+}
 .admin-analysis-panel {
     width: 350px;
     background: rgba(255, 255, 255, 0.04);

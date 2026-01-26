@@ -47,12 +47,6 @@
         }
     })();
     </script>
-    <div class="loading-screen" id="loadingScreen">
-        <img id="loadingCharacterIcon" class="loading-character-icon" src="" alt="読み込み中" style="display: none;">
-        <div class="loading-spinner"></div>
-        <div class="loading-text" id="loadingText">鑑定の準備をしています...</div>
-        <div class="loading-subtext" id="loadingSubtext">少々お待ちください</div>
-    </div>
     
     <!-- モバイルヘッダー -->
     <div class="mobile-header" id="mobileHeader">
@@ -271,6 +265,7 @@
     
     <!-- スクリプト読み込み -->
     <script src="../../js/auth-state.js" defer></script>
+    <script src="../../js/loading-manager.js" defer></script>
     <script src="../../js/character-features.js" defer></script>
     <script id="chatEngineScript" src="../../js/chat-engine.js" defer></script>
     <script src="../../js/character-registry.js" defer></script>

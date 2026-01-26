@@ -284,18 +284,6 @@ const ChatUI = {
         textDiv.textContent = displayTextWithoutTag;
         messageDiv.appendChild(textDiv);
         
-        // 9. loading タイプの特殊処理
-        if (type === MESSAGE_TYPES.LOADING) {
-            // チャットコンテナに waiting-for-response クラスを追加
-            const chatContainer = this.messagesDiv.closest('.chat-container');
-            if (chatContainer) {
-                chatContainer.classList.add('waiting-for-response');
-            }
-            
-            // 動的メッセージ変更機能を設定
-            this._setupLoadingMessageAnimation(messageDiv, textDiv);
-        }
-        
         // 10. messageDiv を DOM に追加（先頭に挿入）
         if (this.messagesDiv.firstChild) {
             this.messagesDiv.insertBefore(messageDiv, this.messagesDiv.firstChild);
@@ -310,113 +298,6 @@ const ChatUI = {
         
         return messageId;
     }
-
-    /**
-     * loading メッセージのアニメーション処理（改善版：神秘的で落ち着きのある演出）
-     * 複数のメッセージを指定時間ごとに表示する
-     */
-    _setupLoadingMessageAnimation(messageDiv, textDiv) {
-        // メッセージと表示時間（ミリ秒）
-        let waitingMessages = [
-            { text: '返信が来るまでお待ちください。', delay: 0 },
-            { text: '(キャラクター名)がこれからメッセージ入力します', delay: 3000 },
-            { text: 'メッセージ入力を始めています', delay: 6000 },
-            { text: '書き込んでいます', delay: 9000 },
-            { text: 'もう少しお待ちください', delay: 12000 },
-            { text: '返信がもうすぐ届きますのでお待ちください', delay: 17000 }
-        ];
-        
-        // プレースホルダー「(キャラクター名)」を実際のキャラクター名に置き換え
-        if (window.ChatData && window.ChatData.currentCharacter && window.ChatData.characterInfo) {
-            const characterId = window.ChatData.currentCharacter;
-            const characterInfo = window.ChatData.characterInfo[characterId];
-            if (characterInfo && characterInfo.name) {
-                waitingMessages = waitingMessages.map(msg => ({
-                    ...msg,
-                    text: msg.text.replace('(キャラクター名)', characterInfo.name)
-                }));
-            }
-        }
-        
-        debugLog('[_setupLoadingMessageAnimation] 初期化開始:', {
-            messageCount: waitingMessages.length,
-            messageDivId: messageDiv.id,
-            characterName: window.ChatData?.characterInfo?.[window.ChatData?.currentCharacter]?.name
-        });
-        
-        // テキストに揺れ効果を適用（CSSで上書きされますが、フォールバックとして機能）
-        textDiv.style.animation = 'subtle-shimmer 3s ease-in-out infinite';
-        
-        // タイマーを保存する配列
-        const timers = [];
-        
-        // 各メッセージのタイマーをセット
-        waitingMessages.forEach((msgObj, index) => {
-            const timer = setTimeout(() => {
-                debugLog('[_setupLoadingMessageAnimation] タイマー発火:', {
-                    index,
-                    delay: msgObj.delay,
-                    text: msgObj.text.substring(0, 30),
-                    elementExists: !!messageDiv.parentNode
-                });
-                
-                // メッセージが削除されたら停止
-                if (!messageDiv.parentNode) {
-                    debugLog('[_setupLoadingMessageAnimation] メッセージが削除されているため停止:', { index });
-                    return;
-                }
-                
-                // テキストをフェードアウト（0.6秒）
-                textDiv.style.transition = 'opacity 0.6s ease-in-out';
-                textDiv.style.opacity = '0.4';
-                
-                debugLog('[_setupLoadingMessageAnimation] フェードアウト開始:', { index, text: msgObj.text.substring(0, 30) });
-                
-                // 600ms後にテキストを変更してフェードイン
-                setTimeout(() => {
-                    if (messageDiv.parentNode) {
-                        textDiv.textContent = msgObj.text;
-                        textDiv.style.transition = 'opacity 0.8s ease-in-out';
-                        textDiv.style.opacity = '1';
-                        debugLog('[_setupLoadingMessageAnimation] テキスト変更完了:', { index, newText: msgObj.text.substring(0, 30) });
-                    }
-                }, 600);
-            }, msgObj.delay);
-            
-            timers.push(timer);
-            debugLog('[_setupLoadingMessageAnimation] タイマーセット:', { index, delay: msgObj.delay, timerId: timer });
-        });
-        
-        // タイマー ID を保存（後でクリア可能にするため）
-        messageDiv.dataset.loadingMessageTimers = JSON.stringify(timers);
-        debugLog('[_setupLoadingMessageAnimation] 初期化完了:', { timerCount: timers.length });
-    },
-
-    /**
-     * 待機メッセージのタイマーをクリア
-     * @param {HTMLElement} messageElement - メッセージ要素
-     */
-    clearLoadingMessageTimers(messageElement) {
-        if (!messageElement) return;
-        
-        // 保存されたタイマーIDを取得
-        const timerIdsJson = messageElement.dataset.loadingMessageTimers;
-        if (timerIdsJson) {
-            try {
-                const timerIds = JSON.parse(timerIdsJson);
-                timerIds.forEach(timerId => {
-                    clearTimeout(timerId);
-                });
-            } catch (error) {
-                console.warn('[ChatUI.clearLoadingMessageTimers] タイマーのクリアに失敗:', error);
-            }
-        }
-        
-        // アニメーションを削除
-        if (messageElement.style.animation) {
-            messageElement.style.animation = 'none';
-        }
-    },
 
     /**
      * スクロールを最新に（スムーズスクロール対応）
