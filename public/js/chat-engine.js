@@ -2706,15 +2706,18 @@ const ChatInit = {
         // エラー時にもフラグをリセットするためにtry-finallyを使用
         // waitingMessageIdを関数スコープで宣言（catchブロックからもアクセスできるように）
         let waitingMessageId = null;
+        let handler = null;
         
         try {
+            // ハンドラーを取得（全フローで使用）
+            handler = CharacterRegistry.get(character);
+            
             // タロットカード解説トリガーマーカーを検出
             const isTarotExplanationTrigger = message.includes('[TAROT_EXPLANATION_TRIGGER:');
             
             // メッセージ送信ボタンを押した時点で、即座にカウントを開始
             if (!isTarotExplanationTrigger) {
                 // 個別相談モードのチェック（ハンドラーに委譲）
-                const handler = CharacterRegistry.get(character);
                 const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
                     ? handler.isConsultationMode() 
                     : false;
@@ -2911,8 +2914,7 @@ const ChatInit = {
                 // メッセージカウントを取得：会話履歴からユーザーメッセージ数を計算（今回送信するメッセージは含まれていない）
                 let messageCountForAPI = conversationHistory.filter(msg => msg && msg.role === 'user').length;
                 
-                // 個別相談モードのチェック（ハンドラーに委譲）
-                // 注意: handlerは1458行目で既に取得済み
+                // 個別相談モードのチェック（既に上で handler を取得済み）
                 const isConsultationMode = handler && typeof handler.isConsultationMode === 'function' 
                     ? handler.isConsultationMode() 
                     : false;
