@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー登録 テストページ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #1a0033 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #f7f5ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: rgba(10, 10, 20, 0.8);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      text-align: center;
+      color: #e0c9ff;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #9da2c6;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #c7cdff;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #f7f5ff;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: rgba(138, 43, 226, 0.6);
+      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
+      background: rgba(0, 0, 0, 0.5);
+    }
+    
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9));
+      color: #fff;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(138, 43, 226, 0.4);
+    }
+    
+    .btn-secondary {
+      background: rgba(138, 43, 226, 0.2);
+      color: #d6c9ff;
+      border: 1px solid rgba(138, 43, 226, 0.3);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(138, 43, 226, 0.3);
+      border-color: rgba(138, 43, 226, 0.5);
+    }
+    
+    .status-box {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      display: none;
+    }
+    
+    .status-success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #81c784;
+      display: block;
+    }
+    
+    .status-error {
+      background: rgba(255, 78, 132, 0.1);
+      border: 1px solid rgba(255, 78, 132, 0.3);
+      color: #ff6b9d;
+      display: block;
+    }
+    
+    .status-info {
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      color: #d6c9ff;
+      display: block;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #9da2c6;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(138, 43, 226, 0.3);
+      border-top-color: rgba(138, 43, 226, 0.8);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .result-data {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(138, 43, 226, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      color: #b0e0e6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ユーザー登録</h1>
+    <p class="subtitle">テストページ - APIが正常に機能しているか確認</p>
+    
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="nickname">ニックネーム</label>
+        <input type="text" id="nickname" placeholder="例：テストユーザー" required>
+      </div>
+      
+      <div class="form-group">
+        <label>生年月日</label>
+        <div class="date-row">
+          <div>
+            <label for="year" style="margin-bottom: 4px;">年</label>
+            <input type="number" id="year" min="1900" max="2100" placeholder="1990" required>
+          </div>
+          <div>
+            <label for="month" style="margin-bottom: 4px;">月</label>
+            <input type="number" id="month" min="1" max="12" placeholder="5" required>
+          </div>
+          <div>
+            <label for="day" style="margin-bottom: 4px;">日</label>
+            <input type="number" id="day" min="1" max="31" placeholder="15" required>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="gender">性別（オプション）</label>
+        <select id="gender">
+          <option value="">選択しない</option>
+          <option value="男性">男性</option>
+          <option value="女性">女性</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      
+      <div class="button-group">
+        <button type="submit" class="btn-primary">登録テスト</button>
+        <button type="button" class="btn-secondary" id="clearBtn">クリア</button>
+      </div>
+    </form>
+    
+    <div id="status" class="status-box"></div>
+    <div id="resultData"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const nicknameInput = document.getElementById('nickname');
+    const yearInput = document.getElementById('year');
+    const monthInput = document.getElementById('month');
+    const dayInput = document.getElementById('day');
+    const genderSelect = document.getElementById('gender');
+    const statusBox = document.getElementById('status');
+    const resultData = document.getElementById('resultData');
+    const clearBtn = document.getElementById('clearBtn');
+    
+    // テスト用の初期値をセット
+    nicknameInput.value = 'テストユーザー';
+    yearInput.value = '1990';
+    monthInput.value = '5';
+    dayInput.value = '15';
+    
+    clearBtn.addEventListener('click', () => {
+      form.reset();
+      statusBox.className = 'status-box';
+      statusBox.innerHTML = '';
+      resultData.innerHTML = '';
+      nicknameInput.value = 'テストユーザー';
+      yearInput.value = '1990';
+      monthInput.value = '5';
+      dayInput.value = '15';
+    });
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const nickname = nicknameInput.value.trim();
+      const birthYear = Number(yearInput.value);
+      const birthMonth = Number(monthInput.value);
+      const birthDay = Number(dayInput.value);
+      const gender = genderSelect.value || undefined;
+      
+      // バリデーション
+      if (!nickname) {
+        showStatus('ニックネームを入力してください', 'error');
+        return;
+      }
+      if (!Number.isFinite(birthYear) || !Number.isFinite(birthMonth) || !Number.isFinite(birthDay)) {
+        showStatus('生年月日を正しく入力してください', 'error');
+        return;
+      }
+      
+      showStatus('登録処理中...', 'info', true);
+      
+      try {
+        const payload = {
+          nickname,
+          birthYear,
+          birthMonth,
+          birthDay
+        };
+        if (gender) {
+          payload.gender = gender;
+        }
+        
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          showStatus(`❌ 登録失敗: ${data.error || 'エラーが発生しました'}`, 'error');
+          showResultData(data);
+          return;
+        }
+        
+        const message = `✅ 登録成功！\nユーザーID: ${data.userId || 'N/A'}\nニックネーム: ${data.nickname}\nメッセージ: ${data.message}`;
+        showStatus(message, 'success');
+        showResultData(data);
+        
+      } catch (error) {
+        console.error('エラー:', error);
+        showStatus(`❌ 通信エラー: ${error.message}`, 'error');
+      }
+    });
+    
+    function showStatus(message, type = 'info', isLoading = false) {
+      statusBox.className = `status-box status-${type}`;
+      if (isLoading) {
+        statusBox.innerHTML = `<span class="spinner"></span><span class="loading">${message}</span>`;
+      } else {
+        statusBox.innerHTML = message.replace(/\n/g, '<br>');
+      }
+    }
+    
+    function showResultData(data) {
+      resultData.innerHTML = `<div class="result-data">${JSON.stringify(data, null, 2)}</div>`;
+    }
+  </script>
+</body>
+</html>

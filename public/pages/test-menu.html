@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API テストメニュー</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #1a0033 0%, #2d0052 50%, #1a0033 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #f7f5ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: rgba(10, 10, 20, 0.8);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    
+    h1 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      text-align: center;
+      color: #e0c9ff;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #9da2c6;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    
+    .menu {
+      display: grid;
+      gap: 16px;
+    }
+    
+    .menu-item {
+      display: block;
+      padding: 20px;
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 12px;
+      color: #f7f5ff;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      text-align: center;
+    }
+    
+    .menu-item:hover {
+      background: rgba(138, 43, 226, 0.2);
+      border-color: rgba(138, 43, 226, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(138, 43, 226, 0.3);
+    }
+    
+    .menu-item-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #e0c9ff;
+    }
+    
+    .menu-item-desc {
+      font-size: 13px;
+      color: #9da2c6;
+    }
+    
+    .info-box {
+      margin-top: 30px;
+      padding: 16px;
+      background: rgba(76, 175, 80, 0.08);
+      border: 1px solid rgba(76, 175, 80, 0.2);
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #81c784;
+    }
+    
+    .back-link {
+      margin-top: 30px;
+      text-align: center;
+    }
+    
+    .back-link a {
+      color: #9da2c6;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+    
+    .back-link a:hover {
+      color: #d6c9ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 API テストメニュー</h1>
+    <p class="subtitle">Cloudflare D1 データベース接続確認</p>
+    
+    <div class="menu">
+      <a href="/pages/test-register.html" class="menu-item">
+        <div class="menu-item-title">📝 ユーザー登録テスト</div>
+        <div class="menu-item-desc">新規ユーザーの登録機能をテスト</div>
+      </a>
+      
+      <a href="/pages/test-db.html" class="menu-item">
+        <div class="menu-item-title">🔑 ユーザーログインテスト</div>
+        <div class="menu-item-desc">ユーザーログイン機能をテスト</div>
+      </a>
+      
+      <a href="/pages/auth/login.html" class="menu-item">
+        <div class="menu-item-title">🎯 本番ログインページ</div>
+        <div class="menu-item-desc">実際のログインページへ移動</div>
+      </a>
+    </div>
+    
+    <div class="info-box">
+      <strong>📋 テスト内容</strong><br>
+      これらのテストページは、API が正常に機能しているか確認するためのものです。<br>
+      <br>
+      ✅ 登録テスト: 新しいユーザーを登録してデータベースに保存できるか確認<br>
+      ✅ ログインテスト: 既存ユーザーのログインが機能するか確認<br>
+      <br>
+      各テストで「成功」メッセージが表示されたら、データベース接続は正常です。
+    </div>
+    
+    <div class="back-link">
+      <a href="/">← トップページに戻る</a>
+    </div>
+  </div>
+</body>
+</html>
