@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>API 接続テスト</title>
+</head>
+<body>
+    <h1>現在のCloudflare設定でのAPI接続テスト</h1>
+    <pre id="result"></pre>
+    
+    <script>
+        (async () => {
+            const result = document.getElementById('result');
+            
+            try {
+                result.textContent = 'テスト1: ユーザー登録を試行中...\n\n';
+                
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nickname: 'SimpleTest_' + Date.now(),
+                        birthYear: 2000,
+                        birthMonth: 1,
+                        birthDay: 1
+                    })
+                });
+                
+                result.textContent += `HTTPステータス: ${res.status}\n`;
+                
+                const text = await res.text();
+                result.textContent += `\nレスポンス（生テキスト）:\n${text}\n`;
+                
+                try {
+                    const json = JSON.parse(text);
+                    result.textContent += `\n解析済みJSON:\n${JSON.stringify(json, null, 2)}`;
+                } catch (e) {
+                    result.textContent += `\n（JSON解析失敗: ${e.message}）`;
+                }
+                
+            } catch (error) {
+                result.textContent += `\n\n例外発生:\n${error.message}\n${error.stack}`;
+            }
+        })();
+    </script>
+</body>
+</html>
