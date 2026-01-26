@@ -2860,10 +2860,10 @@ const ChatInit = {
             
             // 新しいローディングシステムを使用して待機メッセージを表示
             const characterInfo = ChatData.characterInfo[character];
-            const characterName = characterInfo ? characterInfo.name : 'アシスタント';
+            const loadingCharacterName = characterInfo ? characterInfo.name : 'アシスタント';
             
             if (window.LoadingManager) {
-                window.LoadingManager.showLoading(characterName);
+                window.LoadingManager.showLoading(loadingCharacterName);
             }
             
             // メッセージ入力欄と送信ボタンを無効化
