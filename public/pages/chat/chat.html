@@ -16,6 +16,19 @@
     <script>
     (function() {
         'use strict';
+        // 【重要】JavaScript実行前にページ初期状態を設定
+        // CSSが反応する前に、登録フォームを非表示にしてチラつきを防ぐ
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        
+        if (userId) {
+            // userId がある場合、登録フォームに事前に hidden クラスを追加
+            const entryFormContainer = document.getElementById('entryFormContainer');
+            if (entryFormContainer) {
+                entryFormContainer.classList.add('entry-form-hidden');
+            }
+        }
+        
         // 単一のグローバルURLパラメータキャッシュを作成
         if (!window._chatUrlParams) {
             window._chatUrlParams = new URLSearchParams(window.location.search);
@@ -23,12 +36,12 @@
         
         // 【重要】userId パラメータを取得・検証
         // 設計：userId がない場合はエラー、ある場合はチャット画面を表示
-        const userId = window._chatUrlParams.get('userId');
+        const userIdFromCache = window._chatUrlParams.get('userId');
         const character = window._chatUrlParams.get('character');
         
-        console.log('[URL検証] userId:', userId, 'character:', character);
+        console.log('[URL検証] userId:', userIdFromCache, 'character:', character);
         
-        if (!userId) {
+        if (!userIdFromCache) {
             // ❌ userId がない場合：エラーメッセージを表示して、登録ページを見せる
             console.error('[設計エラー] userIdが指定されていません。正規のflowで遷移してください。');
             const entryFormError = document.getElementById('entryFormError');
@@ -39,10 +52,9 @@
             // chatContainer は非表示（entry-form-hidden クラスが付いている）
             document.body.removeAttribute('data-user-id');
             console.log('[初期化] ユーザーID検証失敗：登録ページを表示します');
-        } else {
             // ✅ userId がある場合：body に属性を設定してチャット画面を表示
-            document.body.setAttribute('data-user-id', userId);
-            console.log('[初期化] body[data-user-id] 属性を設定しました:', userId);
+            document.body.setAttribute('data-user-id', userIdFromCache);
+            console.log('[初期化] body[data-user-id] 属性を設定しました:', userIdFromCache);
             console.log('[初期化] Cloudflareデータベースからユーザー情報を取得します');
         }
     })();
