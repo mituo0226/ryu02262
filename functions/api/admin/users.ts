@@ -17,7 +17,9 @@ interface TestUserBody {
 }
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
-  if (!isAdminAuthorized(request, env)) {
+  // GET（読み取り）はトークンなしで許可
+  // POST/PUT/DELETE（書き込み）はトークンが必須
+  if (request.method !== 'GET' && !isAdminAuthorized(request, env)) {
     return unauthorizedResponse();
   }
 

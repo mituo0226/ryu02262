@@ -3,7 +3,8 @@ import { isAdminAuthorized, unauthorizedResponse } from '../../_lib/admin-auth.j
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
-  if (!isAdminAuthorized(request, env)) {
+  // GET（読み取り）はトークンなしで許可
+  if (request.method !== 'GET' && !isAdminAuthorized(request, env)) {
     return unauthorizedResponse();
   }
 
