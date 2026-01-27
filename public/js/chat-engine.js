@@ -1904,6 +1904,11 @@ const ChatInit = {
                             if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', welcomeMessage, info.name);
                                 debugLog('[初期化] ウェルカムメッセージを表示しました');
+                                
+                                // ページローディング完了
+                                if (window.PageLoadingManager) {
+                                    window.PageLoadingManager.complete();
+                                }
                             } else {
                                 console.error('[初期化] ChatUIが利用できません');
                             }
@@ -2318,7 +2323,6 @@ const ChatInit = {
                         sessionStorage.setItem('guardianMessageShown', 'true');
                         debugLog('[会話履歴読み込み] guardianMessageShownフラグを設定しました（再訪問時の重複表示を防ぐ）');
                     }
-                }
                 
                 // ユーザーデータを更新（historyDataから生年月日を取得して表示）
                 window.ChatUI.updateUserStatus(true, {
@@ -3950,6 +3954,15 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         }
         // ========== 追加終了 ==========
+        
+        // ページローディング開始（段階的表示）
+        const character = getUrlParams().get('character');
+        const characterInfo = ChatData.characterInfo && ChatData.characterInfo[character];
+        const characterName = characterInfo ? characterInfo.name : 'アシスタント';
+        
+        if (window.PageLoadingManager) {
+            window.PageLoadingManager.start(characterName);
+        }
         
         await ChatInit.initPage();
     } else {

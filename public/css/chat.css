@@ -725,6 +725,82 @@ body.admin-mode .chat-container {
 }
 
 /* ============================================
+   ページ初期化時の段階的ローディング表示
+   ============================================ */
+
+/* フェーズ1：ユーザー情報読み込み中 */
+.user-status.loading-phase-1 {
+    animation: phase-1-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes phase-1-pulse {
+    0%, 100% {
+        opacity: 0.8;
+        color: #e8d5ff;
+    }
+    50% {
+        opacity: 1;
+        color: #b794ff;
+    }
+}
+
+/* フェーズ2：守護神とつながっている */
+.user-status.loading-phase-2 {
+    animation: phase-2-glow 2s ease-in-out infinite;
+}
+
+@keyframes phase-2-glow {
+    0%, 100% {
+        color: #e8d5ff;
+        text-shadow: 0 0 10px rgba(139, 61, 255, 0.3);
+    }
+    50% {
+        color: #d4a5ff;
+        text-shadow: 0 0 20px rgba(139, 61, 255, 0.6);
+    }
+}
+
+/* フェーズ3：鑑定を準備しています */
+.user-status.loading-phase-3 {
+    animation: phase-3-intense 1.2s ease-in-out infinite;
+}
+
+@keyframes phase-3-intense {
+    0%, 100% {
+        color: #e8d5ff;
+        text-shadow: 0 0 15px rgba(180, 100, 255, 0.4);
+    }
+    25% {
+        color: #f0d5ff;
+        text-shadow: 0 0 25px rgba(200, 130, 255, 0.6);
+    }
+    50% {
+        color: #d4a5ff;
+        text-shadow: 0 0 35px rgba(220, 150, 255, 0.8);
+    }
+    75% {
+        color: #f0d5ff;
+        text-shadow: 0 0 25px rgba(200, 130, 255, 0.6);
+    }
+}
+
+/* ローディング完了時の処理 */
+.user-status.loading-complete {
+    animation: fade-out-loading 0.5s ease-out forwards;
+}
+
+@keyframes fade-out-loading {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* ============================================
    ローディングドット（入力中演出）
    ============================================ */
 

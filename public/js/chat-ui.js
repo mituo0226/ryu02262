@@ -189,6 +189,8 @@ const ChatUI = {
         
         let statusText = `鑑定名義: ${nickname}`;
         
+        // 【改善】生年月日が全て揃っている場合のみ表示
+        // 1つでも欠ける場合は表示しない（不完全なデータを避けるため）
         if (birthYear && birthMonth && birthDay) {
             statusText += ` ｜ 生年月日: ${birthYear}年${birthMonth}月${birthDay}日`;
         }
