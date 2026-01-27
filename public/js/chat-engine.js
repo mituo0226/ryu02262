@@ -2313,6 +2313,10 @@ const ChatInit = {
                             content: guardianConfirmationMessage
                         });
                         debugLog('[会話履歴読み込み] 守護神確認メッセージを会話履歴に追加しました（ritualCompleted/assignedDeityチェック、楓専用）');
+                        
+                        // 【修正】メッセージを追加した後に、guardianMessageShownフラグを設定して、次回以降の表示を抑制
+                        sessionStorage.setItem('guardianMessageShown', 'true');
+                        debugLog('[会話履歴読み込み] guardianMessageShownフラグを設定しました（再訪問時の重複表示を防ぐ）');
                     }
                 }
                 
