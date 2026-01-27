@@ -25,7 +25,7 @@ const LoadingManager = {
         this.hideLoading();
 
         // シンプルな待機メッセージを表示
-        const loadingText = `${characterName}が応答を準備中...`;
+        const loadingText = `${characterName}が返信対応中`;
 
         // ChatUIを使用してメッセージを追加
         if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
