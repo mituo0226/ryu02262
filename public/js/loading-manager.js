@@ -35,6 +35,18 @@ const LoadingManager = {
                 characterName
             );
 
+            // メッセージ要素を取得して、「……」を追加
+            const messageElement = document.getElementById(this.currentLoadingMessageId);
+            if (messageElement) {
+                const textDiv = messageElement.querySelector('.message-text');
+                if (textDiv) {
+                    // 既存のテキストを保持して、「……」アニメーションを追加
+                    const originalText = textDiv.textContent;
+                    textDiv.innerHTML = `${originalText}<span class="loading-dots">･･･</span>`;
+                    textDiv.classList.add('loading-with-dots');
+                }
+            }
+
             // チャットコンテナに待機状態クラスを追加
             const messagesDiv = window.ChatUI.messagesDiv;
             if (messagesDiv) {

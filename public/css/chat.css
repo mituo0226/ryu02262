@@ -724,6 +724,86 @@ body.admin-mode .chat-container {
     }
 }
 
+/* ============================================
+   ローディングドット（入力中演出）
+   ============================================ */
+
+/* 「……」のアニメーション：左から右へ色が変化する波のような効果 */
+.loading-dots {
+    display: inline-block;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-left: 4px;
+    animation: loading-dots-wave 1.2s ease-in-out infinite;
+    background: linear-gradient(90deg, 
+        #e8d5ff 0%,
+        #b794ff 25%,
+        #8b3dff 50%,
+        #b794ff 75%,
+        #e8d5ff 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0.9;
+}
+
+@keyframes loading-dots-wave {
+    0% {
+        background-position: 200% 0;
+        transform: translateY(0);
+        opacity: 0.6;
+    }
+    25% {
+        opacity: 0.8;
+    }
+    50% {
+        background-position: -200% 0;
+        transform: translateY(-2px);
+        opacity: 1;
+    }
+    75% {
+        opacity: 0.8;
+    }
+    100% {
+        background-position: 200% 0;
+        transform: translateY(0);
+        opacity: 0.6;
+    }
+}
+
+/* 揺らぐアニメーション（別オプション） */
+.loading-dots.shake-mode {
+    animation: loading-dots-shake 0.8s ease-in-out infinite;
+}
+
+@keyframes loading-dots-shake {
+    0% {
+        transform: translateX(0) scaleY(1);
+        opacity: 0.7;
+    }
+    25% {
+        transform: translateX(1px) scaleY(1.1);
+    }
+    50% {
+        transform: translateX(-1px) scaleY(0.95);
+        opacity: 1;
+    }
+    75% {
+        transform: translateX(1px) scaleY(1.05);
+    }
+    100% {
+        transform: translateX(0) scaleY(1);
+        opacity: 0.7;
+    }
+}
+
+/* メッセージテキストが loading-with-dots クラスを持つ場合 */
+.message-text.loading-with-dots {
+    position: relative;
+    display: inline-block;
+}
+
 .admin-analysis-panel {
     width: 350px;
     background: rgba(255, 255, 255, 0.04);
