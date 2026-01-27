@@ -3865,21 +3865,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     const domUrlParams = getUrlParams();
     const domUserId = domUrlParams.get('userId');
     debugLog('[DOMContentLoaded] userIdチェック:', { domUserId, isEntryFormVisible });
-    if (domUserId) {
-        // userIdがある場合、エントリーフォームを非表示にしてチャットコンテナを表示
+    
+    // 注：この処理は chat.html の初期スクリプトで既に実行済みのため、二重実行を防ぐ
+    // ただし、念のため確認して必要に応じて調整
+    if (domUserId && !isEntryFormVisible) {
+        // 既に正しく非表示になっている（初期スクリプトで処理済み）
+        debugLog('[DOMContentLoaded] userIdがあり、エントリーフォームは既に非表示です（初期スクリプト処理済み）');
+    } else if (domUserId && isEntryFormVisible) {
+        // 何らかの理由で初期スクリプトの処理が機能していない場合の回復処理
         if (entryFormContainer) {
             entryFormContainer.classList.add('entry-form-hidden');
-            debugLog('[DOMContentLoaded] エントリーフォームにhiddenクラスを追加しました');
+            debugLog('[DOMContentLoaded] エントリーフォームにhiddenクラスを追加しました（回復処理）');
         }
         if (chatContainer) {
             chatContainer.classList.remove('entry-form-hidden');
-            debugLog('[DOMContentLoaded] チャットコンテナからhiddenクラスを削除しました');
+            debugLog('[DOMContentLoaded] チャットコンテナからhiddenクラスを削除しました（回復処理）');
         }
-        debugLog('[DOMContentLoaded] userIdがURLパラメータにあるため、エントリーフォームを非表示にしてチャットコンテナを表示しました');
-        debugLog('[DOMContentLoaded] クラス変更後:', {
-            entryFormHasHidden: entryFormContainer?.classList.contains('entry-form-hidden'),
-            chatContainerHasHidden: chatContainer?.classList.contains('entry-form-hidden')
-        });
     }
     
     // エントリーフォームが表示されている場合（userIdがない場合のみ）は初期化をスキップ

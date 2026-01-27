@@ -21,6 +21,16 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
         
+        // インラインスタイルで即座に非表示にする（CSS読み込み前に実行）
+        if (userId) {
+            const style = document.createElement('style');
+            style.textContent = `
+                #entryFormContainer { display: none !important; }
+                #chatContainer { display: flex !important; }
+            `;
+            document.head.appendChild(style);
+        }
+        
         if (userId) {
             // userId がある場合、登録フォームに事前に hidden クラスを追加
             const entryFormContainer = document.getElementById('entryFormContainer');
