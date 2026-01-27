@@ -2593,6 +2593,72 @@ const ChatInit = {
             
             this._initPageRunning = false;
             this._initPageCompleted = true;
+        } catch (error) {
+            // エラーが発生した場合、character変数がまだ定義されていない可能性があるため、
+            // URLパラメータまたはChatData.currentCharacterから取得
+            const urlParams = getUrlParams();
+            let character = ChatData?.currentCharacter || urlParams.get('character') || 'kaede';
+            
+            // #region agent log (開発環境のみ - コメントアウト)
+            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:825',message:'initPage関数エラー',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
+            // }
+            // #endregion
+            
+            // 【追加】エラー時も待機画面を非表示
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2553',message:'initPageエラー: hideLoadingScreen呼び出し前',data:{hasHideLoadingScreen:typeof window.hideLoadingScreen === 'function',errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            if (typeof window.hideLoadingScreen === 'function') {
+                window.hideLoadingScreen();
+                debugLog('[初期化] エラー発生、待機画面を非表示にしました');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2556',message:'initPageエラー: hideLoadingScreen呼び出し後',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+            } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2559',message:'initPageエラー: hideLoadingScreen関数が存在しない',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                console.error('[初期化] エラー発生、hideLoadingScreen関数が存在しません');
+            }
+            
+            this._initPageRunning = false;
+            this._initPageCompleted = true;
+            console.error('Error loading conversation history:', error);
+            const info = ChatData.characterInfo[character];
+            
+            // 守護神の儀式完了直後のフラグを事前にチェック
+            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+            
+            // エラー時はハンドラーのinitPageを呼び出す
+            const handler = CharacterRegistry.get(character);
+            let handlerSkippedFirstMessage = false;
+            if (handler && typeof handler.initPage === 'function') {
+                // エラー分岐でもハンドラーに処理を委譲
+                const handlerResult = await handler.initPage(urlParams, null, justRegistered, shouldTriggerRegistrationFlow, {
+                    guardianMessageShown
+                });
+                if (handlerResult && handlerResult.completed) {
+                    debugLog('[初期化] ハンドラーで処理完了（エラー分岐）。処理を終了します。');
+                    return; // 処理終了
+                }
+                if (handlerResult && handlerResult.skip) {
+                    debugLog('[初期化] ハンドラーで処理スキップ（エラー分岐）。共通処理をスキップします。');
+                    handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
+                }
+            }
+            
+            // 【統一化】共通の初回メッセージ表示ロジックを使用
+            // エラー時はhistoryDataがnullの可能性があるため、エラー時の初期メッセージ表示は簡素化
+            if (!handlerSkippedFirstMessage && window.ChatUI) {
+                const info = ChatData.characterInfo[character];
+                if (info) {
+                    // エラー時は簡単なメッセージを表示
+                    const errorMessage = `ようこそ、${info.name}です。何かお困りのことがあれば、お気軽にお話しください。`;
+                    window.ChatUI.addMessage('welcome', errorMessage, info.name);
+                }
+            }
+        }
 
         // イベントリスナーは window.addEventListener('load', ...) で設定されるため、ここでは設定しない
         // （重複登録を防ぐため。loadイベントでcloneNodeを使って確実に1回だけ登録される）

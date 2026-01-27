@@ -1,0 +1,70 @@
+diff --git a/public/js/chat-engine.js b/public/js/chat-engine.js
+index 9a105eb..e9db4fb 100644
+--- a/public/js/chat-engine.js
++++ b/public/js/chat-engine.js
+@@ -2593,72 +2593,6 @@ const ChatInit = {
+             
+             this._initPageRunning = false;
+             this._initPageCompleted = true;
+-        } catch (error) {
+-            // 繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺溷ｴ蜷医…haracter螟画焚縺後∪縺螳夂ｾｩ縺輔ｌ縺ｦ縺・↑縺・庄閭ｽ諤ｧ縺後≠繧九◆繧√・-            // URL繝代Λ繝｡繝ｼ繧ｿ縺ｾ縺溘・ChatData.currentCharacter縺九ｉ蜿門ｾ・-            const urlParams = getUrlParams();
+-            let character = ChatData?.currentCharacter || urlParams.get('character') || 'kaede';
+-            
+-            // #region agent log (髢狗匱迺ｰ蠅・・縺ｿ - 繧ｳ繝｡繝ｳ繝医い繧ｦ繝・
+-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:825',message:'initPage髢｢謨ｰ繧ｨ繝ｩ繝ｼ',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
+-            // }
+-            // #endregion
+-            
+-            // 縲占ｿｽ蜉縲代お繝ｩ繝ｼ譎ゅｂ蠕・ｩ溽判髱｢繧帝撼陦ｨ遉ｺ
+-            // #region agent log
+-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2553',message:'initPage繧ｨ繝ｩ繝ｼ: hideLoadingScreen蜻ｼ縺ｳ蜃ｺ縺怜燕',data:{hasHideLoadingScreen:typeof window.hideLoadingScreen === 'function',errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+-            // #endregion
+-            if (typeof window.hideLoadingScreen === 'function') {
+-                window.hideLoadingScreen();
+-                debugLog('[蛻晄悄蛹望 繧ｨ繝ｩ繝ｼ逋ｺ逕溘∝ｾ・ｩ溽判髱｢繧帝撼陦ｨ遉ｺ縺ｫ縺励∪縺励◆');
+-                // #region agent log
+-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2556',message:'initPage繧ｨ繝ｩ繝ｼ: hideLoadingScreen蜻ｼ縺ｳ蜃ｺ縺怜ｾ・,data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+-                // #endregion
+-            } else {
+-                // #region agent log
+-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2559',message:'initPage繧ｨ繝ｩ繝ｼ: hideLoadingScreen髢｢謨ｰ縺悟ｭ伜惠縺励↑縺・,data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+-                // #endregion
+-                console.error('[蛻晄悄蛹望 繧ｨ繝ｩ繝ｼ逋ｺ逕溘”ideLoadingScreen髢｢謨ｰ縺悟ｭ伜惠縺励∪縺帙ｓ');
+-            }
+-            
+-            this._initPageRunning = false;
+-            this._initPageCompleted = true;
+-            console.error('Error loading conversation history:', error);
+-            const info = ChatData.characterInfo[character];
+-            
+-            // 螳郁ｭｷ逾槭・蜆蠑丞ｮ御ｺ・峩蠕後・繝輔Λ繧ｰ繧剃ｺ句燕縺ｫ繝√ぉ繝・け
+-            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
+-            
+-            // 繧ｨ繝ｩ繝ｼ譎ゅ・繝上Φ繝峨Λ繝ｼ縺ｮinitPage繧貞他縺ｳ蜃ｺ縺・-            const handler = CharacterRegistry.get(character);
+-            let handlerSkippedFirstMessage = false;
+-            if (handler && typeof handler.initPage === 'function') {
+-                // 繧ｨ繝ｩ繝ｼ蛻・ｲ舌〒繧ゅワ繝ｳ繝峨Λ繝ｼ縺ｫ蜃ｦ逅・ｒ蟋碑ｭｲ
+-                const handlerResult = await handler.initPage(urlParams, null, justRegistered, shouldTriggerRegistrationFlow, {
+-                    guardianMessageShown
+-                });
+-                if (handlerResult && handlerResult.completed) {
+-                    debugLog('[蛻晄悄蛹望 繝上Φ繝峨Λ繝ｼ縺ｧ蜃ｦ逅・ｮ御ｺ・ｼ医お繝ｩ繝ｼ蛻・ｲ撰ｼ峨ょ・逅・ｒ邨ゆｺ・＠縺ｾ縺吶・);
+-                    return; // 蜃ｦ逅・ｵゆｺ・-                }
+-                if (handlerResult && handlerResult.skip) {
+-                    debugLog('[蛻晄悄蛹望 繝上Φ繝峨Λ繝ｼ縺ｧ蜃ｦ逅・せ繧ｭ繝・・・医お繝ｩ繝ｼ蛻・ｲ撰ｼ峨ょ・騾壼・逅・ｒ繧ｹ繧ｭ繝・・縺励∪縺吶・);
+-                    handlerSkippedFirstMessage = true; // 蛻晏屓繝｡繝・そ繝ｼ繧ｸ縺ｮ陦ｨ遉ｺ縺ｯ繧ｹ繧ｭ繝・・・医ワ繝ｳ繝峨Λ繝ｼ縺ｧ蜃ｦ逅・ｸ医∩・・-                }
+-            }
+-            
+-            // 縲千ｵｱ荳蛹悶大・騾壹・蛻晏屓繝｡繝・そ繝ｼ繧ｸ陦ｨ遉ｺ繝ｭ繧ｸ繝・け繧剃ｽｿ逕ｨ
+-            // 繧ｨ繝ｩ繝ｼ譎ゅ・historyData縺系ull縺ｮ蜿ｯ閭ｽ諤ｧ縺後≠繧九◆繧√√お繝ｩ繝ｼ譎ゅ・蛻晄悄繝｡繝・そ繝ｼ繧ｸ陦ｨ遉ｺ縺ｯ邁｡邏蛹・-            if (!handlerSkippedFirstMessage && window.ChatUI) {
+-                const info = ChatData.characterInfo[character];
+-                if (info) {
+-                    // 繧ｨ繝ｩ繝ｼ譎ゅ・邁｡蜊倥↑繝｡繝・そ繝ｼ繧ｸ繧定｡ｨ遉ｺ
+-                    const errorMessage = `繧医≧縺薙◎縲・{info.name}縺ｧ縺吶ゆｽ輔°縺雁峅繧翫・縺薙→縺後≠繧後・縲√♀豌苓ｻｽ縺ｫ縺願ｩｱ縺励￥縺縺輔＞縲Ａ;
+-                    window.ChatUI.addMessage('welcome', errorMessage, info.name);
+-                }
+-            }
+-        }
+ 
+         // 繧､繝吶Φ繝医Μ繧ｹ繝翫・縺ｯ window.addEventListener('load', ...) 縺ｧ險ｭ螳壹＆繧後ｋ縺溘ａ縲√％縺薙〒縺ｯ險ｭ螳壹＠縺ｪ縺・         // ・磯㍾隍・匳骭ｲ繧帝亟縺舌◆繧√Ｍoad繧､繝吶Φ繝医〒cloneNode繧剃ｽｿ縺｣縺ｦ遒ｺ螳溘↓1蝗槭□縺醍匳骭ｲ縺輔ｌ繧具ｼ・
