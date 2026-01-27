@@ -29,10 +29,11 @@ const LoadingManager = {
 
         // ChatUIを使用してメッセージを追加
         if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+            // ローディングメッセージはヘッダー（sender）を表示しない
             this.currentLoadingMessageId = window.ChatUI.addMessage(
                 'loading',
                 loadingText,
-                characterName
+                null  // sender を null にしてヘッダーを表示しない
             );
 
             // メッセージ要素を取得して、「……」を追加
