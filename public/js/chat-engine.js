@@ -1904,11 +1904,6 @@ const ChatInit = {
                             if (window.ChatUI) {
                                 window.ChatUI.addMessage('welcome', welcomeMessage, info.name);
                                 debugLog('[初期化] ウェルカムメッセージを表示しました');
-                                
-                                // ページローディング完了
-                                if (window.PageLoadingManager) {
-                                    window.PageLoadingManager.complete();
-                                }
                             } else {
                                 console.error('[初期化] ChatUIが利用できません');
                             }
@@ -3954,15 +3949,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         }
         // ========== 追加終了 ==========
-        
-        // ページローディング開始（段階的表示）
-        const character = getUrlParams().get('character');
-        const characterInfo = ChatData.characterInfo && ChatData.characterInfo[character];
-        const characterName = characterInfo ? characterInfo.name : 'アシスタント';
-        
-        if (window.PageLoadingManager) {
-            window.PageLoadingManager.start(characterName);
-        }
         
         await ChatInit.initPage();
     } else {
