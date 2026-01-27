@@ -287,10 +287,24 @@
     </script>
     
     <!-- スクリプト読み込み -->
+    <!-- 1. ユーティリティ関数（依存なし） -->
+    <script src="../../js/chat-utils.js" defer></script>
+    
+    <!-- 2. データ管理（ユーティリティのみに依存） -->
+    <script src="../../js/chat-data.js" defer></script>
+    
+    <!-- 3. テストユーティリティ -->
+    <script src="../../js/chat-test-utils.js" defer></script>
+    
+    <!-- 4. その他の依存関係 -->
     <script src="../../js/auth-state.js" defer></script>
     <script src="../../js/loading-manager.js" defer></script>
     <script src="../../js/character-features.js" defer></script>
+    
+    <!-- 5. メインエンジン（分離前） -->
     <script id="chatEngineScript" src="../../js/chat-engine.js" defer></script>
+    
+    <!-- 6. キャラクター管理 -->
     <script src="../../js/character-registry.js" defer></script>
     <script src="../../js/character-loader.js" defer></script>
     

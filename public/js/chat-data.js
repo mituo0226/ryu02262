@@ -1,6 +1,13 @@
 /**
  * chat-data.js
- * データ管理と状態管理を担当
+ * チャットシステムのデータ管理モジュール
+ * 
+ * 責務:
+ * - ユーザーデータの管理
+ * - 会話履歴の保存・取得
+ * - キャラクター情報の管理
+ * 
+ * 依存関係: chat-utils.js（getUrlParams, debugLog）
  */
 
 const ChatData = {
@@ -17,12 +24,6 @@ const ChatData = {
      * @returns {Promise<Object>} キャラクター情報
      */
     async loadCharacterData(characterId = null) {
-        // #region agent log (開発環境のみ - コメントアウト)
-        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:19',message:'loadCharacterData開始',data:{},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // }
-        // #endregion
-        
         // characterIdが指定されている場合、個別ファイルから読み込む
         if (characterId) {
             if (this.characterData && this.characterData.id === characterId) {
@@ -30,8 +31,7 @@ const ChatData = {
                 return this.characterData;
             }
             
-            // 【修正】個別ファイルは存在しないため、直接characters.jsonから読み込む
-            // 個別ファイル読み込みを削除し、常にcharacters.jsonから読み込むように変更
+            // 個別ファイルは存在しないため、直接characters.jsonから読み込む
             try {
                 const response = await fetch('../../data/characters.json');
                 if (!response.ok) {
@@ -50,7 +50,6 @@ const ChatData = {
                 };
                 this.characterInfo = allCharacters;
                 
-                console.log(`[ChatData.loadCharacterData] 読み込み完了: ${characterId}`);
                 return this.characterData;
             } catch (error) {
                 console.error('キャラクターデータ読み込みエラー:', error);
@@ -65,24 +64,8 @@ const ChatData = {
                 throw new Error('Failed to load character data');
             }
             this.characterInfo = await response.json();
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:25',message:'characters.json読み込み完了',data:{characters:Object.keys(this.characterInfo),yukinoHasFirstTimeGuest:!!this.characterInfo.yukino?.messages?.firstTimeGuest,yukinoHasFirstTime:!!this.characterInfo.yukino?.messages?.firstTime,yukinoFirstTimeGuest:this.characterInfo.yukino?.messages?.firstTimeGuest?.substring(0,100)||'なし',yukinoMessagesKeys:this.characterInfo.yukino?.messages?Object.keys(this.characterInfo.yukino.messages):[]},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // }
-            // #endregion
-            console.log('[ChatData.loadCharacterData] 読み込み完了:', {
-                characters: Object.keys(this.characterInfo),
-                yukinoHasFirstTimeGuest: !!this.characterInfo.yukino?.messages?.firstTimeGuest,
-                yukinoHasFirstTime: !!this.characterInfo.yukino?.messages?.firstTime,
-                yukinoFirstTimeGuest: this.characterInfo.yukino?.messages?.firstTimeGuest?.substring(0, 50) + '...' || 'なし'
-            });
             return this.characterInfo;
         } catch (error) {
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:33',message:'loadCharacterDataエラー',data:{error:error.message},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // }
-            // #endregion
             console.error('Failed to load character data:', error);
             return {};
         }
@@ -93,23 +76,11 @@ const ChatData = {
      * @returns {string} キャラクターID
      */
     getCharacterFromURL() {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:95',message:'getCharacterFromURL呼び出し',data:{currentURL:window.location.href,searchParams:window.location.search,currentCharacter:this.currentCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        // グローバルスコープのurlParamsを使用
-        if (!window._chatUrlParams) {
-            window._chatUrlParams = new URLSearchParams(window.location.search);
-        }
-        const urlParams = window._chatUrlParams;
+        const urlParams = getUrlParams();
         const character = urlParams.get('character');
         
-        // 【修正】characterInfoが空の場合でも、URLパラメータから直接取得
         // 有効なキャラクターIDのリスト
         const validCharacters = ['kaede', 'yukino', 'sora', 'kaon'];
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:107',message:'getCharacterFromURL結果',data:{character:character,isValid:character&&validCharacters.includes(character),currentCharacter:this.currentCharacter,fallbackUsed:!character||!validCharacters.includes(character)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         
         if (character && validCharacters.includes(character)) {
             return character;
@@ -144,26 +115,23 @@ const ChatData = {
      */
     getUserMessageCount(character) {
         // 会話履歴が唯一の真実の源（single source of truth）
-        // 会話履歴からユーザーメッセージ数を直接数える
         const history = this.getConversationHistory(character);
         
         if (history && Array.isArray(history)) {
             const userMessageCount = history.filter(msg => msg && msg.role === 'user').length;
-            console.log(`[ChatData] getUserMessageCount(${character}): ${userMessageCount} (会話履歴から計算)`);
             
-            // sessionStorageの値と一致するか確認（デバッグ用）
-            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
+            // sessionStorageの値と一致するか確認
+            const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
             const key = GUEST_COUNT_KEY_PREFIX + character;
             const storedCount = sessionStorage.getItem(key);
             if (storedCount !== null) {
                 const storedCountNum = Number.parseInt(storedCount, 10);
                 if (storedCountNum !== userMessageCount) {
-                    console.warn(`[ChatData] ⚠️ カウントの不一致を検出: sessionStorage=${storedCountNum}, 履歴=${userMessageCount}。履歴を優先します。`);
                     // 履歴の値をsessionStorageに同期
                     this.setUserMessageCount(character, userMessageCount);
                 }
             } else {
-                // sessionStorageにない場合は、計算した値を保存（補助的な用途）
+                // sessionStorageにない場合は、計算した値を保存
                 this.setUserMessageCount(character, userMessageCount);
             }
             
@@ -171,7 +139,6 @@ const ChatData = {
         }
         
         // 会話履歴が存在しない場合のみ0を返す
-        console.log(`[ChatData] getUserMessageCount(${character}): 0 (会話履歴が空)`);
         return 0;
     },
 
@@ -190,11 +157,10 @@ const ChatData = {
      * @param {number} count - カウント
      */
     setUserMessageCount(character, count) {
-        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_'; // 後方互換性のためキー名は変更しない
+        const GUEST_COUNT_KEY_PREFIX = 'guestMessageCount_';
         const key = GUEST_COUNT_KEY_PREFIX + character;
         sessionStorage.setItem(key, String(count));
         sessionStorage.setItem('lastGuestMessageCount', String(count - 1));
-        console.log(`[ChatData] setUserMessageCount(${character}, ${count})`);
     },
 
     /**
@@ -212,24 +178,13 @@ const ChatData = {
      * @returns {Array} 会話履歴
      */
     getConversationHistory(character) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:207',message:'getConversationHistory呼び出し',data:{character:character,currentCharacter:this.currentCharacter,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         const storedHistory = sessionStorage.getItem(historyKey);
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:212',message:'sessionStorageから取得',data:{historyKey:historyKey,hasStoredHistory:!!storedHistory,storedHistoryLength:storedHistory?storedHistory.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        
         if (storedHistory) {
             try {
-                const parsed = JSON.parse(storedHistory);
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:216',message:'会話履歴をパース',data:{character:character,historyLength:parsed.length,firstMessageRole:parsed[0]?.role,lastMessageRole:parsed[parsed.length-1]?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
-                return parsed;
+                return JSON.parse(storedHistory);
             } catch (error) {
                 console.error('Error parsing conversation history:', error);
                 return [];
@@ -238,11 +193,7 @@ const ChatData = {
         
         // AuthStateから取得を試みる
         if (window.AuthState && typeof window.AuthState.getGuestHistory === 'function') {
-            const authHistory = AuthState.getGuestHistory(character) || [];
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:223',message:'AuthStateから取得',data:{character:character,authHistoryLength:authHistory.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-            return authHistory;
+            return AuthState.getGuestHistory(character) || [];
         }
         
         return [];
@@ -263,15 +214,9 @@ const ChatData = {
      * @param {Array} history - 会話履歴
      */
     setConversationHistory(character, history) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:243',message:'setConversationHistory呼び出し',data:{character:character,historyLength:history?.length||0,currentCharacter:this.currentCharacter,urlCharacter:new URLSearchParams(window.location.search).get('character'),firstMessageRole:history?.[0]?.role,lastMessageRole:history?.[history.length-1]?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_'; // 後方互換性のためキー名は変更しない
+        const GUEST_HISTORY_KEY_PREFIX = 'guestConversationHistory_';
         const historyKey = GUEST_HISTORY_KEY_PREFIX + character;
         sessionStorage.setItem(historyKey, JSON.stringify(history));
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:246',message:'sessionStorageに保存完了',data:{historyKey:historyKey,storedLength:sessionStorage.getItem(historyKey)?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
     },
 
     /**
@@ -314,7 +259,7 @@ const ChatData = {
             return null;
         }
 
-        // 最後のユーザーメッセージを取得（時系列順に並んでいる場合）
+        // 最後のユーザーメッセージを取得
         const messages = historyData.recentMessages;
         let lastUserMessage = null;
         for (let i = messages.length - 1; i >= 0; i--) {
@@ -325,9 +270,7 @@ const ChatData = {
         }
         
         if (lastUserMessage) {
-            const content = lastUserMessage.content;
-            // 長さ制限は設けず、そのまま返す（returningメッセージで使用されるため）
-            return content;
+            return lastUserMessage.content;
         }
         
         return null;
@@ -401,18 +344,8 @@ const ChatData = {
      * @returns {string} メッセージ
      */
     generateInitialMessage(characterId, historyData) {
-        // #region agent log (開発環境のみ - コメントアウト)
-        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:258',message:'generateInitialMessage呼び出し',data:{characterId,hasHistoryData:!!historyData,hasReturning:!!this.characterInfo[characterId]?.messages?.returning},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // }
-        // #endregion
         const character = this.characterInfo[characterId];
         if (!character || !character.messages || !character.messages.returning) {
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:261',message:'generateInitialMessage→デフォルト返却',data:{characterId,returnMessage:'こんにちは。'},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-            // }
-            // #endregion
             return 'こんにちは。';
         }
 
@@ -420,12 +353,7 @@ const ChatData = {
         const lastDate = historyData.lastConversationDate || null;
         const conversationContent = this.extractConversationContent(historyData);
         
-        // #region agent log (開発環境のみ - コメントアウト)
         const finalMessage = this.replaceMessageTemplate(character.messages.returning, nickname, lastDate, conversationContent, characterId);
-        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:268',message:'generateInitialMessage→returning返却',data:{characterId,returnMessage:finalMessage.substring(0,200),containsOldMessage:finalMessage.includes('あなたさん、初めまして')||finalMessage.includes('システムからお聞き')},timestamp:Date.now(),runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // }
-        // #endregion
         return finalMessage;
     },
 
@@ -433,87 +361,33 @@ const ChatData = {
      * 各鑑定師の初めての会話メッセージを生成
      * @param {string} characterId - キャラクターID
      * @param {string} nickname - ニックネーム
-     * @param {boolean} isGuestFirstVisit - ゲストユーザーとして初めて入室した場合true（未使用、後方互換性のため残す）
-     * @param {boolean} hasOtherCharacterHistory - 他のキャラクターとの会話履歴があるかどうか（未使用、後方互換性のため残す）
+     * @param {boolean} isGuestFirstVisit - ゲストユーザーとして初めて入室した場合true
+     * @param {boolean} hasOtherCharacterHistory - 他のキャラクターとの会話履歴があるかどうか
      * @returns {string} メッセージ
      */
     generateFirstTimeMessage(characterId, nickname, isGuestFirstVisit = false, hasOtherCharacterHistory = false) {
-        // #region agent log (開発環境のみ - コメントアウト)
-        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:284',message:'generateFirstTimeMessage呼び出し',data:{characterId,nickname,hasCharacterInfo:!!this.characterInfo[characterId],hasMessages:!!this.characterInfo[characterId]?.messages,hasFirstTimeGuest:!!this.characterInfo[characterId]?.messages?.firstTimeGuest},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // }
-        // #endregion
-        console.log('[ChatData.generateFirstTimeMessage] 呼び出し:', {
-            characterId,
-            nickname,
-            hasCharacterInfo: !!this.characterInfo[characterId],
-            hasMessages: !!this.characterInfo[characterId]?.messages,
-            hasFirstTimeGuest: !!this.characterInfo[characterId]?.messages?.firstTimeGuest
-        });
-        
         const character = this.characterInfo[characterId];
         if (!character || !character.messages) {
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:294',message:'キャラクター情報なし→デフォルト返却',data:{characterId,returnMessage:`${nickname}さん、初めまして。`},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // }
-            // #endregion
-            console.log('[ChatData.generateFirstTimeMessage] キャラクター情報が見つかりません。デフォルトメッセージを返します');
             return `${nickname}さん、初めまして。`;
         }
         
-        // 初めて笹岡と会話するユーザーは、他のキャラクターとの会話履歴に関係なく、常にfirstTimeGuestを使用
-        let messageTemplate = null;
-        if (character.messages.firstTimeGuest) {
-            messageTemplate = character.messages.firstTimeGuest;
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:302',message:'firstTimeGuest使用',data:{characterId,messageTemplate:messageTemplate.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // }
-            // #endregion
-            console.log('[ChatData.generateFirstTimeMessage] firstTimeGuestを使用:', messageTemplate.substring(0, 50) + '...');
-        } else {
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:305',message:'firstTimeGuestなし→デフォルト返却',data:{characterId,availableKeys:Object.keys(character.messages)},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // }
-            // #endregion
-            console.log('[ChatData.generateFirstTimeMessage] firstTimeGuestが設定されていません');
-        }
+        // 初めて会話するユーザーは、firstTimeGuestを使用
+        let messageTemplate = character.messages.firstTimeGuest;
         
         if (!messageTemplate) {
-            // firstTimeGuestが設定されていない場合は、デフォルトメッセージを返す
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:309',message:'デフォルトメッセージ返却',data:{characterId,returnMessage:`${nickname}さん、初めまして。`},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // }
-            // #endregion
-            console.log('[ChatData.generateFirstTimeMessage] デフォルトメッセージを返します');
+            // firstTimeGuestが設定されていない場合はデフォルトメッセージ
             return `${nickname}さん、初めまして。`;
         }
         
-        // テンプレート変数を含まない可能性があるため、その場合はそのまま返す
+        // テンプレート変数を含まない場合はそのまま返す
         if (!messageTemplate.includes('{nickname}')) {
-            // #region agent log (開発環境のみ - コメントアウト)
-            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:316',message:'テンプレート変数なし→そのまま返却',data:{characterId,returnMessage:messageTemplate.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // }
-            // #endregion
-            console.log('[ChatData.generateFirstTimeMessage] テンプレート変数なし。そのまま返します');
             return messageTemplate;
         }
         
-        // #region agent log (開発環境のみ - コメントアウト)
         const finalMessage = this.replaceMessageTemplate(messageTemplate, nickname, null, null, characterId);
-        // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-data.js:321',message:'テンプレート置換後返却',data:{characterId,returnMessage:finalMessage.substring(0,200)},timestamp:Date.now(),runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // }
-        // #endregion
-        console.log('[ChatData.generateFirstTimeMessage] テンプレート変数を置換します');
         return finalMessage;
     }
 };
 
-// グローバルスコープに公開（iframeからアクセスできるようにする）
+// グローバルスコープに公開
 window.ChatData = ChatData;
-
