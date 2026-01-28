@@ -1324,18 +1324,15 @@ const ChatInit = {
         // #endregion
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1358',message:'initPage開始',data:{isRunning:this._initPageRunning,isCompleted:this._initPageCompleted,url:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
         // #endregion
         // 重複実行を防ぐフラグをチェック
         if (this._initPageRunning) {
             console.warn('[初期化] initPageが既に実行中です。重複実行をスキップします。');
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1362',message:'initPage重複実行検出→スキップ',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
             // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
             // ローカルロギングサーバーへの接続は開発環境でのみ有効
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:19',message:'initPage重複実行検出→スキップ',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
             return;
@@ -1343,11 +1340,9 @@ const ChatInit = {
         if (this._initPageCompleted) {
             console.warn('[初期化] initPageは既に完了しています。重複実行をスキップします。');
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1355',message:'initPage完了済み検出→スキップ',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:26',message:'initPage完了済み検出→スキップ',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
             return;
@@ -1379,7 +1374,6 @@ const ChatInit = {
         
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:27',message:'initPage関数開始',data:{url:window.location.href,character:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
         // }
         // #endregion
         // テストモードチェックは、chat-engine.jsの最初（DOMContentLoadedの外）で実行されるため、
@@ -1409,20 +1403,17 @@ const ChatInit = {
         // キャラクター情報を読み込む（単一キャラクターのみ）
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:27',message:'loadCharacterData呼び出し前',data:{},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // }
         // #endregion
         // characterIdを指定して単一キャラクターデータのみ読み込む（効率化）
         await ChatData.loadCharacterData(character);
         // #region agent log (開発環境のみ - コメントアウト)
         // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:29',message:'loadCharacterData呼び出し後',data:{characterInfoKeys:Object.keys(ChatData.characterInfo),characterInfoLength:Object.keys(ChatData.characterInfo).length},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // }
         // #endregion
         if (Object.keys(ChatData.characterInfo).length === 0) {
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:30',message:'characterInfoが空→早期リターン',data:{},timestamp:Date.now(),runId:'run1',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
             console.error('Failed to load character data');
@@ -1442,7 +1433,6 @@ const ChatInit = {
             ChatData.conversationHistory = null;
 
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1498',message:'キャラクター切り替え検出',data:{previousCharacter:previousCharacter,newCharacter:character,conversationHistoryCleared:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
             // #endregion
         }
         
@@ -1485,17 +1475,13 @@ const ChatInit = {
                 let dbUserNickname = null;
                 try {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1558',message:'loadConversationHistory呼び出し前（登録完了処理）',data:{character:character,urlCharacter:new URLSearchParams(window.location.search).get('character'),currentCharacter:ChatData.currentCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                     // #endregion
                     // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1812',message:'loadConversationHistory呼び出し前（通常フロー）',data:{character:character,urlCharacter:new URLSearchParams(window.location.search).get('character'),currentCharacter:ChatData.currentCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
                 historyData = await ChatAPI.loadConversationHistory(character);
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1815',message:'loadConversationHistory呼び出し後（通常フロー）',data:{character:character,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1561',message:'loadConversationHistory呼び出し後（登録完了処理）',data:{character:character,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                     // #endregion
                     if (historyData && historyData.nickname) {
                         dbUserNickname = historyData.nickname;
@@ -1721,17 +1707,14 @@ const ChatInit = {
             // 会話履歴を読み込む
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:217',message:'loadConversationHistory呼び出し前',data:{character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // }
             // #endregion
             let historyData = null;
             try {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1812',message:'loadConversationHistory呼び出し前（通常フロー）',data:{character:character,urlCharacter:new URLSearchParams(window.location.search).get('character'),currentCharacter:ChatData.currentCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
                 historyData = await ChatAPI.loadConversationHistory(character);
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1815',message:'loadConversationHistory呼び出し後（通常フロー）',data:{character:character,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
             } catch (error) {
                 // エラーハンドリング
@@ -2107,7 +2090,6 @@ const ChatInit = {
             };
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:220',message:'loadConversationHistory呼び出し後',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,nickname:historyData?.nickname,recentMessagesLength:historyData?.recentMessages?.length||0},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // }
             // #endregion
 
@@ -2168,14 +2150,12 @@ const ChatInit = {
             // ※guardianMessageShownは上で既に定義済み
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:277',message:'初回メッセージ表示判定開始',data:{hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname,guardianMessageShown,character},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // }
             // #endregion
             
             if (historyData && historyData.hasHistory) {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:477',message:'historyData.hasHistory=trueブロック開始',data:{character,hasHistory:historyData.hasHistory,recentMessagesLength:historyData.recentMessages?.length||0,guardianMessageShown,handlerSkippedFirstMessage:false},timestamp:Date.now(),runId:'debug-run',hypothesisId:'A'})}).catch(()=>{});
                 // }
                 // #endregion
                 ChatData.conversationHistory = historyData;
@@ -2256,7 +2236,6 @@ const ChatInit = {
                     });
                     markInitPageTiming('handler.initPage完了');
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2409',message:'handler.initPage完了',data:{completed:handlerResult?.completed,skip:handlerResult?.skip},timestamp:Date.now(),sessionId:'debug-session',runId:'perf1',hypothesisId:'perfA'})}).catch(()=>{});
                     // #endregion
                     if (handlerResult && handlerResult.completed) {
 
@@ -2289,7 +2268,6 @@ const ChatInit = {
             } else if (historyData && historyData.nickname) {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:398',message:'分岐2: historyData.nickname存在',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // }
                 // #endregion
                 // 【重要】hasHistoryがfalseでも、nicknameが存在する場合は登録済みユーザーとして扱う
@@ -2354,7 +2332,6 @@ const ChatInit = {
             } else {
                 // #region agent log (開発環境のみ - コメントアウト)
                 // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-init.js:415',message:'分岐3: historyDataなしまたはnicknameなし',data:{character,hasHistoryData:!!historyData,hasHistory:historyData?.hasHistory,hasNickname:!!historyData?.nickname},timestamp:Date.now(),runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // }
                 // #endregion
                 
@@ -2443,23 +2420,19 @@ const ChatInit = {
             }
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:820',message:'initPage関数終了（正常終了）',data:{character},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
             
             // 【追加】すべての初期化が完了したら待機画面を非表示
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2504',message:'initPage完了: hideLoadingScreen呼び出し前',data:{hasHideLoadingScreen:typeof window.hideLoadingScreen === 'function',character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
             if (typeof window.hideLoadingScreen === 'function') {
                 window.hideLoadingScreen();
 
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2507',message:'initPage完了: hideLoadingScreen呼び出し後',data:{character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
             } else {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2510',message:'initPage完了: hideLoadingScreen関数が存在しない',data:{character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
                 console.error('[初期化] hideLoadingScreen関数が存在しません');
             }
@@ -2502,23 +2475,19 @@ const ChatInit = {
             
             // #region agent log (開発環境のみ - コメントアウト)
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            //     fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:825',message:'initPage関数エラー',data:{character,errorMessage:error?.message,errorStack:error?.stack?.split('\n').slice(0,5).join(' | ')},timestamp:Date.now(),runId:'debug-run',hypothesisId:'B'})}).catch(()=>{});
             // }
             // #endregion
             
             // 【追加】エラー時も待機画面を非表示
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2553',message:'initPageエラー: hideLoadingScreen呼び出し前',data:{hasHideLoadingScreen:typeof window.hideLoadingScreen === 'function',errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
             if (typeof window.hideLoadingScreen === 'function') {
                 window.hideLoadingScreen();
 
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2556',message:'initPageエラー: hideLoadingScreen呼び出し後',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
             } else {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:2559',message:'initPageエラー: hideLoadingScreen関数が存在しない',data:{errorMessage:error?.message,character},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
                 console.error('[初期化] エラー発生、hideLoadingScreen関数が存在しません');
             }
@@ -3136,11 +3105,9 @@ const ChatInit = {
             let historyData = null;
             try {
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1812',message:'loadConversationHistory呼び出し前（通常フロー）',data:{character:character,urlCharacter:new URLSearchParams(window.location.search).get('character'),currentCharacter:ChatData.currentCharacter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
                 historyData = await ChatAPI.loadConversationHistory(character);
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1815',message:'loadConversationHistory呼び出し後（通常フロー）',data:{character:character,hasHistoryData:!!historyData,recentMessagesLength:historyData?.recentMessages?.length||0,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
                 // #endregion
 
             } catch (error) {
@@ -3544,7 +3511,6 @@ window.sendMessage = (skipUserMessage, skipAnimation, messageOverride) => ChatIn
 // DOMContentLoaded時に初期化
 window.addEventListener('DOMContentLoaded', async () => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:3809',message:'DOMContentLoaded: initPage呼び出し前',data:{hasChatInit:typeof ChatInit !== 'undefined',hasInitPage:typeof ChatInit?.initPage === 'function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     // 【統合後】依存関係の読み込み待機は不要（統合によりchat-engine.js内で定義済み）
     // deferにより確実に読み込まれるため、直接初期化を実行
