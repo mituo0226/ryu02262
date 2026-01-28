@@ -9,6 +9,7 @@
     
     <link rel="stylesheet" href="../../css/chat.css">
     <link rel="stylesheet" href="../../css/chat-engine-ui.css">
+    <link rel="stylesheet" href="../../css/chat-transitions.css">
 
 </head>
 <body>
@@ -80,6 +81,40 @@
     </div>
 
     <main>
+        <!-- ローディング画面 -->
+        <div class="loading-screen fade-element" id="loadingScreen">
+            <div class="loading-screen-content">
+                <!-- 動画背景 -->
+                <div class="loading-video-container">
+                    <video id="loadingVideo" class="loading-video" autoplay loop muted playsinline>
+                        <source src="../../photo/kaede/call.mp4" type="video/mp4">
+                        お使いのブラウザは動画タグをサポートしていません
+                    </video>
+                    <div class="loading-video-overlay"></div>
+                </div>
+                
+                <!-- ローディングテキスト -->
+                <div class="loading-text-container">
+                    <div class="loading-character-name" id="loadingCharacterName">
+                        楓
+                    </div>
+                    
+                    <div class="loading-messages" id="loadingMessages">
+                        <div class="loading-message" id="loadingMessage1">
+                            <span id="loadingMessage1Text">楓が準備をしています...</span>
+                        </div>
+                    </div>
+                    
+                    <!-- メッセージアニメーション用の要素 -->
+                    <div class="loading-animation-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 入口フォーム -->
         <div class="entry-form-container" id="entryFormContainer">
             <form class="entry-form" id="entryForm" aria-label="鑑定フォーム">

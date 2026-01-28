@@ -1,0 +1,509 @@
+/**
+ * chat-transitions.css
+ * チャットページの画面遷移フェード演出
+ * 
+ * 【用途】
+ * - ページ切り替え時のフェードイン・フェードアウト
+ * - ローディング画面の表示・非表示
+ * - 要素のスムーズな表示状態の切り替え
+ * 
+ * 【パフォーマンス】
+ * - CSS Transitions を使用（GPU加速対応）
+ * - JavaScriptの処理負荷を最小化
+ */
+
+/* ============================================
+   フェード演出用の基本クラス
+   ============================================ */
+
+/**
+ * .fade-element
+ * フェード演出を受ける要素の基盤クラス
+ * - opacity: 透明度の変更
+ * - transition: アニメーション時間と曲線
+ */
+.fade-element {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/**
+ * .fade-out
+ * フェードアウト状態（非表示）
+ * - pointer-events: none - クリック無効化
+ * - z-index: 1 - 背景層に配置
+ */
+.fade-element.fade-out {
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/**
+ * .fade-in
+ * フェードイン状態（表示）
+ * - pointer-events: auto - クリック有効化
+ * - z-index: 10 - 前面層に配置
+ */
+.fade-element.fade-in {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 10;
+}
+
+/**
+ * .fade-in.active
+ * アクティブ状態を示すクラス
+ */
+.fade-element.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ============================================
+   ページ遷移演出（スライド + フェード）
+   ============================================ */
+
+/**
+ * .page-transition
+ * ページ全体のトランジション設定
+ */
+.page-transition {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+/**
+ * .page-transition.enter
+ * ページ表示時のアニメーション
+ */
+.page-transition.enter {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/**
+ * .page-transition.exit
+ * ページ非表示時のアニメーション
+ */
+.page-transition.exit {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* ============================================
+   ローディング画面用演出
+   ============================================ */
+
+/**
+ * #loadingScreen
+ * ローディング画面全体のコンテナ
+ */
+#loadingScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/**
+ * #loadingScreen.fade-out
+ * ローディング画面をフェードアウト
+ */
+#loadingScreen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/**
+ * .loading-screen-content
+ * ローディング画面の内容コンテナ
+ */
+.loading-screen-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/**
+ * .loading-video-container
+ * 動画を表示するコンテナ
+ */
+.loading-video-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/**
+ * .loading-video
+ * ローディング画面の背景動画
+ */
+.loading-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/**
+ * .loading-video-overlay
+ * 動画上のオーバーレイ（テキスト可読性向上用）
+ */
+.loading-video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+}
+
+/**
+ * .loading-text-container
+ * ローディングテキストコンテナ
+ */
+.loading-text-container {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    color: #ffffff;
+    font-family: 'Arial', 'Segoe UI', sans-serif;
+    max-width: 80%;
+}
+
+/**
+ * .loading-character-name
+ * キャラクター名表示
+ */
+.loading-character-name {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+    animation: fadeInDown 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+/**
+ * .loading-messages
+ * ローディングメッセージコンテナ
+ */
+.loading-messages {
+    margin: 20px 0;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/**
+ * .loading-message
+ * ローディングメッセージ項目
+ */
+.loading-message {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.6;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    animation: fadeInMessage 0.5s ease-in-out forwards;
+    margin: 5px 0;
+}
+
+/**
+ * .loading-animation-dots
+ * ローディングアニメーション用のドット
+ */
+.loading-animation-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+/**
+ * .loading-animation-dots span
+ * 各ドット要素
+ */
+.loading-animation-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffd700;
+    opacity: 0.6;
+    animation: pulse 1.4s infinite;
+}
+
+/**
+ * .loading-animation-dots span:nth-child(2)
+ * 2番目のドットはディレイを持つ
+ */
+.loading-animation-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+/**
+ * .loading-animation-dots span:nth-child(3)
+ * 3番目のドットはディレイを持つ
+ */
+.loading-animation-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+/**
+ * .loading-screen-fade
+ * ローディング画面のフェード制御（レガシー）
+ */
+.loading-screen-fade {
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+    will-change: opacity;
+}
+
+/**
+ * .loading-screen-fade.hide
+ * ローディング画面を隠す
+ */
+.loading-screen-fade.hide {
+    opacity: 0;
+}
+
+/**
+ * .loading-screen-fade.show
+ * ローディング画面を表示
+ */
+.loading-screen-fade.show {
+    opacity: 1;
+}
+
+/* ============================================
+   メッセージ表示の演出
+   ============================================ */
+
+/**
+ * .message-fade
+ * メッセージが表示される際のフェード
+ */
+.message-fade {
+    opacity: 0;
+    animation: fadeInMessage 0.5s ease-in-out forwards;
+    animation-delay: 0.1s;
+}
+
+/**
+ * fadeInMessage アニメーション
+ * メッセージのフェードイン演出
+ */
+@keyframes fadeInMessage {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/**
+ * fadeInDown アニメーション
+ * 上からフェードイン
+ */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/**
+ * pulse アニメーション
+ * ドットのパルスアニメーション
+ */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* ============================================
+   クロスフェード（2つの要素を重ね合わせ）
+   ============================================ */
+
+/**
+ * .crossfade-container
+ * 複数の要素をクロスフェードで切り替える場合のコンテナ
+ */
+.crossfade-container {
+    position: relative;
+    overflow: hidden;
+}
+
+/**
+ * .crossfade-item
+ * クロスフェード対象の要素
+ */
+.crossfade-container .crossfade-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}
+
+/**
+ * .crossfade-item.active
+ * アクティブな要素を表示
+ */
+.crossfade-container .crossfade-item.active {
+    opacity: 1;
+    position: relative;
+}
+
+/* ============================================
+   要素の表示・非表示切り替え
+   ============================================ */
+
+/**
+ * .transition-hidden
+ * 要素を隠す（トランジション付き）
+ */
+.transition-hidden {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+/**
+ * .transition-visible
+ * 要素を表示（トランジション付き）
+ */
+.transition-visible {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+/* ============================================
+   スムーズな背景色変更
+   ============================================ */
+
+/**
+ * .bg-transition
+ * 背景色がスムーズに変更される
+ */
+.bg-transition {
+    transition: background-color 0.4s ease-in-out;
+}
+
+/* ============================================
+   パフォーマンス最適化
+   ============================================ */
+
+/**
+ * .will-fade
+ * GPUアクセラレーション用のヒント
+ * 複数のフェード演出を同時に行う場合に使用
+ */
+.will-fade {
+    will-change: opacity;
+}
+
+/**
+ * .will-transform
+ * GPUアクセラレーション用のヒント
+ * トランスフォーム演出を行う場合に使用
+ */
+.will-transform {
+    will-change: transform;
+}
+
+/* ============================================
+   モバイル対応：アニメーション時間調整
+   ============================================ */
+
+@media (max-width: 768px) {
+    /**
+     * モバイルではアニメーション時間を短縮
+     * ユーザーの待機時間を減らし、レスポンスを向上させる
+     */
+    
+    .fade-element {
+        transition: opacity 0.2s ease-in-out;
+    }
+    
+    .page-transition {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .loading-screen-fade {
+        transition: opacity 0.3s ease-in-out;
+    }
+    
+    .message-fade {
+        animation-duration: 0.3s;
+    }
+    
+    .crossfade-item {
+        transition: opacity 0.3s ease-in-out;
+    }
+    
+    .transition-hidden,
+    .transition-visible {
+        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    }
+}
+
+/* ============================================
+   低スペック端末対応
+   ============================================ */
+
+/**
+ * prefers-reduced-motion メディアクエリ
+ * ユーザーがアニメーションを減らすように設定している場合、
+ * トランジション時間を短縮またはアニメーションを無効化
+ */
+@media (prefers-reduced-motion: reduce) {
+    .fade-element,
+    .page-transition,
+    .loading-screen-fade,
+    .message-fade,
+    .crossfade-item,
+    .transition-hidden,
+    .transition-visible,
+    .bg-transition {
+        transition: none;
+        animation: none;
+    }
+}
