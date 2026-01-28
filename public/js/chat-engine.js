@@ -1777,7 +1777,8 @@ const ChatInit = {
 
                             // ローディング画面を表示
                             if (window.ChatLoadingAnimation) {
-                                ChatLoadingAnimation.show(character, nicknameForMessage);
+                                const nicknameForLoading = historyData?.nickname || ChatData.userNickname || 'ユーザー';
+                                ChatLoadingAnimation.show(character, nicknameForLoading);
                             }
 
                             // パフォーマンス測定
