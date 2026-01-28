@@ -1775,7 +1775,11 @@ const ChatInit = {
                         try {
                             const visitPattern = historyData.visitPattern || 'returning';
 
-                            
+                            // ローディング画面を表示
+                            if (window.ChatLoadingAnimation) {
+                                ChatLoadingAnimation.show(character, nicknameForMessage);
+                            }
+
                             // パフォーマンス測定
                             const apiCallStart = performance.now();
 
@@ -1791,6 +1795,10 @@ const ChatInit = {
                             
                             const apiCallEnd = performance.now();
 
+                            // ローディング画面を非表示
+                            if (window.ChatLoadingAnimation) {
+                                ChatLoadingAnimation.hide();
+                            }
 
                             
                             // bodyのfade-inクラスを追加（チャット画面を表示）
@@ -1810,6 +1818,11 @@ const ChatInit = {
                             // 【削除】フラグは不要（awaitにより同期処理になるため）
                         } catch (error) {
                             console.error(`[初期化] ${info.name}の再訪問時：動的メッセージ生成エラー:`, error);
+                            
+                            // ローディング画面を非表示
+                            if (window.ChatLoadingAnimation) {
+                                ChatLoadingAnimation.hide();
+                            }
                             
                             // bodyのfade-inクラスを追加（チャット画面を表示）
                             if (document.body) {
@@ -1939,6 +1952,10 @@ const ChatInit = {
                                     const visitPattern = 'first_visit';
                                     const conversationHistory = [];
 
+                                    // ローディング画面を表示
+                                    if (window.ChatLoadingAnimation) {
+                                        ChatLoadingAnimation.show(character, ChatData.userNickname || 'ユーザー');
+                                    }
                                     
                                     const welcomeMessage = await ChatAPI.generateWelcomeMessage({
                                         character,
@@ -1946,6 +1963,10 @@ const ChatInit = {
                                         visitPattern
                                     });
 
+                                    // ローディング画面を非表示
+                                    if (window.ChatLoadingAnimation) {
+                                        ChatLoadingAnimation.hide();
+                                    }
                                     
                                     // 「考え中...」を動的メッセージに置き換え
                                     if (thinkingElementFirst && window.ChatUI && typeof window.ChatUI.replaceThinkingMessage === 'function') {
@@ -1959,6 +1980,11 @@ const ChatInit = {
                                     }
                                 } catch (error) {
                                     console.error(`[初期化] ${info.name}の初回訪問時：動的メッセージ生成エラー:`, error);
+                                    
+                                    // ローディング画面を非表示
+                                    if (window.ChatLoadingAnimation) {
+                                        ChatLoadingAnimation.hide();
+                                    }
                                     
                                     // エラー時はフォールバック（定型文）
                                     const hasOtherCharacterHistory = historyData?.hasOtherCharacterHistory || false;
