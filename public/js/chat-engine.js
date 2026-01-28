@@ -120,7 +120,6 @@ const ChatAPI = {
             if (userId) {
 
             } else {
-                console.warn('[loadConversationHistory] userInfo.userIdが無効な値です:', userInfo.userId);
             }
         }
         
@@ -172,7 +171,6 @@ const ChatAPI = {
                     throw new Error('USER_NOT_FOUND');
                 }
                 
-                console.warn('[loadConversationHistory] 会話履歴の取得に失敗:', response.status);
                 // ネットワークエラーやサーバーエラーの可能性
                 throw new Error('NETWORK_ERROR');
             }
@@ -469,7 +467,6 @@ const ChatData = {
                 const allCharacters = await response.json();
                 
                 if (!allCharacters[characterId]) {
-                    console.warn(`[ChatData.loadCharacterData] キャラクター "${characterId}" が見つかりません`);
                     return {};
                 }
                 
@@ -560,7 +557,6 @@ const ChatData = {
             if (storedCount !== null) {
                 const storedCountNum = Number.parseInt(storedCount, 10);
                 if (storedCountNum !== userMessageCount) {
-                    console.warn(`[ChatData] ⚠️ カウントの不一致を検出: sessionStorage=${storedCountNum}, 履歴=${userMessageCount}。履歴を優先します。`);
                     // 履歴の値をsessionStorageに同期
                     this.setUserMessageCount(character, userMessageCount);
                 }
@@ -582,7 +578,6 @@ const ChatData = {
      * @deprecated getUserMessageCountを使用してください
      */
     getGuestMessageCount(character) {
-        console.warn('[ChatData] getGuestMessageCountは非推奨です。getUserMessageCountを使用してください。');
         return this.getUserMessageCount(character);
     },
 
@@ -604,7 +599,6 @@ const ChatData = {
      * @deprecated setUserMessageCountを使用してください
      */
     setGuestMessageCount(character, count) {
-        console.warn('[ChatData] setGuestMessageCountは非推奨です。setUserMessageCountを使用してください。');
         return this.setUserMessageCount(character, count);
     },
 
@@ -640,7 +634,6 @@ const ChatData = {
      * @deprecated getConversationHistoryを使用してください
      */
     getGuestHistory(character) {
-        console.warn('[ChatData] getGuestHistoryは非推奨です。getConversationHistoryを使用してください。');
         return this.getConversationHistory(character);
     },
 
@@ -660,7 +653,6 @@ const ChatData = {
      * @deprecated setConversationHistoryを使用してください
      */
     setGuestHistory(character, history) {
-        console.warn('[ChatData] setGuestHistoryは非推奨です。setConversationHistoryを使用してください。');
         return this.setConversationHistory(character, history);
     },
 
@@ -681,7 +673,6 @@ const ChatData = {
      * @deprecated addToConversationHistoryを使用してください
      */
     addToGuestHistory(character, role, content) {
-        console.warn('[ChatData] addToGuestHistoryは非推奨です。addToConversationHistoryを使用してください。');
         return this.addToConversationHistory(character, role, content);
     },
 
@@ -881,7 +872,6 @@ const ChatUI = {
      */
     setCurrentCharacter(characterId, characterInfo) {
         if (!characterInfo[characterId]) {
-            console.warn('[ChatUI.setCurrentCharacter] ⚠️ characterInfo[' + characterId + '] が存在しないため、kaedeにフォールバックします');
             characterId = 'kaede';
         }
         
@@ -930,7 +920,6 @@ const ChatUI = {
         if (!this.userStatus) return;
         
         if (!userData) {
-            console.warn('[ChatUI] updateUserStatus: userDataが提供されていません');
             this.userStatus.textContent = '鑑定名義: 鑑定者';
             this.userStatus.className = 'user-status registered';
             return;
@@ -995,7 +984,6 @@ const ChatUI = {
             });
             
             if (isDuplicate) {
-                console.warn('[ChatUI] 重複したwelcomeメッセージを検出しました。スキップします。', text.substring(0, 100));
                 return null;
             }
         }
@@ -1139,7 +1127,6 @@ const ChatUI = {
      */
     replaceThinkingMessage(thinkingElement, message) {
         if (!thinkingElement || !this.messagesDiv) {
-            console.warn('[ChatUI.replaceThinkingMessage] 無効な引数');
             return;
         }
         
@@ -1327,7 +1314,6 @@ const ChatInit = {
         // #endregion
         // 重複実行を防ぐフラグをチェック
         if (this._initPageRunning) {
-            console.warn('[初期化] initPageが既に実行中です。重複実行をスキップします。');
             // #region agent log
             // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
@@ -1338,7 +1324,6 @@ const ChatInit = {
             return;
         }
         if (this._initPageCompleted) {
-            console.warn('[初期化] initPageは既に完了しています。重複実行をスキップします。');
             // #region agent log
             // #endregion
             // #region agent log (開発環境のみ - コメントアウト)
@@ -1535,7 +1520,6 @@ const ChatInit = {
                         }
                     }
                     // その他のエラー：デフォルト値を使用
-                    console.warn('[登録完了処理] エラーが発生しましたが、処理を続行します');
                     dbUserNickname = 'あなた';
                     ChatData.userNickname = dbUserNickname;
                     historyData = null;
@@ -1778,7 +1762,6 @@ const ChatInit = {
                 
                 const info = ChatData.characterInfo[character];
                 if (!info) {
-                    console.warn('[初期化] キャラクター情報が見つかりません:', character);
                     return false;
                 }
                 
@@ -1914,7 +1897,6 @@ const ChatInit = {
 
                                     return true;
                                 } else {
-                                    console.warn(`[初期化] ${info.name}の再訪問時（履歴なし）：APIから返答を取得できませんでした`);
                                     // APIから返答を取得できなかった場合は、フォールバックとして定型文を試行
                                     const initialMessage = ChatData.generateInitialMessage(character, historyData);
                                     if (initialMessage && initialMessage.trim()) {
@@ -2046,7 +2028,6 @@ const ChatInit = {
 
                                 return true;
                             } else {
-                                console.warn('[初期化] 楓の再訪問時（履歴なし）：APIから返答を取得できませんでした。ハンドラーのメッセージを使用します');
                                 // APIから返答を取得できなかった場合は、ハンドラーのメッセージを使用
                                 const guardianConfirmationMessage = handlerForFirstMessage.getGuardianConfirmationMessage(historyData, userNickname);
                                 if (guardianConfirmationMessage) {
@@ -2311,7 +2292,6 @@ const ChatInit = {
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 } else if (!handler) {
-                    console.warn('[初期化] ハンドラーが読み込まれていません。後で再試行します。');
                     // ハンドラーが読み込まれた後に、もう一度initPageを呼び出すために、カスタムイベントを発火
                     // ただし、これは暫定的な解決策です。本来は、ハンドラーが読み込まれるのを待つべきです。
                 }
@@ -2381,7 +2361,6 @@ const ChatInit = {
                         handlerSkippedFirstMessage = true; // 初回メッセージの表示はスキップ（ハンドラーで処理済み）
                     }
                 } else if (!handler) {
-                    console.warn('[初期化] ハンドラーが読み込まれていません（historyDataなし）。後で再試行します。');
                 }
                 
                 // 【統一化】共通の初回メッセージ表示ロジックを使用
@@ -2404,7 +2383,6 @@ const ChatInit = {
             if (window.ChatUI && window.ChatUI.messagesDiv) {
                 const hasMessages = window.ChatUI.messagesDiv.children.length > 0;
                 if (!hasMessages) {
-                    console.warn('[初期化] メッセージが表示されていません。フォールバックメッセージを表示します。');
                     const info = ChatData.characterInfo[character];
                     if (info) {
                         const fallbackMessage = ChatData.generateFirstTimeMessage(character, ChatData.userNickname || 'あなた', false, false);
@@ -2545,7 +2523,6 @@ const ChatInit = {
     async sendMessage(skipUserMessage = false, skipAnimation = false, messageOverride = null) {
         // メッセージ送信中フラグをチェック（重複送信防止）
         if (this._sendingMessage) {
-            console.warn('[メッセージ送信] ⚠️ メッセージ送信が既に進行中です。重複送信をブロックします');
             return;
         }
         
@@ -2678,7 +2655,6 @@ const ChatInit = {
                 const messageExists = messageTexts.some(text => text.trim() === messageToSend.trim());
                 
                 if (messageExists) {
-                    console.warn('[メッセージ送信] ⚠️ 既に同じユーザーメッセージが表示されています。重複追加をスキップします:', messageToSend.substring(0, 50));
                 } else {
 
                     window.ChatUI.addMessage('user', messageToSend, 'あなた');
@@ -3631,10 +3607,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
 
     } else {
-        console.warn('[初期化] 送信ボタンの要素が見つかりません:', {
-            messageInput: !!messageInput,
-            sendButton: !!sendButton
-        });
     }
     
     // ページを初期化
@@ -3873,11 +3845,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             
             if (notifyAttempts >= maxNotifyAttempts) {
                 clearInterval(notifyInterval);
-                console.warn('[iframe] 準備完了通知の最大試行回数に達しました', {
-                    attempts: notifyAttempts,
-                    hasChatData: !!ChatData,
-                    hasAuthState: !!window.AuthState
-                });
             }
         }, 2000); // 2秒ごとに試行
     } else {
@@ -3901,10 +3868,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         // セキュリティのため、同じオリジンのみ受け入れる
         if (event.origin !== window.location.origin) {
-            console.warn('[iframe] オリジン不一致:', {
-                received: event.origin,
-                expected: window.location.origin
-            });
             return;
         }
         
@@ -4007,14 +3970,12 @@ window.addEventListener('DOMContentLoaded', async () => {
                             messageCount = ChatData.getUserMessageCount(character) || 0;
 
                         } else {
-                            console.warn('[iframe] ChatData.getUserMessageCountが関数ではありません');
                         }
                         
                         if (typeof ChatData?.getConversationHistory === 'function') {
                             conversationHistory = ChatData.getConversationHistory(character) || [];
 
                         } else {
-                            console.warn('[iframe] ChatData.getConversationHistoryが関数ではありません');
                         }
                         
                         // 会話履歴からもメッセージ数を計算（フォールバック）
@@ -4035,7 +3996,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                                 }
                             }
                         } else if (messageCount === 0) {
-                            console.warn('[iframe] ⚠️ メッセージ数が0で、会話履歴も空です');
                         }
                     }
                     
