@@ -602,10 +602,10 @@
 <body>
   <header>
     <h1>ユーザー管理ダッシュボード</h1>
-    <p class="muted">管理操作用のパスコード（X-Admin-Token）を入力して接続してください。</p>
-    <div class="token-input">
-      <input type="password" id="adminToken" placeholder="管理者トークン">
-      <button id="connectButton">接続</button>
+    <p class="muted">IPアドレスベースのアクセス制御で保護されています。</p>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <span id="clientIpDisplay" class="badge connected">IP: 接続中...</span>
+      <button id="connectButton" style="padding: 10px 20px; border: none; border-radius: 8px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">接続</button>
       <span id="connectionStatus" class="badge">未接続</span>
     </div>
   </header>
@@ -805,6 +805,7 @@
     const adminTokenInput = document.getElementById('adminToken');
     const connectButton = document.getElementById('connectButton');
     const connectionStatus = document.getElementById('connectionStatus');
+    const clientIpDisplay = document.getElementById('clientIpDisplay');
     const userTableBody = document.getElementById('userTableBody');
     const form = document.getElementById('userForm');
     const formUserId = document.getElementById('formUserId');
@@ -897,9 +898,7 @@
     async function fetchUsers() {
       try {
         // 登録ユーザーのみを取得
-        const usersRes = await fetch('/api/admin/users', {
-          headers: { 'X-Admin-Token': currentToken },
-        });
+        const usersRes = await fetch('/api/admin/users');
         const usersData = await usersRes.json();
         if (!usersRes.ok) throw new Error(usersData.error || '取得に失敗しました');
         
@@ -1103,9 +1102,7 @@
     async function fetchConversations(userId) {
       conversationList.innerHTML = '<p class="muted">読み込み中...</p>';
       try {
-        const res = await fetch(`/api/admin/conversations?userId=${userId}`, {
-          headers: { 'X-Admin-Token': currentToken },
-        });
+        const res = await fetch(`/api/admin/conversations?userId=${userId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '会話履歴の取得に失敗しました');
         
@@ -1124,11 +1121,6 @@
     }
 
     connectButton.addEventListener('click', () => {
-      currentToken = adminTokenInput.value.trim();
-      if (!currentToken) {
-        setStatus('トークンを入力してください');
-        return;
-      }
       fetchUsers();
     });
 
@@ -1166,7 +1158,6 @@
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'X-Admin-Token': currentToken,
           },
           body: JSON.stringify(payload),
         });
@@ -1190,7 +1181,6 @@
       try {
         const res = await fetch(`/api/admin/users?id=${formUserId.value}`, {
           method: 'DELETE',
-          headers: { 'X-Admin-Token': currentToken },
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '削除に失敗しました');
@@ -1245,7 +1235,6 @@
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'X-Admin-Token': currentToken,
           },
           body: JSON.stringify({
             conversationIds,
@@ -1352,11 +1341,6 @@
 
     if (runTestsButton && testResults) {
       runTestsButton.addEventListener('click', async () => {
-        if (!currentToken) {
-          alert('まず管理者トークンを入力して接続してください。');
-          return;
-        }
-
         runTestsButton.disabled = true;
         runTestsButton.textContent = '⏳ テスト実行中...';
         testResults.innerHTML = '<p class="muted">テストを実行しています...</p>';
@@ -1366,7 +1350,6 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Admin-Token': currentToken,
             },
           });
 
