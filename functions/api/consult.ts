@@ -1667,10 +1667,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
-    // 楓と三崎花音の完全版プロンプトは長いため、maxTokensを増やす
-    // 雪乃も長い返答を生成することが多いため、maxTokensを増やす
-    const maxTokensForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 2000 : 
-                                   (characterId === 'yukino') ? 1500 : 800;
+    // 温度パラメータの設定（maxTokensForCharacterは既に1575行で定義済み）
     const temperatureForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.7 : 0.5; // 楓と三崎花音では少し高い温度で温かみを出す
     const topPForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.9 : 0.8;
     
