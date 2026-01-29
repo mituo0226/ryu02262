@@ -175,13 +175,54 @@ async function getConversationHistory(
   }
   
   // ステップ2: キャッシュミスの場合、DBから取得
+  // 【改善】最新100件取得し、LLMコンテキストとしては最新10-20件のみ使用
+  // 履歴は完全に保持し、古い順に自動削除（容量管理）
   console.log('[getConversationHistory] キャッシュミス、DBから取得:', cacheKey);
+  
+  // 全メッセージ数を確認（容量管理用）
+  const countResult = await db.prepare(
+    `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ?`
+  )
+    .bind(userId, characterId)
+    .first();
+  
+  const totalCount = (countResult?.count as number) || 0;
+  
+  // 容量制限: 100件を超えた場合、古い順に削除
+  const MAX_MESSAGES_PER_USER_CHARACTER = 100;
+  if (totalCount > MAX_MESSAGES_PER_USER_CHARACTER) {
+    const excessCount = totalCount - MAX_MESSAGES_PER_USER_CHARACTER;
+    console.log('[getConversationHistory] 容量超過:', {
+      userId,
+      characterId,
+      totalCount,
+      excessCount,
+      maxLimit: MAX_MESSAGES_PER_USER_CHARACTER
+    });
+    
+    // 古い順に削除
+    await db.prepare(
+      `DELETE FROM conversations 
+       WHERE id IN (
+         SELECT id FROM conversations 
+         WHERE user_id = ? AND character_id = ? 
+         ORDER BY COALESCE(timestamp, created_at) ASC 
+         LIMIT ?
+       )`
+    )
+      .bind(userId, characterId, excessCount)
+      .run();
+    
+    console.log('[getConversationHistory] 古いメッセージを自動削除しました:', excessCount);
+  }
+  
+  // 最新100件を取得
   const historyResults = await db.prepare<ConversationRow & { message_type?: string }>(
     `SELECT c.role, c.message as content, c.is_guest_message, c.message_type
      FROM conversations c
      WHERE c.user_id = ? AND c.character_id = ?
      ORDER BY COALESCE(c.timestamp, c.created_at) DESC
-     LIMIT 20`
+     LIMIT 100`
   )
     .bind(userId, characterId)
     .all();
