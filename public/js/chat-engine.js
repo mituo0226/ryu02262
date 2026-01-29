@@ -2713,8 +2713,13 @@ const ChatInit = {
             const characterInfo = ChatData.characterInfo[character];
             const loadingCharacterName = characterInfo ? characterInfo.name : 'アシスタント';
             
+            console.log('[chat-engine] LoadingManager存在確認:', !!window.LoadingManager);
+            
             if (window.LoadingManager) {
+                console.log('[chat-engine] LoadingManager.showLoading() を呼び出します:', loadingCharacterName);
                 window.LoadingManager.showLoading(loadingCharacterName);
+            } else {
+                console.warn('[chat-engine] ⚠️ LoadingManager が定義されていません');
             }
             
             // メッセージ入力欄と送信ボタンを無効化
