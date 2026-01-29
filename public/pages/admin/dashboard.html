@@ -635,6 +635,7 @@
           <input type="text" id="newAdminIpDescription" placeholder="例: オフィスPC" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
         </label>
         <button id="addAdminIpButton" style="padding: 8px 16px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;">追加</button>
+      </div>
       
       <!-- 登録済みIPリスト -->
       <div id="registeredIpsContainer" style="margin-top: 12px; display: none;">
@@ -642,7 +643,7 @@
         <div id="registeredIpsList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
       </div>
     </div>
-  </header>
+  </div>
 
   <div class="main-container">
     <!-- ナビゲーション（PC: 左側、モバイル: 上部） -->
@@ -846,6 +847,11 @@
     const addAdminIpButton = document.getElementById('addAdminIpButton');
     const registeredIpsContainer = document.getElementById('registeredIpsContainer');
     const registeredIpsList = document.getElementById('registeredIpsList');
+    const currentIpDisplay = document.getElementById('currentIpDisplay');
+    const addCurrentIpButton = document.getElementById('addCurrentIpButton');
+    const newAdminIp = document.getElementById('newAdminIp');
+    const newAdminIpDescription = document.getElementById('newAdminIpDescription');
+    const adminIpPanel = document.getElementById('adminIpPanel');
     const userTableBody = document.getElementById('userTableBody');
     const form = document.getElementById('userForm');
     const formUserId = document.getElementById('formUserId');
@@ -908,6 +914,7 @@
     let users = [];
     let filteredUsers = [];
     let selectedUserId = null;
+    let currentClientIp = null;
 
     function hideDetailSections() {
       detailCard.classList.add('hidden');
@@ -954,11 +961,20 @@
           created_at: user.created_at,
           message_count: user.message_count || 0
         }));
+        
+        // 現在のIPアドレスを取得・表示
+        if (usersData.clientIp) {
+          currentClientIp = usersData.clientIp;
+          currentIpDisplay.textContent = currentClientIp;
+        }
 
         applyFilters();
         renderUsers();
         hideDetailSections();
         setStatus('接続済み', true);
+        
+        // IPパネルを表示
+        adminIpPanel.style.display = 'block';
       } catch (error) {
         console.error(error);
         setStatus('接続エラー');
@@ -1643,31 +1659,7 @@
       await addAdminIp(ip, description);
     });
     
-    // 現在のIPを追加するボタン
-    const addCurrentIpButton = document.getElementById('addCurrentIpButton');
-    const currentIpDisplay = document.getElementById('currentIpDisplay');
-    let currentClientIp = null;
-    
-    // 現在のIPアドレスを取得して表示
-    async function fetchCurrentIp() {
-      try {
-        const res = await fetch('/api/admin/users');
-        const data = await res.json();
-        
-        // レスポンスヘッダーから現在のIPを取得するか、
-        // APIレスポンスに含める場合はそこから取得
-        // ここでは、API呼び出し時のIPを把握するため簡略化
-        // 実際はAPIからIPを返すようにします
-        
-        // 仮に「接続中」のIPを表示
-        currentClientIp = data.clientIp || 'IP取得中...';
-        currentIpDisplay.textContent = currentClientIp;
-      } catch (error) {
-        console.error('IP取得エラー:', error);
-        currentIpDisplay.textContent = 'IP取得失敗';
-      }
-    }
-    
+    // 「このIPを追加」ボタンのイベントリスナー
     addCurrentIpButton.addEventListener('click', async () => {
       if (!currentClientIp || currentClientIp.includes('取得')) {
         alert('IPアドレスを取得してください');
@@ -1680,6 +1672,7 @@
       }
     });
     
+    // IP追加関数
     async function addAdminIp(ip, description) {
       try {
         const res = await fetch('/api/admin/admin-ips', {
