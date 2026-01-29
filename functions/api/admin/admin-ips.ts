@@ -1,21 +1,16 @@
 /**
  * admin/admin-ips.ts
  * 管理者用IPアドレスの管理エンドポイント
- * 
- * GET: すべての登録IPを取得
- * POST: 新しいIPを追加
- * DELETE: IPを削除
- * PATCH: IPの説明/有効状態を更新
+ * 認可チェック廃止版
  */
-
-import { isAdminAuthorized, unauthorizedResponse } from '../../_lib/admin-auth.js';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
-  // 認可チェック廃止 - すべてのリクエストを許可
-  
   const url = new URL(request.url);
+
+  // POST: 新しいIPを追加
+  if (request.method === 'POST') {
     try {
       const body = await request.json() as {
         ip_address?: string;
@@ -50,11 +45,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
         .bind(ip_address, description || null)
         .run();
 
-      console.log('[admin/admin-ips] POST: IP added', {
-        ip_address,
-        description,
-      });
-
       return new Response(JSON.stringify({
         success: true,
         message: 'IP address added',
@@ -66,7 +56,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     } catch (error) {
       console.error('[admin/admin-ips] POST error:', error);
       
-      // UNIQUE制約違反
       if (error instanceof Error && error.message.includes('UNIQUE')) {
         return new Response(JSON.stringify({
           error: 'This IP address is already registered',
@@ -86,10 +75,8 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     }
   }
 
-  // その他のメソッド（GET, DELETE, PATCH）は認可必須
-  if (!isAdminAuthorized(request, env)) {
-    return unauthorizedResponse();
-  }
+  // GET: すべての登録IPを取得
+  if (request.method === 'GET') {
     try {
       const ips = await env.DB.prepare(
         `SELECT id, ip_address, description, is_active, created_at, updated_at
@@ -135,8 +122,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       )
         .bind(Number(id))
         .run();
-
-      console.log('[admin/admin-ips] DELETE: IP removed', { id });
 
       return new Response(JSON.stringify({
         success: true,
@@ -208,8 +193,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       )
         .bind(...values)
         .run();
-
-      console.log('[admin/admin-ips] PATCH: IP updated', { id });
 
       return new Response(JSON.stringify({
         success: true,
