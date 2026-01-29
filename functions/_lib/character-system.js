@@ -96,6 +96,9 @@ export function generateSystemPrompt(characterId, options = {}) {
   // 【改善】最小限の情報のみを渡す：各鑑定士の性格設定だけを守らせる
   // 楓の完全版プロンプトに必要な全てのパラメータを渡す
   // 三崎花音の場合は動的プロンプト生成用のパラメータも渡す
+  // 三崎花音用の特別なパラメータ処理
+  const isKaon = characterId === 'kaon';
+  
   const characterPrompt = generator({
     userNickname: options.userNickname,
     hasPreviousConversation: options.hasPreviousConversation,
@@ -106,7 +109,7 @@ export function generateSystemPrompt(characterId, options = {}) {
     isRitualStart: options.isRitualStart || false,
     userMessageCount: options.userMessageCount || 0,
     userGender: options.userGender || null,
-    userBirthDate: options.userBirthDate || null,
+    ...(isKaon ? { birthDate: options.userBirthDate || null } : { userBirthDate: options.userBirthDate || null }),
     // 三崎花音の動的プロンプト生成用パラメータ
     // visitPatternが明示的に指定されている場合はそれを使用、そうでない場合はhasPreviousConversationから判定
     visitPattern: options.visitPattern !== undefined && options.visitPattern !== null 
