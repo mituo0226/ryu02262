@@ -113,6 +113,7 @@ const ChatLoadingAnimation = {
         this.isVisible = true;
         
         console.log('[ChatLoadingAnimation] ローディング画面表示:', { character, nickname });
+        console.log('[ChatLoadingAnimation] 待機画面タイプ:', window._currentLoadingScreenType || 'initial_entry');
         
         // キャラクター設定を取得
         const config = this.characterConfig[character];

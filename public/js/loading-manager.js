@@ -2,6 +2,11 @@
  * loading-manager.js
  * 新しいローディング画面システム
  * シンプルで効果的なメッセージ送信時の待機画面を管理
+ * 
+ * 待機画面の種類：
+ * - MESSAGE_RESPONSE: ユーザーメッセージ送信時のチャット内待機メッセージ
+ *   表示位置：チャットウィンドウ内
+ *   最小表示時間：1000ms
  */
 
 const LoadingManager = {
@@ -14,6 +19,11 @@ const LoadingManager = {
      * 待機メッセージが表示された時刻
      */
     loadingShowTime: null,
+    
+    /**
+     * 現在の待機画面タイプ
+     */
+    currentLoadingScreenType: null,
 
     /**
      * ローディングメッセージを表示
@@ -21,7 +31,11 @@ const LoadingManager = {
      * @returns {string} メッセージID
      */
     showLoading(characterName = 'アシスタント') {
+        // グローバルから待機画面タイプを取得
+        this.currentLoadingScreenType = window._currentLoadingScreenType || 'unknown';
+        
         console.log('[LoadingManager] showLoading() 呼び出し:', characterName);
+        console.log('[LoadingManager] 待機画面タイプ:', this.currentLoadingScreenType);
         
         // 既に表示されているローディングメッセージがあれば削除
         this.hideLoading();

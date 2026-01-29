@@ -18,6 +18,14 @@
 const DEBUG_MODE = true; // デバッグ用: 問題追跡中のため有効化
 
 // ============================================
+// 待機画面タイプの定義
+// ============================================
+const LOADING_SCREEN_TYPE = {
+    INITIAL_ENTRY: 'initial_entry',      // ページ入室時（初期ローディングアニメー��ョン）
+    MESSAGE_RESPONSE: 'message_response'  // メッセージ送信時（チャット内待機メッセージ）
+};
+
+// ============================================
 // タイムライン記録機能
 // ============================================
 if (!window._debugTimeline) {
@@ -1953,8 +1961,10 @@ const ChatInit = {
                                     const visitPattern = 'first_visit';
                                     const conversationHistory = [];
 
-                                    // ローディング画面を表示
+                                    // ローディング画面を表示（初期入室時）
                                     if (window.ChatLoadingAnimation) {
+                                        console.log('[chat-engine] 初期入室時の待機画面を表示:', LOADING_SCREEN_TYPE.INITIAL_ENTRY);
+                                        window._currentLoadingScreenType = LOADING_SCREEN_TYPE.INITIAL_ENTRY;
                                         ChatLoadingAnimation.show(character, ChatData.userNickname || 'ユーザー');
                                     }
                                     
@@ -2559,18 +2569,6 @@ const ChatInit = {
             return;
         }
         
-        // 【初期ローディング画面の強制削除】
-        // メッセージ送信時に初期ローディング画面がまだ表示されている場合は、即座に削除
-        const loadingScreen = document.getElementById('loadingScreen');
-        if (loadingScreen && !loadingScreen.classList.contains('hidden') && loadingScreen.style.display !== 'none') {
-            console.log('[chat-engine] ⚠️ 初期ローディング画面がまだ表示されています。即座に削除します');
-            loadingScreen.classList.add('hidden');
-            if (loadingScreen.parentNode) {
-                loadingScreen.parentNode.removeChild(loadingScreen);
-                console.log('[chat-engine] 初期ローディング画面を即座に削除しました');
-            }
-        }
-        
         // メッセージの取得：オーバーライドが指定されている場合はそれを使用、そうでなければ入力欄から取得
         const message = messageOverride || window.ChatUI.messageInput.value.trim();
         const character = ChatData.currentCharacter;
@@ -2698,7 +2696,10 @@ const ChatInit = {
 
                     console.log('[chat-engine] ユーザーメッセージを追加します:', messageToSend);
                     window.ChatUI.addMessage('user', messageToSend, 'あなた');
-                    await this.delay(100);
+                    // ユーザーメッセージのアニメーション（フェードイン）が完了するまで待機
+                    // CSS アニメーション時間は通常 300ms～500ms なので、安全マージンを含めて 600ms 待機
+                    await this.delay(600);
+                    console.log('[chat-engine] ユーザーメッセージのアニメーション完了');
                     console.log('[chat-engine] スクロール完了');
                     window.ChatUI.scrollToLatest();
                 }
@@ -2723,13 +2724,15 @@ const ChatInit = {
                 sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
             }
             
-            // 新しいローディングシステムを使用して待機メッセージを表示
+            // 新しいローディングシステムを使用して待機メッセージを表示（メッセージ送信時）
             const characterInfo = ChatData.characterInfo[character];
             const loadingCharacterName = characterInfo ? characterInfo.name : 'アシスタント';
             
-            console.log('[chat-engine] 会話中の待機メッセージを表示:', loadingCharacterName);
+            console.log('[chat-engine] メッセージ送信時の待機画面を表示:', LOADING_SCREEN_TYPE.MESSAGE_RESPONSE);
+            console.log('[chat-engine] キャラクター:', loadingCharacterName);
             
             if (window.LoadingManager) {
+                window._currentLoadingScreenType = LOADING_SCREEN_TYPE.MESSAGE_RESPONSE;
                 window.LoadingManager.showLoading(loadingCharacterName);
             } else {
                 console.warn('[chat-engine] ⚠️ LoadingManager が定義されていません');
