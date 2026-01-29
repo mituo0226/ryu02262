@@ -16,19 +16,24 @@ const LoadingManager = {
      * @returns {string} メッセージID
      */
     showLoading(characterName = 'アシスタント') {
+        console.log('[LoadingManager] showLoading() 呼び出し:', characterName);
+        
         // 既に表示されているローディングメッセージがあれば削除
         this.hideLoading();
 
         // シンプルな待機メッセージを表示
         const loadingText = `${characterName}が応答を準備中...`;
+        console.log('[LoadingManager] 待機メッセージを追加:', loadingText);
 
         // ChatUIを使用してメッセージを追加
         if (window.ChatUI && typeof window.ChatUI.addMessage === 'function') {
+            console.log('[LoadingManager] ChatUI.addMessage() を呼び出します');
             this.currentLoadingMessageId = window.ChatUI.addMessage(
                 'loading',
                 loadingText,
                 characterName
             );
+            console.log('[LoadingManager] メッセージID:', this.currentLoadingMessageId);
 
             // チャットコンテナに待機状態クラスを追加
             const messagesDiv = window.ChatUI.messagesDiv;
@@ -49,11 +54,19 @@ const LoadingManager = {
      * ローディングメッセージを非表示にして削除
      */
     hideLoading() {
-        if (!this.currentLoadingMessageId) return;
+        console.log('[LoadingManager] hideLoading() 呼び出し:', this.currentLoadingMessageId);
+        
+        if (!this.currentLoadingMessageId) {
+            console.log('[LoadingManager] 削除対象のメッセージがありません');
+            return;
+        }
 
         // メッセージを削除
         const element = document.getElementById(this.currentLoadingMessageId);
+        console.log('[LoadingManager] メッセージ要素を検索:', !!element);
+        
         if (element) {
+            console.log('[LoadingManager] メッセージ要素を削除します');
             element.remove();
         }
 
