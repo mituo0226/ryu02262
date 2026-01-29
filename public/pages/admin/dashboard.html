@@ -867,10 +867,10 @@
     const searchDay = document.getElementById('searchDay');
     const resetSearchButton = document.getElementById('resetSearchButton');
     const resultSummary = document.getElementById('resultSummary');
-    const detailCard = document.getElementById('detailCard');
+    const detailCard = null; // 要素は削除済み
     const selectedUserLabel = document.getElementById('selectedUserLabel');
-    const conversationCard = document.getElementById('conversationCard');
-    const conversationList = document.getElementById('conversationList');
+    const conversationCard = null; // 要素は削除済み
+    const conversationList = null; // 要素は削除済み
     const userInfoPanel = document.getElementById('userInfoPanel');
     const closeUserPanel = document.getElementById('closeUserPanel');
 
@@ -914,9 +914,9 @@
     let currentClientIp = null;
 
     function hideDetailSections() {
-      detailCard.classList.add('hidden');
-      conversationCard.classList.add('hidden');
-      conversationList.innerHTML = '<p class="muted">ユーザーを選択すると会話履歴を表示します。</p>';
+      if (detailCard) detailCard.classList.add('hidden');
+      if (conversationCard) conversationCard.classList.add('hidden');
+      if (conversationList) conversationList.innerHTML = '<p class="muted">ユーザーを選択すると会話履歴を表示します。</p>';
       selectedUserLabel.textContent = '';
       formStatus.textContent = '';
       form.style.display = 'block'; // フォームを表示に戻す
@@ -925,8 +925,8 @@
     }
 
     function showDetailSections(user) {
-      detailCard.classList.remove('hidden');
-      conversationCard.classList.remove('hidden');
+      if (detailCard) detailCard.classList.remove('hidden');
+      if (conversationCard) conversationCard.classList.remove('hidden');
       selectedUserLabel.textContent = `ID: ${user.id} / ${user.nickname} / ${user.birth_year}年${user.birth_month}月${user.birth_day}日`;
       form.style.display = 'block';
       userInfoPanel.classList.add('open');
