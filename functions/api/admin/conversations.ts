@@ -1,12 +1,8 @@
-import { isAdminAuthorized, unauthorizedResponse } from '../../_lib/admin-auth.js';
-
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
-  if (!isAdminAuthorized(request, env)) {
-    return unauthorizedResponse();
-  }
-
+  // 認可チェック廃止 - すべてのリクエストを許可
+  
   const url = new URL(request.url);
   const userIdParam = url.searchParams.get('userId');
 
