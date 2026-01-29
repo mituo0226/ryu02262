@@ -59,7 +59,7 @@ const MESSAGE_TYPES = {
 // CSS クラス名定数
 const CSS_CLASSES = {
     MESSAGE: 'message',
-    LOADING_MESSAGE: 'loading-message',
+    LOADING_MESSAGE: 'loading',  // 'loading-message' → 'loading' に変更
     MESSAGE_HEADER: 'message-header',
     MESSAGE_TEXT: 'message-text',
     THINKING: 'thinking',
