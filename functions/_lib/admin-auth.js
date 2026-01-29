@@ -49,7 +49,7 @@ async function getAdminIpsFromDatabase(db) {
       `SELECT ip_address FROM admin_ips WHERE is_active = 1 ORDER BY created_at DESC`
     ).all();
     
-    return result.results?.map((row) => row.ip_address as string) || [];
+    return result.results?.map((row) => row.ip_address) || [];
   } catch (error) {
     console.error('[admin-auth] Failed to fetch admin IPs from database:', error);
     // DB取得失敗時は環境変数にフォールバック
@@ -64,7 +64,7 @@ async function isAdminAuthorizedAsync(request, env) {
   const clientIp = getClientIp(request);
   
   // データベースから登録IPを取得
-  let allowedIps: string[] = [];
+  let allowedIps = [];
   if (env.DB) {
     allowedIps = await getAdminIpsFromDatabase(env.DB);
   }
