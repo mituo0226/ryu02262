@@ -661,6 +661,37 @@
 
               <section class="card conversation-card hidden" id="conversationCard">
                 <h2>会話履歴（最新100件）</h2>
+                
+                <!-- キャラクターフィルター -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                  <label style="flex: 1; min-width: 200px;">
+                    キャラクター:
+                    <select id="conversationCharacterFilter" style="width: 100%; margin-top: 6px;">
+                      <option value="">すべて</option>
+                      <option value="kaede">楓</option>
+                      <option value="yukino">笹岡雪乃</option>
+                      <option value="sora">空</option>
+                      <option value="kaon">三崎花音</option>
+                    </select>
+                  </label>
+                  <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <button id="selectAllConversations" style="padding: 10px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500;">全選択</button>
+                    <button id="deselectAllConversations" style="padding: 10px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500;">解除</button>
+                  </div>
+                </div>
+                
+                <!-- 削除ボタン -->
+                <div id="conversationDeleteControls" style="display: none; margin-bottom: 16px; padding: 12px; background: rgba(255, 78, 132, 0.1); border: 1px solid rgba(255, 78, 132, 0.3); border-radius: 8px;">
+                  <p class="muted" style="margin: 0 0 10px;">
+                    <span id="selectedConversationCount">0</span>件のメッセージを削除します
+                  </p>
+                  <div style="display: flex; gap: 8px;">
+                    <button id="deleteSelectedConversations" class="danger" style="padding: 8px 16px; font-size: 13px;">削除実行</button>
+                    <button id="cancelDeleteConversations" style="padding: 8px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500;">キャンセル</button>
+                  </div>
+                </div>
+                
+                <!-- 履歴リスト -->
                 <div id="conversationList" class="conversation-list">
                   <p class="muted">ユーザーを選択すると会話履歴を表示します。</p>
                 </div>
@@ -907,21 +938,85 @@
     function renderConversationList(records) {
       if (!records.length) {
         conversationList.innerHTML = '<p class="muted">会話履歴はまだありません。</p>';
+        document.getElementById('conversationDeleteControls').style.display = 'none';
         return;
       }
-      conversationList.innerHTML = records.map((item, index) => {
-        const title = `[${item.character_id}] ${item.role === 'assistant' ? '鑑定士' : '相談者'} / ${new Date(item.created_at).toLocaleString('ja-JP')}`;
-        const safeContent = item.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      
+      // キャラクターでグループ化
+      const grouped = {};
+      records.forEach(item => {
+        if (!grouped[item.character_id]) {
+          grouped[item.character_id] = [];
+        }
+        grouped[item.character_id].push(item);
+      });
+      
+      conversationList.innerHTML = Object.entries(grouped).map(([characterId, items]) => {
+        const characterNames = {
+          'kaede': '楓',
+          'yukino': '笹岡雪乃',
+          'sora': '空',
+          'kaon': '三崎花音'
+        };
+        const characterName = characterNames[characterId] || characterId;
+        
         return `
-          <details class="conversation-item" ${index === 0 ? 'open' : ''}>
-            <summary>
-              <span>${title}</span>
-              <span class="conversation-meta">#${records.length - index}</span>
-            </summary>
-            <div class="conversation-body">${safeContent}</div>
-          </details>
+          <div style="margin-bottom: 16px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 8px;">
+            <h4 style="margin: 0 0 10px; font-size: 14px; color: #d6c9ff;">
+              ${characterName} (${items.length}件)
+              <input type="checkbox" class="character-group-checkbox" data-character="${characterId}" style="float: right; cursor: pointer; width: 18px; height: 18px;">
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${items.map((item, index) => `
+                <label style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; cursor: pointer;">
+                  <input type="checkbox" class="conversation-checkbox" data-id="${item.id}" data-character="${item.character_id}" style="cursor: pointer; width: 16px; height: 16px;">
+                  <span style="font-size: 12px; color: #c7cdff; flex: 1;">
+                    [${item.role === 'assistant' ? '鑑定士' : '相談者'}] ${new Date(item.created_at).toLocaleString('ja-JP')}
+                  </span>
+                  <span class="conversation-meta" style="font-size: 11px; color: #9da2c6;">#${items.length - index}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
         `;
       }).join('');
+      
+      // チェックボックスイベントをセットアップ
+      setupConversationCheckboxes();
+    }
+    
+    function setupConversationCheckboxes() {
+      const characterGroupCheckboxes = document.querySelectorAll('.character-group-checkbox');
+      const conversationCheckboxes = document.querySelectorAll('.conversation-checkbox');
+      const deleteControls = document.getElementById('conversationDeleteControls');
+      const selectedCount = document.getElementById('selectedConversationCount');
+      
+      // 文字グループチェックボックス
+      characterGroupCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+          const character = checkbox.dataset.character;
+          const itemCheckboxes = document.querySelectorAll(`.conversation-checkbox[data-character="${character}"]`);
+          itemCheckboxes.forEach(itemCheckbox => {
+            itemCheckbox.checked = checkbox.checked;
+          });
+          updateDeleteControls();
+        });
+      });
+      
+      // 個別チェックボックス
+      conversationCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateDeleteControls);
+      });
+      
+      function updateDeleteControls() {
+        const selectedCheckboxes = document.querySelectorAll('.conversation-checkbox:checked');
+        if (selectedCheckboxes.length > 0) {
+          deleteControls.style.display = 'block';
+          selectedCount.textContent = selectedCheckboxes.length;
+        } else {
+          deleteControls.style.display = 'none';
+        }
+      }
     }
 
     async function fetchConversations(userId) {
@@ -932,9 +1027,18 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '会話履歴の取得に失敗しました');
-        renderConversationList(data.conversations || []);
+        
+        // 全会話履歴を保存
+        allConversations = data.conversations || [];
+        
+        // フィルターをリセット
+        conversationCharacterFilter.value = '';
+        
+        // 表示
+        filterAndRenderConversations();
       } catch (error) {
         conversationList.innerHTML = `<p class="muted">${error.message}</p>`;
+        document.getElementById('conversationDeleteControls').style.display = 'none';
       }
     }
 
@@ -1015,6 +1119,96 @@
         formStatus.textContent = error.message;
       }
     });
+
+    // ============================================
+    // 会話履歴フィルター・削除機能
+    // ============================================
+    const conversationCharacterFilter = document.getElementById('conversationCharacterFilter');
+    const selectAllConversations = document.getElementById('selectAllConversations');
+    const deselectAllConversations = document.getElementById('deselectAllConversations');
+    const deleteSelectedConversations = document.getElementById('deleteSelectedConversations');
+    const cancelDeleteConversations = document.getElementById('cancelDeleteConversations');
+    
+    let allConversations = [];
+    
+    conversationCharacterFilter.addEventListener('change', () => {
+      filterAndRenderConversations();
+    });
+    
+    selectAllConversations.addEventListener('click', () => {
+      document.querySelectorAll('.conversation-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      updateDeleteControls();
+    });
+    
+    deselectAllConversations.addEventListener('click', () => {
+      document.querySelectorAll('.conversation-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      updateDeleteControls();
+    });
+    
+    deleteSelectedConversations.addEventListener('click', async () => {
+      const selectedCheckboxes = document.querySelectorAll('.conversation-checkbox:checked');
+      const conversationIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id);
+      
+      if (!confirm(`${conversationIds.length}件のメッセージを削除しますか？`)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/admin/conversations', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Token': currentToken,
+          },
+          body: JSON.stringify({
+            conversationIds,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '削除に失敗しました');
+        
+        // 削除後に履歴を再取得
+        fetchConversations(selectedUserId);
+        alert(`${conversationIds.length}件のメッセージを削除しました。`);
+      } catch (error) {
+        alert('削除に失敗しました: ' + error.message);
+      }
+    });
+    
+    cancelDeleteConversations.addEventListener('click', () => {
+      document.querySelectorAll('.conversation-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      updateDeleteControls();
+    });
+    
+    function filterAndRenderConversations() {
+      const selectedCharacter = conversationCharacterFilter.value;
+      let filtered = allConversations;
+      
+      if (selectedCharacter) {
+        filtered = allConversations.filter(item => item.character_id === selectedCharacter);
+      }
+      
+      renderConversationList(filtered);
+    }
+    
+    function updateDeleteControls() {
+      const selectedCheckboxes = document.querySelectorAll('.conversation-checkbox:checked');
+      const deleteControls = document.getElementById('conversationDeleteControls');
+      const selectedCount = document.getElementById('selectedConversationCount');
+      
+      if (selectedCheckboxes.length > 0) {
+        deleteControls.style.display = 'block';
+        selectedCount.textContent = selectedCheckboxes.length;
+      } else {
+        deleteControls.style.display = 'none';
+      }
+    }
 
     // ============================================
     // タブ切り替え機能（管理メニューから）

@@ -41,6 +41,63 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     });
   }
 
+  // DELETE: 指定された会話IDを削除
+  if (request.method === 'DELETE') {
+    try {
+      const body = await request.json() as { conversationIds?: number[] };
+      const { conversationIds } = body;
+
+      if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'conversationIds array is required' }),
+          { status: 400, headers: jsonHeaders }
+        );
+      }
+
+      // すべてのIDが数値であることを確認
+      if (!conversationIds.every(id => Number.isFinite(id))) {
+        return new Response(
+          JSON.stringify({ error: 'all conversationIds must be numbers' }),
+          { status: 400, headers: jsonHeaders }
+        );
+      }
+
+      // 削除実行（複数IDを安全に削除）
+      let deletedCount = 0;
+      for (const conversationId of conversationIds) {
+        const result = await env.DB.prepare(
+          `DELETE FROM conversations WHERE id = ?`
+        )
+          .bind(conversationId)
+          .run();
+        deletedCount += result.meta.changes;
+      }
+
+      console.log('[admin/conversations] DELETE:', {
+        conversationIds,
+        deletedCount,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          deletedCount,
+          requestedCount: conversationIds.length,
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    } catch (error) {
+      console.error('[admin/conversations] DELETE error:', error);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to delete conversations',
+          details: error instanceof Error ? error.message : String(error),
+        }),
+        { status: 500, headers: jsonHeaders }
+      );
+    }
+  }
+
   return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: jsonHeaders });
 };
 
