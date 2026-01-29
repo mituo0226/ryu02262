@@ -2723,6 +2723,11 @@ const ChatInit = {
             }
             
             
+            // シンプルな待機メッセージを表示
+            console.log('[chat-engine] シンプルな待機メッセージを表示します');
+            this.currentWaitingMessageId = window.ChatUI.addMessage('waiting-simple', '返信が届きますのでお待ちください<span class="waiting-dots"></span>', 'システム');
+            window.ChatUI.scrollToLatest();
+            
             // メッセージ入力欄と送信ボタンを無効化
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
                 
@@ -2854,6 +2859,16 @@ const ChatInit = {
                     }
                 }
                 
+                // シンプルな待機メッセージを削除
+                if (this.currentWaitingMessageId) {
+                    const waitingElement = document.getElementById(this.currentWaitingMessageId);
+                    if (waitingElement) {
+                        console.log('[chat-engine] 待機メッセージを削除します:', this.currentWaitingMessageId);
+                        waitingElement.remove();
+                    }
+                    this.currentWaitingMessageId = null;
+                }
+                
                 const messageId = window.ChatUI.addMessage('character', responseText, characterName);
                 window.ChatUI.scrollToLatest();
                 
@@ -2881,6 +2896,15 @@ const ChatInit = {
                 
         } catch (error) {
             console.error('メッセージ送信エラー:', error);
+            
+            // 待機メッセージを削除
+            if (this.currentWaitingMessageId) {
+                const waitingElement = document.getElementById(this.currentWaitingMessageId);
+                if (waitingElement) {
+                    waitingElement.remove();
+                }
+                this.currentWaitingMessageId = null;
+            }
             
             // ハンドラーのonErrorを呼び出す
             const handler = CharacterRegistry.get(character);

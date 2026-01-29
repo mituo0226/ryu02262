@@ -1075,3 +1075,59 @@ body.admin-mode .chat-container {
         font-size: 14px;
     }
 }
+
+/* ============================================
+   シンプルな待機メッセージ
+   ============================================ */
+
+.message.waiting-simple {
+    background: transparent !important;
+    border: none !important;
+    padding: 12px 0 !important;
+    margin: 8px 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: auto;
+}
+
+.message.waiting-simple .message-header {
+    display: none;
+}
+
+.message.waiting-simple .message-text {
+    color: #b794ff !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    text-align: center;
+    padding: 0 !important;
+}
+
+/* 待機中のドットアニメーション */
+.waiting-dots {
+    display: inline-block;
+    margin-left: 4px;
+}
+
+.waiting-dots::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 8px;
+    background: linear-gradient(90deg, #8b3dff, #b794ff, #8b3dff);
+    background-size: 200% 100%;
+    animation: gradient-shift 2s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% center;
+    }
+    50% {
+        background-position: 100% center;
+    }
+    100% {
+        background-position: 0% center;
+    }
+}
