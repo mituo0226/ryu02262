@@ -1278,78 +1278,87 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 【新仕様】すべてのユーザーを登録ユーザーとして扱うため、ゲストメッセージの処理は不要
 
     // ===== 11. 守護神からの最初のメッセージ生成処理 =====
+    // 【最適化】ウェルカムメッセージ時は守護神の言葉生成をスキップ
+    // 理由：待機時間を軽減し、ユーザーの入室体験をスムーズに
+    // 守護神の情報はデータベースから取得済みなので、楓のメッセージに統合
     const isGuardianFirstMessage = body.guardianFirstMessage === true;
     if (isGuardianFirstMessage && characterId === 'kaede' && user?.guardian) {
       try {
         const guardianName = body.guardianName || user.guardian;
         const userNickname = user?.nickname || 'あなた';
-        const firstQuestion = body.firstQuestion || null;
 
-        console.log('[consult] 守護神からの最初のメッセージを生成します:', {
+        console.log('[consult] ウェルカムメッセージ：守護神情報を取得、楓のメッセージを生成:', {
           guardianName,
           userNickname,
-          hasFirstQuestion: !!firstQuestion,
         });
 
-        // 守護神専用のシステムプロンプトを生成
-        const guardianSystemPrompt = generateGuardianFirstMessagePrompt(
-          guardianName,
-          userNickname,
-          firstQuestion
-        );
+        // 【最適化】守護神の言葉生成をスキップ
+        // 代わりに、楓から守護神の情報を含めたウェルカムメッセージを直接生成
+        const kaedeWelcomeSystemPrompt = `
+あなたは霊能鑑定士「楓」です。
 
-        // 会話履歴は空（守護神の最初のメッセージのため）
-        const guardianConversationHistory: ClientHistoryEntry[] = [];
+【ウェルカムメッセージ（簡潔版）】
+${userNickname}さんが初めてあなたの元を訪れました。
+守護神は「${guardianName}」で、既に決定されています。
+
+以下を含めて、150～200文字の簡潔なウェルカムメッセージを生成してください：
+- ${userNickname}さんへの温かい歓迎
+- 守護神「${guardianName}」の紹介（属性を簡潔に）
+- 今後の相談へのいざない
+
+形式：楓から${userNickname}さんへの直接の語りかけ。ト書きで空気感を。
+短く、親しみやすく、神秘的に。
+`;
+
+        const kaedeWelcomeHistory: ClientHistoryEntry[] = [];
 
         // LLMにリクエストを送信
         const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
         const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
-        const guardianLLMResult = await getLLMResponse({
-          systemPrompt: guardianSystemPrompt,
-          conversationHistory: guardianConversationHistory,
-          userMessage: `${userNickname}さん、守護神の儀式が完了しました。${userNickname}さんに最初のメッセージを送ってください。`,
-          temperature: 0.8, // 創造性を少し高める
-          maxTokens: 500,
+        const welcomeLLMResult = await getLLMResponse({
+          systemPrompt: kaedeWelcomeSystemPrompt,
+          conversationHistory: kaedeWelcomeHistory,
+          userMessage: `${userNickname}さんのウェルカムメッセージを生成してください。`,
+          temperature: 0.7,
+          maxTokens: 300,
           topP: 0.9,
           deepseekApiKey: apiKey,
           fallbackApiKey: fallbackApiKey,
           fallbackModel: fallbackModel,
         });
 
-        if (guardianLLMResult.success && guardianLLMResult.message) {
-          console.log('[consult] ✅ 守護神からの最初のメッセージを生成しました');
+        if (welcomeLLMResult.success && welcomeLLMResult.message) {
+          console.log('[consult] ✅ ウェルカムメッセージを生成しました（守護神言葉生成スキップ）');
 
           // 生成されたメッセージを会話履歴に保存
-          // 守護神メッセージは重要（最初のメッセージのため）
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, guardianLLMResult.message, 1);
+            await saveAssistantMessage(env.DB, user.id, characterId, welcomeLLMResult.message, 1);
           }
 
           return new Response(
             JSON.stringify({
-              message: guardianLLMResult.message,
+              message: welcomeLLMResult.message,
               character: characterId,
               characterName: getCharacterName(characterId),
               isInappropriate: false,
               detectedKeywords: [],
-              provider: guardianLLMResult.provider,
+              provider: welcomeLLMResult.provider,
               clearChat: false,
             } as ResponseBody),
             { status: 200, headers: corsHeaders }
           );
         } else {
-          console.error('[consult] ❌ 守護神メッセージ生成エラー:', guardianLLMResult.error);
-          // エラーの場合、フォールバックメッセージを返す
-          const fallbackMessage = `${userNickname}さん、私は${guardianName}。あなたを、前世からずっと守り続けてきました。今、${userNickname}さんの心の奥底には、何か感じるものがありますね。${userNickname}さんは今、何を求めていますか？私と共に、あなたの魂が本当に望むものを、一緒に見つけていきましょう。`;
+          console.error('[consult] ❌ ウェルカムメッセージ生成エラー:', welcomeLLMResult.error);
+          // エラーの場合、シンプルなフォールバックメッセージを返す
+          const simpleFallback = `（柔らかく微笑みながら）${userNickname}さん、よくいらっしゃいました。私は楓です。あなたの守護神「${guardianName}」がお迎えしています。今日は何についてお話ししたいですか？`;
           
-          // フォールバックメッセージも重要（守護神メッセージのため）
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, fallbackMessage, 1);
+            await saveAssistantMessage(env.DB, user.id, characterId, simpleFallback, 1);
           }
 
           return new Response(
             JSON.stringify({
-              message: fallbackMessage,
+              message: simpleFallback,
               character: characterId,
               characterName: getCharacterName(characterId),
               isInappropriate: false,
@@ -1360,7 +1369,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           );
         }
       } catch (error) {
-        console.error('[consult] ❌ 守護神メッセージ生成処理エラー:', {
+        console.error('[consult] ❌ ウェルカムメッセージ生成処理エラー:', {
           error: error instanceof Error ? error.message : String(error),
         });
         // エラーが発生した場合、通常の処理にフォールバック
