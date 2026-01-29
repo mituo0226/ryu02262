@@ -944,6 +944,22 @@
         // 登録ユーザーのみを取得
         const usersRes = await fetch('/api/admin/users');
         const usersData = await usersRes.json();
+        
+        // 現在のIPアドレスを取得・表示（常に取得）
+        if (usersData.clientIp) {
+          currentClientIp = usersData.clientIp;
+          currentIpDisplay.textContent = currentClientIp;
+          // IPパネルを表示
+          adminIpPanel.style.display = 'block';
+        }
+        
+        // 認可チェック
+        if (!usersData.authorized) {
+          setStatus('IPアドレスを登録してください');
+          userTableBody.innerHTML = `<tr><td colspan="6" class="muted">このIPアドレスはまだ登録されていません。上のIPパネルから「このIPを追加」をクリックして登録してください。</td></tr>`;
+          return;
+        }
+        
         if (!usersRes.ok) throw new Error(usersData.error || '取得に失敗しました');
         
         // APIから取得したユーザーを整形
@@ -958,20 +974,11 @@
           created_at: user.created_at,
           message_count: user.message_count || 0
         }));
-        
-        // 現在のIPアドレスを取得・表示
-        if (usersData.clientIp) {
-          currentClientIp = usersData.clientIp;
-          currentIpDisplay.textContent = currentClientIp;
-        }
 
         applyFilters();
         renderUsers();
         hideDetailSections();
         setStatus('接続済み', true);
-        
-        // IPパネルを表示
-        adminIpPanel.style.display = 'block';
       } catch (error) {
         console.error(error);
         setStatus('接続エラー');

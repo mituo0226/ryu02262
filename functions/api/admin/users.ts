@@ -17,6 +17,60 @@ interface TestUserBody {
 }
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
+  // GETリクエスト（管理画面の初期ロード）では認可をスキップして、クライアントIPのみ返す
+  if (request.method === 'GET') {
+    const query = `
+      SELECT 
+        u.id,
+        u.nickname,
+        u.birth_year,
+        u.birth_month,
+        u.birth_day,
+        u.passphrase,
+        u.guardian,
+        u.created_at,
+        COUNT(c.id) as message_count
+      FROM users u
+      LEFT JOIN conversations c ON c.user_id = u.id
+      GROUP BY u.id, u.nickname, u.birth_year, u.birth_month, u.birth_day, u.passphrase, u.guardian, u.created_at
+      ORDER BY u.created_at DESC
+    `;
+
+    const users = await env.DB.prepare<{
+      id: number;
+      nickname: string | null;
+      birth_year: number | null;
+      birth_month: number | null;
+      birth_day: number | null;
+      passphrase: string | null;
+      guardian: string | null;
+      created_at: string;
+      message_count: number;
+    }>(query).all();
+
+    // クライアントIPを取得
+    const cfConnectingIp = request.headers.get('cf-connecting-ip');
+    const xForwardedFor = request.headers.get('x-forwarded-for');
+    let clientIp = '127.0.0.1';
+    
+    if (cfConnectingIp) {
+      clientIp = cfConnectingIp;
+    } else if (xForwardedFor) {
+      clientIp = xForwardedFor.split(',')[0].trim();
+    }
+
+    // 認可チェック（ユーザーデータは認可されたIPのみ返す）
+    const isAuthorized = isAdminAuthorized(request, env);
+    const usersData = isAuthorized ? (users.results ?? []) : [];
+
+    return new Response(JSON.stringify({ 
+      users: usersData,
+      clientIp: clientIp,
+      authorized: isAuthorized
+    }), { status: 200, headers: jsonHeaders });
+  }
+
+  // その他のメソッドは認可必須
   if (!isAdminAuthorized(request, env)) {
     return unauthorizedResponse();
   }
@@ -69,53 +123,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     }
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: jsonHeaders });
-  }
-
-  if (request.method === 'GET') {
-    const query = `
-      SELECT 
-        u.id,
-        u.nickname,
-        u.birth_year,
-        u.birth_month,
-        u.birth_day,
-        u.passphrase,
-        u.guardian,
-        u.created_at,
-        COUNT(c.id) as message_count
-      FROM users u
-      LEFT JOIN conversations c ON c.user_id = u.id
-      GROUP BY u.id, u.nickname, u.birth_year, u.birth_month, u.birth_day, u.passphrase, u.guardian, u.created_at
-      ORDER BY u.created_at DESC
-    `;
-
-    const users = await env.DB.prepare<{
-      id: number;
-      nickname: string | null;
-      birth_year: number | null;
-      birth_month: number | null;
-      birth_day: number | null;
-      passphrase: string | null;
-      guardian: string | null;
-      created_at: string;
-      message_count: number;
-    }>(query).all();
-
-    // クライアントIPを取得（admin-auth.jsと同じロジック）
-    const cfConnectingIp = request.headers.get('cf-connecting-ip');
-    const xForwardedFor = request.headers.get('x-forwarded-for');
-    let clientIp = '127.0.0.1';
-    
-    if (cfConnectingIp) {
-      clientIp = cfConnectingIp;
-    } else if (xForwardedFor) {
-      clientIp = xForwardedFor.split(',')[0].trim();
-    }
-
-    return new Response(JSON.stringify({ 
-      users: users.results ?? [],
-      clientIp: clientIp
-    }), { status: 200, headers: jsonHeaders });
   }
 
   if (request.method === 'PUT') {
