@@ -373,7 +373,7 @@
     .conversation-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .conversation-item {
       background: rgba(255, 255, 255, 0.04);
@@ -393,15 +393,34 @@
     .conversation-item summary::-webkit-details-marker {
       display: none;
     }
+    .conversation-item summary::before {
+      content: '▶';
+      display: inline-block;
+      width: 16px;
+      margin-right: 8px;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .conversation-item[open] summary::before {
+      transform: rotate(90deg);
+    }
     .conversation-meta {
       font-size: 12px;
       color: #c7cff5;
     }
     .conversation-body {
       margin-top: 10px;
+      margin-left: 24px;
       font-size: 13px;
       line-height: 1.6;
       white-space: pre-wrap;
+      word-break: break-word;
+      color: #e0e0e0;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
     }
     @media (max-width: 768px) {
       table { font-size: 12px; }
@@ -453,15 +472,16 @@
       .dashboard-columns {
         flex-direction: row;
         align-items: flex-start;
-        gap: 24px;
+        gap: 20px;
       }
       .column-left {
-        width: 65%;
-        max-width: 800px;
+        width: 28%;
+        min-width: 300px;
+        flex-shrink: 0;
       }
       .column-right {
         flex: 1;
-        min-width: 400px;
+        min-width: 600px;
       }
     }
     .token-input { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -659,12 +679,12 @@
                 </form>
               </section>
 
-              <section class="card conversation-card hidden" id="conversationCard">
-                <h2>会話履歴（最新100件）</h2>
+              <section class="card conversation-card hidden" id="conversationCard" style="max-height: calc(100vh - 300px); display: flex; flex-direction: column;">
+                <h2 style="margin: 0 0 16px; flex-shrink: 0;">会話履歴（最新100件）</h2>
                 
                 <!-- キャラクターフィルター -->
-                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-                  <label style="flex: 1; min-width: 200px;">
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; flex-shrink: 0;">
+                  <label style="flex: 1; min-width: 180px;">
                     キャラクター:
                     <select id="conversationCharacterFilter" style="width: 100%; margin-top: 6px;">
                       <option value="">すべて</option>
@@ -674,25 +694,25 @@
                       <option value="kaon">三崎花音</option>
                     </select>
                   </label>
-                  <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <button id="selectAllConversations" style="padding: 10px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500;">全選択</button>
-                    <button id="deselectAllConversations" style="padding: 10px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500;">解除</button>
+                  <div style="display: flex; gap: 6px; align-items: flex-end; flex-shrink: 0;">
+                    <button id="selectAllConversations" style="padding: 8px 12px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap;">全選択</button>
+                    <button id="deselectAllConversations" style="padding: 8px 12px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap;">解除</button>
                   </div>
                 </div>
                 
                 <!-- 削除ボタン -->
-                <div id="conversationDeleteControls" style="display: none; margin-bottom: 16px; padding: 12px; background: rgba(255, 78, 132, 0.1); border: 1px solid rgba(255, 78, 132, 0.3); border-radius: 8px;">
-                  <p class="muted" style="margin: 0 0 10px;">
-                    <span id="selectedConversationCount">0</span>件のメッセージを削除します
+                <div id="conversationDeleteControls" style="display: none; margin-bottom: 12px; padding: 10px; background: rgba(255, 78, 132, 0.1); border: 1px solid rgba(255, 78, 132, 0.3); border-radius: 8px; flex-shrink: 0;">
+                  <p class="muted" style="margin: 0 0 8px;">
+                    <span id="selectedConversationCount">0</span>件削除
                   </p>
-                  <div style="display: flex; gap: 8px;">
-                    <button id="deleteSelectedConversations" class="danger" style="padding: 8px 16px; font-size: 13px;">削除実行</button>
-                    <button id="cancelDeleteConversations" style="padding: 8px 16px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 13px; font-weight: 500;">キャンセル</button>
+                  <div style="display: flex; gap: 6px;">
+                    <button id="deleteSelectedConversations" class="danger" style="padding: 6px 12px; font-size: 12px; flex: 1;">削除実行</button>
+                    <button id="cancelDeleteConversations" style="padding: 6px 12px; background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 6px; color: #c7cdff; cursor: pointer; font-size: 12px; font-weight: 500; flex: 1;">キャンセル</button>
                   </div>
                 </div>
                 
-                <!-- 履歴リスト -->
-                <div id="conversationList" class="conversation-list">
+                <!-- 履歴リスト（スクロール可能） -->
+                <div id="conversationList" class="conversation-list" style="flex: 1; overflow-y: auto; min-height: 0; padding-right: 8px;">
                   <p class="muted">ユーザーを選択すると会話履歴を表示します。</p>
                 </div>
               </section>
@@ -962,20 +982,30 @@
         
         return `
           <div style="margin-bottom: 16px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 8px;">
-            <h4 style="margin: 0 0 10px; font-size: 14px; color: #d6c9ff;">
-              ${characterName} (${items.length}件)
-              <input type="checkbox" class="character-group-checkbox" data-character="${characterId}" style="float: right; cursor: pointer; width: 18px; height: 18px;">
-            </h4>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              ${items.map((item, index) => `
-                <label style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; cursor: pointer;">
-                  <input type="checkbox" class="conversation-checkbox" data-id="${item.id}" data-character="${item.character_id}" style="cursor: pointer; width: 16px; height: 16px;">
-                  <span style="font-size: 12px; color: #c7cdff; flex: 1;">
-                    [${item.role === 'assistant' ? '鑑定士' : '相談者'}] ${new Date(item.created_at).toLocaleString('ja-JP')}
-                  </span>
-                  <span class="conversation-meta" style="font-size: 11px; color: #9da2c6;">#${items.length - index}</span>
-                </label>
-              `).join('')}
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <input type="checkbox" class="character-group-checkbox" data-character="${characterId}" style="cursor: pointer; width: 18px; height: 18px;">
+              <h4 style="margin: 0; font-size: 14px; color: #d6c9ff; flex: 1;">
+                ${characterName} (${items.length}件)
+              </h4>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${items.map((item, index) => {
+                const safeContent = item.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const isUser = item.role === 'user';
+                const title = `${isUser ? '👤 相談者' : '🔮 鑑定士'} - ${new Date(item.created_at).toLocaleString('ja-JP')}`;
+                return `
+                  <details class="conversation-item" style="background: ${isUser ? 'rgba(100, 150, 255, 0.08)' : 'rgba(200, 150, 255, 0.08)'}; border: 1px solid ${isUser ? 'rgba(100, 150, 255, 0.2)' : 'rgba(200, 150, 255, 0.2)'};'">
+                    <summary style="padding: 6px 0; display: flex; align-items: center; gap: 8px;">
+                      <input type="checkbox" class="conversation-checkbox" data-id="${item.id}" data-character="${item.character_id}" style="cursor: pointer; width: 16px; height: 16px; flex-shrink: 0;" onclick="event.stopPropagation();">
+                      <span style="flex: 1; font-size: 12px; color: #c7cdff;">
+                        ${title}
+                      </span>
+                      <span class="conversation-meta" style="font-size: 11px;">#${items.length - index}</span>
+                    </summary>
+                    <div class="conversation-body">${safeContent}</div>
+                  </details>
+                `;
+              }).join('')}
             </div>
           </div>
         `;
