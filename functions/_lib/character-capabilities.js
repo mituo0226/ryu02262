@@ -74,41 +74,28 @@ function getFeatureDescription(feature) {
  */
 export function generateCapabilityConstraints(characterId, availableFeatures = []) {
   // 利用可能な機能のみを明示（ポジティブアプローチ）
+  // 注意：この部分は各キャラクターのプロンプトに比べて背景的な指示のため、敬語・中立的な表現を使用
   let constraintText = `
 ========================================
-【【最重要・絶対遵守】あなたが利用可能な機能】
+【利用可能な機能】
 ========================================
 
 `;
 
   if (availableFeatures.length > 0) {
-    constraintText += `【あなたが利用可能な機能】：
-${availableFeatures.map(feature => {
+    constraintText += `${availableFeatures.map(feature => {
   const name = getFeatureName(feature);
   const desc = getFeatureDescription(feature);
   return `✅ ${name}：${desc}`;
 }).join('\n')}
 
-【重要な原則】：
-あなたが利用可能な機能は上記の${availableFeatures.length}つのみです。
-他の機能（タロット占い、守護神の儀式、個別相談モードなど）は、他の鑑定士が担当する機能です。
-あなたは上記の機能のみを使用し、他の機能を提案したり実行したりしないでください。
-
 `;
   } else {
-    constraintText += `【あなたが利用可能な機能】：
-✅ 通常の相談のみ対応します
-
-【重要な原則】：
-あなたは通常の相談のみを担当します。
-タロット占い、守護神の儀式、個別相談モードなどは、他の鑑定士が担当する機能です。
-あなたは通常の相談のみを行い、他の機能を提案したり実行したりしないでください。
-
+    constraintText += `✅ 通常の相談対応
 `;
   }
 
-  constraintText += `この指示は最優先で守ってください。
-========================================
+  constraintText += `========================================
 `;
 
   return constraintText;
