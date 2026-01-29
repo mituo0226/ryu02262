@@ -472,17 +472,59 @@
       .dashboard-columns {
         flex-direction: row;
         align-items: flex-start;
-        gap: 20px;
+        gap: 16px;
       }
       .column-left {
-        width: 28%;
-        min-width: 300px;
+        width: 35%;
+        min-width: 350px;
         flex-shrink: 0;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
       }
       .column-right {
         flex: 1;
-        min-width: 600px;
+        min-width: 500px;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
       }
+    }
+    
+    /* ユーザー情報パネル用のスタイル */
+    .user-info-panel {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 320px;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 80px 16px 20px;
+      overflow-y: auto;
+      z-index: 100;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .user-info-panel.open {
+      transform: translateX(0);
+    }
+    
+    .user-info-panel-close {
+      position: absolute;
+      top: 20px;
+      right: 12px;
+      background: rgba(255, 78, 132, 0.2);
+      border: 1px solid rgba(255, 78, 132, 0.3);
+      color: #ff6b9d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .user-info-panel-close:hover {
+      background: rgba(255, 78, 132, 0.3);
     }
     .token-input { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .token-input input { flex: 1; }
@@ -589,57 +631,10 @@
       <div class="tab-content active" id="user-search-tab">
         <div class="dashboard-layout">
           <div class="dashboard-columns">
-            <div class="column-left">
-              <section class="card">
-                <h2>ユーザー検索</h2>
-                <form id="searchForm">
-                  <label>ニックネーム
-                    <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
-                  </label>
-                  <div style="display:flex; gap:8px;">
-                    <label style="flex:1;">年
-                      <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
-                    </label>
-                    <label style="flex:1;">月
-                      <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
-                    </label>
-                    <label style="flex:1;">日
-                      <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
-                    </label>
-                  </div>
-                  <div class="actions">
-                    <button type="submit">検索する</button>
-                    <button type="button" id="resetSearchButton">条件をクリア</button>
-                  </div>
-                  <p class="muted">※ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
-                </form>
-              </section>
-
-                    <section class="card">
-                <h2>検索結果</h2>
-                <div id="resultSummary" class="muted">検索結果 0 件</div>
-                <div class="list-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>ニックネーム</th>
-                        <th>誕生日</th>
-                        <th>合言葉</th>
-                        <th>守護神</th>
-                        <th>操作</th>
-                      </tr>
-                    </thead>
-                    <tbody id="userTableBody">
-                      <tr><td colspan="6" class="muted">接続して読み込み...</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-
-            <div class="column-right">
-              <section class="card detail-card hidden" id="detailCard">
+            <!-- 左側：ユーザー情報パネル（固定） -->
+            <div id="userInfoPanel" class="user-info-panel">
+              <button class="user-info-panel-close" id="closeUserPanel">✕</button>
+              <section class="card" style="margin: 0;">
                 <h2>ユーザー情報</h2>
                 <p class="muted" id="selectedUserLabel"></p>
                 <form id="userForm">
@@ -678,8 +673,59 @@
                   <p class="muted" id="formStatus"></p>
                 </form>
               </section>
+            </div>
 
-              <section class="card conversation-card hidden" id="conversationCard" style="max-height: calc(100vh - 300px); display: flex; flex-direction: column;">
+            <!-- 真ん中：ユーザー検索 -->
+            <div class="column-left">
+              <section class="card">
+                <h2>ユーザー検索</h2>
+                <form id="searchForm">
+                  <label>ニックネーム
+                    <input type="text" id="searchNickname" placeholder="部分一致で検索できます">
+                  </label>
+                  <div style="display:flex; gap:8px;">
+                    <label style="flex:1;">年
+                      <input type="number" id="searchYear" min="1900" max="2100" placeholder="例: 1990">
+                    </label>
+                    <label style="flex:1;">月
+                      <input type="number" id="searchMonth" min="1" max="12" placeholder="1-12">
+                    </label>
+                    <label style="flex:1;">日
+                      <input type="number" id="searchDay" min="1" max="31" placeholder="1-31">
+                    </label>
+                  </div>
+                  <div class="actions">
+                    <button type="submit">検索する</button>
+                    <button type="button" id="resetSearchButton">条件をクリア</button>
+                  </div>
+                  <p class="muted">※ニックネーム / 生年月日のいずれか一つだけでも検索可能です。空のまま検索すると全ユーザーが表示されます。</p>
+                </form>
+              </section>
+
+              <section class="card">
+                <h2>検索結果</h2>
+                <div id="resultSummary" class="muted">検索結果 0 件</div>
+                <div class="list-scroll" style="max-height: 400px; overflow-y: auto;">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>ニックネーム</th>
+                        <th>誕生日</th>
+                        <th>合言葉</th>
+                        <th>守護神</th>
+                      </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                      <tr><td colspan="5" class="muted">接続して読み込み...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <!-- 右側：会話履歴 -->
+            <div class="column-right">
                 <h2 style="margin: 0 0 16px; flex-shrink: 0;">会話履歴（最新100件）</h2>
                 
                 <!-- キャラクターフィルター -->
@@ -781,6 +827,8 @@
     const selectedUserLabel = document.getElementById('selectedUserLabel');
     const conversationCard = document.getElementById('conversationCard');
     const conversationList = document.getElementById('conversationList');
+    const userInfoPanel = document.getElementById('userInfoPanel');
+    const closeUserPanel = document.getElementById('closeUserPanel');
 
     const deities = [
       '桜舞い散る春の道',
@@ -828,6 +876,7 @@
       formStatus.textContent = '';
       form.style.display = 'block'; // フォームを表示に戻す
       selectedUserId = null;
+      userInfoPanel.classList.remove('open');
     }
 
     function showDetailSections(user) {
@@ -835,6 +884,7 @@
       conversationCard.classList.remove('hidden');
       selectedUserLabel.textContent = `ID: ${user.id} / ${user.nickname} / ${user.birth_year}年${user.birth_month}月${user.birth_day}日`;
       form.style.display = 'block';
+      userInfoPanel.classList.add('open');
     }
 
     hideDetailSections();
@@ -911,7 +961,7 @@
     function renderUsers(list = filteredUsers) {
       resultSummary.textContent = `検索結果 ${list.length} 件`;
       if (!list.length) {
-        userTableBody.innerHTML = '<tr><td colspan="6" class="muted">ユーザーが見つかりません。</td></tr>';
+        userTableBody.innerHTML = '<tr><td colspan="5" class="muted">ユーザーが見つかりません。</td></tr>';
         return;
       }
       
@@ -919,11 +969,10 @@
         return `
           <tr>
             <td>${user.id}</td>
-            <td>${user.nickname || 'N/A'}</td>
+            <td><a href="#" style="color: #d6c9ff; cursor: pointer; text-decoration: underline;" data-user-id="${user.id}" class="user-nickname-link">${user.nickname || 'N/A'}</a></td>
             <td>${user.birth_year ? `${user.birth_year}/${user.birth_month}/${user.birth_day}` : '-'}</td>
             <td>${user.passphrase || '未設定'}</td>
             <td>${user.guardian || '未決定'}</td>
-            <td><button class="button-link" data-user-id="${user.id}">選択</button></td>
           </tr>
         `;
       }).join('');
@@ -931,7 +980,9 @@
 
     userTableBody.addEventListener('click', (event) => {
       const target = event.target;
-      if (target.matches('[data-user-id]')) {
+      // ニックネームリンククリック
+      if (target.matches('.user-nickname-link')) {
+        event.preventDefault();
         const id = Number(target.dataset.userId);
         const user = users.find((u) => u.id === id);
         if (user) {
@@ -1092,6 +1143,8 @@
       applyFilters();
       renderUsers();
     });
+
+    closeUserPanel.addEventListener('click', hideDetailSections);
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
