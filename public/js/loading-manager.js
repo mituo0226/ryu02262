@@ -9,6 +9,11 @@ const LoadingManager = {
      * 待機メッセージのID
      */
     currentLoadingMessageId: null,
+    
+    /**
+     * 待機メッセージが表示された時刻
+     */
+    loadingShowTime: null,
 
     /**
      * ローディングメッセージを表示
@@ -33,6 +38,8 @@ const LoadingManager = {
                 loadingText,
                 characterName
             );
+            // 表示時刻を記録
+            this.loadingShowTime = Date.now();
             console.log('[LoadingManager] メッセージID:', this.currentLoadingMessageId);
 
             // チャットコンテナに待機状態クラスを追加
@@ -52,6 +59,7 @@ const LoadingManager = {
 
     /**
      * ローディングメッセージを非表示にして削除
+     * 最小500msはメッセージを表示するようにする
      */
     hideLoading() {
         console.log('[LoadingManager] hideLoading() 呼び出し:', this.currentLoadingMessageId);
@@ -61,25 +69,42 @@ const LoadingManager = {
             return;
         }
 
-        // メッセージを削除
-        const element = document.getElementById(this.currentLoadingMessageId);
-        console.log('[LoadingManager] メッセージ要素を検索:', !!element);
+        // メッセージが表示されてから最小500ms経過するまで待つ
+        const elapsedTime = Date.now() - (this.loadingShowTime || Date.now());
+        const minDisplayTime = 500;
+        const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
         
-        if (element) {
-            console.log('[LoadingManager] メッセージ要素を削除します');
-            element.remove();
-        }
+        console.log('[LoadingManager] 表示継続時間:', elapsedTime, 'ms, 残り:', remainingTime, 'ms');
 
-        // チャットコンテナから待機状態クラスを削除
-        const messagesDiv = window.ChatUI?.messagesDiv;
-        if (messagesDiv) {
-            const chatContainer = messagesDiv.closest('.chat-container');
-            if (chatContainer) {
-                chatContainer.classList.remove('waiting-for-response');
+        const performHide = () => {
+            // メッセージを削除
+            const element = document.getElementById(this.currentLoadingMessageId);
+            console.log('[LoadingManager] メッセージ要素を検索:', !!element);
+            
+            if (element) {
+                console.log('[LoadingManager] メッセージ要素を削除します');
+                element.remove();
             }
-        }
 
-        this.currentLoadingMessageId = null;
+            // チャットコンテナから待機状態クラスを削除
+            const messagesDiv = window.ChatUI?.messagesDiv;
+            if (messagesDiv) {
+                const chatContainer = messagesDiv.closest('.chat-container');
+                if (chatContainer) {
+                    chatContainer.classList.remove('waiting-for-response');
+                }
+            }
+
+            this.currentLoadingMessageId = null;
+            this.loadingShowTime = null;
+        };
+
+        if (remainingTime > 0) {
+            console.log('[LoadingManager] ' + remainingTime + 'ms 待機してからメッセージを削除します');
+            setTimeout(performHide, remainingTime);
+        } else {
+            performHide();
+        }
     },
 
     /**
