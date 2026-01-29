@@ -171,6 +171,7 @@
 /**
  * .loading-character-overlay
  * 動画上のオーバーレイ（キャラクター画像）
+ * 透明度を強めて、キャラクター画像をおぼろげながら見える様に
  */
 .loading-character-overlay {
     position: absolute;
@@ -180,7 +181,7 @@
     height: 100%;
     background-size: cover;
     background-position: center;
-    opacity: 0.15;
+    opacity: 0.25;  /* 0.15 → 0.25 に強化 */
     z-index: 5;
     pointer-events: none;
     mix-blend-mode: overlay;
@@ -195,7 +196,7 @@
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
-        opacity: 0.2;
+        opacity: 0.3;  /* 0.2 → 0.3 に強化 */
     }
 }
 
@@ -207,7 +208,7 @@
     .loading-character-overlay {
         background-size: cover;
         background-position: center;
-        opacity: 0.1;
+        opacity: 0.18;  /* 0.1 → 0.18 に強化 */
     }
 }
 
@@ -218,7 +219,7 @@
 @supports (-webkit-touch-callout: none) {
     /* iPhone/iPad判定 */
     .loading-character-overlay {
-        opacity: 0.08;
+        opacity: 0.15;  /* 0.08 → 0.15 に強化 */
         background-size: cover;
     }
 }
@@ -300,8 +301,23 @@
     line-height: 1.6;
     text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
     opacity: 0;
-    animation: fadeInMessage 0.5s ease-in-out forwards;
     margin: 5px 0;
+}
+
+/**
+ * .message-fade-in
+ * メッセージのフェードイン
+ */
+.loading-message.message-fade-in {
+    animation: fadeInMessage 0.5s ease-in-out forwards;
+}
+
+/**
+ * .fade-out-message
+ * メッセージのフェードアウト
+ */
+.loading-message.fade-out-message {
+    animation: fadeOutMessage 0.3s ease-in-out forwards;
 }
 
 /**
@@ -408,6 +424,21 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/**
+ * fadeOutMessage アニメーション
+ * メッセージのフェードアウト演出
+ */
+@keyframes fadeOutMessage {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-5px);
     }
 }
 

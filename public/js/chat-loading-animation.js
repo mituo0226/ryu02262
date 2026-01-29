@@ -196,22 +196,32 @@ const ChatLoadingAnimation = {
         const message = messages[index];
         const processedMessage = this._processMessage(message);
         
-        // メッセージHTMLを生成
-        const messageHtml = `
-            <div class="loading-message message-fade" style="animation-delay: ${index * 0.5}s;">
-                <span>${processedMessage}</span>
-            </div>
-        `;
+        // 前のメッセージをフェードアウト
+        const previousMessages = this.loadingMessages.querySelectorAll('.loading-message');
+        previousMessages.forEach(msg => {
+            msg.classList.add('fade-out-message');
+            // フェードアウト完了後に削除
+            setTimeout(() => {
+                if (msg.parentNode === this.loadingMessages) {
+                    msg.remove();
+                }
+            }, 300);
+        });
         
-        // 既存のメッセージをクリア（最初のメッセージのみ）
-        if (index === 0) {
-            this.loadingMessages.innerHTML = '';
-        }
-        
-        // 新しいメッセージを追加
-        this.loadingMessages.insertAdjacentHTML('beforeend', messageHtml);
-        
-        console.log('[ChatLoadingAnimation] メッセージ表示（${index + 1}/${messages.length}）:', processedMessage);
+        // 少し遅延させてから新しいメッセージをフェードイン
+        setTimeout(() => {
+            if (!this.loadingMessages) return;
+            
+            const messageHtml = `
+                <div class="loading-message message-fade-in">
+                    <span>${processedMessage}</span>
+                </div>
+            `;
+            
+            this.loadingMessages.insertAdjacentHTML('beforeend', messageHtml);
+            
+            console.log('[ChatLoadingAnimation] メッセージ表示（${index + 1}/${messages.length}）:', processedMessage);
+        }, 300);
     },
     
     /**
@@ -252,7 +262,7 @@ const ChatLoadingAnimation = {
         // 最初のメッセージを表示
         this._displayMessage(0, messages);
         
-        // 3秒ごとに次のメッセージを表示
+        // 4秒ごとに次のメッセージを表示（フェードアウト300ms + 表示 + 余裕）
         this.messageUpdateInterval = setInterval(() => {
             this.currentMessageIndex++;
             
@@ -264,7 +274,7 @@ const ChatLoadingAnimation = {
                 this.messageUpdateInterval = null;
                 console.log('[ChatLoadingAnimation] すべてのメッセージ表示完了');
             }
-        }, 3000); // 3秒ごと
+        }, 4000); // 4秒ごと（フェード時間込み）
     },
     
     /**
