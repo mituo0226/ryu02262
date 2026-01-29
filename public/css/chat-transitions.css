@@ -533,6 +533,36 @@
 }
 
 /* ============================================
+   待機状態の表示（チャットウィンドウ内）
+   ============================================ */
+
+/**
+ * .waiting-for-response
+ * メッセージ送信後の待機状態を表示
+ */
+.waiting-for-response {
+    display: block;
+    opacity: 1;
+    animation: fadeInMessage 0.5s ease-in-out forwards;
+}
+
+/**
+ * .waiting-extended
+ * 5秒以上待機している場合の表示調整
+ */
+.waiting-extended {
+    opacity: 1;
+}
+
+/**
+ * .waiting-extended-max
+ * 10秒以上待機している場合の表示調整
+ */
+.waiting-extended-max {
+    opacity: 1;
+}
+
+/* ============================================
    スムーズな背景色変更
    ============================================ */
 
