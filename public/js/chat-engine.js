@@ -2733,7 +2733,11 @@ const ChatInit = {
             
             if (window.LoadingManager) {
                 window._currentLoadingScreenType = LOADING_SCREEN_TYPE.MESSAGE_RESPONSE;
-                window.LoadingManager.showLoading(loadingCharacterName);
+                // ユーザーメッセージの表示完了時刻を記録
+                // これにより、待機メッセージの最小表示時間が正しく計算される
+                const userMessageDisplayTime = Date.now();
+                console.log('[chat-engine] ユーザーメッセージ表示完了時刻:', userMessageDisplayTime);
+                window.LoadingManager.showLoading(loadingCharacterName, userMessageDisplayTime);
             } else {
                 console.warn('[chat-engine] ⚠️ LoadingManager が定義されていません');
             }

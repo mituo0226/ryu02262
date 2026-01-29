@@ -28,9 +28,10 @@ const LoadingManager = {
     /**
      * ローディングメッセージを表示
      * @param {string} characterName - キャラクター名
+     * @param {number} referenceTime - 参照時刻（ユーザーメッセージ表示完了時刻）
      * @returns {string} メッセージID
      */
-    showLoading(characterName = 'アシスタント') {
+    showLoading(characterName = 'アシスタント', referenceTime = null) {
         // グローバルから待機画面タイプを取得
         this.currentLoadingScreenType = window._currentLoadingScreenType || 'unknown';
         
@@ -52,9 +53,12 @@ const LoadingManager = {
                 loadingText,
                 characterName
             );
-            // 表示時刻を記録
-            this.loadingShowTime = Date.now();
+            
+            // 参照時刻を使用（ユーザーメッセージ表示完了時刻から計算）
+            // これにより、ユーザーメッセージとの時間間隔が正しく計算される
+            this.loadingShowTime = referenceTime || Date.now();
             console.log('[LoadingManager] メッセージID:', this.currentLoadingMessageId);
+            console.log('[LoadingManager] 表示開始時刻:', this.loadingShowTime);
 
             // チャットコンテナに待機状態クラスを追加
             const messagesDiv = window.ChatUI.messagesDiv;
