@@ -2,6 +2,11 @@
 import { generateSystemPrompt, getCharacterName } from '../_lib/character-system.js';
 import { isValidCharacter } from '../_lib/character-loader.js';
 import { generateGuardianFirstMessagePrompt, generateKaedeFollowUpPrompt } from '../_lib/characters/kaede.js';
+import {
+  generateKaedePromptOptimized,
+  generateGuardianFirstMessagePromptOptimized,
+  generateKaedeFollowUpPromptOptimized
+} from '../_lib/characters/kaede-optimized.js';
 import { detectVisitPattern } from '../_lib/visit-pattern-detector.js';
 import { getHealthChecker } from '../_lib/api-health-checker.js';
 
@@ -1291,11 +1296,10 @@ export const onRequestPost: PagesFunction = async (context) => {
           hasFirstQuestion: !!firstQuestion,
         });
 
-        // 守護神専用のシステムプロンプトを生成
-        const guardianSystemPrompt = generateGuardianFirstMessagePrompt(
+        // 守護神専用のシステムプロンプトを生成（最適化版）
+        const guardianSystemPrompt = generateGuardianFirstMessagePromptOptimized(
           guardianName,
-          userNickname,
-          firstQuestion
+          userNickname
         );
 
         // 会話履歴は空（守護神の最初のメッセージのため）
@@ -1404,12 +1408,11 @@ export const onRequestPost: PagesFunction = async (context) => {
           guardianMatches: guardianName === dbGuardian,
         });
 
-        // 楓専用のシステムプロンプトを生成
-        const kaedeSystemPrompt = generateKaedeFollowUpPrompt(
+        // 楓専用のシステムプロンプトを生成（最適化版）
+        const kaedeSystemPrompt = generateKaedeFollowUpPromptOptimized(
           guardianName,
           guardianMessage,
-          userNickname,
-          firstQuestion
+          userNickname
         );
 
         // 会話履歴は空（楓の最初のメッセージのため）
@@ -1423,7 +1426,7 @@ export const onRequestPost: PagesFunction = async (context) => {
           conversationHistory: kaedeConversationHistory,
           userMessage: `守護神${guardianName}のメッセージを聞いた後、楓として${userNickname}さんに語りかけてください。`,
           temperature: 0.8,
-          maxTokens: 2000,
+          maxTokens: 2800,
           topP: 0.9,
           deepseekApiKey: apiKey,
           fallbackApiKey: fallbackApiKey,
@@ -1567,22 +1570,45 @@ export const onRequestPost: PagesFunction = async (context) => {
       }
     }
     
-    const systemPrompt = generateSystemPrompt(characterId, {
-      userNickname: user?.nickname,
-      hasPreviousConversation: hasPreviousConversation,
-      // 各キャラクターの性格設定に必要な情報のみ
-      guardian: user?.guardian || null,
-      isRitualStart: isRitualStart,
-      isJustRegistered: isJustRegistered,
-      userMessageCount: userMessageCount,
-      userGender: userGender,
-      userBirthDate: userBirthDate,
-      // 三崎花音の動的プロンプト生成用パラメータ
-      visitPattern: visitPatternInfo?.pattern || 'first_visit',
-      conversationHistory: visitPatternInfo?.conversationHistory || [],
-      lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
-      sessionContext: visitPatternInfo?.sessionContext || null,
-    });
+    // ===== 楓の最適化版プロンプトを使用するか判定 =====
+    let systemPrompt: string;
+    let maxTokensForCharacter = 2000;
+
+    if (characterId === 'kaede' && user?.guardian) {
+      // 楓で守護神が決定している場合は最適化版を使用
+      systemPrompt = generateKaedePromptOptimized({
+        userNickname: user?.nickname || 'あなた',
+        guardian: user?.guardian,
+        visitPattern: visitPatternInfo?.pattern || 'first_visit',
+        lastSummary: visitPatternInfo?.lastConversationSummary || null,
+        userMessageCount: userMessageCount,
+      });
+      maxTokensForCharacter = 2800;
+      console.log('[consult] 楓（最適化版）のプロンプトを使用', {
+        userNickname: user?.nickname,
+        guardian: user?.guardian,
+        maxTokens: maxTokensForCharacter,
+      });
+    } else {
+      // その他のキャラは従来版を使用
+      systemPrompt = generateSystemPrompt(characterId, {
+        userNickname: user?.nickname,
+        hasPreviousConversation: hasPreviousConversation,
+        // 各キャラクターの性格設定に必要な情報のみ
+        guardian: user?.guardian || null,
+        isRitualStart: isRitualStart,
+        isJustRegistered: isJustRegistered,
+        userMessageCount: userMessageCount,
+        userGender: userGender,
+        userBirthDate: userBirthDate,
+        // 三崎花音の動的プロンプト生成用パラメータ
+        visitPattern: visitPatternInfo?.pattern || 'first_visit',
+        conversationHistory: visitPatternInfo?.conversationHistory || [],
+        lastConversationSummary: visitPatternInfo?.lastConversationSummary || null,
+        sessionContext: visitPatternInfo?.sessionContext || null,
+      });
+      console.log('[consult] 従来版のプロンプトを使用', { characterId });
+    }
 
     console.log('[consult] システムプロンプト生成:', {
       characterId,
