@@ -610,6 +610,30 @@
     </div>
   </header>
 
+  <!-- IP管理パネル（ヘッダー下） -->
+  <div id="adminIpPanel" style="background: rgba(138, 43, 226, 0.1); border-bottom: 1px solid rgba(138, 43, 226, 0.2); padding: 16px 24px; display: none;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #d6c9ff;">🔐 管理用IPアドレス管理</h3>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+        <label style="flex: 1; min-width: 250px;">
+          <span style="font-size: 12px; color: #bfc4ff; display: block; margin-bottom: 6px;">新しいIPを追加</span>
+          <input type="text" id="newAdminIp" placeholder="例: 192.168.1.100" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
+        </label>
+        <label style="flex: 1; min-width: 150px;">
+          <span style="font-size: 12px; color: #bfc4ff; display: block; margin-bottom: 6px;">説明（オプション）</span>
+          <input type="text" id="newAdminIpDescription" placeholder="例: オフィスPC" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
+        </label>
+        <button id="addAdminIpButton" style="padding: 8px 16px; background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(56, 142, 60, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;">追加</button>
+      </div>
+      
+      <!-- 登録済みIPリスト -->
+      <div id="registeredIpsContainer" style="margin-top: 12px; display: none;">
+        <p style="font-size: 12px; color: #9da2c6; margin: 0 0 8px;">登録済みIP:</p>
+        <div id="registeredIpsList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+  </header>
+
   <div class="main-container">
     <!-- ナビゲーション（PC: 左側、モバイル: 上部） -->
     <nav class="admin-navigation">
@@ -806,6 +830,12 @@
     const connectButton = document.getElementById('connectButton');
     const connectionStatus = document.getElementById('connectionStatus');
     const clientIpDisplay = document.getElementById('clientIpDisplay');
+    const adminIpPanel = document.getElementById('adminIpPanel');
+    const newAdminIp = document.getElementById('newAdminIp');
+    const newAdminIpDescription = document.getElementById('newAdminIpDescription');
+    const addAdminIpButton = document.getElementById('addAdminIpButton');
+    const registeredIpsContainer = document.getElementById('registeredIpsContainer');
+    const registeredIpsList = document.getElementById('registeredIpsList');
     const userTableBody = document.getElementById('userTableBody');
     const form = document.getElementById('userForm');
     const formUserId = document.getElementById('formUserId');
@@ -1559,6 +1589,86 @@
     function setupButtonHoverEffects() {
       // 必要に応じてここにボタン効果の設定を追加
     }
+    
+    // ============================================
+    // IP管理機能
+    // ============================================
+    
+    async function loadAdminIps() {
+      try {
+        const res = await fetch('/api/admin/admin-ips');
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'IP取得失敗');
+        
+        const ips = data.ips || [];
+        if (ips.length === 0) {
+          registeredIpsContainer.style.display = 'none';
+          return;
+        }
+        
+        registeredIpsContainer.style.display = 'block';
+        registeredIpsList.innerHTML = ips.map(ip => `
+          <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(76, 175, 80, 0.15); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 6px; font-size: 12px;">
+            <span style="color: #81c784;">${ip.ip_address}</span>
+            ${ip.description ? `<span style="color: #9da2c6;">(${ip.description})</span>` : ''}
+            ${!ip.is_active ? '<span style="color: #ff6b9d;">[無効]</span>' : ''}
+            <button onclick="deleteAdminIp(${ip.id})" style="margin-left: auto; background: rgba(255, 78, 132, 0.2); border: none; border-radius: 4px; color: #ff6b9d; padding: 2px 6px; cursor: pointer; font-size: 11px;">削除</button>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('IP読み込みエラー:', error);
+      }
+    }
+    
+    addAdminIpButton.addEventListener('click', async () => {
+      const ip = newAdminIp.value.trim();
+      const description = newAdminIpDescription.value.trim();
+      
+      if (!ip) {
+        alert('IPアドレスを入力してください');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/admin/admin-ips', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ip_address: ip,
+            description: description || null,
+          }),
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'IP追加失敗');
+        
+        alert('IPアドレスを追加しました');
+        newAdminIp.value = '';
+        newAdminIpDescription.value = '';
+        loadAdminIps();
+      } catch (error) {
+        alert('エラー: ' + (error instanceof Error ? error.message : String(error)));
+      }
+    });
+    
+    window.deleteAdminIp = async function(id) {
+      if (!confirm('このIPアドレスを削除しますか？')) return;
+      
+      try {
+        const res = await fetch(`/api/admin/admin-ips?id=${id}`, {
+          method: 'DELETE',
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'IP削除失敗');
+        
+        alert('IPアドレスを削除しました');
+        loadAdminIps();
+      } catch (error) {
+        alert('エラー: ' + (error instanceof Error ? error.message : String(error)));
+      }
+    };
     
     // ボタンホバー効果を初期化
     setupButtonHoverEffects();
