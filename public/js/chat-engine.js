@@ -1961,10 +1961,8 @@ const ChatInit = {
                                     const visitPattern = 'first_visit';
                                     const conversationHistory = [];
 
-                                    // ローディング画面を表示（初期入室時）
+                                    // ローディング画面を表示
                                     if (window.ChatLoadingAnimation) {
-                                        console.log('[chat-engine] 初期入室時の待機画面を表示:', LOADING_SCREEN_TYPE.INITIAL_ENTRY);
-                                        window._currentLoadingScreenType = LOADING_SCREEN_TYPE.INITIAL_ENTRY;
                                         ChatLoadingAnimation.show(character, ChatData.userNickname || 'ユーザー');
                                     }
                                     
@@ -2724,19 +2722,6 @@ const ChatInit = {
                 sessionStorage.setItem('lastUserMessage', JSON.stringify(userMessageData));
             }
             
-            // 新しいローディングシステムを使用して待機メッセージを表示（メッセージ送信時）
-            const characterInfo = ChatData.characterInfo[character];
-            const loadingCharacterName = characterInfo ? characterInfo.name : 'アシスタント';
-            
-            console.log('[chat-engine] メッセージ送信時の待機画面を表示:', LOADING_SCREEN_TYPE.MESSAGE_RESPONSE);
-            console.log('[chat-engine] キャラクター:', loadingCharacterName);
-            
-            if (window.LoadingManager) {
-                window._currentLoadingScreenType = LOADING_SCREEN_TYPE.MESSAGE_RESPONSE;
-                window.LoadingManager.showLoading(loadingCharacterName);
-            } else {
-                console.warn('[chat-engine] ⚠️ LoadingManager が定義されていません');
-            }
             
             // メッセージ入力欄と送信ボタンを無効化
                 let conversationHistory = ChatData.conversationHistory?.recentMessages || [];
@@ -2869,11 +2854,6 @@ const ChatInit = {
                     }
                 }
                 
-                // 新しいローディングシステムで待機メッセージを非表示にする
-                if (window.LoadingManager) {
-                    window.LoadingManager.hideLoading();
-                }
-                
                 const messageId = window.ChatUI.addMessage('character', responseText, characterName);
                 window.ChatUI.scrollToLatest();
                 
@@ -2901,11 +2881,6 @@ const ChatInit = {
                 
         } catch (error) {
             console.error('メッセージ送信エラー:', error);
-            
-            // 新しいローディングシステムで待機メッセージを非表示にする
-            if (window.LoadingManager) {
-                window.LoadingManager.hideLoading();
-            }
             
             // ハンドラーのonErrorを呼び出す
             const handler = CharacterRegistry.get(character);
