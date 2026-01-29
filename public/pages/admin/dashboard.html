@@ -898,6 +898,8 @@
     
     // ページロード時にユーザーを取得
     fetchUsers();
+
+    async function fetchUsers() {
       try {
         const usersRes = await fetch('/api/admin/users');
         if (!usersRes.ok) throw new Error('ユーザー取得に失敗しました');
