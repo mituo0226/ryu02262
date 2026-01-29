@@ -1547,9 +1547,7 @@ ${userNickname}さんが初めてあなたの元を訪れました。
 
     // ===== 13. システムプロンプトの生成 =====
     // 【改善】システムプロンプトをシンプルに：各鑑定士の性格設定だけを守らせる
-    // 登録直後の初回メッセージ判定：migrateHistoryフラグがtrueの場合、登録したばかり
     // 【新仕様】すべてのユーザーを'registered'として扱う
-    const isJustRegistered = body.migrateHistory === true;
     
     // 【重要】hasPreviousConversationの判定
     // データベースから取得した履歴のみで判定する（クライアントから送られてきた履歴は無視）
@@ -1623,7 +1621,6 @@ ${userNickname}さんが初めてあなたの元を訪れました。
       // 各キャラクターの性格設定に必要な情報のみ
       guardian: user?.guardian || null,
       isRitualStart: isRitualStart,
-      isJustRegistered: isJustRegistered,
       userMessageCount: userMessageCount,
       userGender: userGender,
       userBirthDate: userBirthDate,
@@ -1654,7 +1651,7 @@ ${userNickname}さんが初めてあなたの元を訪れました。
 
     // ===== 10. ユーザーメッセージの保存（2段階保存の第1段階）=====
     // 会話開始時に即座にユーザーメッセージを保存（LLM応答前）
-    if (!shouldClearChat && !isJustRegistered) {
+    if (!shouldClearChat) {
       try {
         // 【新仕様】すべてのユーザーを'registered'として扱う
         if (user) {
@@ -1756,7 +1753,7 @@ ${userNickname}さんが初めてあなたの元を訪れました。
 
     // ===== 15. アシスタントメッセージの保存（2段階保存の第2段階）=====
     // LLM応答後にアシスタントメッセージを保存
-    if (!shouldClearChat && !isJustRegistered) {
+    if (!shouldClearChat) {
       try {
         // 【新仕様】すべてのユーザーを'registered'として扱う
         if (user) {
