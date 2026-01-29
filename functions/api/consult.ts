@@ -1691,12 +1691,14 @@ ${userNickname}さんが初めてあなたの元を訪れました。
     const fallbackApiKey = env['GPT-API'] || env.OPENAI_API_KEY || env.FALLBACK_OPENAI_API_KEY;
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
-    // 楓と三崎花音の完全版プロンプトは長いため、maxTokensを増やす
-    // 雪乃も長い返答を生成することが多いため、maxTokensを増やす
-    const maxTokensForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 2000 : 
-                                   (characterId === 'yukino') ? 1500 : 800;
-    const temperatureForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.7 : 0.5; // 楓と三崎花音では少し高い温度で温かみを出す
-    const topPForCharacter = (characterId === 'kaede' || characterId === 'kaon') ? 0.9 : 0.8;
+    // 笹岡雪乃と三崎花音は長い返答を生成することが多いため、maxTokensを増やす
+    // 楓はさらに長いプロンプトのため、maxTokensを最大に
+    const maxTokensForCharacter = (characterId === 'kaede') ? 2000 : 
+                                   (characterId === 'kaon' || characterId === 'yukino') ? 1500 : 800;
+    const temperatureForCharacter = (characterId === 'kaon' || characterId === 'yukino') ? 0.5 : 
+                                     (characterId === 'kaede') ? 0.7 : 0.5; // 雪乃と三崎花音では安定性重視
+    const topPForCharacter = (characterId === 'kaon' || characterId === 'yukino') ? 0.8 : 
+                             (characterId === 'kaede') ? 0.9 : 0.8;
     
     console.log('[consult] LLM API呼び出し準備:', {
       characterId,
