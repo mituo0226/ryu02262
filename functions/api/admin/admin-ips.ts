@@ -13,41 +13,9 @@ import { isAdminAuthorized, unauthorizedResponse } from '../../_lib/admin-auth.j
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
-  if (!isAdminAuthorized(request, env)) {
-    return unauthorizedResponse();
-  }
-
   const url = new URL(request.url);
 
-  // GET: すべての登録IPを取得
-  if (request.method === 'GET') {
-    try {
-      const ips = await env.DB.prepare(
-        `SELECT id, ip_address, description, is_active, created_at, updated_at
-         FROM admin_ips
-         ORDER BY created_at DESC`
-      ).all();
-
-      return new Response(JSON.stringify({
-        success: true,
-        ips: ips.results ?? [],
-      }), {
-        status: 200,
-        headers: jsonHeaders,
-      });
-    } catch (error) {
-      console.error('[admin/admin-ips] GET error:', error);
-      return new Response(JSON.stringify({
-        error: 'Failed to fetch admin IPs',
-        details: error instanceof Error ? error.message : String(error),
-      }), {
-        status: 500,
-        headers: jsonHeaders,
-      });
-    }
-  }
-
-  // POST: 新しいIPを追加
+  // POST: 新しいIPを追加（認可なしでOK - 最初のIP登録用）
   if (request.method === 'POST') {
     try {
       const body = await request.json() as {
@@ -111,6 +79,39 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
 
       return new Response(JSON.stringify({
         error: 'Failed to add IP address',
+        details: error instanceof Error ? error.message : String(error),
+      }), {
+        status: 500,
+        headers: jsonHeaders,
+      });
+    }
+  }
+
+  // その他のメソッド（GET, DELETE, PATCH）は認可必須
+  if (!isAdminAuthorized(request, env)) {
+    return unauthorizedResponse();
+  }
+
+  // GET: すべての登録IPを取得
+  if (request.method === 'GET') {
+    try {
+      const ips = await env.DB.prepare(
+        `SELECT id, ip_address, description, is_active, created_at, updated_at
+         FROM admin_ips
+         ORDER BY created_at DESC`
+      ).all();
+
+      return new Response(JSON.stringify({
+        success: true,
+        ips: ips.results ?? [],
+      }), {
+        status: 200,
+        headers: jsonHeaders,
+      });
+    } catch (error) {
+      console.error('[admin/admin-ips] GET error:', error);
+      return new Response(JSON.stringify({
+        error: 'Failed to fetch admin IPs',
         details: error instanceof Error ? error.message : String(error),
       }), {
         status: 500,
