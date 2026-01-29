@@ -255,9 +255,7 @@ const ChatUI = {
             displayText = text.replace(PATTERNS.CARD_TAG, '').trim();
             displayText = displayText.replace(PATTERNS.MULTIPLE_NEWLINES, '\n\n');
         }
-        
-        // 待機メッセージの場合は、元のテキストをそのまま使用（HTMLアニメーション用）
-        let displayTextWithoutTag = (type === 'waiting-simple') ? displayText : displayText.replace(PATTERNS.SUGGEST_TAROT_TAG, '');
+        const displayTextWithoutTag = displayText.replace(PATTERNS.SUGGEST_TAROT_TAG, '');
         
         // 5. messageDiv の作成
         const messageDiv = document.createElement('div');
@@ -285,14 +283,7 @@ const ChatUI = {
         // 8. テキスト表示用の div を作成
         const textDiv = document.createElement('div');
         textDiv.className = CSS_CLASSES.MESSAGE_TEXT;
-        
-        // 待機メッセージの場合は HTML を許可（アニメーション用span を含む）
-        if (type === 'waiting-simple') {
-            textDiv.innerHTML = displayTextWithoutTag;
-        } else {
-            textDiv.textContent = displayTextWithoutTag;
-        }
-        
+        textDiv.textContent = displayTextWithoutTag;
         messageDiv.appendChild(textDiv);
         
         // 10. messageDiv を DOM に追加（先頭に挿入）

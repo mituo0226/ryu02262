@@ -2725,7 +2725,23 @@ const ChatInit = {
             
             // シンプルな待機メッセージを表示
             console.log('[chat-engine] シンプルな待機メッセージを表示します');
-            this.currentWaitingMessageId = window.ChatUI.addMessage('waiting-simple', '返信が届きますのでお待ちください<span class="waiting-dots"></span>', 'システム');
+            const waitingText = '返信が届きますのでお待ちください';
+            this.currentWaitingMessageId = window.ChatUI.addMessage('waiting-simple', waitingText, 'システム');
+            
+            // 待機メッセージのDOM要素に直接、アニメーション用spanを追加
+            setTimeout(() => {
+                const waitingElement = document.getElementById(this.currentWaitingMessageId);
+                if (waitingElement) {
+                    const textDiv = waitingElement.querySelector('.message-text');
+                    if (textDiv) {
+                        const dotsSpan = document.createElement('span');
+                        dotsSpan.className = 'waiting-dots';
+                        textDiv.appendChild(dotsSpan);
+                        console.log('[chat-engine] アニメーション用span を追加しました');
+                    }
+                }
+            }, 10);
+            
             window.ChatUI.scrollToLatest();
             
             // メッセージ入力欄と送信ボタンを無効化
