@@ -717,13 +717,11 @@
                       <tr>
                         <th>ID</th>
                         <th>ニックネーム</th>
-                        <th>誕生日</th>
-                        <th>合言葉</th>
-                        <th>守護神</th>
+                        <th>生年月日</th>
                       </tr>
                     </thead>
                     <tbody id="userTableBody">
-                      <tr><td colspan="5" class="muted">接続して読み込み...</td></tr>
+                      <tr><td colspan="3" class="muted">接続して読み込み...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -981,8 +979,6 @@
             <td>${user.id}</td>
             <td><a href="#" style="color: #d6c9ff; cursor: pointer; text-decoration: underline;" data-user-id="${user.id}" class="user-nickname-link">${user.nickname || 'N/A'}</a></td>
             <td>${user.birth_year ? `${user.birth_year}/${user.birth_month}/${user.birth_day}` : '-'}</td>
-            <td>${user.passphrase || '未設定'}</td>
-            <td>${user.guardian || '未決定'}</td>
           </tr>
         `;
       }).join('');
