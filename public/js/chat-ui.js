@@ -255,7 +255,9 @@ const ChatUI = {
             displayText = text.replace(PATTERNS.CARD_TAG, '').trim();
             displayText = displayText.replace(PATTERNS.MULTIPLE_NEWLINES, '\n\n');
         }
-        const displayTextWithoutTag = displayText.replace(PATTERNS.SUGGEST_TAROT_TAG, '');
+        
+        // 待機メッセージの場合は、元のテキストをそのまま使用（HTMLアニメーション用）
+        let displayTextWithoutTag = (type === 'waiting-simple') ? displayText : displayText.replace(PATTERNS.SUGGEST_TAROT_TAG, '');
         
         // 5. messageDiv の作成
         const messageDiv = document.createElement('div');
