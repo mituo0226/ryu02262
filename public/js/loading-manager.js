@@ -69,9 +69,9 @@ const LoadingManager = {
             return;
         }
 
-        // メッセージが表示されてから最小500ms経過するまで待つ
+        // メッセージが表示されてから最小1000ms経過するまで待つ（ユーザーが確実に見える時間）
         const elapsedTime = Date.now() - (this.loadingShowTime || Date.now());
-        const minDisplayTime = 500;
+        const minDisplayTime = 1000; // 1秒に変更
         const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
         
         console.log('[LoadingManager] 表示継続時間:', elapsedTime, 'ms, 残り:', remainingTime, 'ms');

@@ -2559,6 +2559,18 @@ const ChatInit = {
             return;
         }
         
+        // 【初期ローディング画面の強制削除】
+        // メッセージ送信時に初期ローディング画面がまだ表示されている場合は、即座に削除
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen && !loadingScreen.classList.contains('hidden') && loadingScreen.style.display !== 'none') {
+            console.log('[chat-engine] ⚠️ 初期ローディング画面がまだ表示されています。即座に削除します');
+            loadingScreen.classList.add('hidden');
+            if (loadingScreen.parentNode) {
+                loadingScreen.parentNode.removeChild(loadingScreen);
+                console.log('[chat-engine] 初期ローディング画面を即座に削除しました');
+            }
+        }
+        
         // メッセージの取得：オーバーライドが指定されている場合はそれを使用、そうでなければ入力欄から取得
         const message = messageOverride || window.ChatUI.messageInput.value.trim();
         const character = ChatData.currentCharacter;
@@ -2684,8 +2696,10 @@ const ChatInit = {
                 if (messageExists) {
                 } else {
 
+                    console.log('[chat-engine] ユーザーメッセージを追加します:', messageToSend);
                     window.ChatUI.addMessage('user', messageToSend, 'あなた');
                     await this.delay(100);
+                    console.log('[chat-engine] スクロール完了');
                     window.ChatUI.scrollToLatest();
                 }
             }
@@ -2713,10 +2727,9 @@ const ChatInit = {
             const characterInfo = ChatData.characterInfo[character];
             const loadingCharacterName = characterInfo ? characterInfo.name : 'アシスタント';
             
-            console.log('[chat-engine] LoadingManager存在確認:', !!window.LoadingManager);
+            console.log('[chat-engine] 会話中の待機メッセージを表示:', loadingCharacterName);
             
             if (window.LoadingManager) {
-                console.log('[chat-engine] LoadingManager.showLoading() を呼び出します:', loadingCharacterName);
                 window.LoadingManager.showLoading(loadingCharacterName);
             } else {
                 console.warn('[chat-engine] ⚠️ LoadingManager が定義されていません');
