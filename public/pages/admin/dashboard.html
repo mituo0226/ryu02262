@@ -1181,7 +1181,7 @@
     
     deleteSelectedConversations.addEventListener('click', async () => {
       const selectedCheckboxes = document.querySelectorAll('.conversation-checkbox:checked');
-      const conversationIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id);
+      const conversationIds = Array.from(selectedCheckboxes).map(cb => Number(cb.dataset.id));
       
       if (!confirm(`${conversationIds.length}件のメッセージを削除しますか？`)) {
         return;
