@@ -1089,6 +1089,23 @@ body.admin-mode .chat-container {
     flex-direction: column;
     gap: 8px;
     min-height: auto;
+    animation: waiting-message-fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes waiting-message-fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.waiting-simple:hover {
+    transform: scale(1.02);
+    transition: transform 0.3s ease-in-out;
 }
 
 .message.waiting-simple .message-header {
@@ -1101,23 +1118,40 @@ body.admin-mode .chat-container {
     font-weight: 400 !important;
     text-align: center;
     padding: 0 !important;
+    animation: text-gentle-glow 3s ease-in-out infinite;
+}
+
+@keyframes text-gentle-glow {
+    0% {
+        opacity: 0.8;
+        text-shadow: 0 0 0px rgba(139, 61, 255, 0);
+    }
+    50% {
+        opacity: 1;
+        text-shadow: 0 0 8px rgba(139, 61, 255, 0.4);
+    }
+    100% {
+        opacity: 0.8;
+        text-shadow: 0 0 0px rgba(139, 61, 255, 0);
+    }
 }
 
 /* 待機中のドットアニメーション */
 .waiting-dots {
     display: inline-block;
-    margin-left: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 .waiting-dots::after {
     content: '';
     display: inline-block;
-    width: 20px;
-    height: 8px;
-    background: linear-gradient(90deg, #8b3dff, #b794ff, #8b3dff);
+    width: 24px;
+    height: 10px;
+    background: linear-gradient(90deg, #8b3dff 0%, #b794ff 50%, #8b3dff 100%);
     background-size: 200% 100%;
-    animation: gradient-shift 2s ease-in-out infinite;
-    border-radius: 4px;
+    animation: gradient-shift 2.5s ease-in-out infinite, dot-pulse 1.2s ease-in-out infinite;
+    border-radius: 5px;
 }
 
 @keyframes gradient-shift {
@@ -1129,5 +1163,14 @@ body.admin-mode .chat-container {
     }
     100% {
         background-position: 0% center;
+    }
+}
+
+@keyframes dot-pulse {
+    0%, 100% {
+        box-shadow: 0 0 4px rgba(139, 61, 255, 0.3), inset 0 0 2px rgba(139, 61, 255, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(139, 61, 255, 0.6), inset 0 0 4px rgba(139, 61, 255, 0.4);
     }
 }
