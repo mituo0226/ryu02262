@@ -17,7 +17,8 @@ interface TestUserBody {
 }
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
-  // GETリクエスト（管理画面の初期ロード）では認可をスキップして、クライアントIPのみ返す
+  // 認可チェック廃止 - すべてのリクエストを許可
+  
   if (request.method === 'GET') {
     const query = `
       SELECT 
@@ -48,31 +49,9 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       message_count: number;
     }>(query).all();
 
-    // クライアントIPを取得
-    const cfConnectingIp = request.headers.get('cf-connecting-ip');
-    const xForwardedFor = request.headers.get('x-forwarded-for');
-    let clientIp = '127.0.0.1';
-    
-    if (cfConnectingIp) {
-      clientIp = cfConnectingIp;
-    } else if (xForwardedFor) {
-      clientIp = xForwardedFor.split(',')[0].trim();
-    }
-
-    // 認可チェック（ユーザーデータは認可されたIPのみ返す）
-    const isAuthorized = isAdminAuthorized(request, env);
-    const usersData = isAuthorized ? (users.results ?? []) : [];
-
     return new Response(JSON.stringify({ 
-      users: usersData,
-      clientIp: clientIp,
-      authorized: isAuthorized
+      users: users.results ?? []
     }), { status: 200, headers: jsonHeaders });
-  }
-
-  // その他のメソッドは認可必須
-  if (!isAdminAuthorized(request, env)) {
-    return unauthorizedResponse();
   }
 
   // テスト用ユーザー作成・取得エンドポイント

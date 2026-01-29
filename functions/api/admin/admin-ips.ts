@@ -13,10 +13,9 @@ import { isAdminAuthorized, unauthorizedResponse } from '../../_lib/admin-auth.j
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 export const onRequest: PagesFunction = async ({ request, env }) => {
+  // 認可チェック廃止 - すべてのリクエストを許可
+  
   const url = new URL(request.url);
-
-  // POST: 新しいIPを追加（認可なしでOK - 最初のIP登録用）
-  if (request.method === 'POST') {
     try {
       const body = await request.json() as {
         ip_address?: string;
@@ -91,9 +90,6 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
   if (!isAdminAuthorized(request, env)) {
     return unauthorizedResponse();
   }
-
-  // GET: すべての登録IPを取得
-  if (request.method === 'GET') {
     try {
       const ips = await env.DB.prepare(
         `SELECT id, ip_address, description, is_active, created_at, updated_at
