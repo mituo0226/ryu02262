@@ -101,7 +101,21 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
       message_count: number;
     }>(query).all();
 
-    return new Response(JSON.stringify({ users: users.results ?? [] }), { status: 200, headers: jsonHeaders });
+    // クライアントIPを取得（admin-auth.jsと同じロジック）
+    const cfConnectingIp = request.headers.get('cf-connecting-ip');
+    const xForwardedFor = request.headers.get('x-forwarded-for');
+    let clientIp = '127.0.0.1';
+    
+    if (cfConnectingIp) {
+      clientIp = cfConnectingIp;
+    } else if (xForwardedFor) {
+      clientIp = xForwardedFor.split(',')[0].trim();
+    }
+
+    return new Response(JSON.stringify({ 
+      users: users.results ?? [],
+      clientIp: clientIp
+    }), { status: 200, headers: jsonHeaders });
   }
 
   if (request.method === 'PUT') {

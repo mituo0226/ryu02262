@@ -614,17 +614,27 @@
   <div id="adminIpPanel" style="background: rgba(138, 43, 226, 0.1); border-bottom: 1px solid rgba(138, 43, 226, 0.2); padding: 16px 24px; display: none;">
     <div style="max-width: 1200px; margin: 0 auto;">
       <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #d6c9ff;">🔐 管理用IPアドレス管理</h3>
+      
+      <!-- 現在のIPを表示・追加するセクション -->
+      <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; padding: 12px; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 8px;">
+        <div style="flex: 1;">
+          <p style="margin: 0 0 6px; font-size: 12px; color: #9da2c6;">現在のIPアドレス:</p>
+          <p id="currentIpDisplay" style="margin: 0; font-size: 14px; color: #81c784; font-weight: 600;">取得中...</p>
+        </div>
+        <button id="addCurrentIpButton" style="padding: 8px 16px; background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(56, 142, 60, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;">このIPを追加</button>
+      </div>
+      
+      <!-- 手動入力セクション -->
       <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
         <label style="flex: 1; min-width: 250px;">
-          <span style="font-size: 12px; color: #bfc4ff; display: block; margin-bottom: 6px;">新しいIPを追加</span>
+          <span style="font-size: 12px; color: #bfc4ff; display: block; margin-bottom: 6px;">別のIPを追加</span>
           <input type="text" id="newAdminIp" placeholder="例: 192.168.1.100" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
         </label>
         <label style="flex: 1; min-width: 150px;">
           <span style="font-size: 12px; color: #bfc4ff; display: block; margin-bottom: 6px;">説明（オプション）</span>
           <input type="text" id="newAdminIpDescription" placeholder="例: オフィスPC" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
         </label>
-        <button id="addAdminIpButton" style="padding: 8px 16px; background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(56, 142, 60, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;">追加</button>
-      </div>
+        <button id="addAdminIpButton" style="padding: 8px 16px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;">追加</button>
       
       <!-- 登録済みIPリスト -->
       <div id="registeredIpsContainer" style="margin-top: 12px; display: none;">
@@ -1630,6 +1640,47 @@
         return;
       }
       
+      await addAdminIp(ip, description);
+    });
+    
+    // 現在のIPを追加するボタン
+    const addCurrentIpButton = document.getElementById('addCurrentIpButton');
+    const currentIpDisplay = document.getElementById('currentIpDisplay');
+    let currentClientIp = null;
+    
+    // 現在のIPアドレスを取得して表示
+    async function fetchCurrentIp() {
+      try {
+        const res = await fetch('/api/admin/users');
+        const data = await res.json();
+        
+        // レスポンスヘッダーから現在のIPを取得するか、
+        // APIレスポンスに含める場合はそこから取得
+        // ここでは、API呼び出し時のIPを把握するため簡略化
+        // 実際はAPIからIPを返すようにします
+        
+        // 仮に「接続中」のIPを表示
+        currentClientIp = data.clientIp || 'IP取得中...';
+        currentIpDisplay.textContent = currentClientIp;
+      } catch (error) {
+        console.error('IP取得エラー:', error);
+        currentIpDisplay.textContent = 'IP取得失敗';
+      }
+    }
+    
+    addCurrentIpButton.addEventListener('click', async () => {
+      if (!currentClientIp || currentClientIp.includes('取得')) {
+        alert('IPアドレスを取得してください');
+        return;
+      }
+      
+      const description = prompt('説明を入力してください（例：自宅PC）:', '');
+      if (description !== null) {
+        await addAdminIp(currentClientIp, description);
+      }
+    });
+    
+    async function addAdminIp(ip, description) {
       try {
         const res = await fetch('/api/admin/admin-ips', {
           method: 'POST',
@@ -1650,7 +1701,7 @@
       } catch (error) {
         alert('エラー: ' + (error instanceof Error ? error.message : String(error)));
       }
-    });
+    }
     
     window.deleteAdminIp = async function(id) {
       if (!confirm('このIPアドレスを削除しますか？')) return;
