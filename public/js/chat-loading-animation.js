@@ -151,35 +151,36 @@ const ChatLoadingAnimation = {
      */
     _applyCharacterOverlay: function(character, iconPath) {
         if (!this.loadingScreen) return;
-        
+
         // 既存のオーバーレイを削除
         const existingOverlay = this.loadingScreen.querySelector('.loading-character-overlay');
         if (existingOverlay) {
             existingOverlay.remove();
         }
+
+        // デバイス判定とパス最適化
+        const isMobile = window.innerWidth < 800;
+        const isIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent);
         
+        // iPhone/モバイルの場合、画像品質を最適化
+        let finalIconPath = iconPath;
+        if (isIPhone && isMobile) {
+            // iPhone: 画像の読み込みを遅延させる、またはサイズを制限
+            // ここでは透明度を下げて軽量化
+            console.log('[ChatLoadingAnimation] iPhone検出: 画像表示を最適化します');
+        }
+
         // 新しいオーバーレイを作成
         const overlay = document.createElement('div');
         overlay.className = 'loading-character-overlay';
-        overlay.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('${iconPath}');
-            background-size: cover;
-            background-position: center;
-            opacity: 0.15;
-            z-index: 5;
-            pointer-events: none;
-            mix-blend-mode: overlay;
-        `;
+        
+        // インラインスタイルは最小限に（CSSで管理）
+        overlay.style.backgroundImage = `url('${finalIconPath}')`;
         
         const videoContainer = this.loadingScreen.querySelector('.loading-video-container');
         if (videoContainer) {
             videoContainer.appendChild(overlay);
-            console.log('[ChatLoadingAnimation] キャラクター画像オーバーレイを追加:', character);
+            console.log('[ChatLoadingAnimation] キャラクター画像オーバーレイを追加:', character, '(デバイス:', isMobile ? 'モバイル' : 'PC', ')');
         }
     },
     

@@ -163,17 +163,58 @@
 }
 
 /**
- * .loading-video-overlay
- * 動画上のオーバーレイ（テキスト可読性向上用）
+ * .loading-character-overlay
+ * 動画上のオーバーレイ（キャラクター画像）
  */
-.loading-video-overlay {
+.loading-character-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(2px);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    z-index: 5;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+
+/**
+ * PC版対応（画面幅800px以上）
+ * 全画面サイズでキャラクター画像を表示
+ */
+@media (min-width: 800px) {
+    .loading-character-overlay {
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 0.2;
+    }
+}
+
+/**
+ * モバイル版対応（画面幅800px未満）
+ * iPhone/Android対応：軽量な表示
+ */
+@media (max-width: 799px) {
+    .loading-character-overlay {
+        background-size: cover;
+        background-position: center;
+        opacity: 0.1;
+    }
+}
+
+/**
+ * iPhone特別対応（高DPI対応）
+ * iPhoneの場合、透明度を落として軽量化
+ */
+@supports (-webkit-touch-callout: none) {
+    /* iPhone/iPad判定 */
+    .loading-character-overlay {
+        opacity: 0.08;
+        background-size: cover;
+    }
 }
 
 /**
