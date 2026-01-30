@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>要望管理 - 運命の扉</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    
+    body {
+      background: #05040a;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: #f7f5ff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    header {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+    
+    header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 12px;
+    }
+    
+    .feedback-form {
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    
+    .feedback-form h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #d6c9ff;
+    }
+    
+    .form-group {
+      margin-bottom: 8px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #bfc4ff;
+      margin-bottom: 4px;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 12px;
+      font-family: inherit;
+    }
+    
+    .form-group textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .form-actions button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .form-actions button:hover {
+      transform: translateY(-1px);
+    }
+    
+    .btn-submit {
+      background: linear-gradient(135deg, rgba(0, 200, 120, 0.9), rgba(0, 150, 100, 0.9));
+      border: 1px solid rgba(0, 200, 120, 0.5);
+    }
+    
+    .btn-clear {
+      background: rgba(100, 100, 100, 0.5);
+      border: 1px solid rgba(100, 100, 100, 0.3);
+    }
+    
+    .status {
+      font-size: 12px;
+      color: #bfc4ff;
+      margin-top: 8px;
+      padding: 6px 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      min-height: 18px;
+    }
+    
+    .feedback-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .feedback-item {
+      background: rgba(75, 120, 180, 0.1);
+      border: 1px solid rgba(75, 120, 180, 0.3);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    
+    .feedback-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .feedback-header strong {
+      color: #d6c9ff;
+      font-size: 13px;
+    }
+    
+    .feedback-time {
+      font-size: 11px;
+      color: #9da2c6;
+    }
+    
+    .feedback-content {
+      font-size: 12px;
+      color: #bfc4ff;
+      line-height: 1.5;
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .feedback-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .feedback-actions button {
+      flex: 1;
+      padding: 6px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 600;
+    }
+    
+    .btn-reply {
+      background: rgba(0, 200, 120, 0.6);
+      border: 1px solid rgba(0, 200, 120, 0.3);
+    }
+    
+    .btn-delete {
+      background: rgba(255, 100, 100, 0.6);
+      border: 1px solid rgba(255, 100, 100, 0.3);
+    }
+    
+    .feedback-reply {
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      border-left: 2px solid rgba(0, 200, 120, 0.5);
+    }
+    
+    .feedback-reply textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid rgba(0, 200, 120, 0.3);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 11px;
+      font-family: inherit;
+      min-height: 50px;
+      resize: vertical;
+      margin-bottom: 6px;
+    }
+    
+    .feedback-reply button {
+      width: 100%;
+      padding: 6px;
+      background: rgba(0, 200, 120, 0.7);
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(138, 43, 226, 0.4);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(138, 43, 226, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📋 テスト要望管理</h1>
+  </header>
+
+  <div class="main-content">
+    <!-- 要望入力フォーム -->
+    <div class="feedback-form">
+      <h2>新しい要望を追加</h2>
+      
+      <div class="form-group">
+        <label>タイトル</label>
+        <input id="feedbackTitle" type="text" placeholder="例：タロット鑑定が始まらない">
+      </div>
+      
+      <div class="form-group">
+        <label>詳細説明</label>
+        <textarea id="feedbackDescription" placeholder="期待される動作&#10;実際の動作&#10;原因予想"></textarea>
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn-submit" id="submitButton">✓ 要望を送信</button>
+        <button class="btn-clear" id="clearButton">クリア</button>
+      </div>
+      
+      <div class="status" id="status"></div>
+    </div>
+
+    <!-- 要望一覧 -->
+    <div class="feedback-list" id="feedbackList">
+      <div style="text-align: center; padding: 40px 20px; color: #bfc4ff; font-size: 12px;">
+        💬 要望がありません
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const feedbackTitle = document.getElementById('feedbackTitle');
+    const feedbackDescription = document.getElementById('feedbackDescription');
+    const submitButton = document.getElementById('submitButton');
+    const clearButton = document.getElementById('clearButton');
+    const status = document.getElementById('status');
+    const feedbackList = document.getElementById('feedbackList');
+    
+    let testSessionData = null;
+    
+    // sessionStorageからテストデータを取得
+    function loadSessionData() {
+      const data = sessionStorage.getItem('testSessionData');
+      if (!data) {
+        status.textContent = '❌ テストセッションが見つかりません';
+        return false;
+      }
+      testSessionData = JSON.parse(data);
+      return true;
+    }
+    
+    // 要望一覧を表示
+    function displayFeedbacks() {
+      const feedbacks = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
+      
+      if (feedbacks.length === 0) {
+        feedbackList.innerHTML = '<div style="text-align: center; padding: 40px 20px; color: #bfc4ff; font-size: 12px;">💬 要望がありません</div>';
+        return;
+      }
+      
+      feedbackList.innerHTML = '';
+      feedbacks.forEach((feedback, index) => {
+        const feedbackEl = document.createElement('div');
+        feedbackEl.className = 'feedback-item';
+        
+        const timestamp = new Date(feedback.timestamp).toLocaleString('ja-JP');
+        
+        feedbackEl.innerHTML = `
+          <div class="feedback-header">
+            <strong>${feedback.title || '（タイトルなし）'}</strong>
+            <span class="feedback-time">${timestamp}</span>
+          </div>
+          <div class="feedback-content">${feedback.feedback || feedback.description || '（説明なし）'}</div>
+          <div style="font-size: 11px; color: #9da2c6; margin-bottom: 8px;">
+            ユーザー: ${feedback.userName || '不明'} | 鑑定士: ${feedback.character || '不明'}
+          </div>
+          <div class="feedback-actions">
+            <button class="btn-reply" onclick="toggleReply(${index})">💬 返答</button>
+            <button class="btn-delete" onclick="deleteFeedback(${index})">🗑️ 削除</button>
+          </div>
+          <div class="feedback-reply" id="reply-${index}" style="display: none;">
+            <textarea class="reply-input-${index}" placeholder="返答を入力してください..."></textarea>
+            <button onclick="submitReply(${index})">✓ 返答を送信</button>
+          </div>
+        `;
+        
+        feedbackList.appendChild(feedbackEl);
+      });
+    }
+    
+    // 要望送信
+    submitButton.addEventListener('click', () => {
+      if (!loadSessionData()) return;
+      
+      const title = feedbackTitle.value.trim();
+      const description = feedbackDescription.value.trim();
+      
+      if (!title || !description) {
+        status.textContent = '❌ タイトルと詳細説明を入力してください';
+        return;
+      }
+      
+      const feedback = {
+        timestamp: new Date().toISOString(),
+        title,
+        description,
+        feedback: description,
+        userId: testSessionData.userId,
+        userName: testSessionData.userName,
+        character: testSessionData.character,
+      };
+      
+      const feedbacks = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
+      feedbacks.push(feedback);
+      localStorage.setItem('testFeedbackHistory', JSON.stringify(feedbacks));
+      
+      status.textContent = '✅ 要望を送信しました';
+      feedbackTitle.value = '';
+      feedbackDescription.value = '';
+      
+      displayFeedbacks();
+      
+      setTimeout(() => {
+        status.textContent = '';
+      }, 3000);
+    });
+    
+    // クリア
+    clearButton.addEventListener('click', () => {
+      feedbackTitle.value = '';
+      feedbackDescription.value = '';
+      status.textContent = '';
+    });
+    
+    // 返答表示切り替え
+    window.toggleReply = (index) => {
+      const replyEl = document.getElementById(`reply-${index}`);
+      replyEl.style.display = replyEl.style.display === 'none' ? 'block' : 'none';
+    };
+    
+    // 返答送信
+    window.submitReply = (index) => {
+      const feedbacks = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
+      if (!feedbacks[index]) return;
+      
+      const replyInput = document.querySelector(`.reply-input-${index}`);
+      const reply = replyInput.value.trim();
+      
+      if (!reply) {
+        alert('返答を入力してください');
+        return;
+      }
+      
+      feedbacks[index].reply = reply;
+      feedbacks[index].replyTime = new Date().toISOString();
+      localStorage.setItem('testFeedbackHistory', JSON.stringify(feedbacks));
+      
+      status.textContent = '✅ 返答を送信しました';
+      displayFeedbacks();
+      
+      setTimeout(() => {
+        status.textContent = '';
+      }, 3000);
+    };
+    
+    // 削除
+    window.deleteFeedback = (index) => {
+      if (!confirm('この要望を削除しますか？')) return;
+      
+      const feedbacks = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
+      feedbacks.splice(index, 1);
+      localStorage.setItem('testFeedbackHistory', JSON.stringify(feedbacks));
+      
+      status.textContent = '✅ 要望を削除しました';
+      displayFeedbacks();
+      
+      setTimeout(() => {
+        status.textContent = '';
+      }, 3000);
+    };
+    
+    // ページロード
+    window.addEventListener('load', () => {
+      loadSessionData();
+      displayFeedbacks();
+    });
+  </script>
+</body>
+</html>

@@ -276,37 +276,41 @@
           🗑️ 履歴を削除
         </button>
       </div>
+
+      <div style="border-top: 1px solid rgba(138, 43, 226, 0.3); padding-top: 16px; margin-top: 16px;">
+        <button class="btn-primary" id="openChatWindowButton" style="width: 100%; margin-bottom: 8px;">
+          💬 チャットウィンドウを開く
+        </button>
+        <button class="btn-success" id="openFeedbackWindowButton" style="width: 100%;">
+          📋 要望管理ウィンドウを開く
+        </button>
+      </div>
       
       <div class="test-status" id="testStatus">待機中...</div>
     </div>
 
-    <!-- 右側：チャット画面 -->
-    <div class="chat-screen">
+    <!-- 右側：テスト情報表示 -->
+    <div class="chat-screen" style="background: rgba(138, 43, 226, 0.05); border: 1px solid rgba(138, 43, 226, 0.2);">
       <div class="chat-screen-header">
-        <h2 id="chatTitle">📍 チャット画面</h2>
+        <h2>📌 テスト情報</h2>
       </div>
-      <div class="chat-messages" id="chatMessages">
-        <div class="placeholder">💬 テスト操作を実行してください</div>
-      </div>
-      
-      <!-- チャット入力エリア -->
-      <div style="display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid rgba(138, 43, 226, 0.2);">
-        <input id="userMessageInput" type="text" placeholder="メッセージを入力..." style="flex: 1; padding: 10px 12px; border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
-        <button id="sendMessageButton" type="button" style="padding: 10px 16px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; font-size: 13px;">送信</button>
-      </div>
-
-      <!-- 質問・要望パネル -->
-      <div style="margin-top: 12px; padding: 12px; background: rgba(75, 120, 180, 0.1); border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 8px;">
-        <details style="cursor: pointer;">
-          <summary style="color: #b8d4ff; font-weight: 600; font-size: 13px; user-select: none;">
-            💬 テスト中の質問・要望
-          </summary>
-          <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-            <textarea id="feedbackInput" placeholder="例：タロット鑑定が始まらない&#10;期待：ウェルカムメッセージの後、鑑定画面が表示される&#10;実際：メッセージのみで止まる" style="width: 100%; padding: 8px 12px; border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 12px; min-height: 80px; resize: vertical;"></textarea>
-            <button id="submitFeedbackButton" type="button" style="padding: 8px 12px; background: rgba(75, 120, 180, 0.7); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; font-size: 12px;">✓ 要望を送信</button>
-            <p id="feedbackStatus" style="margin: 0; font-size: 12px; color: #bfc4ff;"></p>
+      <div id="testInfoPanel" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: #bfc4ff;">
+        <div>
+          <strong style="color: #d6c9ff;">テストウィンドウについて：</strong><br>
+          <span style="font-size: 12px; line-height: 1.6;">
+            このウィンドウはテスト操作パネルです。<br>
+            • テスト対象ユーザーと鑑定士を選択<br>
+            • 「初回訪問をテスト」「再訪問をテスト」を実行<br>
+            • 「チャットウィンドウを開く」でチャット画面に切り替え<br>
+            • 「要望管理ウィンドウを開く」で要望を確認・返答
+          </span>
+        </div>
+        <div style="border-top: 1px solid rgba(138, 43, 226, 0.2); padding-top: 12px;">
+          <strong style="color: #d6c9ff;">現在のテスト情報：</strong><br>
+          <div id="currentTestInfo" style="font-size: 12px; margin-top: 8px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 6px;">
+            ユーザー未選択 | 鑑定士: 楓
           </div>
-        </details>
+        </div>
       </div>
     </div>
   </div>
@@ -322,19 +326,14 @@
     const testFirstVisitButton = document.getElementById('testFirstVisitButton');
     const testReturningVisitButton = document.getElementById('testReturningVisitButton');
     const clearHistoryButton = document.getElementById('clearHistoryButton');
+    const openChatWindowButton = document.getElementById('openChatWindowButton');
+    const openFeedbackWindowButton = document.getElementById('openFeedbackWindowButton');
     const testStatus = document.getElementById('testStatus');
-    const chatMessages = document.getElementById('chatMessages');
-    const chatTitle = document.getElementById('chatTitle');
-    const testInfo = document.getElementById('testInfo');
-    const userMessageInput = document.getElementById('userMessageInput');
-    const sendMessageButton = document.getElementById('sendMessageButton');
-    const feedbackInput = document.getElementById('feedbackInput');
-    const submitFeedbackButton = document.getElementById('submitFeedbackButton');
-    const feedbackStatus = document.getElementById('feedbackStatus');
+    const currentTestInfo = document.getElementById('currentTestInfo');
     
     let users = [];
-    let selectedUserId = userId;
-    let selectedCharacter = characterId || 'kaede';
+    let selectedUserId = null;
+    let selectedCharacter = 'kaede';
     
     // ユーザーデータ取得
     async function fetchUsers() {
@@ -352,41 +351,40 @@
           option.textContent = `${user.nickname} (ID: ${user.id})`;
           testUserSelect.appendChild(option);
         });
-        
-        // URLパラメータで指定されていればセット
-        if (userId) {
-          testUserSelect.value = userId;
-        }
-        
-        if (characterId) {
-          testCharacterSelect.value = characterId;
-        }
-        
-        updateTestInfo();
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
       }
     }
     
     function updateTestInfo() {
+      selectedUserId = testUserSelect.value;
+      selectedCharacter = testCharacterSelect.value;
+      
       const user = users.find(u => u.id == selectedUserId);
-      if (user) {
-        testInfo.textContent = `ユーザー: ${user.nickname} | 鑑定士: ${selectedCharacter}`;
+      const userText = user ? user.nickname : 'ユーザー未選択';
+      currentTestInfo.textContent = `ユーザー: ${userText} | 鑑定士: ${selectedCharacter}`;
+    }
+    
+    // ウィンドウのセッションデータ
+    function setSessionData() {
+      if (!selectedUserId) {
+        testStatus.textContent = '❌ ユーザーを選択してください';
+        return false;
       }
+      sessionStorage.setItem('testSessionData', JSON.stringify({
+        userId: selectedUserId,
+        character: selectedCharacter,
+        userName: users.find(u => u.id == selectedUserId)?.nickname || 'Unknown'
+      }));
+      return true;
     }
     
     // 初回訪問テスト
     testFirstVisitButton.addEventListener('click', async () => {
-      selectedUserId = testUserSelect.value;
-      selectedCharacter = testCharacterSelect.value;
-      
-      if (!selectedUserId) {
-        testStatus.textContent = '❌ ユーザーを選択してください';
-        return;
-      }
+      updateTestInfo();
+      if (!setSessionData()) return;
       
       testStatus.textContent = '🔄 初回訪問をテスト中...';
-      chatMessages.innerHTML = '<div class="placeholder">💬 テスト実行中...</div>';
       
       try {
         const res = await fetch('/api/generate-welcome', {
@@ -402,12 +400,19 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'テスト失敗');
         
-        displayMessage('system', `🎬 初回訪問テスト: ${selectedCharacter}`);
-        displayMessage('assistant', data.message || '（メッセージなし）');
+        // チャットウィンドウを開く
+        const chatWindow = window.open(
+          `/pages/admin/test-chat-window.html`,
+          'testChatWindow',
+          'width=900,height=700,resizable=yes,scrollbars=yes'
+        );
         
-        chatTitle.textContent = `📍 ${selectedCharacter} - 初回訪問`;
-        testStatus.textContent = '✅ テスト完了';
-        updateTestInfo();
+        if (!chatWindow) {
+          testStatus.textContent = '❌ チャットウィンドウを開けません';
+          return;
+        }
+        
+        testStatus.textContent = '✅ チャットウィンドウを開きました';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
       }
@@ -415,16 +420,10 @@
     
     // 再訪問テスト
     testReturningVisitButton.addEventListener('click', async () => {
-      selectedUserId = testUserSelect.value;
-      selectedCharacter = testCharacterSelect.value;
-      
-      if (!selectedUserId) {
-        testStatus.textContent = '❌ ユーザーを選択してください';
-        return;
-      }
+      updateTestInfo();
+      if (!setSessionData()) return;
       
       testStatus.textContent = '🔄 再訪問をテスト中...';
-      chatMessages.innerHTML = '<div class="placeholder">💬 テスト実行中...</div>';
       
       try {
         const res = await fetch('/api/generate-welcome', {
@@ -440,12 +439,19 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'テスト失敗');
         
-        displayMessage('system', `🎬 再訪問テスト: ${selectedCharacter}`);
-        displayMessage('assistant', data.message || '（メッセージなし）');
+        // チャットウィンドウを開く
+        const chatWindow = window.open(
+          `/pages/admin/test-chat-window.html`,
+          'testChatWindow',
+          'width=900,height=700,resizable=yes,scrollbars=yes'
+        );
         
-        chatTitle.textContent = `📍 ${selectedCharacter} - 再訪問`;
-        testStatus.textContent = '✅ テスト完了';
-        updateTestInfo();
+        if (!chatWindow) {
+          testStatus.textContent = '❌ チャットウィンドウを開けません';
+          return;
+        }
+        
+        testStatus.textContent = '✅ チャットウィンドウを開きました';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
       }
@@ -453,13 +459,8 @@
     
     // 履歴削除
     clearHistoryButton.addEventListener('click', async () => {
-      selectedUserId = testUserSelect.value;
-      selectedCharacter = testCharacterSelect.value;
-      
-      if (!selectedUserId) {
-        testStatus.textContent = '❌ ユーザーを選択してください';
-        return;
-      }
+      updateTestInfo();
+      if (!setSessionData()) return;
       
       if (!confirm(`${selectedCharacter}との会話履歴を全て削除しますか？`)) return;
       
@@ -478,110 +479,46 @@
         
         if (!res.ok) throw new Error('削除失敗');
         testStatus.textContent = '✅ 履歴を削除しました';
-        chatMessages.innerHTML = '<div class="placeholder">💬 履歴が削除されました</div>';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
       }
     });
     
-    function displayMessage(role, content) {
-      // 既存のプレースホルダーを削除
-      const placeholder = chatMessages.querySelector('.placeholder');
-      if (placeholder) {
-        placeholder.remove();
-      }
+    // チャットウィンドウを開く
+    openChatWindowButton.addEventListener('click', () => {
+      updateTestInfo();
+      if (!setSessionData()) return;
       
-      const msgEl = document.createElement('div');
-      msgEl.className = `message ${role}`;
+      const chatWindow = window.open(
+        `/pages/admin/test-chat-window.html`,
+        'testChatWindow',
+        'width=900,height=700,resizable=yes,scrollbars=yes'
+      );
       
-      if (role === 'system') {
-        msgEl.textContent = content;
-      } else if (role === 'assistant') {
-        msgEl.innerHTML = `<strong style="color: #d6c9ff; font-size: 12px;">鑑定士:</strong><br><span style="font-size: 13px; line-height: 1.5;">${content.replace(/\n/g, '<br>')}</span>`;
-      } else if (role === 'user') {
-        msgEl.innerHTML = `<strong style="color: #75b8ff; font-size: 12px;">ユーザー:</strong><br><span style="font-size: 13px; line-height: 1.5;">${content}</span>`;
-      }
-      
-      chatMessages.appendChild(msgEl);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-    
-    // メッセージ送信
-    sendMessageButton.addEventListener('click', async () => {
-      const message = userMessageInput.value.trim();
-      if (!message) return;
-      
-      selectedUserId = testUserSelect.value;
-      selectedCharacter = testCharacterSelect.value;
-      
-      if (!selectedUserId) {
-        testStatus.textContent = '❌ ユーザーを選択してください';
-        return;
-      }
-      
-      // ユーザーメッセージを表示
-      displayMessage('user', message);
-      userMessageInput.value = '';
-      
-      testStatus.textContent = '🔄 回答生成中...';
-      
-      try {
-        const res = await fetch('/api/consult', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            character: selectedCharacter,
-            userId: Number(selectedUserId),
-            message: message,
-          }),
-        });
-        
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '送信失敗');
-        
-        displayMessage('assistant', data.response || '（回答なし）');
-        testStatus.textContent = '✅ 回答を表示しました';
-      } catch (error) {
-        testStatus.textContent = `❌ エラー: ${error.message}`;
-        displayMessage('system', `エラー: ${error.message}`);
+      if (!chatWindow) {
+        testStatus.textContent = '❌ チャットウィンドウを開けません';
       }
     });
     
-    // Enterキーで送信
-    userMessageInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendMessageButton.click();
+    // 要望管理ウィンドウを開く
+    openFeedbackWindowButton.addEventListener('click', () => {
+      updateTestInfo();
+      if (!setSessionData()) return;
+      
+      const feedbackWindow = window.open(
+        `/pages/admin/test-feedback-window.html`,
+        'testFeedbackWindow',
+        'width=900,height=700,resizable=yes,scrollbars=yes'
+      );
+      
+      if (!feedbackWindow) {
+        testStatus.textContent = '❌ 要望管理ウィンドウを開けません';
       }
     });
     
-    // 要望送信
-    submitFeedbackButton.addEventListener('click', () => {
-      const feedback = feedbackInput.value.trim();
-      if (!feedback) {
-        feedbackStatus.textContent = '❌ 要望を入力してください';
-        return;
-      }
-      
-      const feedbackData = {
-        timestamp: new Date().toISOString(),
-        userId: selectedUserId,
-        character: selectedCharacter,
-        feedback: feedback,
-        url: window.location.href,
-      };
-      
-      // ローカルストレージに保存
-      const feedbackHistory = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
-      feedbackHistory.push(feedbackData);
-      localStorage.setItem('testFeedbackHistory', JSON.stringify(feedbackHistory));
-      
-      feedbackStatus.textContent = '✅ 要望を送信しました';
-      feedbackInput.value = '';
-      
-      setTimeout(() => {
-        feedbackStatus.textContent = '';
-      }, 3000);
-    });
+    // 選択変更時にテスト情報更新
+    testUserSelect.addEventListener('change', updateTestInfo);
+    testCharacterSelect.addEventListener('change', updateTestInfo);
     
     // ページロード時にユーザー取得
     fetchUsers();
