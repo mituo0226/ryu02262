@@ -530,21 +530,18 @@ export const onRequestPost: PagesFunction = async (context) => {
     });
 
     // 訪問パターン判定（フロントエンドから渡されたvisitPatternを優先）
-    // 【最適化】フロントエンドからvisitPatternが渡されている場合は、detectVisitPatternを完全にスキップ
+    // 【修正】フロントエンドからvisitPatternが渡されている場合は、それを必ず使用
     let finalVisitPattern = visitPattern;
-    if (!visitPattern || visitPattern === 'first_visit') {
-      // フロントエンドからvisitPatternが渡されていない場合のみ、再判定
-      // 【注意】この場合でも、既に取得したdbConversationHistoryから判定できるため、
-      // detectVisitPattern内の重複クエリを避けるため、簡易判定を実装
+    
+    // フロントエンドからvisitPatternが渡されていない場合のみ、データベースから判定
+    if (!visitPattern) {
+      // 会話履歴の有無だけで判定（nicknameの有無は判定に使わない）
       if (dbConversationHistory.length > 0) {
         finalVisitPattern = 'returning';
         console.log('[generate-welcome] 会話履歴から判定: returning（履歴あり）');
-      } else if (user.nickname) {
-        finalVisitPattern = 'continuing';
-        console.log('[generate-welcome] 会話履歴から判定: continuing（履歴なしの再訪問）');
       } else {
         finalVisitPattern = 'first_visit';
-        console.log('[generate-welcome] 会話履歴から判定: first_visit');
+        console.log('[generate-welcome] 会話履歴から判定: first_visit（履歴なし）');
       }
     } else {
       // フロントエンドから渡されたvisitPatternを使用

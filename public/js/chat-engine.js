@@ -1784,7 +1784,7 @@ const ChatInit = {
                     // バックグラウンドで動的メッセージを生成（非同期）
                     const generateMessageAsync = async () => {
                         try {
-                            const visitPattern = historyData.visitPattern || 'returning';
+                            const visitPattern = historyData?.visitPattern || 'first_visit';
 
                             // ローディング画面を表示
                             if (window.ChatLoadingAnimation) {
