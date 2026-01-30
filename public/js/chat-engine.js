@@ -1468,13 +1468,11 @@ const ChatInit = {
                 let dbUserNickname = null;
                 try {
                     // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1469',message:'initPage開始 - loadConversationHistory呼び出し前',data:{character:character,userId:urlParams.get('userId')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
+                    historyData = await ChatAPI.loadConversationHistory(character);
                     // #region agent log
-                // #endregion
-                historyData = await ChatAPI.loadConversationHistory(character);
-                // #region agent log
-                // #endregion
-                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1474',message:'loadConversationHistory完了',data:{historyData_exists:!!historyData,hasHistory:historyData?.hasHistory,visitPattern:historyData?.visitPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
                     // #endregion
                     if (historyData && historyData.nickname) {
                         dbUserNickname = historyData.nickname;
@@ -1704,9 +1702,11 @@ const ChatInit = {
             let historyData = null;
             try {
                 // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1706',message:'showInitialMessage showInitialMessage内 loadConversationHistory呼び出し前',data:{character:character},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
                 // #endregion
                 historyData = await ChatAPI.loadConversationHistory(character);
                 // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1706',message:'showInitialMessage showInitialMessage内 loadConversationHistory完了',data:{historyData_exists:!!historyData,hasHistory:historyData?.hasHistory,visitPattern:historyData?.visitPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
                 // #endregion
             } catch (error) {
                 // エラーハンドリング
@@ -1775,6 +1775,9 @@ const ChatInit = {
                 
                 // 会話履歴がある場合：非同期メッセージ生成方式
                 // 【改善】履歴を即座に表示し、「考え中...」を表示してからバックグラウンドで動的メッセージを生成
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1778',message:'showInitialMessage判定開始',data:{historyData_exists:!!historyData,hasHistory:historyData?.hasHistory,visitPattern:historyData?.visitPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
                 if (historyData && historyData.hasHistory) {
 
                     
@@ -1892,6 +1895,9 @@ const ChatInit = {
                 }
                 
                 // 【改善】バックエンドの判定結果（visitPattern）を使用（判定ロジックの一元化）
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-engine.js:1895',message:'visitPattern判定実行',data:{historyData_exists:!!historyData,hasHistory:historyData?.hasHistory,apiVisitPattern:historyData?.visitPattern,calculatedVisitPattern:historyData?.visitPattern||(historyData?.hasHistory?'returning':'first_visit')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
                 const visitPattern = historyData?.visitPattern || (historyData?.hasHistory ? 'returning' : 'first_visit');
                 
                 if (!shouldSkipFirstMessageForDeity) {
