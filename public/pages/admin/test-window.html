@@ -468,6 +468,16 @@
         `;
         
         testStatus.textContent = '✅ テスト完了。結果を表示しました。';
+        
+        // テスト成功後、AI相談タブに自動切り替え
+        tabInfo.style.background = 'transparent';
+        tabInfo.style.borderColor = 'rgba(138, 43, 226, 0.2)';
+        tabInfo.style.color = '#bfc4ff';
+        tabChat.style.background = 'rgba(138, 43, 226, 0.3)';
+        tabChat.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+        tabChat.style.color = '#d6c9ff';
+        infoPanel.style.display = 'none';
+        chatPanel.style.display = 'flex';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
         testResult.textContent = `エラー: ${error.message}`;
@@ -514,6 +524,16 @@
         `;
         
         testStatus.textContent = '✅ テスト完了。結果を表示しました。';
+        
+        // テスト成功後、AI相談タブに自動切り替え
+        tabInfo.style.background = 'transparent';
+        tabInfo.style.borderColor = 'rgba(138, 43, 226, 0.2)';
+        tabInfo.style.color = '#bfc4ff';
+        tabChat.style.background = 'rgba(138, 43, 226, 0.3)';
+        tabChat.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+        tabChat.style.color = '#d6c9ff';
+        infoPanel.style.display = 'none';
+        chatPanel.style.display = 'flex';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
         testResult.textContent = `エラー: ${error.message}`;
