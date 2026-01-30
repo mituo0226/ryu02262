@@ -325,7 +325,9 @@ const KaedeHandler = {
         sessionStorage.removeItem('acceptedGuardianRitual');
         sessionStorage.removeItem('ritualCompleted');
         sessionStorage.removeItem('lastUserMessage');
-        // フェーズ1では guardianMessageShown フラグを設定しない（ウェルカムメッセージを表示するため）
+        
+        // 【修正】guardianMessageShown フラグを設定して、儀式の無限ループを防ぐ
+        sessionStorage.setItem('guardianMessageShown', 'true');
         
         console.log('[楓パフォーマンス] フェーズ1処理完了: 守護神名のみを保存しました');
         
