@@ -289,27 +289,60 @@
       <div class="test-status" id="testStatus">待機中...</div>
     </div>
 
-    <!-- 右側：テスト情報表示 -->
-    <div class="chat-screen" style="background: rgba(138, 43, 226, 0.05); border: 1px solid rgba(138, 43, 226, 0.2);">
+    <!-- 右側：テスト情報 + AI会話 -->
+    <div class="chat-screen" style="background: rgba(138, 43, 226, 0.05); border: 1px solid rgba(138, 43, 226, 0.2); display: flex; flex-direction: column;">
       <div class="chat-screen-header">
-        <h2>📌 テスト情報</h2>
+        <h2>🤖 テスト結果のAI相談</h2>
       </div>
-      <div id="testInfoPanel" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: #bfc4ff;">
-        <div>
-          <strong style="color: #d6c9ff;">テストウィンドウについて：</strong><br>
-          <span style="font-size: 12px; line-height: 1.6;">
+      
+      <!-- タブ -->
+      <div style="display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid rgba(138, 43, 226, 0.2); flex-shrink: 0;">
+        <button id="tabInfo" class="tab-button active" style="flex: 1; padding: 6px 8px; background: rgba(138, 43, 226, 0.3); border: none; border-radius: 4px; color: #d6c9ff; cursor: pointer; font-size: 12px; font-weight: 600;">📌 テスト情報</button>
+        <button id="tabChat" class="tab-button" style="flex: 1; padding: 6px 8px; background: transparent; border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 4px; color: #bfc4ff; cursor: pointer; font-size: 12px; font-weight: 600;">💬 AI相談</button>
+      </div>
+      
+      <!-- テスト情報タブ -->
+      <div id="infoPanel" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; color: #bfc4ff; line-height: 1.6;">
+          <strong style="color: #d6c9ff; display: block; margin-bottom: 8px;">📚 テストウィンドウについて：</strong>
+          <span style="font-size: 12px;">
             このウィンドウはテスト操作パネルです。<br>
             • テスト対象ユーザーと鑑定士を選択<br>
             • 「初回訪問をテスト」「再訪問をテスト」を実行<br>
-            • 「チャットウィンドウを開く」でチャット画面に切り替え<br>
-            • 「要望管理ウィンドウを開く」で要望を確認・返答
+            • テスト結果を確認<br>
+            • 「💬 AI相談」タブで要望・質問を入力
           </span>
         </div>
         <div style="border-top: 1px solid rgba(138, 43, 226, 0.2); padding-top: 12px;">
-          <strong style="color: #d6c9ff;">現在のテスト情報：</strong><br>
-          <div id="currentTestInfo" style="font-size: 12px; margin-top: 8px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 6px;">
+          <strong style="color: #d6c9ff; display: block; margin-bottom: 8px;">🎯 現在のテスト情報：</strong>
+          <div id="currentTestInfo" style="font-size: 12px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; color: #bfc4ff;">
             ユーザー未選択 | 鑑定士: 楓
           </div>
+        </div>
+        <div style="border-top: 1px solid rgba(138, 43, 226, 0.2); padding-top: 12px;">
+          <strong style="color: #d6c9ff; display: block; margin-bottom: 8px;">✅ テスト実行結果：</strong>
+          <div id="testResult" style="font-size: 12px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; color: #bfc4ff; min-height: 40px; max-height: 150px; overflow-y: auto;">
+            テストを実行してください
+          </div>
+        </div>
+      </div>
+      
+      <!-- AI会話タブ -->
+      <div id="chatPanel" style="flex: 1; overflow-y: auto; display: none; padding: 12px; display: flex; flex-direction: column;">
+        <div id="aiMessages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid rgba(138, 43, 226, 0.2);">
+          <div style="color: #bfc4ff; font-size: 12px; text-align: center; padding: 20px;">
+            💬 ここでテスト結果について質問・要望を入力できます
+          </div>
+        </div>
+        
+        <!-- AI入力エリア -->
+        <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+          <textarea id="aiInput" placeholder="テスト結果について質問や要望を入力してください..." style="flex: 1; padding: 10px 12px; border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 12px; min-height: 60px; resize: vertical; font-family: inherit;"></textarea>
+          <div style="display: flex; gap: 8px;">
+            <button id="aiSendButton" type="button" style="flex: 1; padding: 8px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; font-size: 12px;">✓ 送信</button>
+            <button id="aiClearButton" type="button" style="flex: 1; padding: 8px; background: rgba(100, 100, 100, 0.5); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; font-size: 12px;">クリア</button>
+          </div>
+          <div id="aiStatus" style="font-size: 11px; color: #bfc4ff; padding: 6px 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 16px;"></div>
         </div>
       </div>
     </div>
@@ -330,10 +363,23 @@
     const openFeedbackWindowButton = document.getElementById('openFeedbackWindowButton');
     const testStatus = document.getElementById('testStatus');
     const currentTestInfo = document.getElementById('currentTestInfo');
+    const testResult = document.getElementById('testResult');
+    
+    // タブ要素
+    const tabInfo = document.getElementById('tabInfo');
+    const tabChat = document.getElementById('tabChat');
+    const infoPanel = document.getElementById('infoPanel');
+    const chatPanel = document.getElementById('chatPanel');
+    const aiMessages = document.getElementById('aiMessages');
+    const aiInput = document.getElementById('aiInput');
+    const aiSendButton = document.getElementById('aiSendButton');
+    const aiClearButton = document.getElementById('aiClearButton');
+    const aiStatus = document.getElementById('aiStatus');
     
     let users = [];
     let selectedUserId = null;
     let selectedCharacter = 'kaede';
+    let lastTestResult = null;
     
     // ユーザーデータ取得
     async function fetchUsers() {
@@ -385,6 +431,7 @@
       if (!setSessionData()) return;
       
       testStatus.textContent = '🔄 初回訪問をテスト中...';
+      testResult.textContent = 'テスト実行中...';
       
       try {
         const res = await fetch('/api/generate-welcome', {
@@ -400,21 +447,27 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'テスト失敗');
         
-        // チャットウィンドウを開く
-        const chatWindow = window.open(
-          `/pages/admin/test-chat-window.html`,
-          'testChatWindow',
-          'width=900,height=700,resizable=yes,scrollbars=yes'
-        );
+        lastTestResult = {
+          type: 'first_visit',
+          character: selectedCharacter,
+          message: data.message,
+          timestamp: new Date().toLocaleString('ja-JP')
+        };
         
-        if (!chatWindow) {
-          testStatus.textContent = '❌ チャットウィンドウを開けません';
-          return;
-        }
+        testResult.innerHTML = `
+          <strong style="color: #d6c9ff; display: block; margin-bottom: 8px;">🎬 初回訪問テスト結果</strong>
+          <div style="font-size: 11px; color: #9da2c6; margin-bottom: 8px;">
+            ${lastTestResult.timestamp} | ${selectedCharacter}
+          </div>
+          <div style="white-space: pre-wrap; word-break: break-word; line-height: 1.5;">
+            ${data.message || '（メッセージなし）'}
+          </div>
+        `;
         
-        testStatus.textContent = '✅ チャットウィンドウを開きました';
+        testStatus.textContent = '✅ テスト完了。結果を表示しました。';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
+        testResult.textContent = `エラー: ${error.message}`;
       }
     });
     
@@ -424,6 +477,7 @@
       if (!setSessionData()) return;
       
       testStatus.textContent = '🔄 再訪問をテスト中...';
+      testResult.textContent = 'テスト実行中...';
       
       try {
         const res = await fetch('/api/generate-welcome', {
@@ -439,21 +493,27 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'テスト失敗');
         
-        // チャットウィンドウを開く
-        const chatWindow = window.open(
-          `/pages/admin/test-chat-window.html`,
-          'testChatWindow',
-          'width=900,height=700,resizable=yes,scrollbars=yes'
-        );
+        lastTestResult = {
+          type: 'returning',
+          character: selectedCharacter,
+          message: data.message,
+          timestamp: new Date().toLocaleString('ja-JP')
+        };
         
-        if (!chatWindow) {
-          testStatus.textContent = '❌ チャットウィンドウを開けません';
-          return;
-        }
+        testResult.innerHTML = `
+          <strong style="color: #d6c9ff; display: block; margin-bottom: 8px;">🔄 再訪問テスト結果</strong>
+          <div style="font-size: 11px; color: #9da2c6; margin-bottom: 8px;">
+            ${lastTestResult.timestamp} | ${selectedCharacter}
+          </div>
+          <div style="white-space: pre-wrap; word-break: break-word; line-height: 1.5;">
+            ${data.message || '（メッセージなし）'}
+          </div>
+        `;
         
-        testStatus.textContent = '✅ チャットウィンドウを開きました';
+        testStatus.textContent = '✅ テスト完了。結果を表示しました。';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
+        testResult.textContent = `エラー: ${error.message}`;
       }
     });
     
@@ -479,6 +539,7 @@
         
         if (!res.ok) throw new Error('削除失敗');
         testStatus.textContent = '✅ 履歴を削除しました';
+        testResult.textContent = '履歴が削除されました';
       } catch (error) {
         testStatus.textContent = `❌ エラー: ${error.message}`;
       }
@@ -514,6 +575,99 @@
       if (!feedbackWindow) {
         testStatus.textContent = '❌ 要望管理ウィンドウを開けません';
       }
+    });
+    
+    // タブ切り替え
+    tabInfo.addEventListener('click', () => {
+      infoPanel.style.display = 'block';
+      chatPanel.style.display = 'none';
+      tabInfo.style.background = 'rgba(138, 43, 226, 0.3)';
+      tabInfo.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+      tabInfo.style.color = '#d6c9ff';
+      tabChat.style.background = 'transparent';
+      tabChat.style.borderColor = 'rgba(138, 43, 226, 0.2)';
+      tabChat.style.color = '#bfc4ff';
+    });
+    
+    tabChat.addEventListener('click', () => {
+      infoPanel.style.display = 'none';
+      chatPanel.style.display = 'flex';
+      tabInfo.style.background = 'transparent';
+      tabInfo.style.borderColor = 'rgba(138, 43, 226, 0.2)';
+      tabInfo.style.color = '#bfc4ff';
+      tabChat.style.background = 'rgba(138, 43, 226, 0.3)';
+      tabChat.style.borderColor = 'rgba(138, 43, 226, 0.6)';
+      tabChat.style.color = '#d6c9ff';
+    });
+    
+    // AI会話機能
+    function displayAIMessage(role, content) {
+      const placeholder = aiMessages.querySelector('div[style*="text-align: center"]');
+      if (placeholder) {
+        placeholder.remove();
+      }
+      
+      const msgEl = document.createElement('div');
+      msgEl.style.cssText = 'padding: 12px; border-radius: 8px; word-wrap: break-word; animation: slideInMessage 0.4s ease;';
+      
+      if (role === 'user') {
+        msgEl.style.cssText += 'background: rgba(75, 120, 180, 0.15); border: 1px solid rgba(75, 120, 180, 0.3); color: #b8d4ff; margin-left: auto; max-width: 85%;';
+        msgEl.innerHTML = `<strong style="color: #75b8ff; font-size: 12px;">テスター:</strong><br><span style="font-size: 12px; line-height: 1.5;">${content}</span>`;
+      } else if (role === 'assistant') {
+        msgEl.style.cssText += 'background: rgba(138, 43, 226, 0.15); border: 1px solid rgba(138, 43, 226, 0.3); color: #f7f5ff; margin-right: auto; max-width: 85%;';
+        msgEl.innerHTML = `<strong style="color: #d6c9ff; font-size: 12px;">🤖 AI:</strong><br><span style="font-size: 12px; line-height: 1.5;">${content.replace(/\n/g, '<br>')}</span>`;
+      }
+      
+      aiMessages.appendChild(msgEl);
+      aiMessages.scrollTop = aiMessages.scrollHeight;
+    }
+    
+    // AI送信
+    aiSendButton.addEventListener('click', async () => {
+      const message = aiInput.value.trim();
+      if (!message) {
+        aiStatus.textContent = '❌ メッセージを入力してください';
+        return;
+      }
+      
+      if (!lastTestResult) {
+        aiStatus.textContent = '❌ テストを実行してください';
+        return;
+      }
+      
+      displayAIMessage('user', message);
+      aiInput.value = '';
+      aiStatus.textContent = '🔄 AI回答生成中...';
+      
+      try {
+        // AIに質問を送信
+        const context = `テスト結果:\n鑑定士: ${lastTestResult.character}\nテストタイプ: ${lastTestResult.type}\nメッセージ: ${lastTestResult.message}\n\nテスター質問: ${message}`;
+        
+        const res = await fetch('/api/consult', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            character: 'system',
+            userId: Number(selectedUserId) || 0,
+            message: context,
+          }),
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '送信失敗');
+        
+        displayAIMessage('assistant', data.response || 'ご指摘ありがとうございます。確認いたします。');
+        aiStatus.textContent = '✅ AI回答を表示しました';
+      } catch (error) {
+        aiStatus.textContent = `❌ エラー: ${error.message}`;
+        displayAIMessage('assistant', `申し訳ありません。エラーが発生しました: ${error.message}`);
+      }
+    });
+    
+    // AIクリア
+    aiClearButton.addEventListener('click', () => {
+      aiInput.value = '';
+      aiStatus.textContent = '';
     });
     
     // 選択変更時にテスト情報更新
