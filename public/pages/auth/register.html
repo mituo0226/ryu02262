@@ -61,6 +61,47 @@
       }
     }
     
+    @keyframes titlePulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        text-shadow: 0 0 20px rgba(138, 43, 226, 0.6);
+      }
+      50% {
+        opacity: 0.7;
+        transform: scale(1.02);
+        text-shadow: 0 0 40px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.5);
+      }
+    }
+    
+    @keyframes scaleInOut {
+      0% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      20% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      80% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.1);
+      }
+    }
+    
+    @keyframes mysticalFlash {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(138, 43, 226, 0.2);
+      }
+      50% {
+        box-shadow: 0 0 80px rgba(138, 43, 226, 0.8), inset 0 0 40px rgba(138, 43, 226, 0.3);
+      }
+    }
+    
     body {
       background: linear-gradient(-45deg, #050108, #1a0033, #050108, #0f001f);
       background-size: 400% 400%;
@@ -131,6 +172,26 @@
       text-align: center;
       animation: fadeInDown 0.8s ease;
     }
+    
+    /* オープニング画面 */
+    .opening-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+    }
+    
+    .opening-title {
+      font-size: 36px !important;
+      font-weight: 700;
+      text-align: center;
+      color: #e0d4ff;
+      animation: titlePulse 2.5s ease-in-out infinite;
+      text-shadow: 0 0 30px rgba(138, 43, 226, 0.6);
+      margin: 0 !important;
+      letter-spacing: 2px;
+    }
+    
     p.helper {
       font-size: 14px;
       text-align: center;
@@ -271,11 +332,15 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
+      width: 100%;
     }
     
     .birth-grid select {
       font-size: 14px;
       padding: 12px 8px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
     
     /* ボタングループ */
@@ -491,25 +556,30 @@
         margin-bottom: 24px;
       }
       .step-label {
-        font-size: 20px;
+        font-size: 18px;
       }
       input, select {
-        padding: 14px 16px;
+        padding: 12px 14px;
         font-size: 16px;
-        min-height: 48px;
+        min-height: 44px;
+        box-sizing: border-box;
       }
       .birth-grid {
-        gap: 8px;
+        gap: 6px;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
       }
       .birth-grid select {
-        padding: 12px 8px;
-        font-size: 14px;
+        padding: 10px 6px;
+        font-size: 13px;
         min-height: 44px;
+        width: 100%;
+        box-sizing: border-box;
       }
       button {
-        padding: 14px 20px;
-        font-size: 16px;
-        min-height: 48px;
+        padding: 12px 16px;
+        font-size: 15px;
+        min-height: 44px;
       }
       .button-group {
         margin-top: 20px;
@@ -519,13 +589,55 @@
         font-size: 13px;
       }
     }
+    
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      .step-label {
+        font-size: 16px;
+      }
+      .step-description {
+        font-size: 12px;
+      }
+      input, select {
+        padding: 11px 12px;
+        font-size: 15px;
+        min-height: 42px;
+      }
+      .birth-grid {
+        gap: 5px;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .birth-grid select {
+        padding: 9px 5px;
+        font-size: 12px;
+        min-height: 40px;
+      }
+      button {
+        padding: 11px 14px;
+        font-size: 14px;
+        min-height: 40px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="auth-card">
-    <!-- 登録フォーム -->
+  <!-- オープニング画面 -->
+  <div class="auth-card" id="openingScreen">
+    <div class="opening-content">
+      <h1 class="opening-title">✨ あなたの運命の扉を開きましょう ✨</h1>
+    </div>
+  </div>
+  
+  <!-- 登録フォーム -->
+  <div class="auth-card" id="registrationScreen" style="display: none;">
     <div id="registerFormContainer">
-      <h1>✨ あなたの運命の扉を開きましょう ✨</h1>
+      <h1>新規ユーザー登録</h1>
       
       <!-- ステップインジケーター -->
       <div class="step-indicator">
@@ -623,6 +735,21 @@
   <script>
     // DOMContentLoadedイベントで実行（DOMが完全に読み込まれた後に実行）
     document.addEventListener('DOMContentLoaded', async function() {
+      // オープニング画面の表示
+      const openingScreen = document.getElementById('openingScreen');
+      const registrationScreen = document.getElementById('registrationScreen');
+      
+      // オープニング画面を表示してから、3.5秒後に登録フォームに遷移
+      setTimeout(() => {
+        // フェードアウト開始
+        openingScreen.style.animation = 'fadeOutUp 1s ease forwards';
+        setTimeout(() => {
+          openingScreen.style.display = 'none';
+          registrationScreen.style.display = 'block';
+          registrationScreen.style.animation = 'scaleInOut 1s ease';
+        }, 1000);
+      }, 3500);
+      
       const yearSelect = document.getElementById('birthYear');
       const monthSelect = document.getElementById('birthMonth');
       const daySelect = document.getElementById('birthDay');
@@ -714,13 +841,20 @@
 
       // ステップ管理関数
       function updateStepDisplay() {
-        // ステップスクリーン切り替え
+        // ステップスクリーン切り替え - より幻想的なアニメーション
         for (let i = 1; i <= totalSteps; i++) {
           const screen = document.getElementById(`step${i}`);
           if (screen) {
             if (i === currentStep) {
+              // 前のステップからの遷移前にリセット
+              screen.style.animation = 'none';
+              screen.offsetHeight; // Reflow to trigger animation reset
+              
               screen.classList.add('active');
               screen.classList.remove('prev');
+              
+              // スケールイン・フェードイン効果
+              screen.style.animation = 'scaleInOut 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
             } else if (i < currentStep) {
               screen.classList.remove('active');
               screen.classList.add('prev');
@@ -737,6 +871,8 @@
             dot.classList.remove('active', 'completed');
             if (i === currentStep) {
               dot.classList.add('active');
+              // ドットが光るアニメーション
+              dot.style.animation = 'mysticalFlash 0.6s ease';
             } else if (i < currentStep) {
               dot.classList.add('completed');
             }
