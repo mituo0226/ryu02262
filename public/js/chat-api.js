@@ -82,10 +82,6 @@ const ChatAPI = {
             // userIdのみを使用してAPIを呼び出し
             const apiUrl = `/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(characterId)}`;
             
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-api.js:82',message:'API呼び出し前',data:{characterId:characterId,userId:userId,apiUrl:apiUrl,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
-            
             const response = await fetch(apiUrl);
             
             const responseText = await response.text();
@@ -122,10 +118,6 @@ const ChatAPI = {
                     birthDay: data.birthDay,
                     assignedDeity: data.assignedDeity
                 });
-                
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a12743d9-c317-4acb-a94d-a526630eb213',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat-api.js:113',message:'APIレスポンス受信',data:{characterId:characterId,hasHistory:data.hasHistory,historyLength:data.history?.length||0,firstMessageRole:data.history?.[0]?.role,lastMessageRole:data.history?.[data.history?.length-1]?.role,urlCharacter:new URLSearchParams(window.location.search).get('character')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
             }
             
             return data;
