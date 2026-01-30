@@ -115,7 +115,7 @@ export const onRequestGet: PagesFunction = async (context) => {
           error: userIdParam ? 'user not found (invalid userId)' : 'nickname and birth date are required',
         } as ResponseBody),
         {
-          status: userIdParam ? 404 : 400,
+          status: 200,
           headers: corsHeaders,
         }
       );
