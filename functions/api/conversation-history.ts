@@ -1,5 +1,4 @@
 // Cloudflare Pages Functions の型定義
-import { detectVisitPattern } from '../_lib/visit-pattern-detector.js';
 
 // ===== 型定義 =====
 interface UserRecord {
@@ -129,13 +128,9 @@ export const onRequestGet: PagesFunction = async (context) => {
     // 履歴の有無を判定
     const hasHistory = (conversations.results?.length || 0) > 0;
 
-    // 訪問パターンを取得
-    const visitPatternInfo = await detectVisitPattern(
-      env.DB,
-      userId,
-      character
-    );
-    const visitPattern = visitPatternInfo?.pattern || (hasHistory ? 'returning' : 'first_visit');
+    // 訪問パターンを判定（シンプル版）
+    // 履歴があればreturning、なければfirst_visit
+    const visitPattern = hasHistory ? 'returning' : 'first_visit';
 
     console.log('[conversation-history] 判定結果:', {
       userId,
