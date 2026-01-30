@@ -24,7 +24,7 @@ interface ResponseData {
   birthYear?: number | null;
   birthMonth?: number | null;
   birthDay?: number | null;
-  guardian?: string | null;
+  assignedDeity?: string | null;
   messages?: Array<{ role: string; content: string }>;
 }
 
@@ -155,7 +155,7 @@ export const onRequestGet: PagesFunction = async (context) => {
       birthYear: user.birth_year,
       birthMonth: user.birth_month,
       birthDay: user.birth_day,
-      guardian: user.guardian,
+      assignedDeity: user.guardian,
     };
 
     return new Response(JSON.stringify(response), {

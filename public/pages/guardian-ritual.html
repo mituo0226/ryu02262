@@ -838,10 +838,13 @@
             if (userInfo.guardian) {
               console.log('[守護神の儀式] 既に守護神が登録されています:', userInfo.guardian);
               // チャット画面にリダイレクト
-              // 【修正】絶対パスを使用して正しく解決（相対パスでは /chat/chat.html になってしまうため）
-              const chatUrl = new URL('/pages/chat/chat.html', window.location.origin);
+              const chatUrl = new URL('/pages/chat/chat', window.location.origin);
               chatUrl.searchParams.set('character', 'kaede');
               chatUrl.searchParams.set('userId', userId);
+              
+              // 守護神メッセージ表示済みフラグを設定してから遷移
+              sessionStorage.setItem('guardianMessageShown', 'true');
+              
               window.location.href = chatUrl.toString();
               return;
             }
