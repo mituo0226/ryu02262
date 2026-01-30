@@ -642,24 +642,22 @@
       aiStatus.textContent = '🔄 AI回答生成中...';
       
       try {
-        // AIに質問を送信
-        const context = `テスト結果:\n鑑定士: ${lastTestResult.character}\nテストタイプ: ${lastTestResult.type}\nメッセージ: ${lastTestResult.message}\n\nテスター質問: ${message}`;
-        
+        // テスト対象の鑑定士に質問を送信
         const res = await fetch('/api/consult', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            character: 'system',
+            character: lastTestResult.character,
             userId: Number(selectedUserId) || 0,
-            message: context,
+            message: message,
           }),
         });
         
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '送信失敗');
         
-        displayAIMessage('assistant', data.response || 'ご指摘ありがとうございます。確認いたします。');
-        aiStatus.textContent = '✅ AI回答を表示しました';
+        displayAIMessage('assistant', data.response || '（回答なし）');
+        aiStatus.textContent = '✅ 回答を表示しました';
       } catch (error) {
         aiStatus.textContent = `❌ エラー: ${error.message}`;
         displayAIMessage('assistant', `申し訳ありません。エラーが発生しました: ${error.message}`);
