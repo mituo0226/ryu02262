@@ -22,6 +22,10 @@
       width: min(480px, 90%);
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(12px);
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     h1 {
       font-size: 28px;
@@ -34,53 +38,144 @@
       margin-bottom: 24px;
       color: #c8b7ff;
     }
-    form {
+    
+    /* ステップ表示 */
+    .step-indicator {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      justify-content: center;
+    }
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(138, 43, 226, 0.3);
+      transition: all 0.3s ease;
+    }
+    .step-dot.active {
+      background: rgba(138, 43, 226, 0.9);
+      transform: scale(1.2);
+    }
+    .step-dot.completed {
+      background: rgba(143, 255, 209, 0.7);
+    }
+    
+    /* ステップコンテナ */
+    .step-container {
+      position: relative;
+      min-height: 200px;
+      overflow: hidden;
+    }
+    
+    .step-screen {
+      position: absolute;
+      width: 100%;
+      opacity: 0;
+      transform: translateX(100px);
+      transition: all 0.4s ease;
+      pointer-events: none;
+    }
+    
+    .step-screen.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+      position: relative;
+    }
+    
+    .step-screen.prev {
+      transform: translateX(-100px);
+    }
+    
+    /* ステップのコンテンツ */
+    .step-content {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 20px;
     }
-    label {
-      font-size: 14px;
+    
+    .step-label {
+      font-size: 18px;
+      font-weight: 600;
       color: #e0d4ff;
+      text-align: center;
+    }
+    
+    .step-description {
+      font-size: 13px;
+      text-align: center;
+      color: #c8b7ff;
+      margin-bottom: 8px;
+    }
+    
+    .input-field {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
     }
+    
     input, select {
-      padding: 10px 12px;
+      padding: 14px 16px;
       border-radius: 10px;
-      border: 1px solid rgba(138, 43, 226, 0.4);
+      border: 2px solid rgba(138, 43, 226, 0.4);
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
       font-size: 16px;
+      transition: all 0.3s ease;
     }
+    
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+    
     select {
       appearance: auto;
       -webkit-appearance: menulist;
       -moz-appearance: menulist;
       cursor: pointer;
     }
+    
     option {
       color: #111;
       background: #fff;
       padding: 8px;
     }
+    
     select:focus option:checked {
       background: rgba(138, 43, 226, 0.8);
       color: #fff;
     }
+    
     input:focus, select:focus {
       outline: none;
-      border-color: rgba(138, 43, 226, 0.8);
-      box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+      border-color: rgba(138, 43, 226, 0.9);
+      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.25);
+      transform: scale(1.02);
     }
+    
+    /* 生年月日グリッド */
     .birth-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
+    
+    .birth-grid select {
+      font-size: 14px;
+      padding: 12px 8px;
+    }
+    
+    /* ボタングループ */
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      justify-content: center;
+    }
+    
     button {
-      padding: 14px;
+      padding: 12px 28px;
       border: none;
       border-radius: 999px;
       background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
@@ -88,76 +183,137 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: all 0.3s ease;
+      min-width: 120px;
     }
-    button:hover {
+    
+    button:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
     }
+    
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    button.secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
     .result-message {
       margin-top: 16px;
       font-size: 14px;
       min-height: 24px;
+      text-align: center;
     }
+    
     .result-message.success {
       color: #8fffd1;
     }
+    
     .result-message.error {
       color: #ffb5b5;
     }
+    
     .result-message.warning {
       color: #ffd966;
       background: rgba(255, 217, 102, 0.15);
       border: 1px solid rgba(255, 217, 102, 0.4);
+      border-radius: 8px;
+      padding: 10px;
     }
+    
     .switch-link {
       margin-top: 20px;
       text-align: center;
       font-size: 14px;
     }
+    
     .switch-link a {
       color: #cfaeff;
       text-decoration: underline;
     }
+    
     /* 確認画面 */
     .confirmation-screen {
       display: none;
     }
+    
     .confirmation-screen.active {
       display: block;
+      animation: fadeIn 0.4s ease;
     }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
     .confirmation-item {
       background: rgba(138, 43, 226, 0.1);
       border: 1px solid rgba(138, 43, 226, 0.3);
       border-radius: 10px;
       padding: 12px 16px;
       margin-bottom: 12px;
+      animation: slideUp 0.4s ease;
     }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
     .confirmation-item-label {
       font-size: 12px;
       color: #c8b7ff;
       margin-bottom: 4px;
     }
+    
     .confirmation-item-value {
       font-size: 16px;
       color: #fff;
       font-weight: 500;
     }
+    
     .confirmation-buttons {
       display: flex;
       gap: 12px;
       margin-top: 24px;
     }
+    
     .confirmation-buttons button {
       flex: 1;
     }
+    
     .confirmation-buttons button.secondary {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
+    
     .confirmation-buttons button.secondary:hover {
       background: rgba(255, 255, 255, 0.15);
     }
+    
     @media (max-width: 768px) {
       body {
         padding: 10px;
@@ -169,6 +325,7 @@
         width: 100%;
         max-width: 100%;
         margin: 0;
+        min-height: auto;
       }
       h1 {
         font-size: 24px;
@@ -178,11 +335,11 @@
         font-size: 13px;
         margin-bottom: 20px;
       }
-      form {
-        gap: 16px;
+      .step-indicator {
+        margin-bottom: 24px;
       }
-      label {
-        font-size: 15px;
+      .step-label {
+        font-size: 20px;
       }
       input, select {
         padding: 14px 16px;
@@ -192,11 +349,18 @@
       .birth-grid {
         gap: 8px;
       }
+      .birth-grid select {
+        padding: 12px 8px;
+        font-size: 14px;
+        min-height: 44px;
+      }
       button {
-        padding: 16px;
+        padding: 14px 20px;
         font-size: 16px;
         min-height: 48px;
-        margin-top: 4px;
+      }
+      .button-group {
+        margin-top: 20px;
       }
       .switch-link {
         margin-top: 16px;
@@ -210,34 +374,66 @@
     <!-- 登録フォーム -->
     <div id="registerFormContainer">
       <h1>新規ユーザー登録</h1>
-      <div style="background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
-        <p style="font-size: 14px; line-height: 1.6; color: #e0d4ff; margin: 0; text-align: left;">
-          まずはユーザー登録が必要です。以下の情報を入力してください。料金が発生することはありません。また、あなたのプロフィールに個人情報が含まれておりません。ご安心ください。
-        </p>
+      
+      <!-- ステップインジケーター -->
+      <div class="step-indicator">
+        <div class="step-dot active" id="step1Dot"></div>
+        <div class="step-dot" id="step2Dot"></div>
+        <div class="step-dot" id="step3Dot"></div>
       </div>
-      <form id="registerForm">
-        <label>
-          ニックネーム
-          <input type="text" id="nickname" maxlength="50" required placeholder="例: かえで好きさん">
-        </label>
-        <div>
-          <span style="font-size:14px;color:#e0d4ff;">生年月日</span>
-          <div class="birth-grid">
-            <select id="birthYear" required></select>
-            <select id="birthMonth" required></select>
-            <select id="birthDay" required></select>
+      
+      <!-- ステップコンテナ -->
+      <div class="step-container">
+        <!-- ステップ1: ニックネーム -->
+        <div class="step-screen active" id="step1">
+          <div class="step-content">
+            <div class="step-description">ステップ 1/3</div>
+            <div class="step-label">ニックネームを教えてください</div>
+            <div class="input-field">
+              <input type="text" id="nickname" maxlength="50" placeholder="例: かえで好きさん" autocomplete="off">
+            </div>
           </div>
         </div>
-        <label>
-          性別
-          <select id="gender">
-            <option value="male">男性</option>
-            <option value="female">女性</option>
-            <option value="">回答しない</option>
-          </select>
-        </label>
-        <button type="submit">登録してはじめる</button>
-      </form>
+        
+        <!-- ステップ2: 生年月日 -->
+        <div class="step-screen" id="step2">
+          <div class="step-content">
+            <div class="step-description">ステップ 2/3</div>
+            <div class="step-label">生年月日を教えてください</div>
+            <div class="input-field">
+              <div class="birth-grid">
+                <select id="birthYear" autocomplete="off"></select>
+                <select id="birthMonth" autocomplete="off"></select>
+                <select id="birthDay" autocomplete="off"></select>
+              </div>
+              <div style="font-size: 12px; text-align: center; color: #c8b7ff; margin-top: 8px;">年　月　日</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ステップ3: 性別 -->
+        <div class="step-screen" id="step3">
+          <div class="step-content">
+            <div class="step-description">ステップ 3/3</div>
+            <div class="step-label">性別を教えてください</div>
+            <div class="input-field">
+              <select id="gender" autocomplete="off">
+                <option value="">-- 選択してください --</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+                <option value="">回答しない</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ボタングループ -->
+      <div class="button-group">
+        <button type="button" id="prevButton" class="secondary" style="display: none;">戻る</button>
+        <button type="button" id="nextButton">次へ</button>
+      </div>
+      
       <div id="resultMessage" class="result-message"></div>
       <div class="switch-link">
         すでに登録済みの方は <a id="loginLink" href="login.html">こちらからログイン</a>
@@ -278,47 +474,46 @@
       const yearSelect = document.getElementById('birthYear');
       const monthSelect = document.getElementById('birthMonth');
       const daySelect = document.getElementById('birthDay');
-      const form = document.getElementById('registerForm');
       const resultMessage = document.getElementById('resultMessage');
       const loginLink = document.getElementById('loginLink');
+      const nicknameInput = document.getElementById('nickname');
+      const genderSelect = document.getElementById('gender');
 
       if (!yearSelect || !monthSelect || !daySelect) {
         console.error('[register] 生年月日のselect要素が見つかりません');
         return;
       }
 
+      // ステップ管理
+      let currentStep = 1;
+      const totalSteps = 3;
+
       const params = new URLSearchParams(window.location.search);
       const redirectParam = params.get('redirect');
-      const characterParam = params.get('character'); // 鑑定士IDを取得
-      const userIdParam = params.get('userId'); // userIdパラメータを取得
+      const characterParam = params.get('character');
+      const userIdParam = params.get('userId');
       
       function getRedirectTarget() {
-        // characterパラメータがある場合は、そのcharacterのチャット画面へ
         if (characterParam) {
           return `../chat/chat.html?character=${encodeURIComponent(characterParam)}`;
         }
-        // redirectパラメータがある場合はそれを使用
         if (redirectParam) {
           const decoded = decodeURIComponent(redirectParam);
           return decoded || '../main.html';
         }
-        // デフォルトはメインページ
         return '../main.html';
       }
       
-      // 【追加】userIdがURLパラメータにある場合、既に登録済みのユーザーの可能性があるため、
-      // 会話履歴APIを呼び出して確認し、登録済みの場合は自動的にリダイレクト
+      // userIdがURLパラメータにある場合の処理
       if (userIdParam) {
         const userId = Number(userIdParam);
         if (Number.isFinite(userId) && userId > 0) {
           try {
-            // 会話履歴APIを呼び出して、ユーザーが存在するか確認
             const characterId = characterParam || 'kaede';
             const historyResponse = await fetch(`/api/conversation-history?userId=${encodeURIComponent(userId)}&character=${encodeURIComponent(characterId)}`);
             
             if (historyResponse.ok) {
               const historyData = await historyResponse.json();
-              // ユーザーが存在する場合、自動的にリダイレクト
               if (historyData && historyData.nickname) {
                 console.log('[register] 既に登録済みのユーザーです。チャット画面にリダイレクトします');
                 let redirectUrl = getRedirectTarget();
@@ -331,7 +526,6 @@
             }
           } catch (error) {
             console.error('[register] ユーザー確認エラー:', error);
-            // エラー時は登録フォームを表示する
           }
         }
       }
@@ -341,7 +535,7 @@
           console.error('[register] select要素がnullです');
           return;
         }
-        select.innerHTML = '';
+        select.innerHTML = '<option value="">-- 選択してください --</option>';
         for (let value = start; value <= end; value += 1) {
           const option = document.createElement('option');
           option.value = String(value);
@@ -362,215 +556,318 @@
         dayOptions: daySelect.options.length
       });
 
-
       if (loginLink) {
         loginLink.href = `login.html?redirect=${encodeURIComponent(getRedirectTarget())}`;
       }
 
-      let redirectTargetCache = null;
+      // ステップ管理関数
+      function updateStepDisplay() {
+        // ステップスクリーン切り替え
+        for (let i = 1; i <= totalSteps; i++) {
+          const screen = document.getElementById(`step${i}`);
+          if (screen) {
+            if (i === currentStep) {
+              screen.classList.add('active');
+              screen.classList.remove('prev');
+            } else if (i < currentStep) {
+              screen.classList.remove('active');
+              screen.classList.add('prev');
+            } else {
+              screen.classList.remove('active', 'prev');
+            }
+          }
+        }
 
-      if (!form) {
-        console.error('[register] フォーム要素が見つかりません');
-        return;
-      }
+        // ステップインジケーター更新
+        for (let i = 1; i <= totalSteps; i++) {
+          const dot = document.getElementById(`step${i}Dot`);
+          if (dot) {
+            dot.classList.remove('active', 'completed');
+            if (i === currentStep) {
+              dot.classList.add('active');
+            } else if (i < currentStep) {
+              dot.classList.add('completed');
+            }
+          }
+        }
 
-      form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      resultMessage.textContent = '';
-      resultMessage.className = 'result-message';
-
-      const genderSelect = document.getElementById('gender');
-      const payload = {
-        nickname: document.getElementById('nickname').value.trim(),
-        birthYear: Number(yearSelect.value),
-        birthMonth: Number(monthSelect.value),
-        birthDay: Number(daySelect.value),
-        gender: genderSelect ? genderSelect.value : '',
-      };
-
-      if (!payload.nickname) {
-        resultMessage.textContent = 'ニックネームを入力してください。';
-        resultMessage.classList.add('error');
-        return;
-      }
-
-      try {
-        // ユーザーを作成
-        const createGuestResponse = await fetch('/api/auth/create-guest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nickname: payload.nickname,
-            birthYear: payload.birthYear,
-            birthMonth: payload.birthMonth,
-            birthDay: payload.birthDay,
-            gender: payload.gender || '',
-          }),
-        });
+        // ボタン表示切り替え
+        const prevButton = document.getElementById('prevButton');
+        const nextButton = document.getElementById('nextButton');
         
-        if (!createGuestResponse.ok) {
-          const errorData = await createGuestResponse.json();
-          resultMessage.textContent = errorData.error || 'ユーザーの作成に失敗しました。';
-          resultMessage.classList.add('error');
-          return;
+        if (prevButton) {
+          prevButton.style.display = currentStep > 1 ? 'block' : 'none';
         }
         
-        // 登録APIを呼び出し
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...payload,
-          }),
-        });
-        
-        // レスポンスがJSONかどうかを確認
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          // JSON以外のレスポンス（HTMLエラーページなど）の場合
-          const text = await response.text();
-          console.error('[register] 非JSONレスポンス:', text.substring(0, 200));
-          resultMessage.textContent = `サーバーエラーが発生しました（ステータス: ${response.status}）。時間を置いて再度お試しください。`;
-          resultMessage.classList.add('error');
+        if (nextButton) {
+          if (currentStep === totalSteps) {
+            nextButton.textContent = '登録を完了する';
+          } else {
+            nextButton.textContent = '次へ';
+          }
+        }
+
+        resultMessage.textContent = '';
+        resultMessage.className = 'result-message';
+      }
+
+      function validateStep(step) {
+        if (step === 1) {
+          if (!nicknameInput.value.trim()) {
+            resultMessage.textContent = 'ニックネームを入力してください。';
+            resultMessage.classList.add('error');
+            nicknameInput.focus();
+            return false;
+          }
+          return true;
+        } else if (step === 2) {
+          if (!yearSelect.value || yearSelect.value === '' || 
+              !monthSelect.value || monthSelect.value === '' ||
+              !daySelect.value || daySelect.value === '') {
+            resultMessage.textContent = '生年月日を選択してください。';
+            resultMessage.classList.add('error');
+            return false;
+          }
+          return true;
+        } else if (step === 3) {
+          return true; // 性別は必須でない
+        }
+        return false;
+      }
+
+      function nextStep() {
+        if (!validateStep(currentStep)) {
           return;
         }
-        
-        const data = await response.json();
 
-        if (!response.ok) {
-          // 409 Conflict（ニックネーム重複）の場合は警告として表示
-          if (response.status === 409) {
-            resultMessage.textContent = data.message || data.error || 'このニックネームは既に使用されています。別のニックネームをご使用ください。';
-            resultMessage.classList.add('warning');
+        if (currentStep < totalSteps) {
+          currentStep++;
+          updateStepDisplay();
+        } else if (currentStep === totalSteps) {
+          // 登録を実行
+          submitRegistration();
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 1) {
+          currentStep--;
+          updateStepDisplay();
+        }
+      }
+
+      async function submitRegistration() {
+        resultMessage.textContent = '';
+        resultMessage.className = 'result-message';
+
+        const payload = {
+          nickname: nicknameInput.value.trim(),
+          birthYear: Number(yearSelect.value),
+          birthMonth: Number(monthSelect.value),
+          birthDay: Number(daySelect.value),
+          gender: genderSelect ? genderSelect.value : '',
+        };
+
+        try {
+          // ユーザーを作成
+          const createGuestResponse = await fetch('/api/auth/create-guest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nickname: payload.nickname,
+              birthYear: payload.birthYear,
+              birthMonth: payload.birthMonth,
+              birthDay: payload.birthDay,
+              gender: payload.gender || '',
+            }),
+          });
+          
+          if (!createGuestResponse.ok) {
+            const errorData = await createGuestResponse.json();
+            resultMessage.textContent = errorData.error || 'ユーザーの作成に失敗しました。';
+            resultMessage.classList.add('error');
             return;
           }
-          // その他のエラーは通常のエラーとして表示
-          resultMessage.textContent = data.error || '登録に失敗しました。';
-          resultMessage.classList.add('error');
-          return;
-        }
+          
+          // 登録APIを呼び出し
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...payload,
+            }),
+          });
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('[register] 非JSONレスポンス:', text.substring(0, 200));
+            resultMessage.textContent = `サーバーエラーが発生しました（ステータス: ${response.status}）。時間を置いて再度お試しください。`;
+            resultMessage.classList.add('error');
+            return;
+          }
+          
+          const data = await response.json();
 
-        // 【追加】登録完了後、データベースから取得した情報を確認画面に表示
-        let dbConfirmed = false;
-        let userInfo = null;
-        
-        try {
-            // データベースから最新のユーザー情報を取得（userIdを使用）
-            // これにより、データベースに保存されたことを確認
+          if (!response.ok) {
+            if (response.status === 409) {
+              resultMessage.textContent = data.message || data.error || 'このニックネームは既に使用されています。別のニックネームをご使用ください。';
+              resultMessage.classList.add('warning');
+              currentStep = 1;
+              updateStepDisplay();
+              return;
+            }
+            resultMessage.textContent = data.error || '登録に失敗しました。';
+            resultMessage.classList.add('error');
+            return;
+          }
+
+          // 登録完了後、データベースから取得した情報を確認画面に表示
+          let dbConfirmed = false;
+          let userInfo = null;
+          
+          try {
             console.log('[register] データベースへの保存を確認中...');
             
             if (!data.userId) {
-                throw new Error('userIdが取得できませんでした');
+              throw new Error('userIdが取得できませんでした');
             }
             
-            // userIdからデータベースから取得（確実にデータベースに保存された情報を取得）
             const userInfoResponse = await fetch(
-                `/api/conversation-history?userId=${encodeURIComponent(data.userId)}&character=kaede`
+              `/api/conversation-history?userId=${encodeURIComponent(data.userId)}&character=kaede`
             );
             
             if (userInfoResponse.ok) {
-                userInfo = await userInfoResponse.json();
-                dbConfirmed = true;
-                console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
+              userInfo = await userInfoResponse.json();
+              dbConfirmed = true;
+              console.log('[register] ✅ データベースへの保存を確認しました:', userInfo);
             } else {
-                // データベース取得に失敗した場合、エラーを表示
-                throw new Error('データベースからの情報取得に失敗しました');
+              throw new Error('データベースからの情報取得に失敗しました');
             }
-        } catch (error) {
+          } catch (error) {
             console.error('[register] データベースからの情報取得エラー:', error);
             resultMessage.textContent = '登録は完了しましたが、データベースからの情報取得に失敗しました。時間を置いて再度お試しください。';
             resultMessage.classList.add('error');
-            return; // エラー時は処理を中断
-        }
-        
-        // 【変更】hasAccountをlocalStorageに保存しない（データベースベースの判断）
-
-        // データベースへの保存を確認した後、確認画面を表示
-        if (dbConfirmed && userInfo) {
-            // 登録フォームを非表示
+            return;
+          }
+          
+          // 確認画面を表示
+          if (dbConfirmed && userInfo) {
             const registerFormContainer = document.getElementById('registerFormContainer');
             const confirmationScreen = document.getElementById('confirmationScreen');
             
             if (registerFormContainer && confirmationScreen) {
-                registerFormContainer.style.display = 'none';
-                confirmationScreen.classList.add('active');
-                
-                // 確認画面に情報を表示
-                const confirmNickname = document.getElementById('confirmNickname');
-                const confirmBirthday = document.getElementById('confirmBirthday');
-                const confirmGender = document.getElementById('confirmGender');
-                
-                if (confirmNickname) {
-                    confirmNickname.textContent = userInfo.nickname || payload.nickname;
-                }
-                if (confirmBirthday) {
-                    const birthYear = userInfo.birthYear || payload.birthYear;
-                    const birthMonth = userInfo.birthMonth || payload.birthMonth;
-                    const birthDay = userInfo.birthDay || payload.birthDay;
-                    confirmBirthday.textContent = `${birthYear}年${birthMonth}月${birthDay}日`;
-                }
-                if (confirmGender) {
-                    const genderMap = {
-                        'male': '男性',
-                        'female': '女性',
-                        '': '回答しない'
-                    };
-                    const gender = userInfo.gender || payload.gender || '';
-                    confirmGender.textContent = genderMap[gender] || '回答しない';
-                }
-                
-                // 確認ボタンのイベントリスナー
-                const confirmButton = document.getElementById('confirmButton');
-                const backButton = document.getElementById('backButton');
-                
-                if (confirmButton) {
-                    confirmButton.addEventListener('click', () => {
-                        // リダイレクト（userIdのみを使用、URLパラメータによるユーザー情報の保持は行わない）
-                        let redirectUrl = getRedirectTarget();
-                        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-                        const url = new URL(redirectUrl, baseUrl);
-                        
-                        // 【重要】userIdのみを使用（URLパラメータによるユーザー情報の保持は行わない）
-                        if (data.userId) {
-                            url.searchParams.set('userId', String(data.userId));
-                            // nickname, birthYear, birthMonth, birthDayは含めない（データベースから取得するため）
-                            console.log('[register] リダイレクトURLにuserIdのみを追加（データベースベースの判断）:', url.href);
-                        } else {
-                            console.error('[register] userIdが取得できませんでした');
-                            resultMessage.textContent = 'エラーが発生しました。時間を置いて再度お試しください。';
-                            resultMessage.classList.add('error');
-                            return;
-                        }
-                        
-                        redirectUrl = url.pathname + url.search;
-                        window.location.href = redirectUrl;
-                    });
-                }
-                
-                if (backButton) {
-                    backButton.addEventListener('click', () => {
-                        // 登録フォームに戻る
-                        registerFormContainer.style.display = 'block';
-                        confirmationScreen.classList.remove('active');
-                        resultMessage.textContent = '';
-                        resultMessage.className = 'result-message';
-                    });
-                }
+              registerFormContainer.style.display = 'none';
+              confirmationScreen.classList.add('active');
+              
+              // 確認画面に情報を表示
+              const confirmNickname = document.getElementById('confirmNickname');
+              const confirmBirthday = document.getElementById('confirmBirthday');
+              const confirmGender = document.getElementById('confirmGender');
+              
+              if (confirmNickname) {
+                confirmNickname.textContent = userInfo.nickname || payload.nickname;
+              }
+              if (confirmBirthday) {
+                const birthYear = userInfo.birthYear || payload.birthYear;
+                const birthMonth = userInfo.birthMonth || payload.birthMonth;
+                const birthDay = userInfo.birthDay || payload.birthDay;
+                confirmBirthday.textContent = `${birthYear}年${birthMonth}月${birthDay}日`;
+              }
+              if (confirmGender) {
+                const genderMap = {
+                  'male': '男性',
+                  'female': '女性',
+                  '': '回答しない'
+                };
+                const gender = userInfo.gender || payload.gender || '';
+                confirmGender.textContent = genderMap[gender] || '回答しない';
+              }
+              
+              // 確認ボタンのイベントリスナー
+              const confirmButton = document.getElementById('confirmButton');
+              const backButton = document.getElementById('backButton');
+              
+              if (confirmButton) {
+                confirmButton.addEventListener('click', () => {
+                  let redirectUrl = getRedirectTarget();
+                  const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+                  const url = new URL(redirectUrl, baseUrl);
+                  
+                  if (data.userId) {
+                    url.searchParams.set('userId', String(data.userId));
+                    console.log('[register] リダイレクトURLにuserIdのみを追加（データベースベースの判断）:', url.href);
+                  } else {
+                    console.error('[register] userIdが取得できませんでした');
+                    resultMessage.textContent = 'エラーが発生しました。時間を置いて再度お試しください。';
+                    resultMessage.classList.add('error');
+                    return;
+                  }
+                  
+                  redirectUrl = url.pathname + url.search;
+                  window.location.href = redirectUrl;
+                });
+              }
+              
+              if (backButton) {
+                backButton.addEventListener('click', () => {
+                  registerFormContainer.style.display = 'block';
+                  confirmationScreen.classList.remove('active');
+                  resultMessage.textContent = '';
+                  resultMessage.className = 'result-message';
+                  currentStep = totalSteps;
+                  updateStepDisplay();
+                });
+              }
             }
-        } else {
-            // データベース確認に失敗した場合
+          } else {
             resultMessage.textContent = '登録は完了しましたが、データベースからの情報取得に失敗しました。時間を置いて再度お試しください。';
             resultMessage.classList.add('error');
+          }
+        } catch (error) {
+          console.error(error);
+          resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';
+          resultMessage.classList.add('error');
         }
-      } catch (error) {
-        console.error(error);
-        resultMessage.textContent = '通信エラーが発生しました。時間を置いて再度お試しください。';
-        resultMessage.classList.add('error');
       }
-      });
-    }); // DOMContentLoaded終了
 
-    // 合言葉オーバーレイの処理は削除（登録完了後、自動的にリダイレクト）
+      // イベントリスナー
+      const nextButton = document.getElementById('nextButton');
+      const prevButton = document.getElementById('prevButton');
+      
+      if (nextButton) {
+        nextButton.addEventListener('click', nextStep);
+      }
+      
+      if (prevButton) {
+        prevButton.addEventListener('click', prevStep);
+      }
+
+      // Enterキーでも次へ進める
+      nicknameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && currentStep === 1) {
+          nextStep();
+        }
+      });
+
+      yearSelect.addEventListener('change', () => {
+        resultMessage.textContent = '';
+        resultMessage.className = 'result-message';
+      });
+      
+      monthSelect.addEventListener('change', () => {
+        resultMessage.textContent = '';
+        resultMessage.className = 'result-message';
+      });
+      
+      daySelect.addEventListener('change', () => {
+        resultMessage.textContent = '';
+        resultMessage.className = 'result-message';
+      });
+
+      // 初期表示
+      updateStepDisplay();
+    }); // DOMContentLoaded終了
   </script>
 </body>
 </html>
