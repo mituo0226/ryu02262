@@ -722,6 +722,33 @@
                   </table>
                 </div>
               </section>
+
+              <section class="card">
+                <h2>初回登録ユーザーテスト</h2>
+                <p class="muted">初回訪問フラグが立った状態でチャット画面に侵入する動作をテストできます。</p>
+                <label>テスト対象ユーザー
+                  <select id="testUserSelect" style="width: 100%; margin-top: 6px;">
+                    <option value="">ユーザーを選択</option>
+                  </select>
+                </label>
+                <label>テスト対象鑑定士
+                  <select id="testCharacterSelect" style="width: 100%; margin-top: 6px;">
+                    <option value="kaede">楓</option>
+                    <option value="yukino">笹岡雪乃</option>
+                    <option value="sora">空</option>
+                    <option value="kaon">三崎花音</option>
+                  </select>
+                </label>
+                <div class="actions">
+                  <button id="testFirstVisitButton" type="button">初回訪問をテスト</button>
+                  <button id="testReturningVisitButton" type="button" style="background: rgba(0, 200, 120, 0.7);">再訪問をテスト</button>
+                </div>
+                <p id="testStatus" class="muted" style="margin-top: 10px;"></p>
+                <div id="testResultPanel" style="margin-top: 12px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 8px; display: none;">
+                  <p style="margin: 0; font-size: 12px; color: #bfc4ff;"><strong>テスト結果:</strong></p>
+                  <pre id="testResultContent" style="margin: 8px 0 0; padding: 8px; background: rgba(0, 0, 0, 0.4); border-radius: 4px; overflow-x: auto; font-size: 11px; max-height: 200px;"></pre>
+                </div>
+              </section>
             </div>
 
             <!-- 右側：会話履歴 -->
@@ -821,6 +848,13 @@
     const conversationList = document.getElementById('conversationList');
     const userInfoPanel = document.getElementById('userInfoPanel');
     const closeUserPanel = document.getElementById('closeUserPanel');
+    const testUserSelect = document.getElementById('testUserSelect');
+    const testCharacterSelect = document.getElementById('testCharacterSelect');
+    const testFirstVisitButton = document.getElementById('testFirstVisitButton');
+    const testReturningVisitButton = document.getElementById('testReturningVisitButton');
+    const testStatus = document.getElementById('testStatus');
+    const testResultPanel = document.getElementById('testResultPanel');
+    const testResultContent = document.getElementById('testResultContent');
 
     const deities = [
       '桜舞い散る春の道',
@@ -908,10 +942,21 @@
         applyFilters();
         renderUsers();
         hideDetailSections();
+        updateTestUserSelect();
       } catch (error) {
         console.error(error);
         userTableBody.innerHTML = `<tr><td colspan="6" class="muted">エラー: ${error instanceof Error ? error.message : String(error)}</td></tr>`;
       }
+    }
+
+    function updateTestUserSelect() {
+      testUserSelect.innerHTML = '<option value="">ユーザーを選択</option>';
+      users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.nickname} (ID: ${user.id})`;
+        testUserSelect.appendChild(option);
+      });
     }
 
     function applyFilters() {
@@ -1337,6 +1382,89 @@
     
     // ボタンホバー効果を初期化
     setupButtonHoverEffects();
+    
+    // ============================================
+    // 初回登録ユーザーテスト機能
+    // ============================================
+    testFirstVisitButton.addEventListener('click', async () => {
+      const userId = testUserSelect.value;
+      const character = testCharacterSelect.value;
+      
+      if (!userId) {
+        testStatus.textContent = 'ユーザーを選択してください。';
+        return;
+      }
+      
+      testStatus.textContent = '初回訪問をテスト中...';
+      testResultPanel.style.display = 'none';
+      
+      try {
+        const res = await fetch('/api/generate-welcome', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            character: character,
+            userId: Number(userId),
+            visitPattern: 'first_visit', // 初回訪問フラグ
+          }),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'テスト生成に失敗しました');
+        }
+        
+        testStatus.textContent = '✅ テスト完了。生成されたウェルカムメッセージ:';
+        testResultContent.textContent = data.message || '（メッセージなし）';
+        testResultPanel.style.display = 'block';
+      } catch (error) {
+        testStatus.textContent = '❌ テスト失敗: ' + error.message;
+        testResultPanel.style.display = 'none';
+      }
+    });
+    
+    testReturningVisitButton.addEventListener('click', async () => {
+      const userId = testUserSelect.value;
+      const character = testCharacterSelect.value;
+      
+      if (!userId) {
+        testStatus.textContent = 'ユーザーを選択してください。';
+        return;
+      }
+      
+      testStatus.textContent = '再訪問をテスト中...';
+      testResultPanel.style.display = 'none';
+      
+      try {
+        const res = await fetch('/api/generate-welcome', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            character: character,
+            userId: Number(userId),
+            visitPattern: 'returning', // 再訪問フラグ
+          }),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'テスト生成に失敗しました');
+        }
+        
+        testStatus.textContent = '✅ テスト完了。生成されたウェルカムメッセージ:';
+        testResultContent.textContent = data.message || '（メッセージなし）';
+        testResultPanel.style.display = 'block';
+      } catch (error) {
+        testStatus.textContent = '❌ テスト失敗: ' + error.message;
+        testResultPanel.style.display = 'none';
+      }
+    });
     
   </script>
 </body>
