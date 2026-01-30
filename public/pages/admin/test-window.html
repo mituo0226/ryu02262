@@ -332,7 +332,8 @@
       <div id="chatPanel" style="flex: 1; overflow-y: auto; display: none; padding: 12px; display: flex; flex-direction: column;">
         <div id="aiMessages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid rgba(138, 43, 226, 0.2);">
           <div style="color: #bfc4ff; font-size: 12px; text-align: center; padding: 20px;">
-            💬 ここでテスト結果について質問・要望を入力できます
+            💬 テスト結果についてAIアシスタントに相談できます<br>
+            テストした鑑定士のウェルカムメッセージについて質問・アドバイスをもらえます
           </div>
         </div>
         
@@ -642,14 +643,17 @@
       aiStatus.textContent = '🔄 AI回答生成中...';
       
       try {
-        // テスト対象の鑑定士に質問を送信
-        const res = await fetch('/api/consult', {
+        // AIアシスタントに相談を送信
+        const res = await fetch('/api/admin/ai-assistant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            character: lastTestResult.character,
-            userId: Number(selectedUserId) || 0,
             message: message,
+            testContext: lastTestResult ? {
+              character: lastTestResult.character,
+              testType: lastTestResult.type,
+              welcomeMessage: lastTestResult.message,
+            } : null,
           }),
         });
         
@@ -657,7 +661,7 @@
         if (!res.ok) throw new Error(data.error || '送信失敗');
         
         displayAIMessage('assistant', data.response || '（回答なし）');
-        aiStatus.textContent = '✅ 回答を表示しました';
+        aiStatus.textContent = '✅ 相談に回答しました';
       } catch (error) {
         aiStatus.textContent = `❌ エラー: ${error.message}`;
         displayAIMessage('assistant', `申し訳ありません。エラーが発生しました: ${error.message}`);
