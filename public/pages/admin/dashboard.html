@@ -750,6 +750,43 @@
                   <pre id="testResultContent" style="margin: 8px 0 0; padding: 8px; background: rgba(0, 0, 0, 0.4); border-radius: 4px; overflow-x: auto; font-size: 11px; max-height: 200px;"></pre>
                 </div>
               </section>
+
+              <section class="card">
+                <h2>修正要望・指示</h2>
+                <p class="muted">修正してほしい内容やバグ報告をここに記入・管理できます。</p>
+                <label>タイトル
+                  <input type="text" id="feedbackTitle" placeholder="例：初回訪問時のメッセージが正しくない" style="margin-top: 6px;">
+                </label>
+                <label>詳細説明
+                  <textarea id="feedbackDescription" placeholder="修正内容を詳しく説明してください&#10;例：&#10;- 期待される動作：ふふ、いらっしゃい…&#10;- 実際の動作：おかえりなさい&#10;- 原因予想：visitPatternが正しく判定されていない" style="margin-top: 6px; min-height: 140px;"></textarea>
+                </label>
+                <label>優先度
+                  <select id="feedbackPriority" style="width: 100%; margin-top: 6px;">
+                    <option value="low">低 - 後で対応</option>
+                    <option value="medium" selected>中 - 通常対応</option>
+                    <option value="high">高 - 早急に対応</option>
+                    <option value="critical">緊急 - 直ちに対応</option>
+                  </select>
+                </label>
+                <label>対象鑑定士
+                  <select id="feedbackCharacter" style="width: 100%; margin-top: 6px;">
+                    <option value="">全体</option>
+                    <option value="kaede">楓</option>
+                    <option value="yukino">笹岡雪乃</option>
+                    <option value="sora">空</option>
+                    <option value="kaon">三崎花音</option>
+                  </select>
+                </label>
+                <div class="actions">
+                  <button id="submitFeedbackButton" type="button">要望を送信</button>
+                  <button id="loadFeedbackButton" type="button" style="background: rgba(138, 43, 226, 0.5);">過去の要望を表示</button>
+                </div>
+                <p id="feedbackStatus" class="muted" style="margin-top: 10px;"></p>
+                <div id="feedbackHistoryPanel" style="margin-top: 12px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 8px; display: none;">
+                  <h4 style="margin: 0 0 12px; color: #d6c9ff; font-size: 13px;">📋 要望履歴</h4>
+                  <div id="feedbackHistoryContent" style="max-height: 300px; overflow-y: auto; font-size: 12px;"></div>
+                </div>
+              </section>
             </div>
 
             <!-- 右側：会話履歴 -->
@@ -857,6 +894,15 @@
     const testStatus = document.getElementById('testStatus');
     const testResultPanel = document.getElementById('testResultPanel');
     const testResultContent = document.getElementById('testResultContent');
+    const feedbackTitle = document.getElementById('feedbackTitle');
+    const feedbackDescription = document.getElementById('feedbackDescription');
+    const feedbackPriority = document.getElementById('feedbackPriority');
+    const feedbackCharacter = document.getElementById('feedbackCharacter');
+    const submitFeedbackButton = document.getElementById('submitFeedbackButton');
+    const loadFeedbackButton = document.getElementById('loadFeedbackButton');
+    const feedbackStatus = document.getElementById('feedbackStatus');
+    const feedbackHistoryPanel = document.getElementById('feedbackHistoryPanel');
+    const feedbackHistoryContent = document.getElementById('feedbackHistoryContent');
 
     const deities = [
       '桜舞い散る春の道',
@@ -1514,6 +1560,95 @@
         testStatus.textContent = '❌ 削除失敗: ' + error.message;
         testResultPanel.style.display = 'none';
       }
+    });
+
+    // ============================================
+    // 修正要望パネル機能
+    // ============================================
+    submitFeedbackButton.addEventListener('click', () => {
+      const title = feedbackTitle.value.trim();
+      const description = feedbackDescription.value.trim();
+      const priority = feedbackPriority.value;
+      const character = feedbackCharacter.value;
+
+      if (!title || !description) {
+        feedbackStatus.textContent = '❌ タイトルと詳細説明を入力してください。';
+        return;
+      }
+
+      // ローカルストレージに要望を保存
+      const feedback = {
+        id: Date.now(),
+        title,
+        description,
+        priority,
+        character,
+        createdAt: new Date().toLocaleString('ja-JP'),
+        status: 'pending', // pending / in_progress / completed
+      };
+
+      let feedbackList = JSON.parse(localStorage.getItem('feedbackList') || '[]');
+      feedbackList.push(feedback);
+      localStorage.setItem('feedbackList', JSON.stringify(feedbackList));
+
+      feedbackStatus.textContent = '✅ 要望を送信しました！';
+      feedbackTitle.value = '';
+      feedbackDescription.value = '';
+      feedbackPriority.value = 'medium';
+      feedbackCharacter.value = '';
+
+      // 2秒後にメッセージをクリア
+      setTimeout(() => {
+        feedbackStatus.textContent = '';
+      }, 2000);
+    });
+
+    loadFeedbackButton.addEventListener('click', () => {
+      let feedbackList = JSON.parse(localStorage.getItem('feedbackList') || '[]');
+
+      if (feedbackList.length === 0) {
+        feedbackHistoryContent.innerHTML = '<p class="muted">要望がまだありません。</p>';
+      } else {
+        // 最新順に並び替え
+        feedbackList.sort((a, b) => b.id - a.id);
+
+        feedbackHistoryContent.innerHTML = feedbackList.map(feedback => {
+          const priorityColors = {
+            'low': '#90ffc7',
+            'medium': '#d6c9ff',
+            'high': '#ffb366',
+            'critical': '#ff6b9d'
+          };
+          const priorityLabels = {
+            'low': '低',
+            'medium': '中',
+            'high': '高',
+            'critical': '緊急'
+          };
+          const statusLabels = {
+            'pending': '未対応',
+            'in_progress': '対応中',
+            'completed': '完了'
+          };
+
+          return `
+            <div style="margin-bottom: 12px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-left: 3px solid ${priorityColors[feedback.priority]}; border-radius: 4px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span style="color: ${priorityColors[feedback.priority]}; font-weight: 600; font-size: 11px;">【${priorityLabels[feedback.priority]}】</span>
+                <span style="color: #bfc4ff; font-weight: 600;">${feedback.title}</span>
+                <span style="color: #9da2c6; font-size: 10px; margin-left: auto;">${feedback.createdAt}</span>
+              </div>
+              <p style="margin: 6px 0; color: #e0e0e0; font-size: 11px; line-height: 1.5; white-space: pre-wrap;">${feedback.description}</p>
+              <div style="display: flex; gap: 8px; font-size: 10px; color: #9da2c6;">
+                <span>🎭 ${feedback.character || '全体'}</span>
+                <span style="margin-left: auto;">ステータス: ${statusLabels[feedback.status]}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      feedbackHistoryPanel.style.display = feedbackHistoryPanel.style.display === 'none' ? 'block' : 'none';
     });
     
   </script>
