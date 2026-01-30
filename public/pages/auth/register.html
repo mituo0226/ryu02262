@@ -6,13 +6,108 @@
   <title>ユーザー登録 - 運命の扉</title>
   <link rel="stylesheet" href="../../css/styles.css">
   <style>
+    @keyframes mysticalFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    @keyframes mysticalGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.4), inset 0 0 20px rgba(138, 43, 226, 0.1); }
+      50% { box-shadow: 0 0 40px rgba(138, 43, 226, 0.6), inset 0 0 30px rgba(138, 43, 226, 0.2); }
+    }
+    
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    @keyframes particleFloat {
+      0% { 
+        transform: translateY(100vh) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% { 
+        transform: translateY(-100vh) translateX(100px);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeOutUp {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+    }
+    
     body {
-      background: radial-gradient(circle at top, rgba(138, 43, 226, 0.4), #050108 60%);
+      background: linear-gradient(-45deg, #050108, #1a0033, #050108, #0f001f);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #f5f5f5;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(138, 43, 226, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(100, 50, 150, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(2px 2px at 20% 30%, rgba(200, 183, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 60% 70%, rgba(143, 255, 209, 0.2), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(138, 43, 226, 0.2), transparent),
+        radial-gradient(1px 1px at 80% 10%, rgba(200, 183, 255, 0.2), transparent),
+        radial-gradient(2px 2px at 90% 60%, rgba(143, 255, 209, 0.1), transparent),
+        radial-gradient(1px 1px at 30% 80%, rgba(138, 43, 226, 0.15), transparent),
+        radial-gradient(1px 1px at 10% 10%, rgba(200, 183, 255, 0.15), transparent);
+      background-repeat: repeat;
+      background-size: 200% 200%;
+      animation: gradientShift 20s ease infinite;
+      pointer-events: none;
+      z-index: 0;
     }
     .auth-card {
       background: rgba(0, 0, 0, 0.7);
@@ -26,11 +121,15 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
+      position: relative;
+      z-index: 10;
+      animation: mysticalGlow 3s ease-in-out infinite;
     }
     h1 {
       font-size: 28px;
       margin-bottom: 10px;
       text-align: center;
+      animation: fadeInDown 0.8s ease;
     }
     p.helper {
       font-size: 14px;
@@ -45,6 +144,7 @@
       gap: 8px;
       margin-bottom: 28px;
       justify-content: center;
+      animation: fadeInDown 1s ease 0.2s both;
     }
     .step-dot {
       width: 10px;
@@ -52,13 +152,17 @@
       border-radius: 50%;
       background: rgba(138, 43, 226, 0.3);
       transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.2);
     }
     .step-dot.active {
       background: rgba(138, 43, 226, 0.9);
       transform: scale(1.2);
+      box-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4);
+      animation: mysticalFloat 2s ease-in-out infinite;
     }
     .step-dot.completed {
       background: rgba(143, 255, 209, 0.7);
+      box-shadow: 0 0 15px rgba(143, 255, 209, 0.5);
     }
     
     /* ステップコンテナ */
@@ -73,7 +177,7 @@
       width: 100%;
       opacity: 0;
       transform: translateX(100px);
-      transition: all 0.4s ease;
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
       pointer-events: none;
     }
     
@@ -82,10 +186,12 @@
       transform: translateX(0);
       pointer-events: auto;
       position: relative;
+      animation: fadeInDown 0.6s ease;
     }
     
     .step-screen.prev {
       transform: translateX(-100px);
+      animation: fadeOutUp 0.6s ease;
     }
     
     /* ステップのコンテンツ */
@@ -100,6 +206,8 @@
       font-weight: 600;
       color: #e0d4ff;
       text-align: center;
+      animation: fadeInDown 0.8s ease 0.2s both;
+      text-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
     }
     
     .step-description {
@@ -107,12 +215,14 @@
       text-align: center;
       color: #c8b7ff;
       margin-bottom: 8px;
+      animation: fadeInDown 0.8s ease 0.1s both;
     }
     
     .input-field {
       display: flex;
       flex-direction: column;
       gap: 10px;
+      animation: fadeInDown 0.8s ease 0.3s both;
     }
     
     input, select {
@@ -123,6 +233,7 @@
       color: #fff;
       font-size: 16px;
       transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(138, 43, 226, 0.1), inset 0 0 15px rgba(138, 43, 226, 0.05);
     }
     
     input::placeholder {
@@ -150,8 +261,9 @@
     input:focus, select:focus {
       outline: none;
       border-color: rgba(138, 43, 226, 0.9);
-      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.25);
+      box-shadow: 0 0 30px rgba(138, 43, 226, 0.4), inset 0 0 20px rgba(138, 43, 226, 0.1);
       transform: scale(1.02);
+      background: rgba(255, 255, 255, 0.12);
     }
     
     /* 生年月日グリッド */
@@ -172,6 +284,7 @@
       gap: 12px;
       margin-top: 24px;
       justify-content: center;
+      animation: fadeInDown 0.8s ease 0.4s both;
     }
     
     button {
@@ -185,11 +298,29 @@
       cursor: pointer;
       transition: all 0.3s ease;
       min-width: 120px;
+      box-shadow: 0 5px 20px rgba(138, 43, 226, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    button:hover:not(:disabled)::before {
+      left: 100%;
     }
     
     button:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
+      box-shadow: 0 10px 40px rgba(138, 43, 226, 0.5);
     }
     
     button:active:not(:disabled) {
@@ -204,10 +335,12 @@
     button.secondary {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
     }
     
     button.secondary:hover:not(:disabled) {
       background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
     }
     
     .result-message {
@@ -215,14 +348,17 @@
       font-size: 14px;
       min-height: 24px;
       text-align: center;
+      animation: fadeInDown 0.6s ease;
     }
     
     .result-message.success {
       color: #8fffd1;
+      text-shadow: 0 0 10px rgba(143, 255, 209, 0.5);
     }
     
     .result-message.error {
       color: #ffb5b5;
+      text-shadow: 0 0 10px rgba(255, 181, 181, 0.5);
     }
     
     .result-message.warning {
@@ -231,17 +367,25 @@
       border: 1px solid rgba(255, 217, 102, 0.4);
       border-radius: 8px;
       padding: 10px;
+      box-shadow: 0 0 15px rgba(255, 217, 102, 0.2);
     }
     
     .switch-link {
       margin-top: 20px;
       text-align: center;
       font-size: 14px;
+      animation: fadeInDown 0.8s ease 0.5s both;
     }
     
     .switch-link a {
       color: #cfaeff;
       text-decoration: underline;
+      transition: all 0.3s ease;
+      text-shadow: 0 0 10px rgba(207, 174, 255, 0);
+    }
+    
+    .switch-link a:hover {
+      text-shadow: 0 0 15px rgba(207, 174, 255, 0.6);
     }
     
     /* 確認画面 */
@@ -251,7 +395,7 @@
     
     .confirmation-screen.active {
       display: block;
-      animation: fadeIn 0.4s ease;
+      animation: fadeIn 0.6s ease;
     }
     
     @keyframes fadeIn {
@@ -269,7 +413,14 @@
       border-radius: 10px;
       padding: 12px 16px;
       margin-bottom: 12px;
-      animation: slideUp 0.4s ease;
+      animation: slideUp 0.6s ease;
+      box-shadow: 0 0 20px rgba(138, 43, 226, 0.1), inset 0 0 10px rgba(138, 43, 226, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .confirmation-item:hover {
+      box-shadow: 0 0 30px rgba(138, 43, 226, 0.2), inset 0 0 15px rgba(138, 43, 226, 0.1);
+      transform: translateY(-2px);
     }
     
     @keyframes slideUp {
@@ -293,6 +444,7 @@
       font-size: 16px;
       color: #fff;
       font-weight: 500;
+      text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
     }
     
     .confirmation-buttons {
@@ -373,7 +525,7 @@
   <div class="auth-card">
     <!-- 登録フォーム -->
     <div id="registerFormContainer">
-      <h1>新規ユーザー登録</h1>
+      <h1>✨ あなたの運命の扉を開きましょう ✨</h1>
       
       <!-- ステップインジケーター -->
       <div class="step-indicator">
@@ -442,7 +594,7 @@
 
     <!-- 確認画面 -->
     <div id="confirmationScreen" class="confirmation-screen">
-      <h1>登録情報の確認</h1>
+      <h1>✨ 登録情報の確認 ✨</h1>
       <div style="background: rgba(138, 43, 226, 0.2); border: 1px solid rgba(138, 43, 226, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
         <p style="font-size: 14px; line-height: 1.6; color: #e0d4ff; margin: 0; text-align: left;">
           データベースに正常に登録されました。以下の情報をご確認ください。
