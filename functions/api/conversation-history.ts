@@ -4,6 +4,10 @@
 interface UserRecord {
   id: number;
   nickname: string;
+  birth_year?: number | null;
+  birth_month?: number | null;
+  birth_day?: number | null;
+  guardian?: string | null;
 }
 
 interface ConversationRecord {
@@ -17,6 +21,10 @@ interface ResponseData {
   hasHistory: boolean;
   visitPattern: string;
   nickname?: string;
+  birthYear?: number | null;
+  birthMonth?: number | null;
+  birthDay?: number | null;
+  guardian?: string | null;
   messages?: Array<{ role: string; content: string }>;
 }
 
@@ -90,7 +98,7 @@ export const onRequestGet: PagesFunction = async (context) => {
 
     // ユーザー情報を取得
     const user = await env.DB.prepare<UserRecord>(
-      'SELECT id, nickname FROM users WHERE id = ?'
+      'SELECT id, nickname, birth_year, birth_month, birth_day, guardian FROM users WHERE id = ?'
     )
       .bind(userId)
       .first();
@@ -144,6 +152,10 @@ export const onRequestGet: PagesFunction = async (context) => {
       hasHistory,
       visitPattern,
       nickname: user.nickname,
+      birthYear: user.birth_year,
+      birthMonth: user.birth_month,
+      birthDay: user.birth_day,
+      guardian: user.guardian,
     };
 
     return new Response(JSON.stringify(response), {
