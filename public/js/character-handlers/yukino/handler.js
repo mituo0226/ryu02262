@@ -516,10 +516,12 @@ const YukinoHandler = {
         }
         
         // 雪乃の初回メッセージ（firstTimeGuest）の後にタロット鑑定を自動開始
-        // 【重要】textが文字列でない場合も考慮
-        if ((type === 'welcome' || type === 'character') && 
-            (textString.includes('まずは何がともあれ、あなたの現在の運勢をタロットで占いますので') ||
-             textString.includes('はじめまして、笹岡雪乃です'))) {
+        // 【改善】テキストマッチングではなく、visitPatternで判定（AIのメッセージ内容が変わっても動作する）
+        const isFirstVisitWelcome = (type === 'welcome' || type === 'character') && 
+            (textString.includes('はじめまして') || textString.includes('初めまして')) &&
+            (textString.includes('タロット') || textString.includes('占い'));
+        
+        if (isFirstVisitWelcome) {
             
             console.log('[雪乃ハンドラー] 初回メッセージを検出 - タロット鑑定を自動開始します');
             
