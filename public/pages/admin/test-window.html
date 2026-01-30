@@ -288,6 +288,26 @@
       <div class="chat-messages" id="chatMessages">
         <div class="placeholder">💬 テスト操作を実行してください</div>
       </div>
+      
+      <!-- チャット入力エリア -->
+      <div style="display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid rgba(138, 43, 226, 0.2);">
+        <input id="userMessageInput" type="text" placeholder="メッセージを入力..." style="flex: 1; padding: 10px 12px; border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
+        <button id="sendMessageButton" type="button" style="padding: 10px 16px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; font-size: 13px;">送信</button>
+      </div>
+
+      <!-- 質問・要望パネル -->
+      <div style="margin-top: 12px; padding: 12px; background: rgba(75, 120, 180, 0.1); border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 8px;">
+        <details style="cursor: pointer;">
+          <summary style="color: #b8d4ff; font-weight: 600; font-size: 13px; user-select: none;">
+            💬 テスト中の質問・要望
+          </summary>
+          <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <textarea id="feedbackInput" placeholder="例：タロット鑑定が始まらない&#10;期待：ウェルカムメッセージの後、鑑定画面が表示される&#10;実際：メッセージのみで止まる" style="width: 100%; padding: 8px 12px; border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 12px; min-height: 80px; resize: vertical;"></textarea>
+            <button id="submitFeedbackButton" type="button" style="padding: 8px 12px; background: rgba(75, 120, 180, 0.7); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; font-size: 12px;">✓ 要望を送信</button>
+            <p id="feedbackStatus" style="margin: 0; font-size: 12px; color: #bfc4ff;"></p>
+          </div>
+        </details>
+      </div>
     </div>
   </div>
 
@@ -306,6 +326,11 @@
     const chatMessages = document.getElementById('chatMessages');
     const chatTitle = document.getElementById('chatTitle');
     const testInfo = document.getElementById('testInfo');
+    const userMessageInput = document.getElementById('userMessageInput');
+    const sendMessageButton = document.getElementById('sendMessageButton');
+    const feedbackInput = document.getElementById('feedbackInput');
+    const submitFeedbackButton = document.getElementById('submitFeedbackButton');
+    const feedbackStatus = document.getElementById('feedbackStatus');
     
     let users = [];
     let selectedUserId = userId;
@@ -460,6 +485,12 @@
     });
     
     function displayMessage(role, content) {
+      // 既存のプレースホルダーを削除
+      const placeholder = chatMessages.querySelector('.placeholder');
+      if (placeholder) {
+        placeholder.remove();
+      }
+      
       const msgEl = document.createElement('div');
       msgEl.className = `message ${role}`;
       
@@ -467,11 +498,90 @@
         msgEl.textContent = content;
       } else if (role === 'assistant') {
         msgEl.innerHTML = `<strong style="color: #d6c9ff; font-size: 12px;">鑑定士:</strong><br><span style="font-size: 13px; line-height: 1.5;">${content.replace(/\n/g, '<br>')}</span>`;
+      } else if (role === 'user') {
+        msgEl.innerHTML = `<strong style="color: #75b8ff; font-size: 12px;">ユーザー:</strong><br><span style="font-size: 13px; line-height: 1.5;">${content}</span>`;
       }
       
       chatMessages.appendChild(msgEl);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+    
+    // メッセージ送信
+    sendMessageButton.addEventListener('click', async () => {
+      const message = userMessageInput.value.trim();
+      if (!message) return;
+      
+      selectedUserId = testUserSelect.value;
+      selectedCharacter = testCharacterSelect.value;
+      
+      if (!selectedUserId) {
+        testStatus.textContent = '❌ ユーザーを選択してください';
+        return;
+      }
+      
+      // ユーザーメッセージを表示
+      displayMessage('user', message);
+      userMessageInput.value = '';
+      
+      testStatus.textContent = '🔄 回答生成中...';
+      
+      try {
+        const res = await fetch('/api/consult', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            character: selectedCharacter,
+            userId: Number(selectedUserId),
+            message: message,
+          }),
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '送信失敗');
+        
+        displayMessage('assistant', data.response || '（回答なし）');
+        testStatus.textContent = '✅ 回答を表示しました';
+      } catch (error) {
+        testStatus.textContent = `❌ エラー: ${error.message}`;
+        displayMessage('system', `エラー: ${error.message}`);
+      }
+    });
+    
+    // Enterキーで送信
+    userMessageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessageButton.click();
+      }
+    });
+    
+    // 要望送信
+    submitFeedbackButton.addEventListener('click', () => {
+      const feedback = feedbackInput.value.trim();
+      if (!feedback) {
+        feedbackStatus.textContent = '❌ 要望を入力してください';
+        return;
+      }
+      
+      const feedbackData = {
+        timestamp: new Date().toISOString(),
+        userId: selectedUserId,
+        character: selectedCharacter,
+        feedback: feedback,
+        url: window.location.href,
+      };
+      
+      // ローカルストレージに保存
+      const feedbackHistory = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
+      feedbackHistory.push(feedbackData);
+      localStorage.setItem('testFeedbackHistory', JSON.stringify(feedbackHistory));
+      
+      feedbackStatus.textContent = '✅ 要望を送信しました';
+      feedbackInput.value = '';
+      
+      setTimeout(() => {
+        feedbackStatus.textContent = '';
+      }, 3000);
+    });
     
     // ページロード時にユーザー取得
     fetchUsers();
