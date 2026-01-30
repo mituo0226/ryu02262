@@ -554,6 +554,7 @@ export const onRequestPost: PagesFunction = async (context) => {
     // ユーザー情報を準備
     let userGender: string | null = null;
     let userBirthDate: string | null = null;
+    let isJustRegistered = dbConversationHistory.length === 0;
 
     if (user.gender) {
       userGender = user.gender;
@@ -565,6 +566,13 @@ export const onRequestPost: PagesFunction = async (context) => {
       userBirthDate = `${yearStr}-${monthStr}-${dayStr}`;
     }
 
+    console.log('[generate-welcome] 初回訪問判定:', {
+      character,
+      userNickname: user.nickname,
+      isJustRegistered,
+      dbConversationHistoryLength: dbConversationHistory.length,
+    });
+
     // 会話要約を生成（データベースから取得した履歴を使用）
     const conversationSummary = generateConversationSummary(dbConversationHistory);
 
@@ -574,7 +582,7 @@ export const onRequestPost: PagesFunction = async (context) => {
       hasPreviousConversation: dbConversationHistory.length > 0,
       guardian: user.guardian || null,
       isRitualStart: false,
-      isJustRegistered: false,
+      isJustRegistered: isJustRegistered,
       userMessageCount: dbConversationHistory.filter((m) => m.role === 'user').length,
       userGender: userGender,
       userBirthDate: userBirthDate,

@@ -62,6 +62,7 @@ const COMMON_SAFETY_GUIDELINES = `
  * @param {number} options.conversationHistoryLength - 会話履歴の長さ
  * @param {number} options.userMessageCount - ユーザーメッセージ数
  * @param {boolean} options.isRitualStart - 守護神の儀式開始メッセージか
+ * @param {boolean} options.isJustRegistered - 初回登録直後か（5分以内）
  * @param {string|null} options.guardian - 守護神（決定済みの場合）
  * @param {boolean} options.encourageRegistration - 登録を促すか
  * @returns {string} システムプロンプト
@@ -107,6 +108,7 @@ export function generateSystemPrompt(characterId, options = {}) {
     guestUserContext,
     guardian: options.guardian || null,
     isRitualStart: options.isRitualStart || false,
+    isJustRegistered: options.isJustRegistered || false,
     userMessageCount: options.userMessageCount || 0,
     userGender: options.userGender || null,
     ...(isKaon ? { birthDate: options.userBirthDate || null } : { userBirthDate: options.userBirthDate || null }),
