@@ -742,6 +742,7 @@
                 <div class="actions">
                   <button id="testFirstVisitButton" type="button">初回訪問をテスト</button>
                   <button id="testReturningVisitButton" type="button" style="background: rgba(0, 200, 120, 0.7);">再訪問をテスト</button>
+                  <button id="clearHistoryButton" type="button" class="danger" style="font-size: 12px;">履歴を削除</button>
                 </div>
                 <p id="testStatus" class="muted" style="margin-top: 10px;"></p>
                 <div id="testResultPanel" style="margin-top: 12px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 8px; display: none;">
@@ -852,6 +853,7 @@
     const testCharacterSelect = document.getElementById('testCharacterSelect');
     const testFirstVisitButton = document.getElementById('testFirstVisitButton');
     const testReturningVisitButton = document.getElementById('testReturningVisitButton');
+    const clearHistoryButton = document.getElementById('clearHistoryButton');
     const testStatus = document.getElementById('testStatus');
     const testResultPanel = document.getElementById('testResultPanel');
     const testResultContent = document.getElementById('testResultContent');
@@ -1462,6 +1464,54 @@
         testResultPanel.style.display = 'block';
       } catch (error) {
         testStatus.textContent = '❌ テスト失敗: ' + error.message;
+        testResultPanel.style.display = 'none';
+      }
+    });
+    
+    clearHistoryButton.addEventListener('click', async () => {
+      const userId = testUserSelect.value;
+      const character = testCharacterSelect.value;
+      
+      if (!userId) {
+        testStatus.textContent = 'ユーザーを選択してください。';
+        return;
+      }
+      
+      if (!confirm(`${character}との会話履歴を全て削除しますか？\nこの操作は取り消せません。`)) {
+        return;
+      }
+      
+      testStatus.textContent = '履歴を削除中...';
+      testResultPanel.style.display = 'none';
+      
+      try {
+        const res = await fetch('/api/admin/conversations', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: Number(userId),
+            characterId: character,
+            deleteAll: true, // このユーザーの特定キャラとの全履歴を削除
+          }),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || '削除に失敗しました');
+        }
+        
+        testStatus.textContent = `✅ ${character}との会話履歴を全て削除しました。次回テストは初回訪問扱いになります。`;
+        testResultPanel.style.display = 'none';
+        
+        // 会話履歴を再取得して画面を更新
+        if (selectedUserId === Number(userId)) {
+          fetchConversations(Number(userId));
+        }
+      } catch (error) {
+        testStatus.textContent = '❌ 削除失敗: ' + error.message;
         testResultPanel.style.display = 'none';
       }
     });

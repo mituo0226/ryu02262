@@ -37,15 +37,47 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     });
   }
 
-  // DELETE: 指定された会話IDを削除
+  // DELETE: 指定された会話IDを削除、または特定ユーザー・キャラクターの全履歴を削除
   if (request.method === 'DELETE') {
     try {
-      const body = await request.json() as { conversationIds?: number[] };
-      const { conversationIds } = body;
+      const body = await request.json() as {
+        conversationIds?: number[];
+        userId?: number;
+        characterId?: string;
+        deleteAll?: boolean;
+      };
+      const { conversationIds, userId, characterId, deleteAll } = body;
 
+      // 特定ユーザー・キャラクターの全履歴を削除するモード
+      if (deleteAll && userId && characterId) {
+        const result = await env.DB.prepare(
+          `DELETE FROM conversations WHERE user_id = ? AND character_id = ?`
+        )
+          .bind(userId, characterId)
+          .run();
+
+        const deletedCount = result.meta.changes;
+
+        console.log('[admin/conversations] DELETE all by user/character:', {
+          userId,
+          characterId,
+          deletedCount,
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            deletedCount,
+            message: `${characterId}との会話履歴${deletedCount}件を削除しました`,
+          }),
+          { status: 200, headers: jsonHeaders }
+        );
+      }
+
+      // 個別IDで削除するモード（既存）
       if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
         return new Response(
-          JSON.stringify({ error: 'conversationIds array is required' }),
+          JSON.stringify({ error: 'conversationIds array is required or deleteAll mode' }),
           { status: 400, headers: jsonHeaders }
         );
       }
