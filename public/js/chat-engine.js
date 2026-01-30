@@ -4323,4 +4323,3 @@ function getCharacterDisplayName(characterId) {
     };
     return characterNames[characterId] || 'キャラクター';
 }
-}
