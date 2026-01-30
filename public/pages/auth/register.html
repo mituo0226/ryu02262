@@ -61,58 +61,116 @@
       }
     }
     
-    @keyframes mysticalTitleAppear {
+    @keyframes emergeFromDarkness {
       0% {
         opacity: 0;
-        transform: perspective(1000px) rotateX(15deg) translateY(-60px) translateZ(-100px) scale(0.7);
-        text-shadow: 0 0 5px rgba(138, 43, 226, 0.1), 0 0 10px rgba(138, 43, 226, 0.05);
-        filter: blur(10px);
+        transform: scale(0.3) translateY(30px);
+        text-shadow: 0 0 0px rgba(138, 43, 226, 0);
+        filter: blur(20px) brightness(0.3);
       }
-      30% {
-        opacity: 0.3;
-        transform: perspective(1000px) rotateX(8deg) translateY(-30px) translateZ(-50px) scale(0.85);
-        text-shadow: 0 0 20px rgba(138, 43, 226, 0.4), 0 0 40px rgba(138, 43, 226, 0.2);
-        filter: blur(5px);
+      20% {
+        opacity: 0.2;
+        transform: scale(0.5) translateY(20px);
+        text-shadow: 0 0 5px rgba(138, 43, 226, 0.2);
+        filter: blur(15px) brightness(0.5);
+      }
+      40% {
+        opacity: 0.5;
+        transform: scale(0.7) translateY(10px);
+        text-shadow: 0 0 15px rgba(138, 43, 226, 0.4), 0 0 30px rgba(138, 43, 226, 0.2);
+        filter: blur(10px) brightness(0.7);
       }
       60% {
-        opacity: 0.7;
-        transform: perspective(1000px) rotateX(3deg) translateY(-10px) translateZ(20px) scale(0.95);
-        text-shadow: 0 0 40px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.5), 0 0 80px rgba(138, 43, 226, 0.3);
-        filter: blur(2px);
+        opacity: 0.8;
+        transform: scale(0.9) translateY(0px);
+        text-shadow: 0 0 30px rgba(138, 43, 226, 0.7), 0 0 60px rgba(138, 43, 226, 0.5);
+        filter: blur(5px) brightness(0.9);
+      }
+      80% {
+        opacity: 1;
+        transform: scale(1) translateY(0px);
+        text-shadow: 
+          0 0 50px rgba(138, 43, 226, 0.9), 
+          0 0 80px rgba(138, 43, 226, 0.7), 
+          0 0 120px rgba(138, 43, 226, 0.5);
+        filter: blur(2px) brightness(1);
       }
       100% {
         opacity: 1;
-        transform: perspective(1000px) rotateX(0deg) translateY(0) translateZ(50px) scale(1);
+        transform: scale(1) translateY(0px);
         text-shadow: 
           0 0 60px rgba(138, 43, 226, 1), 
           0 0 100px rgba(138, 43, 226, 0.8), 
-          0 0 140px rgba(138, 43, 226, 0.5),
-          inset 0 0 40px rgba(138, 43, 226, 0.3),
-          0 0 200px rgba(138, 43, 226, 0.2);
-        filter: blur(0px);
+          0 0 140px rgba(138, 43, 226, 0.6),
+          0 0 200px rgba(138, 43, 226, 0.3);
+        filter: blur(0px) brightness(1);
+      }
+    }
+    
+    @keyframes fadeIntoDarkness {
+      0% {
+        opacity: 1;
+        transform: scale(1) translateY(0px);
+        text-shadow: 
+          0 0 60px rgba(138, 43, 226, 1), 
+          0 0 100px rgba(138, 43, 226, 0.8), 
+          0 0 140px rgba(138, 43, 226, 0.6),
+          0 0 200px rgba(138, 43, 226, 0.3);
+        filter: blur(0px) brightness(1);
+      }
+      20% {
+        opacity: 0.9;
+        transform: scale(0.95) translateY(-5px);
+        text-shadow: 
+          0 0 50px rgba(138, 43, 226, 0.9), 
+          0 0 80px rgba(138, 43, 226, 0.7), 
+          0 0 120px rgba(138, 43, 226, 0.5);
+        filter: blur(1px) brightness(0.95);
+      }
+      40% {
+        opacity: 0.7;
+        transform: scale(0.85) translateY(-10px);
+        text-shadow: 0 0 30px rgba(138, 43, 226, 0.6), 0 0 60px rgba(138, 43, 226, 0.4);
+        filter: blur(3px) brightness(0.8);
+      }
+      60% {
+        opacity: 0.4;
+        transform: scale(0.7) translateY(-15px);
+        text-shadow: 0 0 15px rgba(138, 43, 226, 0.4), 0 0 30px rgba(138, 43, 226, 0.2);
+        filter: blur(8px) brightness(0.6);
+      }
+      80% {
+        opacity: 0.2;
+        transform: scale(0.5) translateY(-20px);
+        text-shadow: 0 0 5px rgba(138, 43, 226, 0.2);
+        filter: blur(12px) brightness(0.4);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.3) translateY(-30px);
+        text-shadow: 0 0 0px rgba(138, 43, 226, 0);
+        filter: blur(20px) brightness(0.2);
       }
     }
     
     @keyframes mysticalTitlePulse {
       0%, 100% {
         opacity: 1;
-        transform: perspective(1000px) rotateX(0deg) translateY(0) translateZ(50px) scale(1);
+        transform: scale(1);
         text-shadow: 
           0 0 60px rgba(138, 43, 226, 1), 
           0 0 100px rgba(138, 43, 226, 0.8), 
-          0 0 140px rgba(138, 43, 226, 0.5),
-          inset 0 0 40px rgba(138, 43, 226, 0.3),
-          0 0 200px rgba(138, 43, 226, 0.2);
+          0 0 140px rgba(138, 43, 226, 0.6),
+          0 0 200px rgba(138, 43, 226, 0.3);
       }
       50% {
-        opacity: 0.9;
-        transform: perspective(1000px) rotateX(1deg) translateY(-2px) translateZ(60px) scale(1.01);
+        opacity: 0.95;
+        transform: scale(1.01);
         text-shadow: 
-          0 0 80px rgba(138, 43, 226, 1), 
-          0 0 120px rgba(138, 43, 226, 0.9), 
-          0 0 160px rgba(138, 43, 226, 0.6),
-          inset 0 0 50px rgba(138, 43, 226, 0.4),
-          0 0 250px rgba(138, 43, 226, 0.3);
+          0 0 70px rgba(138, 43, 226, 1), 
+          0 0 110px rgba(138, 43, 226, 0.9), 
+          0 0 150px rgba(138, 43, 226, 0.7),
+          0 0 220px rgba(138, 43, 226, 0.4);
       }
     }
     
@@ -303,7 +361,7 @@
     }
     
     .opening-title {
-      font-size: 3.5rem;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
       font-weight: 300;
       text-align: center;
       color: #d8cfe3;
@@ -313,24 +371,28 @@
       background-clip: text;
       -webkit-text-fill-color: transparent;
       animation: 
-        mysticalTitleAppear 2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, 
-        mysticalTitlePulse 4s ease-in-out 2s infinite,
-        mysticalFloat 6s ease-in-out 2s infinite,
+        emergeFromDarkness 2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, 
+        mysticalTitlePulse 3s ease-in-out 2s infinite,
         gradientShift 8s ease infinite;
       text-shadow: 
         0 0 60px rgba(138, 43, 226, 1), 
         0 0 100px rgba(138, 43, 226, 0.8), 
-        0 0 140px rgba(138, 43, 226, 0.5),
-        0 0 200px rgba(138, 43, 226, 0.2);
+        0 0 140px rgba(138, 43, 226, 0.6),
+        0 0 200px rgba(138, 43, 226, 0.3);
       margin: 0 !important;
-      letter-spacing: 4px;
+      letter-spacing: clamp(2px, 0.5vw, 4px);
       line-height: 1.6;
       word-spacing: 0.2em;
       max-width: 95vw;
+      padding: 0 clamp(10px, 3vw, 30px);
       font-family: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
       position: relative;
-      transform-style: preserve-3d;
       will-change: transform, opacity, filter;
+    }
+    
+    .opening-title.fade-out {
+      animation: 
+        fadeIntoDarkness 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
     
     @supports not (-webkit-background-clip: text) {
@@ -715,10 +777,10 @@
       }
       
       .opening-title {
-        font-size: 2.2rem;
-        letter-spacing: 2px;
+        font-size: clamp(1.6rem, 4vw, 2.2rem);
+        letter-spacing: clamp(1.5px, 0.4vw, 2px);
         line-height: 1.5;
-        padding: 0 15px;
+        padding: 0 clamp(15px, 4vw, 25px);
         color: #d8cfe3;
         -webkit-text-fill-color: #d8cfe3;
         background: none;
@@ -802,10 +864,10 @@
       }
       
       .opening-title {
-        font-size: 1.8rem;
-        letter-spacing: 1.5px;
+        font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+        letter-spacing: clamp(1px, 0.3vw, 1.5px);
         line-height: 1.5;
-        padding: 0 15px;
+        padding: 0 clamp(12px, 3vw, 18px);
         color: #d8cfe3;
         -webkit-text-fill-color: #d8cfe3;
         background: none;
@@ -867,10 +929,10 @@
       }
       
       .opening-title {
-        font-size: 1.4rem;
-        letter-spacing: 1px;
+        font-size: clamp(1.2rem, 3vw, 1.4rem);
+        letter-spacing: clamp(0.5px, 0.2vw, 1px);
         line-height: 1.4;
-        padding: 0 10px;
+        padding: 0 clamp(8px, 2vw, 12px);
         color: #d8cfe3;
         -webkit-text-fill-color: #d8cfe3;
         background: none;
@@ -1004,7 +1066,18 @@
       const openingScreen = document.getElementById('openingScreen');
       const registrationScreen = document.getElementById('registrationScreen');
       
-      // オープニング画面を表示してから、2.5秒後に登録フォームに遷移
+      // オープニング画面のタイトル要素を取得
+      const openingTitle = document.querySelector('.opening-title');
+      
+      // オープニング画面を表示してから、2.5秒後にタイトルを消す
+      setTimeout(() => {
+        if (openingTitle) {
+          // タイトルにfade-outクラスを追加して暗闇に消えていく
+          openingTitle.classList.add('fade-out');
+        }
+      }, 2500);
+      
+      // タイトルが消えた後、登録フォームに遷移（2.5秒 + 1秒 = 3.5秒後）
       setTimeout(() => {
         // フェードアウト開始
         openingScreen.style.animation = 'fadeOutMystical 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
@@ -1013,7 +1086,7 @@
           registrationScreen.style.display = 'block';
           registrationScreen.style.animation = 'fadeInMystical 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
         }, 800);
-      }, 2800);
+      }, 3500);
       
       const yearSelect = document.getElementById('birthYear');
       const monthSelect = document.getElementById('birthMonth');
