@@ -1,8 +1,0 @@
-refactor: 同意ボタン削除・デッドコード除去（handler / chat-engine）
-
-- handler: initRitualConsentButtons, handleRitualConsent, show/hideRitualConsentButtons 削除
-- handler: init() から同意ボタン初期化を削除、forceStartGuardianRitual は startGuardianRitual 呼び出しに変更
-- handler: addRitualStartButton コールバックで handleRitualConsent 廃止、startGuardianRitual のみ使用
-- chat-engine: ChatInit.handleRitualConsent と window.handleRitualConsent 削除
-- chat-engine: ChatUI の showRitualConsentButtons / hideRitualConsentButtons デッドコード削除
-- 守護神の儀式は自動強制発動のみ（同意ボタンなし）

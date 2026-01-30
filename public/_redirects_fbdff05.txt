@@ -1,6 +1,0 @@
-   # ゲストユーザー用リダイレクト
-   /pages/chat/chat-guest.html   /pages/chat/chat.html   301
-   /pages/chat/chat-guest   /pages/chat/chat.html   301
-
-   # その他のページ
-   /pages/*   /pages/:splat   200
