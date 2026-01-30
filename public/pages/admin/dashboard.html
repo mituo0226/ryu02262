@@ -727,61 +727,6 @@
     <!-- メインコンテンツエリア -->
     <div class="content-area">
 
-      <!-- テスト画面モード（初回非表示） -->
-      <div id="testModeContainer" style="display: none; width: 100%; height: 100%; overflow-y: auto; background: rgba(0, 0, 0, 0.2);">
-        <!-- テスト指示画面ヘッダー -->
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); z-index: 100;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h2 style="margin: 0 0 8px; font-size: 18px;">🎬 テスト指示画面</h2>
-              <p id="testModeUserInfo" style="margin: 0; font-size: 12px; color: #bfc4ff;"></p>
-            </div>
-            <button id="exitTestModeButton" type="button" style="padding: 8px 16px; background: rgba(255, 100, 100, 0.7); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600;">✕ テスト終了</button>
-          </div>
-        </div>
-
-        <!-- テスト指示メインエリア -->
-        <div style="padding: 20px; display: flex; flex-direction: column; gap: 20px;">
-          <!-- テスト操作パネル -->
-          <div style="background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 12px; padding: 20px;">
-            <h3 style="margin: 0 0 16px; font-size: 16px; color: #d6c9ff;">📋 テスト操作</h3>
-            <p style="margin: 0 0 12px; font-size: 13px; color: #bfc4ff;">以下の操作を実行すると、右側のチャット画面にウェルカムメッセージがアニメーション表示されます。</p>
-            
-            <div class="actions" style="display: flex; flex-direction: column; gap: 8px;">
-              <button id="testFirstVisitButton" type="button" style="width: 100%; padding: 12px; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: 1px solid rgba(138, 43, 226, 0.5); border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer;">
-                🎬 初回訪問をテスト（会話履歴なし状態）
-              </button>
-              <button id="testReturningVisitButton" type="button" style="width: 100%; padding: 12px; background: linear-gradient(135deg, rgba(0, 200, 120, 0.9), rgba(0, 150, 100, 0.9)); border: 1px solid rgba(0, 200, 120, 0.5); border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer;">
-                🔄 再訪問をテスト（会話履歴あり状態）
-              </button>
-              <button id="clearHistoryButton" type="button" style="width: 100%; padding: 12px; background: rgba(255, 100, 100, 0.7); border: 1px solid rgba(255, 100, 100, 0.5); border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; font-size: 13px;">
-                🗑️ 会話履歴を削除（初回訪問フラグをリセット）
-              </button>
-            </div>
-            
-            <p id="testStatus" style="margin: 16px 0 0; font-size: 12px; color: #bfc4ff;"></p>
-          </div>
-
-          <!-- 要望・指示パネル -->
-          <div style="background: rgba(75, 120, 180, 0.1); border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 12px; padding: 20px;">
-            <h3 style="margin: 0 0 12px; font-size: 16px; color: #b8d4ff;">💬 テスト中の要望・指示</h3>
-            <label style="display: block; margin-bottom: 12px;">
-              タイトル
-              <input id="testModeFeedbackTitle" type="text" placeholder="修正してほしい内容を簡潔に" style="width: 100%; margin-top: 6px; padding: 8px 12px; border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
-            </label>
-            <label style="display: block; margin-bottom: 12px;">
-              詳細説明
-              <textarea id="testModeFeedbackDescription" placeholder="期待される動作、実際の動作、原因予想など" style="width: 100%; margin-top: 6px; padding: 8px 12px; border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px; min-height: 100px; resize: vertical;"></textarea>
-            </label>
-            <div style="display: flex; gap: 8px;">
-              <button id="testModeSubmitFeedbackButton" type="button" style="flex: 1; padding: 10px; background: rgba(75, 120, 180, 0.7); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600;">✓ 要望を送信</button>
-              <button id="testModeClearFeedbackButton" type="button" style="flex: 1; padding: 10px; background: rgba(100, 100, 100, 0.5); border: none; border-radius: 6px; color: #fff; cursor: pointer;">クリア</button>
-            </div>
-            <p id="testModeFeedbackStatus" style="margin: 12px 0 0; font-size: 12px; color: #bfc4ff;"></p>
-          </div>
-        </div>
-      </div>
-
       <!-- ユーザー検索タブ -->
       <div class="tab-content active" id="user-search-tab">
         <div class="dashboard-layout">
@@ -898,59 +843,8 @@
               </section>
             </div>
 
-            <!-- 右側：テスト実行時のチャット画面 -->
-            <div id="testChatScreenContainer" class="column-right" style="display: none; background: rgba(138, 43, 226, 0.05); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 12px; padding: 16px; min-height: 600px; max-height: 800px; overflow-y: auto;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(138, 43, 226, 0.3);">
-                <h3 id="testChatScreenTitle" style="margin: 0; font-size: 14px; color: #d6c9ff;">📍 チャット画面</h3>
-                <button id="closeTestChatScreenButton" type="button" style="padding: 6px 12px; background: rgba(255, 100, 100, 0.6); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 12px;">✕ 閉じる</button>
-              </div>
-              <div id="testChatScreenMessages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; min-height: 400px;">
-                <div style="color: #bfc4ff; font-size: 12px; text-align: center; padding: 40px 20px;">
-                  💬 テスト実行中...
-                </div>
-              </div>
-            </div>
-
-              <section class="card">
-                <h2>修正要望・指示</h2>
-                <p class="muted">修正してほしい内容やバグ報告をここに記入・管理できます。</p>
-                <label>タイトル
-                  <input type="text" id="feedbackTitle" placeholder="例：初回訪問時のメッセージが正しくない" style="margin-top: 6px;">
-                </label>
-                <label>詳細説明
-                  <textarea id="feedbackDescription" placeholder="修正内容を詳しく説明してください&#10;例：&#10;- 期待される動作：ふふ、いらっしゃい…&#10;- 実際の動作：おかえりなさい&#10;- 原因予想：visitPatternが正しく判定されていない" style="margin-top: 6px; min-height: 140px;"></textarea>
-                </label>
-                <label>優先度
-                  <select id="feedbackPriority" style="width: 100%; margin-top: 6px;">
-                    <option value="low">低 - 後で対応</option>
-                    <option value="medium" selected>中 - 通常対応</option>
-                    <option value="high">高 - 早急に対応</option>
-                    <option value="critical">緊急 - 直ちに対応</option>
-                  </select>
-                </label>
-                <label>対象鑑定士
-                  <select id="feedbackCharacter" style="width: 100%; margin-top: 6px;">
-                    <option value="">全体</option>
-                    <option value="kaede">楓</option>
-                    <option value="yukino">笹岡雪乃</option>
-                    <option value="sora">空</option>
-                    <option value="kaon">三崎花音</option>
-                  </select>
-                </label>
-                <div class="actions">
-                  <button id="submitFeedbackButton" type="button">要望を送信</button>
-                  <button id="loadFeedbackButton" type="button" style="background: rgba(138, 43, 226, 0.5);">過去の要望を表示</button>
-                </div>
-                <p id="feedbackStatus" class="muted" style="margin-top: 10px;"></p>
-                <div id="feedbackHistoryPanel" style="margin-top: 12px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 8px; display: none;">
-                  <h4 style="margin: 0 0 12px; color: #d6c9ff; font-size: 13px;">📋 要望履歴</h4>
-                  <div id="feedbackHistoryContent" style="max-height: 300px; overflow-y: auto; font-size: 12px;"></div>
-                </div>
-              </section>
-            </div>
-
             <!-- 右側：会話履歴 -->
-            <div class="column-right">
+            <div id="conversationPanelContainer" class="column-right">
                 <h2 style="margin: 0 0 16px; flex-shrink: 0;">会話履歴（最新100件）</h2>
                 
                 <!-- キャラクターフィルター -->
@@ -1622,31 +1516,18 @@
         return;
       }
       
-      // テストモードに切り替え
-      testModeActive = true;
-      document.body.classList.add('test-mode-active');
+      const userId = testUserSelect.value;
+      const character = testCharacterSelect.value;
       
-      // 中央にテスト指示画面を表示
-      testModeContainer.style.display = 'block';
-      const userSearchTab = document.querySelector('#user-search-tab');
-      if (userSearchTab) {
-        userSearchTab.style.display = 'none';
+      // 新しいウィンドウを開く
+      const testWindowUrl = `/pages/admin/test-window.html?userId=${userId}&character=${character}`;
+      const testWindow = window.open(testWindowUrl, 'testWindow', 'width=1400,height=800,resizable=yes,scrollbars=yes');
+      
+      if (!testWindow) {
+        alert('新しいウィンドウを開くことができませんでした。ポップアップブロッカーを確認してください。');
       }
       
-      // 右側にチャット画面エリアを表示
-      const testChatScreenContainer = document.getElementById('testChatScreenContainer');
-      testChatScreenContainer.style.display = 'flex';
-      
-      // テストセッション情報を保存
-      testSessionData.userId = testUserSelect.value;
-      testSessionData.characterId = testCharacterSelect.value;
-      testSessionData.messages = [];
-      
-      // UI更新
-      const selectedUser = users.find(u => u.id === testUserSelect.value);
-      testModeUserInfo.textContent = `ユーザー: ${selectedUser?.nickname || 'Unknown'} | キャラ: ${testCharacterSelect.value}`;
-      
-      console.log('テストモード起動:', testSessionData);
+      console.log('テストウィンドウ起動:', { userId, character });
     });
 
     // テスト終了ボタン

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>初回登録ユーザーテスト - 運命の扉</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+  <style>
+    :root { color-scheme: dark; }
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #05040a;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      color: #f7f5ff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* ヘッダー（固定） */
+    header {
+      flex-shrink: 0;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+    
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    header .muted {
+      color: #9da2c6;
+      font-size: 12px;
+      margin: 0;
+    }
+    
+    /* メインコンテンツ */
+    .main-content {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    
+    /* 左側：テスト操作パネル */
+    .test-controls {
+      flex: 0 0 320px;
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .test-controls h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #d6c9ff;
+    }
+    
+    .test-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: #bfc4ff;
+    }
+    
+    .test-controls select {
+      padding: 8px 12px;
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 13px;
+    }
+    
+    .test-controls button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.3s ease;
+    }
+    
+    .test-controls button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+    }
+    
+    .test-controls .btn-primary {
+      background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9));
+      border: 1px solid rgba(138, 43, 226, 0.5);
+    }
+    
+    .test-controls .btn-success {
+      background: linear-gradient(135deg, rgba(0, 200, 120, 0.9), rgba(0, 150, 100, 0.9));
+      border: 1px solid rgba(0, 200, 120, 0.5);
+    }
+    
+    .test-controls .btn-danger {
+      background: rgba(255, 100, 100, 0.7);
+      border: 1px solid rgba(255, 100, 100, 0.5);
+    }
+    
+    .test-status {
+      font-size: 12px;
+      color: #bfc4ff;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      min-height: 30px;
+    }
+    
+    /* 右側：チャット画面 */
+    .chat-screen {
+      flex: 1;
+      background: rgba(138, 43, 226, 0.05);
+      border: 1px solid rgba(138, 43, 226, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .chat-screen-header {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(138, 43, 226, 0.3);
+    }
+    
+    .chat-screen-header h2 {
+      margin: 0;
+      font-size: 14px;
+      color: #d6c9ff;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      word-wrap: break-word;
+      animation: slideInMessage 0.4s ease;
+      max-width: 85%;
+    }
+    
+    .message.system {
+      background: rgba(138, 43, 226, 0.2);
+      border-left: 3px solid rgba(138, 43, 226, 0.6);
+      color: #d6c9ff;
+      text-align: center;
+      max-width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 12px;
+    }
+    
+    .message.assistant {
+      background: rgba(138, 43, 226, 0.15);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      color: #f7f5ff;
+      margin-right: auto;
+    }
+    
+    .message.user {
+      background: rgba(75, 120, 180, 0.15);
+      border: 1px solid rgba(75, 120, 180, 0.3);
+      color: #b8d4ff;
+      margin-left: auto;
+    }
+    
+    @keyframes slideInMessage {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .placeholder {
+      color: #bfc4ff;
+      font-size: 13px;
+      text-align: center;
+      padding: 40px 20px;
+      margin: auto;
+    }
+    
+    /* スクロールバー */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(138, 43, 226, 0.4);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(138, 43, 226, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎬 初回登録ユーザーテスト</h1>
+    <p class="muted" id="testInfo"></p>
+  </header>
+
+  <div class="main-content">
+    <!-- 左側：テスト操作パネル -->
+    <div class="test-controls">
+      <div>
+        <h2>📋 テスト操作</h2>
+        
+        <label>テスト対象ユーザー
+          <select id="testUserSelect">
+            <option value="">ユーザーを選択</option>
+          </select>
+        </label>
+        
+        <label>テスト対象鑑定士
+          <select id="testCharacterSelect">
+            <option value="kaede">楓</option>
+            <option value="yukino">笹岡雪乃</option>
+            <option value="sora">空</option>
+            <option value="kaon">三崎花音</option>
+          </select>
+        </label>
+      </div>
+      
+      <div>
+        <button class="btn-primary" id="testFirstVisitButton">
+          🎬 初回訪問をテスト
+        </button>
+        <button class="btn-success" id="testReturningVisitButton">
+          🔄 再訪問をテスト
+        </button>
+        <button class="btn-danger" id="clearHistoryButton">
+          🗑️ 履歴を削除
+        </button>
+      </div>
+      
+      <div class="test-status" id="testStatus">待機中...</div>
+    </div>
+
+    <!-- 右側：チャット画面 -->
+    <div class="chat-screen">
+      <div class="chat-screen-header">
+        <h2 id="chatTitle">📍 チャット画面</h2>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="placeholder">💬 テスト操作を実行してください</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL パラメータから情報を取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const characterId = urlParams.get('character');
+    
+    const testUserSelect = document.getElementById('testUserSelect');
+    const testCharacterSelect = document.getElementById('testCharacterSelect');
+    const testFirstVisitButton = document.getElementById('testFirstVisitButton');
+    const testReturningVisitButton = document.getElementById('testReturningVisitButton');
+    const clearHistoryButton = document.getElementById('clearHistoryButton');
+    const testStatus = document.getElementById('testStatus');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatTitle = document.getElementById('chatTitle');
+    const testInfo = document.getElementById('testInfo');
+    
+    let users = [];
+    let selectedUserId = userId;
+    let selectedCharacter = characterId || 'kaede';
+    
+    // ユーザーデータ取得
+    async function fetchUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        if (!res.ok) throw new Error('ユーザー取得失敗');
+        const data = await res.json();
+        users = data.users || [];
+        
+        // ドロップダウンに追加
+        testUserSelect.innerHTML = '<option value="">ユーザーを選択</option>';
+        users.forEach(user => {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = `${user.nickname} (ID: ${user.id})`;
+          testUserSelect.appendChild(option);
+        });
+        
+        // URLパラメータで指定されていればセット
+        if (userId) {
+          testUserSelect.value = userId;
+        }
+        
+        if (characterId) {
+          testCharacterSelect.value = characterId;
+        }
+        
+        updateTestInfo();
+      } catch (error) {
+        testStatus.textContent = `❌ エラー: ${error.message}`;
+      }
+    }
+    
+    function updateTestInfo() {
+      const user = users.find(u => u.id == selectedUserId);
+      if (user) {
+        testInfo.textContent = `ユーザー: ${user.nickname} | 鑑定士: ${selectedCharacter}`;
+      }
+    }
+    
+    // 初回訪問テスト
+    testFirstVisitButton.addEventListener('click', async () => {
+      selectedUserId = testUserSelect.value;
+      selectedCharacter = testCharacterSelect.value;
+      
+      if (!selectedUserId) {
+        testStatus.textContent = '❌ ユーザーを選択してください';
+        return;
+      }
+      
+      testStatus.textContent = '🔄 初回訪問をテスト中...';
+      chatMessages.innerHTML = '<div class="placeholder">💬 テスト実行中...</div>';
+      
+      try {
+        const res = await fetch('/api/generate-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            character: selectedCharacter,
+            userId: Number(selectedUserId),
+            visitPattern: 'first_visit',
+          }),
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'テスト失敗');
+        
+        displayMessage('system', `🎬 初回訪問テスト: ${selectedCharacter}`);
+        displayMessage('assistant', data.message || '（メッセージなし）');
+        
+        chatTitle.textContent = `📍 ${selectedCharacter} - 初回訪問`;
+        testStatus.textContent = '✅ テスト完了';
+        updateTestInfo();
+      } catch (error) {
+        testStatus.textContent = `❌ エラー: ${error.message}`;
+      }
+    });
+    
+    // 再訪問テスト
+    testReturningVisitButton.addEventListener('click', async () => {
+      selectedUserId = testUserSelect.value;
+      selectedCharacter = testCharacterSelect.value;
+      
+      if (!selectedUserId) {
+        testStatus.textContent = '❌ ユーザーを選択してください';
+        return;
+      }
+      
+      testStatus.textContent = '🔄 再訪問をテスト中...';
+      chatMessages.innerHTML = '<div class="placeholder">💬 テスト実行中...</div>';
+      
+      try {
+        const res = await fetch('/api/generate-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            character: selectedCharacter,
+            userId: Number(selectedUserId),
+            visitPattern: 'returning',
+          }),
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'テスト失敗');
+        
+        displayMessage('system', `🎬 再訪問テスト: ${selectedCharacter}`);
+        displayMessage('assistant', data.message || '（メッセージなし）');
+        
+        chatTitle.textContent = `📍 ${selectedCharacter} - 再訪問`;
+        testStatus.textContent = '✅ テスト完了';
+        updateTestInfo();
+      } catch (error) {
+        testStatus.textContent = `❌ エラー: ${error.message}`;
+      }
+    });
+    
+    // 履歴削除
+    clearHistoryButton.addEventListener('click', async () => {
+      selectedUserId = testUserSelect.value;
+      selectedCharacter = testCharacterSelect.value;
+      
+      if (!selectedUserId) {
+        testStatus.textContent = '❌ ユーザーを選択してください';
+        return;
+      }
+      
+      if (!confirm(`${selectedCharacter}との会話履歴を全て削除しますか？`)) return;
+      
+      testStatus.textContent = '🔄 履歴を削除中...';
+      
+      try {
+        const res = await fetch('/api/admin/conversations', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: Number(selectedUserId),
+            characterId: selectedCharacter,
+            deleteAll: true,
+          }),
+        });
+        
+        if (!res.ok) throw new Error('削除失敗');
+        testStatus.textContent = '✅ 履歴を削除しました';
+        chatMessages.innerHTML = '<div class="placeholder">💬 履歴が削除されました</div>';
+      } catch (error) {
+        testStatus.textContent = `❌ エラー: ${error.message}`;
+      }
+    });
+    
+    function displayMessage(role, content) {
+      const msgEl = document.createElement('div');
+      msgEl.className = `message ${role}`;
+      
+      if (role === 'system') {
+        msgEl.textContent = content;
+      } else if (role === 'assistant') {
+        msgEl.innerHTML = `<strong style="color: #d6c9ff; font-size: 12px;">鑑定士:</strong><br><span style="font-size: 13px; line-height: 1.5;">${content.replace(/\n/g, '<br>')}</span>`;
+      }
+      
+      chatMessages.appendChild(msgEl);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // ページロード時にユーザー取得
+    fetchUsers();
+  </script>
+</body>
+</html>
