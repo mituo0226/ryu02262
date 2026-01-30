@@ -121,52 +121,32 @@ export async function detectVisitPattern({ userId, characterId, database, isRegi
 }
 
 /**
- * 前回の訪問情報を取得（last_updated_atとconversation_summary）
+ * 前回の訪問情報を取得（timestampとconversation_summary）
  */
 async function getLastVisitInfo(database, userId, characterId) {
   try {
-    // 最新のユーザーメッセージのlast_updated_atを取得
-    // または、conversation_summaryが保存されている最新のレコードを取得
+    // 最新のユーザーメッセージのtimestampを取得
+    // 【重要】last_updated_atカラムはスキーマに存在しないため、timestampを使用
     const result = await database.prepare(`
       SELECT 
-        last_updated_at,
-        conversation_summary
+        COALESCE(timestamp, created_at) as last_updated_at
       FROM conversations 
       WHERE user_id = ? AND character_id = ? AND role = 'user'
-      ORDER BY COALESCE(last_updated_at, timestamp, created_at) DESC
+      ORDER BY COALESCE(timestamp, created_at) DESC
       LIMIT 1
     `).bind(userId, characterId).first();
 
-    if (!result) {
+    if (!result || !result.last_updated_at) {
+      console.log('[VisitPatternDetector] 前回訪問情報が見つかりません');
       return null;
     }
 
     return {
-      lastUpdatedAt: result.last_updated_at || null,
-      conversationSummary: result.conversation_summary || null
+      lastUpdatedAt: result.last_updated_at,
+      conversationSummary: null
     };
   } catch (error) {
     console.error('[VisitPatternDetector] 前回訪問情報取得エラー:', error);
-    // エラー時は、従来の方法で最新のメッセージ時刻を取得
-    try {
-      const fallbackResult = await database.prepare(`
-        SELECT 
-          COALESCE(timestamp, created_at) as last_updated_at
-        FROM conversations 
-        WHERE user_id = ? AND character_id = ? AND role = 'user'
-        ORDER BY COALESCE(timestamp, created_at) DESC
-        LIMIT 1
-      `).bind(userId, characterId).first();
-
-      if (fallbackResult) {
-        return {
-          lastUpdatedAt: fallbackResult.last_updated_at || null,
-          conversationSummary: null
-        };
-      }
-    } catch (fallbackError) {
-      console.error('[VisitPatternDetector] フォールバック取得エラー:', fallbackError);
-    }
     return null;
   }
 }

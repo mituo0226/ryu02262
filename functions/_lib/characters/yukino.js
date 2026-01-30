@@ -27,7 +27,14 @@ export function generateYukinoPrompt(options = {}) {
   // 雪乃専用の指示を生成
   let yukinoSpecificInstruction = '';
   
-  if (userNickname && !hasPreviousConversation) {
+  // 【重要な修正】visitPattern が返されている場合、それを優先的に使用
+  // これにより、バックエンド側の正確な判定結果を使用できる
+  const effectiveVisitPattern = visitPattern || (hasPreviousConversation ? 'returning' : 'first_visit');
+  
+  // 【重要】真の初回訪問判定：visitPattern が 'first_visit' の場合のみ
+  const isTrueFirstVisit = effectiveVisitPattern === 'first_visit';
+  
+  if (userNickname && isTrueFirstVisit) {
     // 完全な新規ユーザー（ゲストとしても会話したことがない）
     // 初回訪問時：過去・現在・未来の3枚のタロット鑑定を開始
     yukinoSpecificInstruction = `
@@ -72,7 +79,7 @@ export function generateYukinoPrompt(options = {}) {
 ========================================
 `;
     console.log('[yukino] 初回訪問時のメッセージ指示を生成:', userNickname);
-  } else if (userNickname && hasPreviousConversation && (visitPattern === 'returning' || visitPattern === 'returning_long' || visitPattern === 'returning_medium' || visitPattern === 'returning_short')) {
+  } else if (userNickname && (effectiveVisitPattern === 'returning' || effectiveVisitPattern === 'returning_long' || effectiveVisitPattern === 'returning_medium' || effectiveVisitPattern === 'returning_short')) {
     // 登録済みユーザーの再訪問（visitPatternが'returning'または時間ベースのパターンの場合）
     // 【重要】再訪問時は「おかえりなさい」と迎え、過去の会話を覚えていることを示す
     // タロット占いの自動開始は行わない（初回訪問時のみ）

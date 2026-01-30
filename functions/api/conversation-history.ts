@@ -135,6 +135,14 @@ export const onRequestGet: PagesFunction = async (context) => {
       .all();
 
     const conversations = historyResults.results || [];
+    
+    console.log('[conversation-history] 会話履歴を取得しました:', {
+      userId: user.id,
+      characterId: characterId,
+      conversationCount: conversations.length,
+      firstConversationRole: conversations.length > 0 ? conversations[0].role : 'N/A',
+      firstConversationTime: conversations.length > 0 ? conversations[0].created_at : 'N/A'
+    });
 
     // 儀式完了後の判定：guardianが設定されている場合
     // 儀式完了後は、APIの指示によりチャットをクリアし、会話はゼロからスタート
