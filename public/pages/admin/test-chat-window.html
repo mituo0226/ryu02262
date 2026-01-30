@@ -230,13 +230,15 @@
       status.textContent = '🔄 ウェルカムメッセージを取得中...';
       
       try {
+        const visitPattern = testSessionData.visitPattern || 'first_visit';
+        
         const res = await fetch('/api/generate-welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             character: testSessionData.character,
             userId: Number(testSessionData.userId),
-            visitPattern: 'first_visit',
+            visitPattern: visitPattern,
           }),
         });
         

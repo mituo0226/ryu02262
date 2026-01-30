@@ -413,7 +413,7 @@
     }
     
     // ウィンドウのセッションデータ
-    function setSessionData() {
+    function setSessionData(visitPattern = null) {
       if (!selectedUserId) {
         testStatus.textContent = '❌ ユーザーを選択してください';
         return false;
@@ -421,7 +421,8 @@
       sessionStorage.setItem('testSessionData', JSON.stringify({
         userId: selectedUserId,
         character: selectedCharacter,
-        userName: users.find(u => u.id == selectedUserId)?.nickname || 'Unknown'
+        userName: users.find(u => u.id == selectedUserId)?.nickname || 'Unknown',
+        visitPattern: visitPattern || 'first_visit'
       }));
       return true;
     }
@@ -429,7 +430,7 @@
     // 初回訪問テスト
     testFirstVisitButton.addEventListener('click', async () => {
       updateTestInfo();
-      if (!setSessionData()) return;
+      if (!setSessionData('first_visit')) return;
       
       testStatus.textContent = '🔄 初回訪問をテスト中...';
       testResult.textContent = 'テスト実行中...';
@@ -475,7 +476,7 @@
     // 再訪問テスト
     testReturningVisitButton.addEventListener('click', async () => {
       updateTestInfo();
-      if (!setSessionData()) return;
+      if (!setSessionData('returning')) return;
       
       testStatus.textContent = '🔄 再訪問をテスト中...';
       testResult.textContent = 'テスト実行中...';
