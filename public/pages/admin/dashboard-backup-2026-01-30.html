@@ -606,104 +606,6 @@
     .hidden {
       display: none !important;
     }
-    
-    /* ========================================
-       テストモード用スタイル
-       ======================================== */
-    
-    /* テストモード中の左側パネル（縮小版） */
-    body.test-mode-active .column-left {
-      max-width: 280px;
-      height: 100%;
-      overflow-y: auto;
-      overflow-x: hidden;
-      border-right: 1px solid rgba(138, 43, 226, 0.2);
-      padding-right: 12px;
-      margin-right: 12px;
-    }
-    
-    /* テストモード中の中央エリア */
-    body.test-mode-active .content-area {
-      flex: 1;
-      overflow-y: auto;
-    }
-    
-    /* テストモード中の右側パネル（チャット表示） */
-    body.test-mode-active .column-right {
-      display: flex;
-      flex-direction: column;
-      background: rgba(138, 43, 226, 0.05);
-      border: 1px solid rgba(138, 43, 226, 0.2);
-      border-radius: 12px;
-      padding: 16px;
-      gap: 0;
-      min-height: 500px;
-    }
-    
-    /* チャット画面ヘッダー */
-    .test-chat-screen-header {
-      font-size: 14px;
-      font-weight: 600;
-      color: #d6c9ff;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(138, 43, 226, 0.3);
-    }
-    
-    /* チャット画面メッセージ */
-    .test-chat-screen-messages {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    
-    .test-chat-screen-messages .message {
-      padding: 12px;
-      border-radius: 8px;
-      word-wrap: break-word;
-      animation: slideInMessage 0.4s ease;
-    }
-    
-    .test-chat-screen-messages .message.system {
-      background: rgba(138, 43, 226, 0.2);
-      border-left: 3px solid rgba(138, 43, 226, 0.6);
-      color: #d6c9ff;
-      text-align: center;
-      max-width: 90%;
-      margin-left: auto;
-      margin-right: auto;
-      font-size: 12px;
-    }
-    
-    .test-chat-screen-messages .message.assistant {
-      background: rgba(138, 43, 226, 0.15);
-      border: 1px solid rgba(138, 43, 226, 0.3);
-      color: #f7f5ff;
-      margin-right: auto;
-      max-width: 85%;
-    }
-    
-    .test-chat-screen-messages .message.user {
-      background: rgba(75, 120, 180, 0.15);
-      border: 1px solid rgba(75, 120, 180, 0.3);
-      color: #b8d4ff;
-      margin-left: auto;
-      max-width: 85%;
-    }
-    
-    @keyframes slideInMessage {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
   </style>
 </head>
 <body>
@@ -726,68 +628,6 @@
     
     <!-- メインコンテンツエリア -->
     <div class="content-area">
-
-      <!-- テスト画面モード（初回非表示） -->
-      <div id="testModeContainer" style="display: none; width: 100%; height: 100%; overflow-y: auto; background: rgba(0, 0, 0, 0.3);">
-        <!-- テスト画面ヘッダー -->
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); z-index: 100;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h2 style="margin: 0 0 8px; font-size: 18px;">🎬 初回登録テスト - チャットシミュレーター</h2>
-              <p id="testModeUserInfo" style="margin: 0; font-size: 12px; color: #bfc4ff;"></p>
-            </div>
-            <button id="exitTestModeButton" type="button" style="padding: 8px 16px; background: rgba(255, 100, 100, 0.7); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600;">✕ テスト終了</button>
-          </div>
-        </div>
-
-        <!-- テスト画面メインエリア -->
-        <div style="padding: 20px; display: flex; flex-direction: column; gap: 20px;">
-          <!-- チャットシミュレーター -->
-          <div style="background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 12px; padding: 0; overflow: hidden; display: flex; flex-direction: column; height: 500px;">
-            <!-- チャットヘッダー -->
-            <div style="padding: 16px; border-bottom: 1px solid rgba(138, 43, 226, 0.2); background: rgba(138, 43, 226, 0.15);">
-              <h3 id="testChatCharacterName" style="margin: 0; font-size: 14px; color: #d6c9ff;">📍 鑑定士を選択してください</h3>
-            </div>
-            
-            <!-- チャットメッセージエリア -->
-            <div id="testChatMessages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-              <div style="color: #bfc4ff; font-size: 12px; text-align: center; padding: 40px 20px;">
-                💬 まずテスト対象ユーザーと鑑定士を左側で選択し、「初回訪問をテスト」または「再訪問をテスト」ボタンを押してください。
-              </div>
-            </div>
-
-            <!-- チャット入力エリア -->
-            <div style="padding: 12px; border-top: 1px solid rgba(138, 43, 226, 0.2); background: rgba(0, 0, 0, 0.3); display: flex; gap: 8px;">
-              <input id="testChatInput" type="text" placeholder="ここにメッセージを入力してテストできます（未実装）" style="flex: 1; padding: 10px 12px; border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.4); color: #fff; font-size: 13px; opacity: 0.6;" disabled>
-              <button id="testChatSendButton" type="button" style="padding: 10px 16px; background: rgba(138, 43, 226, 0.5); border: none; border-radius: 6px; color: #fff; cursor: pointer; opacity: 0.5;" disabled>送信</button>
-            </div>
-          </div>
-
-          <!-- 要望・指示パネル（常に表示） -->
-          <div style="background: rgba(75, 120, 180, 0.1); border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 12px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <h3 style="margin: 0; font-size: 14px; color: #b8d4ff;">💬 テスト中の要望・指示</h3>
-              <button id="toggleFeedbackPanelButton" type="button" style="padding: 6px 12px; background: rgba(75, 120, 180, 0.5); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 12px;">展開</button>
-            </div>
-            
-            <div id="testModeFeedbackPanel" style="display: none;">
-              <label style="display: block; margin-bottom: 12px;">
-                タイトル
-                <input id="testModeFeedbackTitle" type="text" placeholder="修正してほしい内容を簡潔に" style="width: 100%; margin-top: 6px; padding: 8px 12px; border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px;">
-              </label>
-              <label style="display: block; margin-bottom: 12px;">
-                詳細説明
-                <textarea id="testModeFeedbackDescription" placeholder="期待される動作、実際の動作、原因予想など" style="width: 100%; margin-top: 6px; padding: 8px 12px; border: 1px solid rgba(75, 120, 180, 0.3); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 13px; min-height: 80px; resize: vertical;"></textarea>
-              </label>
-              <div style="display: flex; gap: 8px;">
-                <button id="testModeSubmitFeedbackButton" type="button" style="flex: 1; padding: 10px; background: rgba(75, 120, 180, 0.7); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600;">✓ 要望を送信</button>
-                <button id="testModeClearFeedbackButton" type="button" style="flex: 1; padding: 10px; background: rgba(100, 100, 100, 0.5); border: none; border-radius: 6px; color: #fff; cursor: pointer;">クリア</button>
-              </div>
-              <p id="testModeFeedbackStatus" style="margin: 12px 0 0; font-size: 12px; color: #bfc4ff;"></p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- ユーザー検索タブ -->
       <div class="tab-content active" id="user-search-tab">
@@ -881,14 +721,6 @@
                     </tbody>
                   </table>
                 </div>
-              </section>
-
-              <section class="card">
-                <h2>🎭 初回登録テスト発動</h2>
-                <p class="muted">押すと中央全体がテスト画面に切り替わります</p>
-                <button id="launchTestModeButton" type="button" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: 2px solid rgba(138, 43, 226, 0.6); border-radius: 12px; color: #fff; cursor: pointer; transition: all 0.3s ease; min-height: 60px;">
-                  🎬 テスト画面を起動
-                </button>
               </section>
 
               <section class="card">
@@ -1054,7 +886,6 @@
     const conversationList = document.getElementById('conversationList');
     const userInfoPanel = document.getElementById('userInfoPanel');
     const closeUserPanel = document.getElementById('closeUserPanel');
-    const launchTestModeButton = document.getElementById('launchTestModeButton');
     const testUserSelect = document.getElementById('testUserSelect');
     const testCharacterSelect = document.getElementById('testCharacterSelect');
     const testFirstVisitButton = document.getElementById('testFirstVisitButton');
@@ -1601,168 +1432,6 @@
     setupButtonHoverEffects();
     
     // ============================================
-    // テスト発動ボタン機能
-    // ============================================
-    const testModeContainer = document.getElementById('testModeContainer');
-    const testModeUserInfo = document.getElementById('testModeUserInfo');
-    const testChatMessages = document.getElementById('testChatMessages');
-    const testChatCharacterName = document.getElementById('testChatCharacterName');
-    const exitTestModeButton = document.getElementById('exitTestModeButton');
-    const toggleFeedbackPanelButton = document.getElementById('toggleFeedbackPanelButton');
-    const testModeFeedbackPanel = document.getElementById('testModeFeedbackPanel');
-    const testModeSubmitFeedbackButton = document.getElementById('testModeSubmitFeedbackButton');
-    const testModeClearFeedbackButton = document.getElementById('testModeClearFeedbackButton');
-    const testModeFeedbackTitle = document.getElementById('testModeFeedbackTitle');
-    const testModeFeedbackDescription = document.getElementById('testModeFeedbackDescription');
-    const testModeFeedbackStatus = document.getElementById('testModeFeedbackStatus');
-    
-    let testModeActive = false;
-    let testSessionData = {
-      userId: null,
-      characterId: null,
-      visitPattern: null,
-      messages: []
-    };
-
-    launchTestModeButton.addEventListener('click', () => {
-      if (!testUserSelect.value) {
-        alert('左側でテスト対象ユーザーを選択してください。');
-        return;
-      }
-      
-      // テストモードに切り替え
-      testModeActive = true;
-      document.body.classList.add('test-mode-active');
-      
-      // レイアウト調整
-      const dashboardLayout = document.querySelector('.dashboard-layout');
-      const dashboardColumns = document.querySelector('.dashboard-columns');
-      
-      // 3列レイアウトに変更
-      dashboardLayout.style.display = 'flex';
-      dashboardLayout.style.flexDirection = 'row';
-      dashboardLayout.style.gap = '16px';
-      
-      dashboardColumns.style.display = 'grid';
-      dashboardColumns.style.gridTemplateColumns = 'auto 1fr auto';
-      dashboardColumns.style.gap = '16px';
-      dashboardColumns.style.alignItems = 'flex-start';
-      
-      testModeContainer.style.display = 'block';
-      
-      // テストセッション情報を保存
-      testSessionData.userId = testUserSelect.value;
-      testSessionData.characterId = testCharacterSelect.value;
-      testSessionData.messages = [];
-      
-      // UI更新
-      const selectedUser = users.find(u => u.id === testUserSelect.value);
-      testModeUserInfo.textContent = `ユーザー: ${selectedUser?.nickname || 'Unknown'} | キャラ: ${testCharacterSelect.value}`;
-      testChatMessages.innerHTML = '<div style="color: #bfc4ff; font-size: 12px; text-align: center; padding: 40px 20px;">💬 左側のテストパネルで「初回訪問をテスト」または「再訪問をテスト」ボタンを押してください。</div>';
-      
-      console.log('テストモード起動:', testSessionData);
-    });
-
-    // テスト終了ボタン
-    exitTestModeButton.addEventListener('click', () => {
-      testModeActive = false;
-      document.body.classList.remove('test-mode-active');
-      testModeContainer.style.display = 'none';
-      testModeFeedbackPanel.style.display = 'none';
-      testModeFeedbackTitle.value = '';
-      testModeFeedbackDescription.value = '';
-      
-      // レイアウトをリセット
-      const dashboardLayout = document.querySelector('.dashboard-layout');
-      const dashboardColumns = document.querySelector('.dashboard-columns');
-      dashboardLayout.style.display = '';
-      dashboardLayout.style.flexDirection = '';
-      dashboardLayout.style.gap = '';
-      dashboardColumns.style.display = '';
-      dashboardColumns.style.gridTemplateColumns = '';
-      dashboardColumns.style.gap = '';
-      dashboardColumns.style.alignItems = '';
-      
-      console.log('テストモード終了');
-    });
-
-    // 要望パネル展開ボタン
-    toggleFeedbackPanelButton.addEventListener('click', () => {
-      if (testModeFeedbackPanel.style.display === 'none') {
-        testModeFeedbackPanel.style.display = 'block';
-        toggleFeedbackPanelButton.textContent = '折畳む';
-      } else {
-        testModeFeedbackPanel.style.display = 'none';
-        toggleFeedbackPanelButton.textContent = '展開';
-      }
-    });
-
-    // 要望送信ボタン
-    testModeSubmitFeedbackButton.addEventListener('click', () => {
-      const title = testModeFeedbackTitle.value.trim();
-      const description = testModeFeedbackDescription.value.trim();
-      
-      if (!title || !description) {
-        testModeFeedbackStatus.textContent = '❌ タイトルと詳細説明を入力してください';
-        return;
-      }
-      
-      // ローカルストレージに保存
-      const feedbackHistory = JSON.parse(localStorage.getItem('testFeedbackHistory') || '[]');
-      feedbackHistory.push({
-        timestamp: new Date().toISOString(),
-        title,
-        description,
-        userId: testSessionData.userId,
-        characterId: testSessionData.characterId
-      });
-      localStorage.setItem('testFeedbackHistory', JSON.stringify(feedbackHistory));
-      
-      testModeFeedbackStatus.textContent = '✓ 要望を送信しました！';
-      testModeFeedbackTitle.value = '';
-      testModeFeedbackDescription.value = '';
-      
-      setTimeout(() => {
-        testModeFeedbackStatus.textContent = '';
-      }, 3000);
-    });
-
-    // チャット表示更新関数
-    function updateTestChatDisplay() {
-      testChatMessages.innerHTML = '';
-      testSessionData.messages.forEach((msg, index) => {
-        const msgEl = document.createElement('div');
-        msgEl.style.cssText = 'padding: 12px; border-radius: 8px; max-width: 80%; word-wrap: break-word; animation: fadeIn 0.3s ease;';
-        
-        if (msg.role === 'system') {
-          msgEl.style.cssText += 'background: rgba(138, 43, 226, 0.2); border-left: 3px solid rgba(138, 43, 226, 0.6); color: #d6c9ff; margin-left: auto; margin-right: auto; max-width: 90%; text-align: center;';
-          msgEl.textContent = msg.content;
-        } else if (msg.role === 'assistant') {
-          msgEl.style.cssText += 'background: rgba(138, 43, 226, 0.15); border: 1px solid rgba(138, 43, 226, 0.3); color: #f7f5ff; align-self: flex-start; margin-right: auto;';
-          msgEl.innerHTML = `<strong style="color: #d6c9ff;">鑑定士:</strong><br>${msg.content.replace(/\n/g, '<br>')}`;
-        } else if (msg.role === 'user') {
-          msgEl.style.cssText += 'background: rgba(75, 120, 180, 0.15); border: 1px solid rgba(75, 120, 180, 0.3); color: #b8d4ff; align-self: flex-end; margin-left: auto;';
-          msgEl.innerHTML = `<strong style="color: #75b8ff;">ユーザー:</strong><br>${msg.content}`;
-        }
-        
-        testChatMessages.appendChild(msgEl);
-      });
-      
-      // スクロール下部へ
-      testChatMessages.scrollTop = testChatMessages.scrollHeight;
-    }
-    
-    // CSSアニメーション追加
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // ============================================
     // 初回登録ユーザーテスト機能
     // ============================================
     testFirstVisitButton.addEventListener('click', async () => {
@@ -1799,22 +1468,6 @@
         testStatus.textContent = '✅ テスト完了。生成されたウェルカムメッセージ:';
         testResultContent.textContent = data.message || '（メッセージなし）';
         testResultPanel.style.display = 'block';
-        
-        // テストモード中は中央のチャットエリアにも表示
-        if (testModeActive) {
-          testSessionData.visitPattern = 'first_visit';
-          testSessionData.messages.push({
-            role: 'system',
-            content: `🎬 初回訪問テスト開始: ${character}`
-          });
-          testSessionData.messages.push({
-            role: 'assistant',
-            content: data.message || '（メッセージなし）'
-          });
-          
-          testChatCharacterName.textContent = `📍 ${character} - 初回訪問`;
-          updateTestChatDisplay();
-        }
       } catch (error) {
         testStatus.textContent = '❌ テスト失敗: ' + error.message;
         testResultPanel.style.display = 'none';
@@ -1855,22 +1508,6 @@
         testStatus.textContent = '✅ テスト完了。生成されたウェルカムメッセージ:';
         testResultContent.textContent = data.message || '（メッセージなし）';
         testResultPanel.style.display = 'block';
-        
-        // テストモード中は中央のチャットエリアにも表示
-        if (testModeActive) {
-          testSessionData.visitPattern = 'returning';
-          testSessionData.messages.push({
-            role: 'system',
-            content: `🎬 再訪問テスト開始: ${character}`
-          });
-          testSessionData.messages.push({
-            role: 'assistant',
-            content: data.message || '（メッセージなし）'
-          });
-          
-          testChatCharacterName.textContent = `📍 ${character} - 再訪問`;
-          updateTestChatDisplay();
-        }
       } catch (error) {
         testStatus.textContent = '❌ テスト失敗: ' + error.message;
         testResultPanel.style.display = 'none';
