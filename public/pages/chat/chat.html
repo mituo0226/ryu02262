@@ -95,9 +95,7 @@
                 
                 <!-- ローディングテキスト -->
                 <div class="loading-text-container">
-                    <div class="loading-character-name" id="loadingCharacterName">
-                        楓
-                    </div>
+                    <div class="loading-character-name" id="loadingCharacterName"></div>
                     
                     <div class="loading-messages" id="loadingMessages">
                         <div class="loading-message" id="loadingMessage1">
@@ -228,21 +226,26 @@
         const urlParams = window._chatUrlParams;
         const character = urlParams.get('character');
         const characterInfo = {
-            'kaede': { name: '楓', icon: '../../photo/kaede.png' },
-            'yukino': { name: '雪乃', icon: '../../photo/yukino.png' },
-            'sora': { name: 'ソラ', icon: '../../photo/sora.png' },
-            'kaon': { name: '花音', icon: '../../photo/kaon.png' }
+            'kaede': { name: '楓', fullName: '楓', icon: '../../photo/kaede.png' },
+            'yukino': { name: '雪乃', fullName: '笹岡雪乃', icon: '../../photo/yukino.png' },
+            'sora': { name: 'ソラ', fullName: '水野ソラ', icon: '../../photo/sora.png' },
+            'kaon': { name: '花音', fullName: '三崎花音', icon: '../../photo/kaon.png' }
         };
         
         function customizeLoadingScreen() {
             if (character && characterInfo[character]) {
                 const info = characterInfo[character];
-                const loadingText = document.getElementById('loadingText');
-                const loadingIcon = document.getElementById('loadingCharacterIcon');
-                if (loadingText) loadingText.textContent = `${info.name}が準備をしています...`;
-                if (loadingIcon && info.icon) {
-                    loadingIcon.src = info.icon;
-                    loadingIcon.style.display = 'block';
+                
+                // 待機画面のキャラクター名を更新
+                const loadingCharacterName = document.getElementById('loadingCharacterName');
+                if (loadingCharacterName) {
+                    loadingCharacterName.textContent = info.fullName;
+                }
+                
+                // 待機画面のメッセージを更新
+                const loadingMessage1Text = document.getElementById('loadingMessage1Text');
+                if (loadingMessage1Text) {
+                    loadingMessage1Text.textContent = `${info.fullName}が準備をしています...`;
                 }
             }
         }
