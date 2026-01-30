@@ -722,6 +722,10 @@
         ユーザー検索
         <div class="admin-nav-url">ユーザーの検索・管理</div>
       </button>
+      <button id="testButton" class="admin-nav-item" style="background: linear-gradient(135deg, rgba(138, 43, 226, 0.7), rgba(75, 0, 129, 0.7)); border: 1px solid rgba(138, 43, 226, 0.5);">
+        🎭 ユーザーテスト
+        <div class="admin-nav-url">テスト画面を起動</div>
+      </button>
     </nav>
     
     <!-- メインコンテンツエリア -->
@@ -819,27 +823,6 @@
                     </tbody>
                   </table>
                 </div>
-              </section>
-
-              <section class="card">
-                <h2>🎭 初回登録ユーザーテスト</h2>
-                <p class="muted">テストを開始するユーザーと鑑定士を選択</p>
-                <label>テスト対象ユーザー
-                  <select id="testUserSelect" style="width: 100%; margin-top: 6px;">
-                    <option value="">ユーザーを選択</option>
-                  </select>
-                </label>
-                <label>テスト対象鑑定士
-                  <select id="testCharacterSelect" style="width: 100%; margin-top: 6px;">
-                    <option value="kaede">楓</option>
-                    <option value="yukino">笹岡雪乃</option>
-                    <option value="sora">空</option>
-                    <option value="kaon">三崎花音</option>
-                  </select>
-                </label>
-                <button id="launchTestModeButton" type="button" style="width: 100%; margin-top: 12px; padding: 12px; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 129, 0.9)); border: 2px solid rgba(138, 43, 226, 0.6); border-radius: 12px; color: #fff; cursor: pointer; transition: all 0.3s ease;">
-                  🎬 テスト画面を起動
-                </button>
               </section>
             </div>
 
@@ -940,15 +923,16 @@
     const conversationList = document.getElementById('conversationList');
     const userInfoPanel = document.getElementById('userInfoPanel');
     const closeUserPanel = document.getElementById('closeUserPanel');
-    const launchTestModeButton = document.getElementById('launchTestModeButton');
-    const testUserSelect = document.getElementById('testUserSelect');
-    const testCharacterSelect = document.getElementById('testCharacterSelect');
-    const testFirstVisitButton = document.getElementById('testFirstVisitButton');
-    const testReturningVisitButton = document.getElementById('testReturningVisitButton');
-    const clearHistoryButton = document.getElementById('clearHistoryButton');
-    const testStatus = document.getElementById('testStatus');
-    const testResultPanel = document.getElementById('testResultPanel');
-    const testResultContent = document.getElementById('testResultContent');
+    // テスト関連の要素は削除済み（テストウィンドウで管理）
+    // const launchTestModeButton = document.getElementById('launchTestModeButton');
+    // const testUserSelect = document.getElementById('testUserSelect');
+    // const testCharacterSelect = document.getElementById('testCharacterSelect');
+    // const testFirstVisitButton = document.getElementById('testFirstVisitButton');
+    // const testReturningVisitButton = document.getElementById('testReturningVisitButton');
+    // const clearHistoryButton = document.getElementById('clearHistoryButton');
+    // const testStatus = document.getElementById('testStatus');
+    // const testResultPanel = document.getElementById('testResultPanel');
+    // const testResultContent = document.getElementById('testResultContent');
     const feedbackTitle = document.getElementById('feedbackTitle');
     const feedbackDescription = document.getElementById('feedbackDescription');
     const feedbackPriority = document.getElementById('feedbackPriority');
@@ -1423,6 +1407,20 @@
         e.stopPropagation();
         
         const targetTab = navItem.dataset.tab;
+        
+        // テストボタンの場合は別ウィンドウを開く
+        if (navItem.id === 'testButton') {
+          const testWindow = window.open(
+            '/pages/admin/test-window.html',
+            'testWindow',
+            'width=1200,height=800,resizable=yes,scrollbars=yes'
+          );
+          if (!testWindow) {
+            alert('テストウィンドウを開くことができませんでした。ポップアップブロッカーを確認してください。');
+          }
+          return;
+        }
+        
         if (!targetTab) {
           console.warn('[タブ切り替え] targetTabがありません:', navItem);
           return;
@@ -1510,26 +1508,9 @@
       messages: []
     };
 
-    launchTestModeButton.addEventListener('click', () => {
-      if (!testUserSelect.value) {
-        alert('左側でテスト対象ユーザーを選択してください。');
-        return;
-      }
-      
-      const userId = testUserSelect.value;
-      const character = testCharacterSelect.value;
-      
-      // 新しいウィンドウを開く
-      const testWindowUrl = `/pages/admin/test-window.html?userId=${userId}&character=${character}`;
-      const testWindow = window.open(testWindowUrl, 'testWindow', 'width=1400,height=800,resizable=yes,scrollbars=yes');
-      
-      if (!testWindow) {
-        alert('新しいウィンドウを開くことができませんでした。ポップアップブロッカーを確認してください。');
-      }
-      
-      console.log('テストウィンドウ起動:', { userId, character });
-    });
-
+    // テスト関連のコードは削除（テストウィンドウで管理）
+    // launchTestModeButton, testUserSelect等のイベントリスナーは削除済み
+    
     // テスト終了ボタン
     exitTestModeButton.addEventListener('click', () => {
       testModeActive = false;
