@@ -171,7 +171,7 @@
 /**
  * .loading-character-overlay
  * 動画上のオーバーレイ（キャラクター画像）
- * 透明度を強めて、キャラクター画像をおぼろげながら見える様に
+ * キャラクターの姿が確認できる程度の透明度
  */
 .loading-character-overlay {
     position: absolute;
@@ -181,7 +181,7 @@
     height: 100%;
     background-size: cover;
     background-position: center;
-    opacity: 0.25;  /* 0.15 → 0.25 に強化 */
+    opacity: 0.45;  /* キャラクターが確認できる透明度に強化 */
     z-index: 5;
     pointer-events: none;
     mix-blend-mode: overlay;
@@ -196,30 +196,30 @@
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
-        opacity: 0.3;  /* 0.2 → 0.3 に強化 */
+        opacity: 0.5;  /* PC版：より明瞭に */
     }
 }
 
 /**
  * モバイル版対応（画面幅800px未満）
- * iPhone/Android対応：軽量な表示
+ * iPhone/Android対応：確認できる程度に表示
  */
 @media (max-width: 799px) {
     .loading-character-overlay {
         background-size: cover;
         background-position: center;
-        opacity: 0.18;  /* 0.1 → 0.18 に強化 */
+        opacity: 0.4;  /* モバイル版：確認できる透明度 */
     }
 }
 
 /**
  * iPhone特別対応（高DPI対応）
- * iPhoneの場合、透明度を落として軽量化
+ * iPhoneでも確認できる透明度を維持
  */
 @supports (-webkit-touch-callout: none) {
     /* iPhone/iPad判定 */
     .loading-character-overlay {
-        opacity: 0.15;  /* 0.08 → 0.15 に強化 */
+        opacity: 0.35;  /* iPhone版：やや控えめだが確認可能 */
         background-size: cover;
     }
 }
