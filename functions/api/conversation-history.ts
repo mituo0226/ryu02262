@@ -25,6 +25,7 @@ interface ResponseData {
   birthMonth?: number | null;
   birthDay?: number | null;
   assignedDeity?: string | null;
+  requireGuardianConsent?: boolean; // 守護神の儀式が必要かどうか（楓専用）
   messages?: Array<{ role: string; content: string }>;
 }
 
@@ -143,12 +144,17 @@ export const onRequestGet: PagesFunction = async (context) => {
     // 履歴があればreturning、なければfirst_visit
     const visitPattern = hasHistory ? 'returning' : 'first_visit';
 
+    // 楓の場合、守護神の儀式が必要かどうかを判定
+    const requireGuardianConsent = character === 'kaede' && !hasHistory && !user.guardian;
+
     console.log('[conversation-history] 判定結果:', {
       userId,
       character,
       hasHistory,
       visitPattern,
       nickname: user.nickname,
+      assignedDeity: user.guardian,
+      requireGuardianConsent,
     });
 
     const response: ResponseData = {
@@ -159,6 +165,7 @@ export const onRequestGet: PagesFunction = async (context) => {
       birthMonth: user.birth_month,
       birthDay: user.birth_day,
       assignedDeity: user.guardian,
+      requireGuardianConsent,
     };
 
     return new Response(JSON.stringify(response), {

@@ -131,25 +131,9 @@ const KaedeHandler = {
             }
         }
 
-        // 守護神の儀式開始処理（historyDataが存在する場合）
-        if (historyData) {
-            const ritualHandled = await this.handlePostRegistrationRitualStart(
-                this.characterId,
-                historyData,
-                urlParams
-            );
-            markTiming('handlePostRegistrationRitualStart');
-            // handlePostRegistrationRitualStartがtrueを返した場合でも、守護神の確認は続行する
-            // （儀式を開始しない場合でも、守護神が未登録なら儀式を開始する必要があるため）
-        } else {
-            // historyDataが存在しない場合でも、守護神の儀式開始チェックを実行
-            // （historyDataが取得できない場合でも、守護神が未登録なら儀式を開始する必要があるため）
-            const ritualHandled = await this.handlePostRegistrationRitualStart(
-                this.characterId,
-                null,
-                urlParams
-            );
-        }
+        // 【変更】守護神の儀式開始処理は削除されました
+        // requireGuardianConsentフラグで処理するため、この処理は不要
+        // （後方互換性のためメソッド自体は残すが、呼び出しは行わない）
 
         // 【改善】バックエンドからのrequireGuardianConsentフラグを使用（ロジックの明確な分離）
         // バックエンド: ビジネスロジック（守護神状態の判定）
