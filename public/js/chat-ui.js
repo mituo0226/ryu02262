@@ -95,6 +95,9 @@ const ChatUI = {
     characterHeaderImage: null,
     characterHeaderName: null,
     mobileHeaderTitle: null,
+    
+    // 保留中のタイマーを管理（キャラクター切り替え時にクリアするため）
+    pendingTimers: [],
 
     /**
      * DOM要素を初期化
@@ -108,6 +111,7 @@ const ChatUI = {
         this.characterHeaderImage = document.getElementById('characterHeaderImage');
         this.characterHeaderName = document.getElementById('characterHeaderName');
         this.mobileHeaderTitle = document.getElementById('mobileHeaderTitle');
+        this.pendingTimers = [];
     },
 
     /**
@@ -209,11 +213,24 @@ const ChatUI = {
      * @param {string} sender - 送信者名
      * @param {Object} [options={}] - オプション
      * @param {string} [options.id] - メッセージID（指定しない場合は自動生成）
+     * @param {string} [options.characterId] - このメッセージが属するキャラクターID
      * @returns {string|null} メッセージ要素のID、または追加できなかった場合はnull
      */
     addMessage(type, text, sender, options = {}) {
         // 1. 入力値の検証
         if (!this.messagesDiv) return null;
+        
+        // 【修正】キャラクターIDが指定されている場合、現在のキャラクターと一致するかチェック
+        // キャラクター切り替え時に、前のキャラクターのメッセージが表示されるのを防ぐ
+        if (options.characterId && ChatData && ChatData.currentCharacter && options.characterId !== ChatData.currentCharacter) {
+            debugLog('[ChatUI.addMessage] キャラクターが切り替わったため、メッセージ追加をスキップします:', {
+                メッセージのキャラクター: options.characterId,
+                現在のキャラクター: ChatData.currentCharacter,
+                type: type,
+                sender: sender
+            });
+            return null;
+        }
         
         if (typeof text !== 'string') {
             console.error('[ChatUI.addMessage] テキストが文字列ではありません', {
@@ -319,7 +336,17 @@ const ChatUI = {
      */
     clearMessages() {
         if (!this.messagesDiv) return;
+        
+        // 【修正】保留中のタイマーをすべてクリア
+        // キャラクター切り替え時に、前のキャラクターのメッセージが表示されるのを防ぐ
+        debugLog('[ChatUI.clearMessages] 保留中のタイマーをクリアします:', this.pendingTimers.length);
+        this.pendingTimers.forEach(timerId => {
+            clearTimeout(timerId);
+        });
+        this.pendingTimers = [];
+        
         this.messagesDiv.innerHTML = '';
+        debugLog('[ChatUI.clearMessages] メッセージをクリアしました');
     },
 
     /**
@@ -386,11 +413,30 @@ const ChatUI = {
             hasContentDiv: !!contentDiv
         });
         
+        // 【修正】メッセージが属するキャラクターIDを保存
+        // キャラクター切り替え時に、前のキャラクターのメッセージが表示されるのを防ぐ
+        const messageCharacterId = ChatData && ChatData.currentCharacter ? ChatData.currentCharacter : null;
+        
         // アニメーション付きで置き換え
         contentDiv.style.transition = 'opacity 0.2s ease';
         contentDiv.style.opacity = '0';
         
-        setTimeout(() => {
+        // 【修正】タイマーIDを保存して、clearMessages()時にクリアできるようにする
+        const timerId = setTimeout(() => {
+            // 【修正】タイマー実行時に、キャラクターが切り替わっていないかチェック
+            if (ChatData && ChatData.currentCharacter !== messageCharacterId) {
+                debugLog('[ChatUI.replaceThinkingMessage] キャラクターが切り替わったため、メッセージ表示をスキップします:', {
+                    元のキャラクター: messageCharacterId,
+                    現在のキャラクター: ChatData.currentCharacter
+                });
+                // タイマーIDを配列から削除
+                const index = this.pendingTimers.indexOf(timerId);
+                if (index > -1) {
+                    this.pendingTimers.splice(index, 1);
+                }
+                return;
+            }
+            
             // thinking-indicatorを削除
             const thinkingIndicator = contentDiv.querySelector('.thinking-indicator');
             if (thinkingIndicator) {
@@ -430,7 +476,16 @@ const ChatUI = {
             thinkingElement.classList.remove(CSS_CLASSES.THINKING);
             this.scrollToLatest();
             debugLog('[ChatUI.replaceThinkingMessage] メッセージの置き換えが完了しました');
+            
+            // 【修正】タイマーIDを配列から削除
+            const index = this.pendingTimers.indexOf(timerId);
+            if (index > -1) {
+                this.pendingTimers.splice(index, 1);
+            }
         }, TIMING.THINKING_REPLACE_DELAY);
+        
+        // 【修正】タイマーIDを保存
+        this.pendingTimers.push(timerId);
     },
 
     /**

@@ -130,6 +130,9 @@ class BaseCharacterHandler {
         const recentFive = messages.slice(-5); // 最新5件
         const olderMessages = messages.slice(0, -5); // 残りの履歴
         
+        // 【修正】キャラクターIDを保存（履歴表示中にキャラクターが切り替わった場合の対策）
+        const currentCharacterId = this.characterId;
+        
         // 最新5件を即座に表示
         recentFive.forEach((entry) => {
             // システムメッセージはスキップ
@@ -139,12 +142,19 @@ class BaseCharacterHandler {
             const type = entry.role === 'user' ? 'user' : 'character';
             const sender = entry.role === 'user' ? 'あなた' : info.name;
             const content = entry.content || entry.message || '';
-            window.ChatUI.addMessage(type, content, sender);
+            // 【修正】キャラクターIDをオプションとして渡す
+            window.ChatUI.addMessage(type, content, sender, { characterId: currentCharacterId });
         });
         
         // 残りの履歴を遅延表示（バックグラウンド）
         if (olderMessages.length > 0) {
             setTimeout(() => {
+                // 【修正】遅延表示時に再度キャラクターIDをチェック
+                if (ChatData && ChatData.currentCharacter !== currentCharacterId) {
+                    console.log(`[${this.characterName}ハンドラー] キャラクターが切り替わったため、履歴の遅延表示をスキップします`);
+                    return;
+                }
+                
                 olderMessages.forEach((entry) => {
                     // システムメッセージはスキップ
                     if (entry.isSystemMessage) {
@@ -154,9 +164,11 @@ class BaseCharacterHandler {
                     const sender = entry.role === 'user' ? 'あなた' : info.name;
                     const content = entry.content || entry.message || '';
                     if (window.ChatUI && typeof window.ChatUI.prependMessage === 'function') {
-                        window.ChatUI.prependMessage(type, content, sender);
+                        // 【修正】prependMessageにもキャラクターIDを渡す（存在する場合）
+                        window.ChatUI.prependMessage(type, content, sender, { characterId: currentCharacterId });
                     } else {
-                        window.ChatUI.addMessage(type, content, sender);
+                        // 【修正】キャラクターIDをオプションとして渡す
+                        window.ChatUI.addMessage(type, content, sender, { characterId: currentCharacterId });
                     }
                 });
             }, 100); // 100ms後に表示

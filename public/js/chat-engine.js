@@ -1681,7 +1681,10 @@ const ChatInit = {
             if (previousCharacter && previousCharacter !== character) {
                 if (window.ChatUI && typeof window.ChatUI.clearMessages === 'function') {
                     window.ChatUI.clearMessages();
-
+                    
+                    // 【修正】clearMessages()実行後、少し待機してから次の処理を実行
+                    // 保留中のタイマーが確実にクリアされ、DOM操作が完了するのを待つ
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
             }
             
