@@ -134,6 +134,11 @@ const ChatLoadingAnimation = {
         // 背景画像をオーバーレイ（キャラクター画像を半透明で重ね合わせ）
         this._applyCharacterOverlay(character, config.icon);
         
+        // 初期HTMLメッセージ（「〇〇が準備をしています...」）をクリアして二重表示を防ぐ
+        if (this.loadingMessages) {
+            this.loadingMessages.innerHTML = '';
+        }
+        
         // メッセージを順番に表示・更新（_startMessageUpdater内で最初のメッセージも表示する）
         this._startMessageUpdater(config.messages);
         
@@ -209,6 +214,14 @@ const ChatLoadingAnimation = {
         setTimeout(() => {
             if (!this.loadingMessages) return;
             
+            // 【修正】既存のメッセージを完全に削除してから新しいメッセージを追加（二重表示を確実に防ぐ）
+            const remainingMessages = this.loadingMessages.querySelectorAll('.loading-message');
+            remainingMessages.forEach(msg => {
+                if (msg.parentNode === this.loadingMessages) {
+                    msg.remove();
+                }
+            });
+            
             const messageHtml = `
                 <div class="loading-message message-fade-in">
                     <span>${processedMessage}</span>
@@ -217,7 +230,7 @@ const ChatLoadingAnimation = {
             
             this.loadingMessages.insertAdjacentHTML('beforeend', messageHtml);
             
-            console.log('[ChatLoadingAnimation] メッセージ表示（${index + 1}/${messages.length}）:', processedMessage);
+            console.log(`[ChatLoadingAnimation] メッセージ表示（${index + 1}/${messages.length}）:`, processedMessage);
         }, 300);
     },
     
