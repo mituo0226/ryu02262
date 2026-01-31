@@ -190,7 +190,7 @@ const KaedeHandler = {
                 console.warn('[楓専用処理] welcomeMessageが存在しません。フォールバックメッセージを表示します。');
                 
                 // フォールバックメッセージを表示
-                const fallbackMessage = `訪れていただきありがとうございます。\nまずは守護神の儀式を開始させていただきます。`;
+                const fallbackMessage = `訪れていただき、ありがとうございます。\n楓と申します。よろしくお願いいたします。\nまずは守護神の儀式を開始させていただきます。`;
                 const info = ChatData.characterInfo[this.characterId];
                 const messageId = ChatUI.addMessage('welcome', fallbackMessage, info.name);
                 
@@ -689,38 +689,81 @@ const KaedeHandler = {
             console.log('[楓ハンドラー] 既存のボタンを削除します');
             existingButton.remove();
         }
+        // CSSアニメーションを動的に追加
+        if (!document.getElementById('ritual-button-animation-styles')) {
+            const style = document.createElement('style');
+            style.id = 'ritual-button-animation-styles';
+            style.textContent = `
+                @keyframes mysticGlow {
+                    0%, 100% {
+                        box-shadow: 0 0 20px rgba(139, 61, 255, 0.6),
+                                    0 0 40px rgba(139, 61, 255, 0.4),
+                                    0 0 60px rgba(139, 61, 255, 0.2),
+                                    inset 0 0 20px rgba(255, 255, 255, 0.1);
+                    }
+                    50% {
+                        box-shadow: 0 0 30px rgba(139, 61, 255, 0.8),
+                                    0 0 60px rgba(139, 61, 255, 0.6),
+                                    0 0 90px rgba(139, 61, 255, 0.4),
+                                    inset 0 0 30px rgba(255, 255, 255, 0.2);
+                    }
+                }
+                
+                @keyframes shimmer {
+                    0% {
+                        background-position: -200% center;
+                    }
+                    100% {
+                        background-position: 200% center;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'ritual-start-button-container';
         buttonContainer.style.cssText = `
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            padding: 20px 0;
         `;
+        
         const button = document.createElement('button');
         button.className = 'ritual-start-button';
         button.textContent = '守護神の儀式を始める';
         button.style.cssText = `
-            width: 100%;
-            padding: 12px 24px;
+            padding: 16px 48px;
             background: linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%);
+            background-size: 200% auto;
             color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border: 2px solid rgba(139, 61, 255, 0.5);
+            border-radius: 50px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(139, 61, 255, 0.3);
+            animation: mysticGlow 2s ease-in-out infinite, shimmer 3s linear infinite;
+            position: relative;
+            overflow: hidden;
+            min-width: 280px;
+            max-width: 90%;
+            
+            @media (max-width: 768px) {
+                font-size: 16px;
+                padding: 14px 40px;
+                min-width: 240px;
+            }
         `;
         button.addEventListener('mouseenter', () => {
-            button.style.background = 'linear-gradient(135deg, #9B4DFF 0%, #7A1DBD 100%)';
-            button.style.boxShadow = '0 6px 16px rgba(139, 61, 255, 0.4)';
-            button.style.transform = 'translateY(-2px)';
+            button.style.transform = 'translateY(-3px) scale(1.05)';
+            button.style.filter = 'brightness(1.2)';
         });
         button.addEventListener('mouseleave', () => {
-            button.style.background = 'linear-gradient(135deg, #8B3DFF 0%, #6A0DAD 100%)';
-            button.style.boxShadow = '0 4px 12px rgba(139, 61, 255, 0.3)';
-            button.style.transform = 'translateY(0)';
+            button.style.transform = 'translateY(0) scale(1)';
+            button.style.filter = 'brightness(1)';
         });
         button.addEventListener('click', async () => {
             button.disabled = true;
@@ -822,8 +865,8 @@ const KaedeHandler = {
         
         try {
             // 1. 守護神決定の確認メッセージ
-            const confirmationMessage = `${userNickname}さんの守護神は「${guardianName}」です。
-これからは、私と守護神である${guardianName}が一緒に、${userNickname}さんの運命を導いていきます。`;
+            const confirmationMessage = `導かれた守護神は「${guardianName}」
+これからは、私と守護神である${guardianName}と共に運命を導いてまいります。`;
             
             if (window.ChatUI && window.ChatUI.addMessage) {
                 window.ChatUI.addMessage('character', confirmationMessage, characterName);
@@ -838,10 +881,11 @@ const KaedeHandler = {
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             // 3. 初回相談への移行メッセージ
-            const consultationMessage = `${userNickname}さんが今、心の中で抱えていること、
-悩んでいること、あるいは知りたいと思っていることがあれば、
-どんな些細なことでも構いません。
-私に話してみてください。`;
+            const consultationMessage = `${userNickname}さんが今、心の中で抱えていること、私と守護神様に伝わっていることもございます。
+しかしまずは${userNickname}さんの言葉から始めるのが望ましいでしょう。
+どんな言葉から始めても構いません。
+私と${guardianName}、これから先ずっとお支えしていきます。
+思い浮かんだ心の声をお伝えくださいませ。`;
             
             if (window.ChatUI && window.ChatUI.addMessage) {
                 window.ChatUI.addMessage('character', consultationMessage, characterName);
