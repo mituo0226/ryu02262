@@ -351,6 +351,12 @@ const KaedeHandler = {
         sessionStorage.removeItem('ritualCompleted');
         sessionStorage.removeItem('lastUserMessage');
         
+        // ローディング画面を非表示（定型文表示前）
+        if (typeof hideLoadingScreen === 'function') {
+            hideLoadingScreen();
+            console.log('[楓ハンドラー] ローディング画面を非表示にしました');
+        }
+        
         // フロントエンド定型文を表示（APIを呼ばない）
         await this.sendRitualCompletionMessages(guardianName, userNickname);
         
