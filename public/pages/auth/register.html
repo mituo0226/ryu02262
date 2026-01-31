@@ -78,6 +78,49 @@
     
     * { box-sizing: border-box; }
     
+    .mystical-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    
+    .mystical-particle {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200, 180, 255, 0.6) 0%, rgba(138, 43, 226, 0.3) 50%, transparent 70%);
+      animation: particleFloat linear infinite;
+    }
+    
+    .mystical-star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+      animation: starTwinkle ease-in-out infinite;
+    }
+    
+    @keyframes particleFloat {
+      0% {
+        transform: translate(0, 100vh) scale(0);
+        opacity: 0;
+      }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.4; }
+      100% {
+        transform: translate(0, -20px) scale(1);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes starTwinkle {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    
     body {
       margin: 0;
       min-height: 100vh;
@@ -140,7 +183,7 @@
       min-height: 100vh;
       padding: 40px 20px 60px;
       position: relative;
-      z-index: 100;
+      z-index: 10;
     }
     
     #registrationScreen.visible {
@@ -150,6 +193,7 @@
     .form-wrapper {
       max-width: 440px;
       margin: 0 auto;
+      padding: 0 20px;
       animation: formFadeIn 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
     }
     h1 {
@@ -299,12 +343,23 @@
       background: rgba(255, 255, 255, 0.12);
     }
     
-    /* 生年月日グリッド */
+    /* 生年月日: PCは横並び */
     .birth-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       width: 100%;
+    }
+    
+    .birth-item-label {
+      display: none;
+    }
+    
+    .birth-grid-inline-label {
+      font-size: 12px;
+      text-align: center;
+      color: #d4c4e8;
+      margin-top: 8px;
     }
     
     .birth-grid select {
@@ -514,40 +569,57 @@
       border-color: rgba(255, 255, 255, 0.5);
     }
     
+    /* スマホ: 生年月日は縦並び、入力幅を美しく */
     @media (max-width: 768px) {
       .opening-title { font-size: clamp(1.5rem, 4vw, 2.2rem); }
-      #registrationScreen { padding: 30px 16px 50px; }
-      .form-wrapper { max-width: 100%; }
+      #registrationScreen { padding: 32px 0 50px; }
+      .form-wrapper { max-width: 100%; padding: 0 28px; }
       h1 { font-size: 24px; }
       .step-label { font-size: 17px; }
-      input, select { padding: 14px; min-height: 48px; font-size: 16px; }
-      .birth-grid select { padding: 12px 8px; font-size: 14px; min-height: 48px; }
+      input, select { padding: 14px 16px; min-height: 48px; font-size: 16px; }
+      .birth-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .birth-item-label {
+        display: block;
+        font-size: 13px;
+        color: #d4c4e8;
+        margin-bottom: 6px;
+      }
+      .birth-grid-inline-label { display: none; }
+      .birth-grid select { padding: 14px 16px; font-size: 16px; min-height: 48px; }
       button { padding: 12px 20px; font-size: 15px; min-height: 48px; }
     }
     
     @media (max-width: 480px) {
       .opening-title { font-size: clamp(1.3rem, 4vw, 1.8rem); }
-      #registrationScreen { padding: 24px 12px 40px; }
+      #registrationScreen { padding: 28px 0 40px; }
+      .form-wrapper { padding: 0 24px; }
       h1 { font-size: 20px; }
       .step-label { font-size: 16px; }
       .step-description { font-size: 12px; }
-      input, select { padding: 12px; min-height: 44px; font-size: 15px; }
-      .birth-grid select { padding: 10px 6px; font-size: 12px; min-height: 44px; }
+      input, select { padding: 12px 14px; min-height: 44px; font-size: 15px; }
+      .birth-grid select { padding: 12px 14px; font-size: 15px; min-height: 44px; }
       button { padding: 12px 16px; font-size: 14px; min-height: 44px; }
     }
     
     @media (max-width: 360px) {
       .opening-title { font-size: clamp(1.2rem, 4vw, 1.4rem); }
+      .form-wrapper { padding: 0 20px; }
       .step-label { font-size: 15px; }
-      input, select { font-size: 14px; padding: 11px 10px; }
+      input, select { font-size: 14px; padding: 11px 12px; }
     }
   </style>
 </head>
 <body>
+  <!-- 神秘的な背景効果（神の世界・宇宙空間） -->
+  <div class="mystical-bg" id="mysticalBg"></div>
+  
   <!-- オープニング画面: 全画面・仕切りなし -->
   <div id="openingScreen">
     <div class="opening-inner">
-      <h1 class="opening-title">◆ あなたの運命の扉を開きましょう ◆</h1>
+      <h1 class="opening-title">◆ 運命の扉を開きましょう ◆</h1>
     </div>
   </div>
   
@@ -584,11 +656,20 @@
             <div class="step-label">生年月日を教えてください</div>
             <div class="input-field">
               <div class="birth-grid">
-                <select id="birthYear" autocomplete="off"></select>
-                <select id="birthMonth" autocomplete="off"></select>
-                <select id="birthDay" autocomplete="off"></select>
+                <div class="birth-item">
+                  <label class="birth-item-label">西暦</label>
+                  <select id="birthYear" autocomplete="off"></select>
+                </div>
+                <div class="birth-item">
+                  <label class="birth-item-label">月</label>
+                  <select id="birthMonth" autocomplete="off"></select>
+                </div>
+                <div class="birth-item">
+                  <label class="birth-item-label">日</label>
+                  <select id="birthDay" autocomplete="off"></select>
+                </div>
               </div>
-              <div style="font-size: 12px; text-align: center; color: #c8b7ff; margin-top: 8px;">年　月　日</div>
+              <div class="birth-grid-inline-label">年　月　日</div>
             </div>
           </div>
         </div>
@@ -652,9 +733,33 @@
 
 
   <script>
-    // DOMContentLoadedイベントで実行（DOMが完全に読み込まれた後に実行）
     document.addEventListener('DOMContentLoaded', async function() {
-      // オープニング画面の表示
+      // 神秘的な背景効果: 神の世界・宇宙空間の演出
+      (function initMysticalBg() {
+        const container = document.getElementById('mysticalBg');
+        if (!container) return;
+        const count = window.innerWidth < 768 ? 12 : 20;
+        for (let i = 0; i < count; i++) {
+          const p = document.createElement('div');
+          p.className = 'mystical-particle';
+          const size = 4 + Math.random() * 12;
+          const left = Math.random() * 100;
+          const duration = 15 + Math.random() * 25;
+          const delay = Math.random() * -20;
+          p.style.cssText = `width:${size}px;height:${size}px;left:${left}%;animation-duration:${duration}s;animation-delay:${delay}s`;
+          container.appendChild(p);
+        }
+        for (let i = 0; i < 30; i++) {
+          const s = document.createElement('div');
+          s.className = 'mystical-star';
+          s.style.left = Math.random() * 100 + '%';
+          s.style.top = Math.random() * 100 + '%';
+          s.style.animationDuration = (2 + Math.random() * 3) + 's';
+          s.style.animationDelay = Math.random() * -5 + 's';
+          container.appendChild(s);
+        }
+      })();
+      
       const openingScreen = document.getElementById('openingScreen');
       const registrationScreen = document.getElementById('registrationScreen');
       
