@@ -116,11 +116,12 @@ export const onRequestGet: PagesFunction = async (context) => {
       );
     }
 
-    // 会話履歴を取得
+    // 会話履歴を取得（message_type='normal'のメッセージのみ）
+    // ウェルカムメッセージ（message_type='welcome'）は履歴判定から除外
     const conversations = await env.DB.prepare<ConversationRecord>(
       `SELECT role, message, timestamp, created_at
        FROM conversations
-       WHERE user_id = ? AND character_id = ?
+       WHERE user_id = ? AND character_id = ? AND (message_type = 'normal' OR message_type IS NULL)
        ORDER BY COALESCE(timestamp, created_at) DESC
        LIMIT 1`
     )
@@ -131,9 +132,10 @@ export const onRequestGet: PagesFunction = async (context) => {
       userId,
       character,
       conversationCount: conversations.results?.length || 0,
+      note: 'ウェルカムメッセージ(message_type=welcome)は除外',
     });
 
-    // 履歴の有無を判定
+    // 履歴の有無を判定（通常メッセージのみ）
     const hasHistory = (conversations.results?.length || 0) > 0;
 
     // 訪問パターンを判定（シンプル版）
