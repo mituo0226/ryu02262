@@ -127,11 +127,12 @@ async function getLastVisitInfo(database, userId, characterId) {
   try {
     // 最新のユーザーメッセージのtimestampを取得
     // 【重要】last_updated_atカラムはスキーマに存在しないため、timestampを使用
+    // ウェルカムメッセージ（message_type='welcome'）は履歴判定から除外
     const result = await database.prepare(`
       SELECT 
         COALESCE(timestamp, created_at) as last_updated_at
       FROM conversations 
-      WHERE user_id = ? AND character_id = ? AND role = 'user'
+      WHERE user_id = ? AND character_id = ? AND role = 'user' AND (message_type = 'normal' OR message_type IS NULL)
       ORDER BY COALESCE(timestamp, created_at) DESC
       LIMIT 1
     `).bind(userId, characterId).first();
@@ -157,6 +158,7 @@ async function getLastVisitInfo(database, userId, characterId) {
 async function getConversationHistory(database, userId, characterId) {
   try {
     // Cloudflare D1の場合
+    // ウェルカムメッセージ（message_type='welcome'）は履歴判定から除外
     const result = await database.prepare(`
       SELECT 
         id,
@@ -164,7 +166,7 @@ async function getConversationHistory(database, userId, characterId) {
         message as content,
         COALESCE(timestamp, created_at) as created_at
       FROM conversations 
-      WHERE user_id = ? AND character_id = ?
+      WHERE user_id = ? AND character_id = ? AND (message_type = 'normal' OR message_type IS NULL)
       ORDER BY COALESCE(timestamp, created_at) DESC
       LIMIT 10
     `).bind(userId, characterId).all();
