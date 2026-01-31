@@ -8,13 +8,31 @@ import { getHealthChecker } from '../_lib/api-health-checker.js';
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
+
+// ===== 会話履歴管理の設計思想 =====
+// 【目的】トークン制限回避 + ユーザーへの信頼維持（長期記憶）
+//
+// 【送信戦略】LLMには合計5件を送信:
+//   - 要約メッセージ: 最新2件（過去の会話の記憶）
+//   - 通常メッセージ: 最新3件（直近の会話の文脈）
+//
+// 【保存戦略】データベースには最大55件を保存:
+//   - 通常メッセージ: 5件（新しいメッセージが追加されると古いものは要約される）
+//   - 要約メッセージ: 50件（10件ごとに1件の要約が生成される）
+//   - つまり、500メッセージ分（50要約×10件）の長期記憶を実現
+//
+// 【要約プロセス】
+//   1. 通常メッセージが5件を超えると、古い10件を1件の要約に圧縮
+//   2. 要約は相談内容の核心、感情、洞察を保持
+//   3. welcomeメッセージは要約対象外（初回挨拶は記憶不要）
+//
 const MAX_NORMAL_MESSAGES = 5; // 通常保存する最新メッセージ数（直近5件）
 const MAX_SUMMARY_COUNT = 50; // 保持する要約の最大数（50件まで記憶）
 const MAX_TOTAL_MESSAGES = 55; // 全体の最大メッセージ数（通常5件 + 要約50件）
 const MESSAGES_PER_SUMMARY = 10; // 1つの要約に圧縮するメッセージ数（10件を1件に）
 const CACHE_TTL = 300; // キャッシュの有効期限（5分間、秒単位）
 const API_TIMEOUT = 15000; // API呼び出しのタイムアウト（15秒）
-const HISTORY_LIMIT_FOR_LLM = 5; // LLMに送信する会話履歴の件数（直近5件）
+const HISTORY_LIMIT_FOR_LLM = 5; // LLMに送信する会話履歴の件数（要約2件 + 通常3件）
 
 // ===== 型定義 =====
 type ConversationRole = 'user' | 'assistant';
@@ -282,6 +300,11 @@ async function updateConversationHistoryCache(
 
 /**
  * 会話履歴を要約して圧縮する
+ * 
+ * 【重要】要約の品質がユーザーへの信頼に直結する
+ * - 相談内容の核心を保持
+ * - 感情や状況の文脈を残す
+ * - 鑑定士の洞察やアドバイスの要点を含める
  */
 async function summarizeConversationHistory(
   db: D1Database,
@@ -295,7 +318,18 @@ async function summarizeConversationHistory(
     .map((msg) => `${msg.role === 'user' ? 'ユーザー' : 'アシスタント'}: ${msg.message}`)
     .join('\n');
 
-  const systemPrompt = `以下の会話履歴を簡潔に要約してください。重要なポイントや相談内容の要点を200文字以内でまとめてください。
+  const systemPrompt = `以下の会話履歴を要約してください。
+
+【要約の重要ポイント】
+1. 相談者が話した悩みや相談内容の核心
+2. 相談者の感情や心理状態（不安、希望など）
+3. 鑑定士が伝えた重要な洞察やアドバイス
+4. 話の流れや文脈（何について、なぜ相談したか）
+
+【要約の形式】
+- 200～300文字程度
+- 「相談者は〜について悩んでいた。鑑定士は〜と伝えた。」のような客観的な記述
+- 固有名詞や重要なキーワードは維持する
 
 会話履歴:
 ${conversationText}
@@ -317,7 +351,7 @@ ${conversationText}
         conversationHistory: [],
         userMessage: '上記の会話履歴を要約してください。',
         temperature: 0.3,
-        maxTokens: 300,
+        maxTokens: 500, // 300→500に増やして、より詳細な要約を生成
         topP: 0.8,
         deepseekApiKey: apiKey || '',
         fallbackApiKey: fallbackApiKey,
@@ -360,9 +394,12 @@ async function checkAndCleanupOldMessages(
 
   const messageCount = messageCountResult?.count || 0;
 
-  // 通常メッセージ数（要約以外）を取得
+  // 通常メッセージ数（要約・welcome・systemメッセージ以外）を取得
   const normalMessageCountResult = await db.prepare<{ count: number }>(
-    `SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND character_id = ? AND message_type != 'summary'`
+    `SELECT COUNT(*) as count FROM conversations 
+     WHERE user_id = ? AND character_id = ? 
+       AND message_type != 'summary' 
+       AND (message_type IS NULL OR message_type NOT IN ('welcome', 'system'))`
   )
     .bind(userId, characterId)
     .first();
@@ -403,7 +440,8 @@ async function checkAndCleanupOldMessages(
 
   // 通常メッセージが5件を超えた場合、古い10件を要約して圧縮（10件を1件に）
   if (normalMessageCount > MAX_NORMAL_MESSAGES && env && summaryCount < MAX_SUMMARY_COUNT) {
-    // 要約する古い10件を取得（要約以外のメッセージから、最も古い10件）
+    // 要約する古い10件を取得（要約・welcomeメッセージ以外から、最も古い10件）
+    // welcomeメッセージは要約対象外（初回挨拶は記憶不要）
     const oldMessagesResult = await db.prepare<{
       id: number;
       role: string;
@@ -411,7 +449,9 @@ async function checkAndCleanupOldMessages(
     }>(
       `SELECT id, role, message
        FROM conversations
-       WHERE user_id = ? AND character_id = ? AND message_type != 'summary'
+       WHERE user_id = ? AND character_id = ? 
+         AND message_type != 'summary' 
+         AND (message_type IS NULL OR message_type NOT IN ('welcome', 'system'))
        ORDER BY COALESCE(timestamp, created_at) ASC
        LIMIT ?`
     )
@@ -430,20 +470,21 @@ async function checkAndCleanupOldMessages(
         env
       );
 
-      // 要約メッセージを保存
+      // 要約メッセージを保存（プレフィックス付き）
+      const summaryWithPrefix = `【過去の会話要約】\n${summary}`;
       try {
         await db.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, timestamp)
            VALUES (?, ?, 'assistant', ?, 'summary', 0, CURRENT_TIMESTAMP)`
         )
-          .bind(userId, characterId, summary)
+          .bind(userId, characterId, summaryWithPrefix)
           .run();
       } catch {
         await db.prepare(
           `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, created_at)
            VALUES (?, ?, 'assistant', ?, 'summary', 0, CURRENT_TIMESTAMP)`
         )
-          .bind(userId, characterId, summary)
+          .bind(userId, characterId, summaryWithPrefix)
           .run();
       }
 
@@ -1236,16 +1277,80 @@ export const onRequestPost: PagesFunction = async (context) => {
       fromClient: sanitizedHistory.length,
     });
     
-    // ===== LLMに送信する会話履歴を制限（直近5件 + 要約を含む）=====
-    // 要約メッセージも含めて直近HISTORY_LIMIT_FOR_LLM件に制限
-    // これにより、過去の会話は要約として記憶され、トークン制限を回避できる
-    const conversationHistoryForLLM = conversationHistory.slice(-HISTORY_LIMIT_FOR_LLM);
+    // ===== LLMに送信する会話履歴を制限（要約 + 直近メッセージ）=====
+    // 【重要】ユーザーへの信頼を維持するため、要約を活用して長期記憶を実現
+    // 
+    // 戦略：
+    // 1. 要約から最新2-3件を取得（過去の会話の記憶）
+    // 2. 通常メッセージから最新2-3件を取得（直近の会話の文脈）
+    // 3. 合計5件をLLMに送信
+    //
+    // これにより、500メッセージ分（50要約×10件）の長期記憶を維持しつつ、
+    // トークン制限を回避できる
     
-    console.log('[consult] LLMに送信する会話履歴:', {
-      originalLength: conversationHistory.length,
-      limitedLength: conversationHistoryForLLM.length,
-      limit: HISTORY_LIMIT_FOR_LLM,
-    });
+    let conversationHistoryForLLM: ClientHistoryEntry[] = [];
+    
+    // 要約メッセージを取得（message_typeが存在する場合のみチェック）
+    if (user) {
+      try {
+        const summariesResult = await env.DB.prepare<ConversationRow & { message_type?: string }>(
+          `SELECT c.role, c.message as content
+           FROM conversations c
+           WHERE c.user_id = ? AND c.character_id = ? AND c.message_type = 'summary'
+           ORDER BY COALESCE(c.timestamp, c.created_at) DESC
+           LIMIT 2`
+        )
+          .bind(user.id, characterId)
+          .all();
+        
+        const summaries = summariesResult.results?.slice().reverse().map((row) => ({
+          role: row.role as ConversationRole,
+          content: row.content || '',
+        })) ?? [];
+        
+        console.log('[consult] 要約メッセージを取得しました:', {
+          summaryCount: summaries.length,
+        });
+        
+        // 通常メッセージを取得（要約・welcome・systemメッセージ以外）
+        const normalMessagesResult = await env.DB.prepare<ConversationRow & { message_type?: string }>(
+          `SELECT c.role, c.message as content
+           FROM conversations c
+           WHERE c.user_id = ? AND c.character_id = ? 
+             AND (c.message_type IS NULL OR c.message_type NOT IN ('summary', 'welcome', 'system'))
+           ORDER BY COALESCE(c.timestamp, c.created_at) DESC
+           LIMIT 3`
+        )
+          .bind(user.id, characterId)
+          .all();
+        
+        const normalMessages = normalMessagesResult.results?.slice().reverse().map((row) => ({
+          role: row.role as ConversationRole,
+          content: row.content || '',
+        })) ?? [];
+        
+        console.log('[consult] 通常メッセージを取得しました:', {
+          normalMessageCount: normalMessages.length,
+        });
+        
+        // 要約 + 通常メッセージを結合
+        conversationHistoryForLLM = [...summaries, ...normalMessages];
+        
+        console.log('[consult] LLMに送信する会話履歴:', {
+          summaryCount: summaries.length,
+          normalMessageCount: normalMessages.length,
+          totalCount: conversationHistoryForLLM.length,
+          limit: HISTORY_LIMIT_FOR_LLM,
+        });
+      } catch (error) {
+        console.error('[consult] 要約取得エラー、フォールバック処理:', error);
+        // エラー時は直近5件を送信（従来の動作）
+        conversationHistoryForLLM = conversationHistory.slice(-HISTORY_LIMIT_FOR_LLM);
+      }
+    } else {
+      // ユーザーがいない場合は直近5件を送信
+      conversationHistoryForLLM = conversationHistory.slice(-HISTORY_LIMIT_FOR_LLM);
+    }
 
     // ===== 6. 守護神が決定済みの場合、確認メッセージを会話履歴に注入 =====
     // 【改善】守護神の情報は会話履歴に注入するのではなく、システムプロンプトで処理
