@@ -1371,9 +1371,27 @@ ${userNickname}さんが初めてあなたの元を訪れました。
         if (welcomeLLMResult.success && welcomeLLMResult.message) {
           console.log('[consult] ✅ ウェルカムメッセージを生成しました（守護神言葉生成スキップ）');
 
-          // 生成されたメッセージを会話履歴に保存
+          // 生成されたメッセージを会話履歴に保存（message_type='welcome'）
+          // ウェルカムメッセージは履歴判定から除外されるため、初回訪問判定に影響しない
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, welcomeLLMResult.message, 1);
+            try {
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, timestamp)
+                 VALUES (?, ?, 'assistant', ?, 'welcome', 0, 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, welcomeLLMResult.message)
+                .run();
+              console.log('[consult] ウェルカムメッセージを保存しました (message_type=welcome)');
+            } catch (error) {
+              console.error('[consult] ウェルカムメッセージ保存エラー (timestampカラム)、created_atで再試行');
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, created_at)
+                 VALUES (?, ?, 'assistant', ?, 'welcome', 0, 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, welcomeLLMResult.message)
+                .run();
+              console.log('[consult] ウェルカムメッセージを保存しました (message_type=welcome, created_at)');
+            }
           }
 
           return new Response(
@@ -1394,7 +1412,23 @@ ${userNickname}さんが初めてあなたの元を訪れました。
           const simpleFallback = `（柔らかく微笑みながら）${userNickname}さん、よくいらっしゃいました。私は楓です。あなたの守護神「${guardianName}」がお迎えしています。今日は何についてお話ししたいですか？`;
           
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, simpleFallback, 1);
+            try {
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, timestamp)
+                 VALUES (?, ?, 'assistant', ?, 'welcome', 0, 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, simpleFallback)
+                .run();
+              console.log('[consult] フォールバックメッセージを保存しました (message_type=welcome)');
+            } catch (error) {
+              console.error('[consult] フォールバックメッセージ保存エラー、created_atで再試行');
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, created_at)
+                 VALUES (?, ?, 'assistant', ?, 'welcome', 0, 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, simpleFallback)
+                .run();
+            }
           }
 
           return new Response(
@@ -1483,10 +1517,27 @@ ${userNickname}さんが初めてあなたの元を訪れました。
         if (kaedeLLMResult.success && kaedeLLMResult.message) {
           console.log('[consult] ✅ 楓からの追加メッセージを生成しました');
 
-          // 生成されたメッセージを会話履歴に保存
-          // 楓のフォローアップメッセージも重要（守護神メッセージの直後）
+          // 生成されたメッセージを会話履歴に保存（message_type='welcome'）
+          // 楓のフォローアップメッセージも履歴判定から除外（初回訪問判定に影響しない）
           if (user) {
-            await saveAssistantMessage(env.DB, user.id, characterId, kaedeLLMResult.message, 2);
+            try {
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, timestamp)
+                 VALUES (?, ?, 'assistant', ?, 'welcome', 0, 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, kaedeLLMResult.message)
+                .run();
+              console.log('[consult] 楓フォローアップメッセージを保存しました (message_type=welcome)');
+            } catch (error) {
+              console.error('[consult] 楓フォローアップメッセージ保存エラー (timestampカラム)、created_atで再試行');
+              await env.DB.prepare(
+                `INSERT INTO conversations (user_id, character_id, role, message, message_type, is_guest_message, is_important, created_at)
+                 VALUES (?, ?, 'assistant', ?, 'welcome', 0, 1, CURRENT_TIMESTAMP)`
+              )
+                .bind(user.id, characterId, kaedeLLMResult.message)
+                .run();
+              console.log('[consult] 楓フォローアップメッセージを保存しました (message_type=welcome, created_at)');
+            }
           }
 
           return new Response(
