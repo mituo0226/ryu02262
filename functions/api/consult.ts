@@ -12,27 +12,29 @@ const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
 // ===== 会話履歴管理の設計思想 =====
 // 【目的】トークン制限回避 + ユーザーへの信頼維持（長期記憶）
 //
-// 【送信戦略】LLMには合計5件を送信:
-//   - 要約メッセージ: 最新2件（過去の会話の記憶）
-//   - 通常メッセージ: 最新3件（直近の会話の文脈）
+// 【送信戦略】LLMには合計6件を送信:
+//   - 要約メッセージ: 3件（過去60メッセージ分の記憶）
+//   - 通常メッセージ: 3件（直近の会話の文脈）
 //
-// 【保存戦略】データベースには最大55件を保存:
-//   - 通常メッセージ: 5件（新しいメッセージが追加されると古いものは要約される）
-//   - 要約メッセージ: 50件（10件ごとに1件の要約が生成される）
-//   - つまり、500メッセージ分（50要約×10件）の長期記憶を実現
+// 【保存戦略】データベースには最大6件を保存:
+//   - 通常メッセージ: 3件（直近の会話）
+//   - 要約メッセージ: 3件（20件ごとに1件の要約が生成）
+//   - つまり、63メッセージ分（3要約×20件 + 通常3件）の長期記憶を実現
 //
 // 【要約プロセス】
-//   1. 通常メッセージが5件を超えると、古い10件を1件の要約に圧縮
-//   2. 要約は相談内容の核心、感情、洞察を保持
+//   1. 通常メッセージが3件を超えると、古い20件を1件の要約に圧縮
+//   2. 要約は相談内容の核心、感情、洞察を保持（20件分の詳細な要約）
 //   3. welcomeメッセージは要約対象外（初回挨拶は記憶不要）
+//   4. 要約が3件を超えると、古い要約から削除
+//   5. 64メッセージ以降は自動削除される
 //
-const MAX_NORMAL_MESSAGES = 5; // 通常保存する最新メッセージ数（直近5件）
-const MAX_SUMMARY_COUNT = 50; // 保持する要約の最大数（50件まで記憶）
-const MAX_TOTAL_MESSAGES = 55; // 全体の最大メッセージ数（通常5件 + 要約50件）
-const MESSAGES_PER_SUMMARY = 10; // 1つの要約に圧縮するメッセージ数（10件を1件に）
+const MAX_NORMAL_MESSAGES = 3; // 通常保存する最新メッセージ数（直近3件）
+const MAX_SUMMARY_COUNT = 3; // 保持する要約の最大数（3件 = 60メッセージ分）
+const MAX_TOTAL_MESSAGES = 6; // 全体の最大メッセージ数（通常3件 + 要約3件）
+const MESSAGES_PER_SUMMARY = 20; // 1つの要約に圧縮するメッセージ数（20件を1件に）
 const CACHE_TTL = 300; // キャッシュの有効期限（5分間、秒単位）
 const API_TIMEOUT = 15000; // API呼び出しのタイムアウト（15秒）
-const HISTORY_LIMIT_FOR_LLM = 5; // LLMに送信する会話履歴の件数（要約2件 + 通常3件）
+const HISTORY_LIMIT_FOR_LLM = 6; // LLMに送信する会話履歴の件数（要約3件 + 通常3件）
 
 // ===== 型定義 =====
 type ConversationRole = 'user' | 'assistant';
@@ -194,8 +196,8 @@ async function getConversationHistory(
   }
   
   // ステップ2: キャッシュミスの場合、DBから取得
-  // 【改善】最新100件取得し、LLMコンテキストとしては最新10-20件のみ使用
-  // 履歴は完全に保持し、古い順に自動削除（容量管理）
+  // 【改善】最新100件取得（安全のための上限）
+  // 実際にはcheckAndCleanupOldMessagesで6件に管理されるため、通常は6件以下
   console.log('[getConversationHistory] キャッシュミス、DBから取得:', cacheKey);
   
   // 全メッセージ数を確認（容量管理用）
@@ -207,7 +209,8 @@ async function getConversationHistory(
   
   const totalCount = (countResult?.count as number) || 0;
   
-  // 容量制限: 100件を超えた場合、古い順に削除
+  // 容量制限: 100件を超えた場合、古い順に削除（緊急時の安全装置）
+  // 通常はcheckAndCleanupOldMessagesで6件に管理されるため、この制限には達しない
   const MAX_MESSAGES_PER_USER_CHARACTER = 100;
   if (totalCount > MAX_MESSAGES_PER_USER_CHARACTER) {
     const excessCount = totalCount - MAX_MESSAGES_PER_USER_CHARACTER;
@@ -235,7 +238,7 @@ async function getConversationHistory(
     console.log('[getConversationHistory] 古いメッセージを自動削除しました:', excessCount);
   }
   
-  // 最新100件を取得
+  // 最新100件を取得（実際には6件に管理されているため、6件以下を取得）
   const historyResults = await db.prepare<ConversationRow & { message_type?: string }>(
     `SELECT c.role, c.message as content, c.is_guest_message, c.message_type
      FROM conversations c
@@ -375,8 +378,9 @@ ${conversationText}
 
 /**
  * 会話履歴管理と古いメッセージの要約圧縮（共通関数）
- * 最新5件は通常保存、5件を超えたら10件ずつ要約して1件に圧縮
- * 要約は最大50件まで保持（全体で最大55件：通常5件 + 要約50件）
+ * 最新3件は通常保存、3件を超えたら20件ずつ要約して1件に圧縮
+ * 要約は最大3件まで保持（全体で最大6件：通常3件 + 要約3件 = 63メッセージ分）
+ * LLMには3件の要約すべてを送信（60メッセージ分の記憶）
  * 全キャラクター対応
  */
 async function checkAndCleanupOldMessages(
@@ -415,7 +419,7 @@ async function checkAndCleanupOldMessages(
 
   const summaryCount = summaryCountResult?.count || 0;
 
-  // 要約メッセージが50件を超えた場合、古い要約メッセージを削除
+  // 要約メッセージが3件を超えた場合、古い要約メッセージを削除
   if (summaryCount > MAX_SUMMARY_COUNT) {
     const deleteSummaryCount = summaryCount - MAX_SUMMARY_COUNT;
     await db.prepare(
@@ -438,9 +442,9 @@ async function checkAndCleanupOldMessages(
     });
   }
 
-  // 通常メッセージが5件を超えた場合、古い10件を要約して圧縮（10件を1件に）
+  // 通常メッセージが3件を超えた場合、古い20件を要約して圧縮（20件を1件に）
   if (normalMessageCount > MAX_NORMAL_MESSAGES && env && summaryCount < MAX_SUMMARY_COUNT) {
-    // 要約する古い10件を取得（要約・welcomeメッセージ以外から、最も古い10件）
+    // 要約する古い20件を取得（要約・welcomeメッセージ以外から、最も古い20件）
     // welcomeメッセージは要約対象外（初回挨拶は記憶不要）
     const oldMessagesResult = await db.prepare<{
       id: number;
@@ -500,7 +504,7 @@ async function checkAndCleanupOldMessages(
           .run();
       }
 
-      console.log('[checkAndCleanupOldMessages] 10件のメッセージを要約して1件に圧縮しました:', {
+      console.log('[checkAndCleanupOldMessages] 20件のメッセージを要約して1件に圧縮しました:', {
         userId,
         characterId,
         compressedCount: oldMessages.length,
@@ -508,8 +512,8 @@ async function checkAndCleanupOldMessages(
     }
   }
 
-  // 全体が55件を超えた場合、古いメッセージ（要約も含む）を削除
-  // これにより、通常メッセージ5件 + 要約メッセージ50件 = 合計55件を維持
+  // 全体が6件を超えた場合、古いメッセージ（要約も含む）を削除
+  // これにより、通常メッセージ3件 + 要約メッセージ3件 = 合計6件を維持
   if (messageCount >= MAX_TOTAL_MESSAGES) {
     const deleteCount = messageCount - MAX_TOTAL_MESSAGES + 1;
     await db.prepare(
@@ -525,7 +529,7 @@ async function checkAndCleanupOldMessages(
       .bind(userId, characterId, userId, characterId, deleteCount)
       .run();
 
-    console.log('[checkAndCleanupOldMessages] 全体が55件を超えたため、古いメッセージを削除しました:', {
+    console.log('[checkAndCleanupOldMessages] 全体が6件を超えたため、古いメッセージを削除しました:', {
       userId,
       characterId,
       deleteCount,
@@ -1281,11 +1285,11 @@ export const onRequestPost: PagesFunction = async (context) => {
     // 【重要】ユーザーへの信頼を維持するため、要約を活用して長期記憶を実現
     // 
     // 戦略：
-    // 1. 要約から最新2-3件を取得（過去の会話の記憶）
-    // 2. 通常メッセージから最新2-3件を取得（直近の会話の文脈）
-    // 3. 合計5件をLLMに送信
+    // 1. 要約から3件すべてを取得（過去60メッセージ分の記憶）
+    // 2. 通常メッセージから最新3件を取得（直近の会話の文脈）
+    // 3. 合計6件をLLMに送信
     //
-    // これにより、500メッセージ分（50要約×10件）の長期記憶を維持しつつ、
+    // これにより、63メッセージ分（要約60件 + 通常3件）の記憶を維持しつつ、
     // トークン制限を回避できる
     
     let conversationHistoryForLLM: ClientHistoryEntry[] = [];
@@ -1298,7 +1302,7 @@ export const onRequestPost: PagesFunction = async (context) => {
            FROM conversations c
            WHERE c.user_id = ? AND c.character_id = ? AND c.message_type = 'summary'
            ORDER BY COALESCE(c.timestamp, c.created_at) DESC
-           LIMIT 2`
+           LIMIT 3`
         )
           .bind(user.id, characterId)
           .all();
