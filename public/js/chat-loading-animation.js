@@ -134,10 +134,7 @@ const ChatLoadingAnimation = {
         // 背景画像をオーバーレイ（キャラクター画像を半透明で重ね合わせ）
         this._applyCharacterOverlay(character, config.icon);
         
-        // 最初のメッセージを表示
-        this._displayMessage(0, config.messages);
-        
-        // メッセージを順番に更新（3秒ごと）
+        // メッセージを順番に表示・更新（_startMessageUpdater内で最初のメッセージも表示する）
         this._startMessageUpdater(config.messages);
         
         // ローディング画面をフェードイン
