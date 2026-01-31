@@ -978,7 +978,10 @@
           
           // 【重要】守護神の儀式完了フラグを設定（チャット画面でメッセージを表示するため）
           sessionStorage.setItem('ritualCompleted', 'true');
-          console.log('[守護神の儀式] ritualCompletedフラグを設定しました');
+          // 守護神名とニックネームもsessionStorageに保存（チャット画面で使用）
+          sessionStorage.setItem('completedGuardianName', guardian.name);
+          sessionStorage.setItem('completedUserNickname', userNickname);
+          console.log('[守護神の儀式] ritualCompletedフラグを設定しました:', { guardianName: guardian.name, userNickname });
           
           // 【修正】絶対パスを使用して正しく解決（相対パスでは /chat/chat.html になってしまうため）
           // 【変更】justRegisteredパラメータを削除（データベースに守護神が登録されているかどうかで判断するため不要）

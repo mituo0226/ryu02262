@@ -163,37 +163,33 @@ const KaedeHandler = {
         
         // バックエンドからのフラグを使用
         if (historyData && historyData.requireGuardianConsent && !guardianMessageShown) {
-            console.log('[楓専用処理] バックエンドからrequireGuardianConsentフラグが設定されています。儀式同意ボタンを表示します。');
+            console.log('[楓専用処理] バックエンドからrequireGuardianConsentフラグが設定されています。儀式ボタンを表示します。');
             
             // welcomeMessageはバックエンドで生成済み（守護神未決定を考慮したメッセージ）
             if (historyData.welcomeMessage) {
                 const info = ChatData.characterInfo[this.characterId];
-                ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+                const messageId = ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+                
+                // メッセージ表示後、少し待ってからボタンを追加
+                setTimeout(() => {
+                    const messageElement = document.getElementById(messageId);
+                    if (messageElement) {
+                        // 「守護神の儀式を始める」ボタンを表示
+                        this.addRitualStartButton(messageElement, async () => {
+                            console.log('[楓専用処理] 守護神の儀式開始ボタンがクリックされました');
+                            
+                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                                await window.ChatInit.startGuardianRitual(this.characterId);
+                            } else {
+                                console.error('[楓専用処理] ChatInit.startGuardianRitualが見つかりません');
+                            }
+                        });
+                    }
+                }, 500);
             }
             
-            // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-            setTimeout(async () => {
-                console.log('[楓専用処理] 守護神の儀式開始チェック:', {
-                    hasChatInit: !!window.ChatInit,
-                    hasStartGuardianRitual: !!(window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function'),
-                    character: this.characterId
-                });
-                
-                if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                    console.log('[楓専用処理] 守護神の儀式を開始します');
-                    try {
-                        await window.ChatInit.startGuardianRitual(this.characterId);
-                        console.log('[楓専用処理] 守護神の儀式開始処理が完了しました');
-                    } catch (error) {
-                        console.error('[楓専用処理] 守護神の儀式開始エラー:', error);
-                    }
-                } else {
-                    console.error('[楓専用処理] ⚠️ window.ChatInit.startGuardianRitualが見つかりません', {
-                        hasChatInit: !!window.ChatInit,
-                        ChatInitKeys: window.ChatInit ? Object.keys(window.ChatInit) : []
-                    });
-                }
-            }, 2000); // 2秒後に儀式を開始
+            // 入力欄を無効化
+            this.disableInputWithGuidance();
             
             return { skip: true }; // 初回メッセージは表示済みなので、共通処理をスキップ
         }
@@ -284,23 +280,30 @@ const KaedeHandler = {
      */
     async handleGuardianRitualCompletion(character, guardianConfirmationData, historyData) {
         if (character !== 'kaede') {
-            return false; // 楫以外は処理しない
+            return false; // 楓以外は処理しない
         }
 
-        console.log('[楓パフォーマンス] フェーズ1: 守護神名のみをストレージに保存します:', guardianConfirmationData);
+        console.log('[楓ハンドラー] 守護神の儀式完了処理を開始:', guardianConfirmationData);
 
-        // フェーズ1: 守護神名をセッションストレージに保存（メッセージ生成はスキップ）
-        if (guardianConfirmationData && guardianConfirmationData.guardianName) {
-            sessionStorage.setItem('currentUserGuardian', guardianConfirmationData.guardianName);
-            sessionStorage.setItem('currentUserNickname', guardianConfirmationData.userNickname || 'あなた');
-            console.log('[楓パフォーマンス] ✓ 守護神名をセッションストレージに保存しました:', guardianConfirmationData.guardianName);
+        // 守護神名とニックネームを取得
+        const guardianName = guardianConfirmationData?.guardianName;
+        const userNickname = guardianConfirmationData?.userNickname || 'あなた';
+        
+        if (!guardianName) {
+            console.error('[楓ハンドラー] 守護神名が取得できませんでした');
+            return false;
         }
+
+        // セッションストレージに保存
+        sessionStorage.setItem('currentUserGuardian', guardianName);
+        sessionStorage.setItem('currentUserNickname', userNickname);
+        console.log('[楓ハンドラー] ✓ 守護神名をセッションストレージに保存しました:', guardianName);
 
         // チャット画面をクリア（守護神の儀式完了後は会話をゼロからスタート）
         const shouldClearChat = (historyData && historyData.clearChat) || true;
         if (shouldClearChat && ChatUI.messagesDiv) {
             ChatUI.messagesDiv.innerHTML = '';
-            console.log('[楓パフォーマンス] ✓ チャット画面をクリアしました');
+            console.log('[楓ハンドラー] ✓ チャット画面をクリアしました');
         }
 
         // ゲスト履歴をクリア
@@ -320,19 +323,18 @@ const KaedeHandler = {
             ChatData.conversationHistory.recentMessages = [];
         }
 
-        // フェーズ1では守護神メッセージのAPI呼び出しは行わない
         // フラグをクリア
         sessionStorage.removeItem('acceptedGuardianRitual');
         sessionStorage.removeItem('ritualCompleted');
         sessionStorage.removeItem('lastUserMessage');
         
-        // 【修正】guardianMessageShown フラグを設定して、儀式の無限ループを防ぐ
-        sessionStorage.setItem('guardianMessageShown', 'true');
+        // フロントエンド定型文を表示（APIを呼ばない）
+        await this.sendRitualCompletionMessages(guardianName, userNickname);
         
-        console.log('[楓パフォーマンス] フェーズ1処理完了: 守護神名のみを保存しました');
+        console.log('[楓ハンドラー] 守護神の儀式完了処理が完了しました');
         
-        // フェーズ1では false を返す（通常のウェルカムメッセージ表示処理に進むため）
-        return false;
+        // 処理完了を返す（これ以上の処理は不要）
+        return true;
     },
 
 
@@ -349,20 +351,25 @@ const KaedeHandler = {
         }
 
         const ritualCompleted = sessionStorage.getItem('ritualCompleted');
-        // 【変更】assignedDeityをhistoryDataから取得（データベースベースの判断）
-        // この関数は登録完了時に呼ばれるため、historyDataが利用可能な場合がある
-        // ただし、この関数の呼び出し元でhistoryDataが渡されていない場合は、ChatData.conversationHistoryから取得
-        const assignedDeity = (ChatData.conversationHistory && ChatData.conversationHistory.assignedDeity) || null;
         const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
-        console.log('[楓専用処理] ritualCompletedフラグをチェック:', ritualCompleted, 'assignedDeity:', assignedDeity, 'guardianMessageShown:', guardianMessageShown);
+        
+        // 【変更】sessionStorageから守護神名とニックネームを取得（guardian-ritual.htmlで保存済み）
+        const completedGuardianName = sessionStorage.getItem('completedGuardianName');
+        const completedUserNickname = sessionStorage.getItem('completedUserNickname');
+        
+        console.log('[楓専用処理] ritualCompletedフラグをチェック:', {
+            ritualCompleted,
+            guardianMessageShown,
+            completedGuardianName,
+            completedUserNickname
+        });
 
-        // 【重要】ritualCompletedフラグまたはassignedDeityが存在する場合、守護神の儀式は既に完了している
-        // 【修正】guardianMessageShownがtrueでも、assignedDeityが存在する場合はメッセージを表示する（再訪問時など）
-        if ((ritualCompleted === 'true' || assignedDeity) && !guardianMessageShown) {
-            console.log('[楓専用処理] 守護神の儀式は既に完了しています。会話履歴読み込み後に定型文を表示します。');
-            // 【変更】userNicknameをhistoryDataまたはChatDataから取得（データベースベースの判断）
-            const userNickname = (ChatData.conversationHistory && ChatData.conversationHistory.nickname) || ChatData.userNickname || 'あなた';
-            const guardianName = assignedDeity;
+        // 【重要】ritualCompletedフラグが存在し、まだメッセージを表示していない場合
+        if (ritualCompleted === 'true' && !guardianMessageShown && completedGuardianName) {
+            console.log('[楓専用処理] 守護神の儀式は既に完了しています。定型文を表示します。');
+            
+            const userNickname = completedUserNickname || 'あなた';
+            const guardianName = completedGuardianName;
 
             // 【フェーズ3対応】守護神情報はChatData.conversationHistoryから取得するため、セッションストレージへの保存は不要
 
@@ -521,57 +528,11 @@ const KaedeHandler = {
             // sessionStorageからも登録完了フラグを削除
             sessionStorage.removeItem('justRegistered');
 
-            // 【重要】守護神が未決定の場合、自動的に儀式を開始
-            if (!hasAssignedDeity) {
-                console.log('[楓専用処理] 守護神が未決定のため、儀式を自動開始します');
-                
-                // 守護神の儀式開始メッセージを表示
-                const characterName = ChatData.characterInfo[character]?.name || '楓';
-                const ritualStartMessage = 'それではこれより守護神のイベントを開始いたします。\n画面が切り替わりますので、儀式を体験してください。';
-                
-                ChatUI.addMessage('character', ritualStartMessage, characterName);
-                
-                // DOM更新を待つ
-                await new Promise(resolve => requestAnimationFrame(() => {
-                    requestAnimationFrame(resolve);
-                }));
-                
-                // スクロールしてメッセージを表示
-                ChatUI.scrollToLatest();
-                
-                // メッセージ表示後、少し待ってからguardian-ritual.htmlに遷移
-                await new Promise(resolve => setTimeout(resolve, 2000)); // 2秒待つ
-                
-                // 【変更】guardian-ritual.htmlに遷移する際、userIdのみをURLパラメータに含める
-                // 【重要】基本的にURLパラメータによるユーザー情報の保持は行わない（データベースから取得するため）
-                // sessionStorageの使用を削除（データベースベースの判断に移行）
-                // URLパラメータからuserIdを取得
-                const urlParams = new URLSearchParams(window.location.search);
-                const userId = urlParams.get('userId');
-                
-                // guardian-ritual.htmlへのURLを構築（userIdのみを使用）
-                // 【修正】相対パスではなく、現在のページを基準に解決
-                let ritualUrl = '../guardian-ritual.html';
-                if (userId) {
-                    // userIdのみを使用（データベースからユーザー情報を取得するため、birthYear, birthMonth, birthDay, nicknameは含めない）
-                    // 【修正】window.location.hrefを基準にして相対パスを解決
-                    const url = new URL(ritualUrl, window.location.href);
-                    url.searchParams.set('userId', userId);
-                    ritualUrl = url.pathname + url.search;
-                    console.log('[楓専用処理] guardian-ritual.htmlに遷移（userIdのみ）:', ritualUrl);
-                } else {
-                    console.error('[楓専用処理] userIdが取得できませんでした');
-                    ChatUI.addMessage('error', 'ユーザー情報の取得に失敗しました。', 'システム');
-                    return false;
-                }
-                
-                console.log('[楓専用処理] guardian-ritual.htmlに遷移:', ritualUrl);
-                window.location.href = ritualUrl;
-                
-                return true; // 処理完了（遷移するため、以降の処理は実行されない）
-            }
-
-            return true; // 処理完了（儀式準備完了）
+            // 【変更】自動遷移は削除されました
+            // 儀式はボタンクリックで開始する方式に変更
+            // initPageで既にボタン表示と入力欄無効化が行われている
+            
+            return false; // 処理は続行（initPageでボタン表示済み）
         } else {
             // 儀式完了済みの場合、URLパラメータからjustRegisteredを削除
             urlParams.delete('justRegistered');
@@ -776,6 +737,110 @@ const KaedeHandler = {
     },
 
     /**
+     * 入力欄を無効化（守護神の儀式完了まで）
+     */
+    disableInputWithGuidance() {
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = '守護神の儀式の完了後にメッセージを入力できます';
+            messageInput.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
+            messageInput.style.cursor = 'not-allowed';
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = true;
+            sendButton.style.opacity = '0.5';
+            sendButton.style.cursor = 'not-allowed';
+        }
+        
+        console.log('[楓ハンドラー] 入力欄を無効化しました（守護神の儀式完了まで）');
+    },
+
+    /**
+     * 入力欄を有効化（守護神の儀式完了後）
+     */
+    enableInputAfterRitual() {
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        if (messageInput) {
+            messageInput.disabled = false;
+            messageInput.placeholder = 'メッセージを入力';
+            messageInput.style.backgroundColor = '';
+            messageInput.style.cursor = '';
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = false;
+            sendButton.style.opacity = '';
+            sendButton.style.cursor = '';
+        }
+        
+        console.log('[楓ハンドラー] 入力欄を有効化しました（守護神の儀式完了）');
+    },
+
+    /**
+     * 守護神の儀式完了後のメッセージを表示（フロントエンド定型文）
+     * @param {string} guardianName - 守護神の名前
+     * @param {string} userNickname - ユーザーのニックネーム
+     */
+    async sendRitualCompletionMessages(guardianName, userNickname) {
+        const character = this.characterId;
+        const characterName = ChatData.characterInfo[character]?.name || '楓';
+        
+        try {
+            // 1. 守護神決定の確認メッセージ
+            const confirmationMessage = `${userNickname}さんの守護神は「${guardianName}」です。
+これからは、私と守護神である${guardianName}が一緒に、${userNickname}さんの運命を導いていきます。`;
+            
+            if (window.ChatUI && window.ChatUI.addMessage) {
+                window.ChatUI.addMessage('character', confirmationMessage, characterName);
+            }
+            
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'assistant', confirmationMessage);
+            }
+            
+            // 2. 1秒待機
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 3. 初回相談への移行メッセージ
+            const consultationMessage = `${userNickname}さんが今、心の中で抱えていること、
+悩んでいること、あるいは知りたいと思っていることがあれば、
+どんな些細なことでも構いません。
+私に話してみてください。`;
+            
+            if (window.ChatUI && window.ChatUI.addMessage) {
+                window.ChatUI.addMessage('character', consultationMessage, characterName);
+                window.ChatUI.scrollToLatest();
+            }
+            
+            // 会話履歴に追加
+            if (window.ChatData && typeof window.ChatData.addToHistory === 'function') {
+                window.ChatData.addToHistory(character, 'assistant', consultationMessage);
+            }
+            
+            // 4. 儀式完了フラグを設定
+            sessionStorage.setItem('guardianRitualCompleted', 'true');
+            sessionStorage.setItem('guardianMessageShown', 'true');
+            
+            // 5. 入力欄を有効化
+            this.enableInputAfterRitual();
+            
+            console.log('[楓ハンドラー] 守護神の儀式完了メッセージを表示しました。入力欄を有効化しました。');
+            
+        } catch (error) {
+            console.error('[楓ハンドラー] sendRitualCompletionMessages エラー:', error);
+            // エラー時も入力欄を有効化
+            this.enableInputAfterRitual();
+        }
+    },
+
+    /**
      * メッセージ追加後の処理（chat-ui.jsから呼び出される）
      * これにより、chat-ui.jsに鑑定士固有の処理を記述する必要がなくなる
      * @param {string} type - メッセージタイプ ('user', 'character', 'welcome', 'error', 'loading')
@@ -786,49 +851,8 @@ const KaedeHandler = {
      * @param {Object} options - オプション
      */
     onMessageAdded(type, text, sender, messageDiv, messageId, options = {}) {
-        // 楓の初回メッセージ（firstTimeGuest）の後に守護神の儀式を自動開始
-        if ((type === 'welcome' || type === 'character') && 
-            (text.includes('訪れていただきありがとうございます') ||
-             text.includes('守護神を導き出すための儀式でございますので'))) {
-            
-            // 既に儀式が開始されているか、または守護神が決定済みの場合はスキップ
-            const ritualCompleted = sessionStorage.getItem('ritualCompleted') === 'true';
-            const guardianMessageShown = sessionStorage.getItem('guardianMessageShown') === 'true';
-            const ritualStarted = sessionStorage.getItem('ritualStarted') === 'true';
-            
-            if (ritualCompleted || guardianMessageShown || ritualStarted) {
-                console.log('[楓ハンドラー] 儀式は既に開始済みまたは完了済みのため、スキップします');
-                return;
-            }
-            
-            console.log('[楓ハンドラー] 初回メッセージを検出 - 守護神の儀式を自動開始します');
-            
-            // 儀式開始フラグを設定（二重実行を防ぐ）
-            sessionStorage.setItem('ritualStarted', 'true');
-            
-            // メッセージ表示後、少し待ってから自動的に守護神の儀式を開始
-            setTimeout(async () => {
-                if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                    console.log('[楓ハンドラー] 守護神の儀式を自動開始します');
-                    await window.ChatInit.startGuardianRitual(this.characterId);
-                } else {
-                    console.error('[楓ハンドラー] ChatInit.startGuardianRitualが見つかりません');
-                    // ChatInitが読み込まれていない場合、少し待ってから再試行
-                    setTimeout(async () => {
-                        if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
-                            console.log('[楓ハンドラー] 守護神の儀式を自動開始します（リトライ）');
-                            await window.ChatInit.startGuardianRitual(this.characterId);
-                        } else {
-                            console.error('[楓ハンドラー] ChatInit.startGuardianRitualが見つかりません（リトライ失敗）');
-                            // リトライ失敗時はフラグをクリア
-                            sessionStorage.removeItem('ritualStarted');
-                        }
-                    }, 500);
-                }
-            }, 2000); // 2秒後に儀式を開始
-            
-            console.log('[楓ハンドラー] 初回守護神の儀式自動開始設定完了');
-        }
+        // 自動開始処理は削除されました
+        // ボタンクリックで儀式を開始する方式に変更
     },
 
     /**

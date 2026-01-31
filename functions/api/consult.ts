@@ -1452,7 +1452,9 @@ ${userNickname}さんが初めてあなたの元を訪れました。
     }
 
     // ===== 12. 楓からの追加メッセージ生成処理（守護神のメッセージの後）=====
-    const isKaedeFollowUp = body.kaedeFollowUp === true;
+    // 【変更】フロントエンドで定型文を生成するため、この処理は不要になりました
+    // 笹岡雪乃のタロット鑑定と同じく、確実性とパフォーマンスのためフロントエンドで処理
+    const isKaedeFollowUp = false; // 無効化
     if (isKaedeFollowUp && characterId === 'kaede' && body.guardianName && body.guardianMessage) {
       try {
         const guardianName = body.guardianName;
@@ -1604,12 +1606,15 @@ ${userNickname}さんが初めてあなたの元を訪れました。
     // データベースから取得した履歴のみで判定する（クライアントから送られてきた履歴は無視）
     // これにより、クライアント側のsessionStorageに履歴が残っていても、
     // データベースに履歴がなければ「初回訪問」として正しく判定される
-    const hasPreviousConversation = dbHistoryOnly.length > 0;
+    // 【修正】アシスタントの通常メッセージのみで判定（ユーザーメッセージだけでは会話成立とは言えない）
+    const assistantMessages = dbHistoryOnly.filter(msg => msg.role === 'assistant');
+    const hasPreviousConversation = assistantMessages.length > 0;
     
     console.log('[consult] 会話履歴判定:', {
       characterId,
       conversationHistoryLength: conversationHistory.length,
       dbHistoryOnlyLength: dbHistoryOnly.length,
+      assistantMessagesCount: assistantMessages.length,
       hasPreviousConversation,
     });
     

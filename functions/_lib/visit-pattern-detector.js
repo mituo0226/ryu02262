@@ -32,9 +32,22 @@ export async function detectVisitPattern({ userId, characterId, database, isRegi
     // 1. 前回のユーザーメッセージ送信時刻を取得
     const lastVisitInfo = await getLastVisitInfo(database, userId, characterId);
     
-    // 2. 履歴がない場合
+    // 2. アシスタントのメッセージがない場合は first_visit（ユーザーメッセージのみでは会話成立とは言えない）
+    const assistantMessageCount = await getAssistantMessageCount(database, userId, characterId);
+    if (assistantMessageCount === 0) {
+      console.log('[VisitPatternDetector] 判定結果: first_visit（アシスタントメッセージなし）');
+      return {
+        pattern: 'first_visit',
+        timeSinceLastVisit: null,
+        conversationHistory: [],
+        sessionContext: null,
+        lastConversationSummary: null
+      };
+    }
+    
+    // 3. ユーザーメッセージもない場合
     if (!lastVisitInfo || !lastVisitInfo.lastUpdatedAt) {
-      console.log('[VisitPatternDetector] 判定結果: first_visit（履歴なし）');
+      console.log('[VisitPatternDetector] 判定結果: first_visit（ユーザーメッセージなし）');
       return {
         pattern: 'first_visit',
         timeSinceLastVisit: null,
@@ -117,6 +130,24 @@ export async function detectVisitPattern({ userId, characterId, database, isRegi
       sessionContext: null,
       lastConversationSummary: null
     };
+  }
+}
+
+/**
+ * アシスタントのメッセージ数を取得（通常メッセージのみ、ウェルカムメッセージは除外）
+ */
+async function getAssistantMessageCount(database, userId, characterId) {
+  try {
+    const result = await database.prepare(`
+      SELECT COUNT(*) as count
+      FROM conversations 
+      WHERE user_id = ? AND character_id = ? AND role = 'assistant' AND (message_type = 'normal' OR message_type IS NULL)
+    `).bind(userId, characterId).first();
+
+    return result?.count || 0;
+  } catch (error) {
+    console.error('[VisitPatternDetector] アシスタントメッセージ数取得エラー:', error);
+    return 0;
   }
 }
 
