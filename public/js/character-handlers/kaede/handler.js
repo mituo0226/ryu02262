@@ -150,15 +150,54 @@ const KaedeHandler = {
             console.log('[楓専用処理] バックエンドからrequireGuardianConsentフラグが設定されています。儀式ボタンを表示します。');
             
             // welcomeMessageはバックエンドで生成済み（守護神未決定を考慮したメッセージ）
+            console.log('[楓専用処理] welcomeMessage確認:', {
+                hasWelcomeMessage: !!historyData.welcomeMessage,
+                welcomeMessagePreview: historyData.welcomeMessage ? historyData.welcomeMessage.substring(0, 50) : 'なし'
+            });
+            
             if (historyData.welcomeMessage) {
                 const info = ChatData.characterInfo[this.characterId];
                 const messageId = ChatUI.addMessage('welcome', historyData.welcomeMessage, info.name);
+                
+                console.log('[楓専用処理] ウェルカムメッセージを表示しました。messageId:', messageId);
+                
+                // メッセージ表示後、少し待ってからボタンを追加
+                setTimeout(() => {
+                    const messageElement = document.getElementById(messageId);
+                    console.log('[楓専用処理] ボタン追加開始:', {
+                        messageId,
+                        messageElement: !!messageElement,
+                        hasAddRitualStartButton: typeof this.addRitualStartButton === 'function'
+                    });
+                    
+                    if (messageElement) {
+                        // 「守護神の儀式を始める」ボタンを表示
+                        this.addRitualStartButton(messageElement, async () => {
+                            console.log('[楓専用処理] 守護神の儀式開始ボタンがクリックされました');
+                            
+                            if (window.ChatInit && typeof window.ChatInit.startGuardianRitual === 'function') {
+                                await window.ChatInit.startGuardianRitual(this.characterId);
+                            } else {
+                                console.error('[楓専用処理] ChatInit.startGuardianRitualが見つかりません');
+                            }
+                        });
+                        console.log('[楓専用処理] ボタン追加完了');
+                    } else {
+                        console.error('[楓専用処理] メッセージ要素が見つかりません:', messageId);
+                    }
+                }, 500);
+            } else {
+                console.warn('[楓専用処理] welcomeMessageが存在しません。フォールバックメッセージを表示します。');
+                
+                // フォールバックメッセージを表示
+                const fallbackMessage = `訪れていただきありがとうございます。\nまずは守護神の儀式を開始させていただきます。`;
+                const info = ChatData.characterInfo[this.characterId];
+                const messageId = ChatUI.addMessage('welcome', fallbackMessage, info.name);
                 
                 // メッセージ表示後、少し待ってからボタンを追加
                 setTimeout(() => {
                     const messageElement = document.getElementById(messageId);
                     if (messageElement) {
-                        // 「守護神の儀式を始める」ボタンを表示
                         this.addRitualStartButton(messageElement, async () => {
                             console.log('[楓専用処理] 守護神の儀式開始ボタンがクリックされました');
                             
