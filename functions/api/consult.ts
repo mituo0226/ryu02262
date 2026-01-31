@@ -8,12 +8,13 @@ import { getHealthChecker } from '../_lib/api-health-checker.js';
 // ===== 定数 =====
 const MAX_DEEPSEEK_RETRIES = 3;
 const DEFAULT_FALLBACK_MODEL = 'gpt-4o-mini';
-const MAX_NORMAL_MESSAGES = 10; // 通常保存する最新メッセージ数
-const MAX_SUMMARY_COUNT = 10; // 保持する要約の最大数
-const MAX_TOTAL_MESSAGES = 20; // 全体の最大メッセージ数（通常10件 + 要約10件）
-const MESSAGES_PER_SUMMARY = 10; // 1つの要約に圧縮するメッセージ数
+const MAX_NORMAL_MESSAGES = 5; // 通常保存する最新メッセージ数（直近5件）
+const MAX_SUMMARY_COUNT = 50; // 保持する要約の最大数（50件まで記憶）
+const MAX_TOTAL_MESSAGES = 55; // 全体の最大メッセージ数（通常5件 + 要約50件）
+const MESSAGES_PER_SUMMARY = 10; // 1つの要約に圧縮するメッセージ数（10件を1件に）
 const CACHE_TTL = 300; // キャッシュの有効期限（5分間、秒単位）
 const API_TIMEOUT = 15000; // API呼び出しのタイムアウト（15秒）
+const HISTORY_LIMIT_FOR_LLM = 5; // LLMに送信する会話履歴の件数（直近5件）
 
 // ===== 型定義 =====
 type ConversationRole = 'user' | 'assistant';
@@ -109,7 +110,7 @@ function sanitizeClientHistory(entries?: ClientHistoryEntry[]): ClientHistoryEnt
       return { role: entry.role, content: entry.content.trim() };
     })
     .filter((entry): entry is ClientHistoryEntry => Boolean(entry))
-    .slice(-12); // 直近12件まで保持
+    .slice(-20); // クライアント履歴は最大20件まで受け付け（実際の送信はHISTORY_LIMIT_FOR_LLMで制限）
 }
 
 /**
@@ -339,8 +340,10 @@ ${conversationText}
 }
 
 /**
- * 20件制限チェックと古いメッセージの要約圧縮（共通関数）
- * 最初の10件は通常保存、10件以降は10件ずつ要約して1件に圧縮
+ * 会話履歴管理と古いメッセージの要約圧縮（共通関数）
+ * 最新5件は通常保存、5件を超えたら10件ずつ要約して1件に圧縮
+ * 要約は最大50件まで保持（全体で最大55件：通常5件 + 要約50件）
+ * 全キャラクター対応
  */
 async function checkAndCleanupOldMessages(
   db: D1Database,
@@ -375,7 +378,7 @@ async function checkAndCleanupOldMessages(
 
   const summaryCount = summaryCountResult?.count || 0;
 
-  // 要約メッセージが10件を超えた場合、古い要約メッセージを削除
+  // 要約メッセージが50件を超えた場合、古い要約メッセージを削除
   if (summaryCount > MAX_SUMMARY_COUNT) {
     const deleteSummaryCount = summaryCount - MAX_SUMMARY_COUNT;
     await db.prepare(
@@ -398,7 +401,7 @@ async function checkAndCleanupOldMessages(
     });
   }
 
-  // 通常メッセージが10件を超えた場合、古い10件を要約して圧縮
+  // 通常メッセージが5件を超えた場合、古い10件を要約して圧縮（10件を1件に）
   if (normalMessageCount > MAX_NORMAL_MESSAGES && env && summaryCount < MAX_SUMMARY_COUNT) {
     // 要約する古い10件を取得（要約以外のメッセージから、最も古い10件）
     const oldMessagesResult = await db.prepare<{
@@ -464,8 +467,8 @@ async function checkAndCleanupOldMessages(
     }
   }
 
-  // 全体が20件を超えた場合、古いメッセージ（要約も含む）を削除
-  // これにより、通常メッセージ10件 + 要約メッセージ10件 = 合計20件を維持
+  // 全体が55件を超えた場合、古いメッセージ（要約も含む）を削除
+  // これにより、通常メッセージ5件 + 要約メッセージ50件 = 合計55件を維持
   if (messageCount >= MAX_TOTAL_MESSAGES) {
     const deleteCount = messageCount - MAX_TOTAL_MESSAGES + 1;
     await db.prepare(
@@ -481,7 +484,7 @@ async function checkAndCleanupOldMessages(
       .bind(userId, characterId, userId, characterId, deleteCount)
       .run();
 
-    console.log('[checkAndCleanupOldMessages] 全体が20件を超えたため、古いメッセージを削除しました:', {
+    console.log('[checkAndCleanupOldMessages] 全体が55件を超えたため、古いメッセージを削除しました:', {
       userId,
       characterId,
       deleteCount,
@@ -1227,10 +1230,21 @@ export const onRequestPost: PagesFunction = async (context) => {
       dbHistoryOnly = [];
     }
 
-    console.log('[consult] 会話履歴:', {
+    console.log('[consult] 会話履歴（取得完了）:', {
       total: conversationHistory.length,
       fromDatabase: dbHistoryOnly.length,
       fromClient: sanitizedHistory.length,
+    });
+    
+    // ===== LLMに送信する会話履歴を制限（直近5件 + 要約を含む）=====
+    // 要約メッセージも含めて直近HISTORY_LIMIT_FOR_LLM件に制限
+    // これにより、過去の会話は要約として記憶され、トークン制限を回避できる
+    const conversationHistoryForLLM = conversationHistory.slice(-HISTORY_LIMIT_FOR_LLM);
+    
+    console.log('[consult] LLMに送信する会話履歴:', {
+      originalLength: conversationHistory.length,
+      limitedLength: conversationHistoryForLLM.length,
+      limit: HISTORY_LIMIT_FOR_LLM,
     });
 
     // ===== 6. 守護神が決定済みの場合、確認メッセージを会話履歴に注入 =====
@@ -1745,8 +1759,8 @@ ${userNickname}さんが初めてあなたの元を訪れました。
     const fallbackModel = env.OPENAI_MODEL || env.FALLBACK_OPENAI_MODEL || DEFAULT_FALLBACK_MODEL;
 
     // 笹岡雪乃と三崎花音は長い返答を生成することが多いため、maxTokensを増やす
-    // 楓はさらに長いプロンプトのため、maxTokensを最大に
-    const maxTokensForCharacter = (characterId === 'kaede') ? 2000 : 
+    // 楓は会話履歴が長くなるため、maxTokensを調整（トークン制限対策）
+    const maxTokensForCharacter = (characterId === 'kaede') ? 1500 : 
                                    (characterId === 'kaon' || characterId === 'yukino') ? 1500 : 800;
     const temperatureForCharacter = (characterId === 'kaon' || characterId === 'yukino') ? 0.5 : 
                                      (characterId === 'kaede') ? 0.7 : 0.5; // 雪乃と三崎花音では安定性重視
@@ -1756,7 +1770,7 @@ ${userNickname}さんが初めてあなたの元を訪れました。
     console.log('[consult] LLM API呼び出し準備:', {
       characterId,
       systemPromptLength: systemPrompt.length,
-      conversationHistoryLength: conversationHistory.length,
+      conversationHistoryLength: conversationHistoryForLLM.length,
       maxTokens: maxTokensForCharacter,
       temperature: temperatureForCharacter,
       topP: topPForCharacter,
@@ -1764,7 +1778,7 @@ ${userNickname}さんが初めてあなたの元を訪れました。
     
     const llmResult = await getLLMResponse({
       systemPrompt,
-      conversationHistory,
+      conversationHistory: conversationHistoryForLLM, // 直近5件に制限された履歴を使用
       userMessage: trimmedMessage,
       temperature: temperatureForCharacter,
       maxTokens: maxTokensForCharacter,
