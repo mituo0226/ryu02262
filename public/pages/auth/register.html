@@ -507,6 +507,20 @@
       text-shadow: 0 0 15px rgba(138, 43, 226, 0.6);
     }
     
+    /* 個人情報に関する注意書き */
+    .privacy-notice {
+      margin-top: 24px;
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #b8a8d8;
+      background: rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 8px;
+      animation: fadeInDown 0.7s ease 0.5s both;
+    }
+    
     /* 確認画面 */
     .confirmation-screen {
       display: none;
@@ -669,7 +683,6 @@
   <div id="registrationScreen">
     <div class="form-wrapper">
     <div id="registerFormContainer">
-      <h1>新規ユーザー登録</h1>
       
       <!-- ステップインジケーター -->
       <div class="step-indicator">
@@ -742,6 +755,11 @@
       <div id="resultMessage" class="result-message"></div>
       <div class="switch-link">
         すでに登録済みの方は <a id="loginLink" href="login.html">こちらからログイン</a>
+      </div>
+      
+      <!-- 個人情報に関する注意書き -->
+      <div class="privacy-notice">
+        ご利用にあたり、個人情報の入力はこの画面ではありませんので、ご安心してご利用ください
       </div>
     </div>
 
