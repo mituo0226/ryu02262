@@ -14,19 +14,37 @@
  */
 
 /**
- * 各キャラクターの利用可能な機能を定義（API側で一元管理）
- * この定義は、システムプロンプトに明示的に含められる
+ * 各キャラクターの専門性と役割を定義（API側で一元管理）
  * 
  * 【拡張性】
  * - 新しいキャラクターを追加する際は、このオブジェクトに追加するだけ
- * - 新しい機能を追加する際は、getFeatureName()とgetFeatureDescription()に追加するだけ
  * - ネガティブプロンプトは使用しないため、キャラクターが50人に増えてもプロンプトサイズは一定
+ * 
+ * @property {string[]} features - 利用可能な機能リスト
+ * @property {string} expertise - 専門分野（一言で表現）
+ * @property {string} approach - 鑑定アプローチ
  */
-const CHARACTER_FEATURES = {
-  yukino: ['tarot', 'consultation'],
-  kaede: ['guardian-ritual'],
-  sora: [],
-  kaon: [],
+const CHARACTER_DEFINITIONS = {
+  yukino: {
+    features: ['tarot', 'consultation'],
+    expertise: '心理学とタロット占い',
+    approach: 'タロットカードと心理学を融合させた鑑定',
+  },
+  kaede: {
+    features: ['guardian-ritual'],
+    expertise: '霊能鑑定と守護神交信',
+    approach: '守護神を通じた霊視と魂レベルの導き',
+  },
+  sora: {
+    features: [],
+    expertise: 'ダイナミック・ソウル・アプローチ',
+    approach: '魂レベルでの共鳴と深い寄り添い',
+  },
+  kaon: {
+    features: [],
+    expertise: '占星術と数秘術',
+    approach: '天体と数秘から読み解く心理的寄り添い',
+  },
 };
 
 /**
@@ -35,7 +53,21 @@ const CHARACTER_FEATURES = {
  * @returns {string[]} 利用可能な機能のリスト
  */
 export function getCharacterFeatures(characterId) {
-  return CHARACTER_FEATURES[characterId] || [];
+  const definition = CHARACTER_DEFINITIONS[characterId];
+  return definition ? definition.features : [];
+}
+
+/**
+ * キャラクターの専門性を取得
+ * @param {string} characterId - キャラクターID
+ * @returns {Object} キャラクターの定義
+ */
+export function getCharacterDefinition(characterId) {
+  return CHARACTER_DEFINITIONS[characterId] || {
+    features: [],
+    expertise: '総合鑑定',
+    approach: '相談者に寄り添った鑑定',
+  };
 }
 
 /**
@@ -67,35 +99,41 @@ function getFeatureDescription(feature) {
 }
 
 /**
- * キャラクターの機能制約をシステムプロンプト用のテキストに変換（ポジティブアプローチ）
+ * キャラクターの専門性と役割をシステムプロンプト用のテキストに変換（ポジティブアプローチ）
  * @param {string} characterId - キャラクターID
- * @param {string[]} availableFeatures - 利用可能な機能のリスト（config.jsonから取得）
- * @returns {string} 機能制約のテキスト
+ * @param {string[]} availableFeatures - 利用可能な機能のリスト
+ * @returns {string} キャラクター定義のテキスト
  */
 export function generateCapabilityConstraints(characterId, availableFeatures = []) {
-  // 利用可能な機能のみを明示（ポジティブアプローチ）
-  // 注意：この部分は各キャラクターのプロンプトに比べて背景的な指示のため、敬語・中立的な表現を使用
+  const definition = getCharacterDefinition(characterId);
+  
   let constraintText = `
 ========================================
-【利用可能な機能】
+【あなたの役割と専門性】
 ========================================
+
+あなたの専門分野：${definition.expertise}
+あなたの鑑定アプローチ：${definition.approach}
 
 `;
 
   if (availableFeatures.length > 0) {
-    constraintText += `${availableFeatures.map(feature => {
+    constraintText += `【提供する機能】
+${availableFeatures.map(feature => {
   const name = getFeatureName(feature);
   const desc = getFeatureDescription(feature);
   return `✅ ${name}：${desc}`;
 }).join('\n')}
 
 `;
-  } else {
-    constraintText += `✅ 通常の相談対応
-`;
   }
 
-  constraintText += `========================================
+  constraintText += `【重要な原則】
+✅ あなたの専門性を最大限に活かした鑑定を提供してください
+✅ あなた自身のキャラクター設定と専門分野に忠実に行動してください
+✅ 他の鑑定士の専門分野や手法を使用しないでください
+
+========================================
 `;
 
   return constraintText;
