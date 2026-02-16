@@ -1227,20 +1227,23 @@
     };
     
     function renderConversationList(records) {
+      console.log('[renderConversationList] 呼び出されました:', records);
+      
       if (!records.length) {
         conversationList.innerHTML = '<p class="muted">会話履歴はまだありません。</p>';
         document.getElementById('conversationDeleteControls').style.display = 'none';
         return;
       }
       
-      // キャラクターでグループ化
-      const grouped = {};
-      records.forEach(item => {
-        if (!grouped[item.character_id]) {
-          grouped[item.character_id] = [];
-        }
-        grouped[item.character_id].push(item);
-      });
+      try {
+        // キャラクターでグループ化
+        const grouped = {};
+        records.forEach(item => {
+          if (!grouped[item.character_id]) {
+            grouped[item.character_id] = [];
+          }
+          grouped[item.character_id].push(item);
+        });
       
       // 全体の合計トークン数を計算
       let grandTotalTokens = 0;
@@ -1266,14 +1269,18 @@
             // 次のアシスタントメッセージを探す
             const assistantMsg = items[i + 1];
             if (assistantMsg && assistantMsg.role === 'assistant') {
-              const userTokens = estimateTokens(item.message);
-              const assistantTokens = estimateTokens(assistantMsg.message);
+              // messageフィールドの取得（contentまたはmessage）
+              const userMessage = item.message || item.content || '';
+              const assistantMessage = assistantMsg.message || assistantMsg.content || '';
+              
+              const userTokens = estimateTokens(userMessage);
+              const assistantTokens = estimateTokens(assistantMessage);
               const systemTokens = systemPromptTokens[characterId] || 800;
               const totalTokens = systemTokens + userTokens + assistantTokens;
               
               conversationPairs.push({
-                userItem: item,
-                assistantItem: assistantMsg,
+                userItem: { ...item, message: userMessage },
+                assistantItem: { ...assistantMsg, message: assistantMessage },
                 userTokens,
                 assistantTokens,
                 systemTokens,
@@ -1381,9 +1388,13 @@
         `;
         conversationList.innerHTML = summaryHTML + conversationList.innerHTML;
       }
-      
-      // チェックボックスイベントをセットアップ
-      setupConversationCheckboxes();
+        
+        // チェックボックスイベントをセットアップ
+        setupConversationCheckboxes();
+      } catch (error) {
+        console.error('[renderConversationList] エラーが発生しました:', error);
+        conversationList.innerHTML = `<p class="muted" style="color: #ff6b9d;">会話履歴の表示中にエラーが発生しました: ${error.message}</p>`;
+      }
     }
     
     function setupConversationCheckboxes() {
