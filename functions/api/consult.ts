@@ -74,6 +74,13 @@ interface ResponseBody {
   clearChat?: boolean; // チャットクリア指示フラグ（APIからの指示）
   redirect?: boolean; // 汎用的なリダイレクト指示フラグ
   redirectUrl?: string; // リダイレクト先URL（汎用的）
+  // デバッグ用（一時的）
+  tokenUsage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    model: string;
+  };
 }
 
 interface UserRecord {
@@ -96,6 +103,11 @@ interface LLMResponseResult {
   rawResponse?: unknown;
   error?: string;
   status?: number;
+  tokenUsage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 interface LLMRequestParams {
@@ -867,11 +879,27 @@ async function callDeepSeek(params: LLMRequestParams): Promise<LLMResponseResult
         if (response.ok) {
           const data = await response.json();
           const message = data?.choices?.[0]?.message?.content;
+          
+          // トークン使用状況をログに出力
+          if (data?.usage) {
+            console.log('[DeepSeek API] トークン使用状況:', {
+              prompt_tokens: data.usage.prompt_tokens,
+              completion_tokens: data.usage.completion_tokens,
+              total_tokens: data.usage.total_tokens,
+              model: 'deepseek-chat'
+            });
+          }
+          
           return {
             success: Boolean(message?.trim()),
             message: message?.trim(),
             provider: 'deepseek',
             rawResponse: data,
+            tokenUsage: data?.usage ? {
+              prompt_tokens: data.usage.prompt_tokens,
+              completion_tokens: data.usage.completion_tokens,
+              total_tokens: data.usage.total_tokens,
+            } : undefined,
           };
         }
 
@@ -965,11 +993,27 @@ async function callOpenAI(params: LLMRequestParams): Promise<LLMResponseResult> 
     if (response.ok) {
       const data = await response.json();
       const message = data?.choices?.[0]?.message?.content;
+      
+      // トークン使用状況をログに出力
+      if (data?.usage) {
+        console.log('[OpenAI API] トークン使用状況:', {
+          prompt_tokens: data.usage.prompt_tokens,
+          completion_tokens: data.usage.completion_tokens,
+          total_tokens: data.usage.total_tokens,
+          model: fallbackModel || DEFAULT_FALLBACK_MODEL
+        });
+      }
+      
       return {
         success: Boolean(message?.trim()),
         message: message?.trim(),
         provider: 'openai',
         rawResponse: data,
+        tokenUsage: data?.usage ? {
+          prompt_tokens: data.usage.prompt_tokens,
+          completion_tokens: data.usage.completion_tokens,
+          total_tokens: data.usage.total_tokens,
+        } : undefined,
       };
     }
 
@@ -2011,6 +2055,11 @@ ${userNickname}さんが初めてあなたの元を訪れました。
         showTarotCard: showTarotCard,
         provider: llmResult.provider,
         clearChat: shouldClearChat, // 儀式開始時はチャットクリア指示
+        // デバッグ用：トークン情報を含める
+        tokenUsage: llmResult.tokenUsage ? {
+          ...llmResult.tokenUsage,
+          model: llmResult.provider === 'deepseek' ? 'deepseek-chat' : 'openai',
+        } : undefined,
       } as ResponseBody),
       { status: 200, headers: corsHeaders }
     );

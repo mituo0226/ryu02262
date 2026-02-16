@@ -3034,6 +3034,18 @@ const ChatInit = {
                 } else if (data.isInappropriate) {
                     window.ChatUI.addMessage('warning', data.message, data.characterName);
                 } else if (data.message) {
+                    // 【デバッグ】トークン使用状況を表示
+                    if (data.tokenUsage) {
+                        console.log('🔢 [トークン使用状況]', {
+                            キャラクター: data.characterName || data.character,
+                            プロバイダー: data.provider || 'unknown',
+                            モデル: data.tokenUsage.model,
+                            入力トークン: data.tokenUsage.prompt_tokens,
+                            出力トークン: data.tokenUsage.completion_tokens,
+                            合計トークン: data.tokenUsage.total_tokens,
+                        });
+                    }
+                    
                     // data.messageが文字列であることを確認
                     const messageText = typeof data.message === 'string' ? data.message : String(data.message);
                     window.ChatUI.addMessage('character', messageText, data.characterName);

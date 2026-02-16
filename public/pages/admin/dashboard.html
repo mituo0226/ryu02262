@@ -722,6 +722,10 @@
         ユーザー検索
         <div class="admin-nav-url">ユーザーの検索・管理</div>
       </button>
+      <button class="admin-nav-item" data-tab="token-usage">
+        トークン使用状況
+        <div class="admin-nav-url">API トークン使用量の確認</div>
+      </button>
     </nav>
     
     <!-- メインコンテンツエリア -->
@@ -862,6 +866,99 @@
               </section>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- トークン使用状況タブ -->
+      <div class="tab-content" id="token-usage-tab">
+        <div class="dashboard-layout">
+          <section class="card">
+            <h2>🔢 トークン使用状況</h2>
+            <p class="muted">各鑑定士との会話で使用されるAPIトークン数を確認できます。</p>
+            
+            <div style="margin-top: 20px;">
+              <h3 style="font-size: 16px; margin-bottom: 12px;">テスト会話</h3>
+              <p style="font-size: 13px; color: #9da2c6; margin-bottom: 12px;">
+                各キャラクターに簡単なメッセージを送信して、トークン使用量を確認します。
+              </p>
+              
+              <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                <label style="flex: 1;">
+                  <span style="display: block; margin-bottom: 6px;">キャラクター</span>
+                  <select id="tokenTestCharacter" style="width: 100%;">
+                    <option value="kaede">楓（かえで）</option>
+                    <option value="yukino">雪乃（ゆきの）</option>
+                    <option value="sora">空（そら）</option>
+                    <option value="kaon">花音（かおん）</option>
+                  </select>
+                </label>
+                <label style="flex: 2;">
+                  <span style="display: block; margin-bottom: 6px;">テストメッセージ</span>
+                  <input type="text" id="tokenTestMessage" placeholder="例: こんにちは" value="こんにちは" style="width: 100%;">
+                </label>
+                <div style="display: flex; align-items: flex-end;">
+                  <button id="tokenTestButton" style="padding: 10px 20px; white-space: nowrap;">テスト実行</button>
+                </div>
+              </div>
+              
+              <div id="tokenTestStatus" style="margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; font-size: 13px; display: none;"></div>
+            </div>
+            
+            <div style="margin-top: 30px;">
+              <h3 style="font-size: 16px; margin-bottom: 12px;">トークン使用履歴</h3>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; font-size: 13px;">
+                  <thead>
+                    <tr style="background: rgba(138, 43, 226, 0.2);">
+                      <th style="padding: 10px; text-align: left;">キャラクター</th>
+                      <th style="padding: 10px; text-align: left;">メッセージ</th>
+                      <th style="padding: 10px; text-align: right;">入力トークン</th>
+                      <th style="padding: 10px; text-align: right;">出力トークン</th>
+                      <th style="padding: 10px; text-align: right;">合計トークン</th>
+                      <th style="padding: 10px; text-align: left;">プロバイダー</th>
+                      <th style="padding: 10px; text-align: left;">時刻</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tokenHistoryTableBody">
+                    <tr>
+                      <td colspan="7" style="padding: 20px; text-align: center; color: #9da2c6;">
+                        テスト実行ボタンを押すとトークン使用量が表示されます
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 16px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 12px;">
+              <h3 style="font-size: 16px; margin-bottom: 12px;">💰 コスト計算</h3>
+              <p style="font-size: 13px; color: #9da2c6; margin-bottom: 16px;">
+                DeepSeek API の料金体系に基づいてコストを計算します。
+              </p>
+              <div id="tokenCostSummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                  <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総入力トークン</div>
+                  <div style="font-size: 20px; font-weight: 600; color: #90ffc7;">0</div>
+                </div>
+                <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                  <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総出力トークン</div>
+                  <div style="font-size: 20px; font-weight: 600; color: #90ffc7;">0</div>
+                </div>
+                <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                  <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総トークン数</div>
+                  <div style="font-size: 20px; font-weight: 600; color: #d6c9ff;">0</div>
+                </div>
+                <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                  <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">推定コスト (USD)</div>
+                  <div style="font-size: 20px; font-weight: 600; color: #ffb366;">$0.00</div>
+                </div>
+              </div>
+              <p style="font-size: 11px; color: #9da2c6; margin-top: 12px;">
+                ※ DeepSeek API (2026年2月時点): 入力¥42/1M tokens, 出力¥63/1M tokens<br>
+                ※ キャッシュヒット時は入力¥4.2/1M tokensとさらに低コスト
+              </p>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -1108,6 +1205,27 @@
       showDetailSections(user);
     }
 
+    // トークン推定関数
+    function estimateTokens(text) {
+      if (!text) return 0;
+      
+      // 日本語文字数を推定（ひらがな、カタカナ、漢字）
+      const japaneseChars = (text.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBF]/g) || []).length;
+      // 英数字と記号
+      const otherChars = text.length - japaneseChars;
+      
+      // 日本語: 1文字 ≈ 2.5トークン、英数字: 1文字 ≈ 0.25トークン
+      return Math.ceil(japaneseChars * 2.5 + otherChars * 0.25);
+    }
+    
+    // システムプロンプトの推定トークン数（キャラクターごと）
+    const systemPromptTokens = {
+      'kaede': 1200,   // 楓は守護神情報があり長い
+      'yukino': 800,   // 雪乃はタロット情報
+      'sora': 600,     // 空は標準的
+      'kaon': 1000     // 花音は訪問パターン判定あり
+    };
+    
     function renderConversationList(records) {
       if (!records.length) {
         conversationList.innerHTML = '<p class="muted">会話履歴はまだありません。</p>';
@@ -1124,6 +1242,10 @@
         grouped[item.character_id].push(item);
       });
       
+      // 全体の合計トークン数を計算
+      let grandTotalTokens = 0;
+      const characterTokens = {};
+      
       conversationList.innerHTML = Object.entries(grouped).map(([characterId, items]) => {
         const characterNames = {
           'kaede': '楓',
@@ -1133,6 +1255,40 @@
         };
         const characterName = characterNames[characterId] || characterId;
         
+        // このキャラクターの合計トークン数を計算
+        let characterTotalTokens = 0;
+        
+        // 会話ペアごとにトークンを計算（user + assistant）
+        const conversationPairs = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.role === 'user') {
+            // 次のアシスタントメッセージを探す
+            const assistantMsg = items[i + 1];
+            if (assistantMsg && assistantMsg.role === 'assistant') {
+              const userTokens = estimateTokens(item.message);
+              const assistantTokens = estimateTokens(assistantMsg.message);
+              const systemTokens = systemPromptTokens[characterId] || 800;
+              const totalTokens = systemTokens + userTokens + assistantTokens;
+              
+              conversationPairs.push({
+                userItem: item,
+                assistantItem: assistantMsg,
+                userTokens,
+                assistantTokens,
+                systemTokens,
+                totalTokens
+              });
+              
+              characterTotalTokens += totalTokens;
+              i++; // アシスタントメッセージをスキップ
+            }
+          }
+        }
+        
+        grandTotalTokens += characterTotalTokens;
+        characterTokens[characterId] = characterTotalTokens;
+        
         return `
           <div style="margin-bottom: 16px; padding: 12px; background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 8px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
@@ -1140,22 +1296,46 @@
               <h4 style="margin: 0; font-size: 14px; color: #d6c9ff; flex: 1;">
                 ${characterName} (${items.length}件)
               </h4>
+              <span style="font-size: 12px; color: #90ffc7; font-weight: 600;">
+                ~${characterTotalTokens.toLocaleString()} tokens
+              </span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px;">
-              ${items.map((item, index) => {
-                const safeContent = item.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                const isUser = item.role === 'user';
-                const title = `${isUser ? '👤 相談者' : '🔮 鑑定士'} - ${new Date(item.created_at).toLocaleString('ja-JP')}`;
+              ${conversationPairs.map((pair, index) => {
+                const safeUserContent = pair.userItem.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeAssistantContent = pair.assistantItem.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const timestamp = new Date(pair.userItem.created_at).toLocaleString('ja-JP');
+                
                 return `
-                  <details class="conversation-item" style="background: ${isUser ? 'rgba(100, 150, 255, 0.08)' : 'rgba(200, 150, 255, 0.08)'}; border: 1px solid ${isUser ? 'rgba(100, 150, 255, 0.2)' : 'rgba(200, 150, 255, 0.2)'};'">
-                    <summary style="padding: 6px 0; display: flex; align-items: center; gap: 8px;">
-                      <input type="checkbox" class="conversation-checkbox" data-id="${item.id}" data-character="${item.character_id}" style="cursor: pointer; width: 16px; height: 16px; flex-shrink: 0;" onclick="event.stopPropagation();">
+                  <details class="conversation-item" style="background: rgba(138, 43, 226, 0.08); border: 1px solid rgba(138, 43, 226, 0.2); border-radius: 6px; padding: 8px;">
+                    <summary style="padding: 6px 0; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                      <input type="checkbox" class="conversation-checkbox" data-id="${pair.userItem.id}" data-character="${characterId}" style="cursor: pointer; width: 16px; height: 16px; flex-shrink: 0;" onclick="event.stopPropagation();">
                       <span style="flex: 1; font-size: 12px; color: #c7cdff;">
-                        ${title}
+                        💬 会話 #${conversationPairs.length - index} - ${timestamp}
                       </span>
-                      <span class="conversation-meta" style="font-size: 11px;">#${items.length - index}</span>
+                      <span style="font-size: 11px; color: #ffb366; font-weight: 600;">
+                        ~${pair.totalTokens.toLocaleString()} tokens
+                      </span>
                     </summary>
-                    <div class="conversation-body">${safeContent}</div>
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="padding: 8px; background: rgba(100, 150, 255, 0.1); border-left: 3px solid rgba(100, 150, 255, 0.5); border-radius: 4px;">
+                        <div style="font-size: 11px; color: #90c2ff; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                          <span>👤 相談者</span>
+                          <span style="color: #90ffc7;">~${pair.userTokens} tokens</span>
+                        </div>
+                        <div style="font-size: 12px; color: #e0e0e0; white-space: pre-wrap;">${safeUserContent}</div>
+                      </div>
+                      <div style="padding: 8px; background: rgba(200, 150, 255, 0.1); border-left: 3px solid rgba(200, 150, 255, 0.5); border-radius: 4px;">
+                        <div style="font-size: 11px; color: #d6c9ff; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                          <span>🔮 ${characterName}</span>
+                          <span style="color: #90ffc7;">~${pair.assistantTokens} tokens</span>
+                        </div>
+                        <div style="font-size: 12px; color: #e0e0e0; white-space: pre-wrap;">${safeAssistantContent}</div>
+                      </div>
+                      <div style="font-size: 10px; color: #9da2c6; padding: 4px 0; text-align: right;">
+                        システムプロンプト: ~${pair.systemTokens} tokens
+                      </div>
+                    </div>
                   </details>
                 `;
               }).join('')}
@@ -1163,6 +1343,44 @@
           </div>
         `;
       }).join('');
+      
+      // 全体のトークン数サマリーを先頭に追加
+      if (grandTotalTokens > 0) {
+        // DeepSeek API の料金（2026年2月時点）
+        // 入力（キャッシュ未ヒット）: ¥42/1M tokens ($0.28/1M tokens)
+        // 出力: ¥63/1M tokens ($0.42/1M tokens)
+        // 簡易計算: 入力と出力の比率を 3:2 と仮定
+        const estimatedInputTokens = Math.ceil(grandTotalTokens * 0.6);
+        const estimatedOutputTokens = Math.ceil(grandTotalTokens * 0.4);
+        const estimatedCostUSD = (estimatedInputTokens / 1000000) * 0.28 + (estimatedOutputTokens / 1000000) * 0.42;
+        const estimatedCostJPY = (estimatedInputTokens / 1000000) * 42 + (estimatedOutputTokens / 1000000) * 63;
+        
+        const summaryHTML = `
+          <div style="margin-bottom: 20px; padding: 16px; background: rgba(0, 200, 120, 0.1); border: 2px solid rgba(0, 200, 120, 0.3); border-radius: 12px;">
+            <h4 style="margin: 0 0 12px; font-size: 14px; color: #90ffc7;">📊 トークン使用量サマリー</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+              <div>
+                <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総トークン数（推定）</div>
+                <div style="font-size: 20px; font-weight: 600; color: #d6c9ff;">~${grandTotalTokens.toLocaleString()}</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">推定コスト</div>
+                <div style="font-size: 20px; font-weight: 600; color: #ffb366;">¥${estimatedCostJPY.toFixed(2)}</div>
+                <div style="font-size: 10px; color: #9da2c6; margin-top: 2px;">($${estimatedCostUSD.toFixed(4)})</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">会話ペア数</div>
+                <div style="font-size: 20px; font-weight: 600; color: #90ffc7;">${Math.floor(records.length / 2)}</div>
+              </div>
+            </div>
+            <p style="font-size: 10px; color: #9da2c6; margin: 12px 0 0; line-height: 1.4;">
+              ※ トークン数は推定値です（日本語1文字≈2.5tokens）。<br>
+              ※ コスト計算: DeepSeek API (入力¥42/1M, 出力¥63/1M), 入力:出力=3:2と仮定。キャッシュ未ヒット想定。
+            </p>
+          </div>
+        `;
+        conversationList.innerHTML = summaryHTML + conversationList.innerHTML;
+      }
       
       // チェックボックスイベントをセットアップ
       setupConversationCheckboxes();
@@ -1455,6 +1673,183 @@
     
     // ボタンホバー効果を初期化
     setupButtonHoverEffects();
+    
+    // ============================================
+    // トークン使用状況機能
+    // ============================================
+    const tokenTestButton = document.getElementById('tokenTestButton');
+    const tokenTestCharacter = document.getElementById('tokenTestCharacter');
+    const tokenTestMessage = document.getElementById('tokenTestMessage');
+    const tokenTestStatus = document.getElementById('tokenTestStatus');
+    const tokenHistoryTableBody = document.getElementById('tokenHistoryTableBody');
+    
+    let tokenHistory = [];
+    
+    if (tokenTestButton) {
+      tokenTestButton.addEventListener('click', async () => {
+        const character = tokenTestCharacter.value;
+        const message = tokenTestMessage.value.trim();
+        
+        if (!message) {
+          tokenTestStatus.style.display = 'block';
+          tokenTestStatus.style.background = 'rgba(255, 107, 157, 0.2)';
+          tokenTestStatus.style.borderLeft = '3px solid #ff6b9d';
+          tokenTestStatus.textContent = '❌ メッセージを入力してください';
+          return;
+        }
+        
+        tokenTestButton.disabled = true;
+        tokenTestButton.textContent = '実行中...';
+        tokenTestStatus.style.display = 'block';
+        tokenTestStatus.style.background = 'rgba(138, 43, 226, 0.2)';
+        tokenTestStatus.style.borderLeft = '3px solid rgba(138, 43, 226, 0.6)';
+        tokenTestStatus.textContent = 'ℹ️ API リクエスト中...';
+        
+        try {
+          // ユーザーIDを取得（管理画面なので、テスト用ユーザーを使用）
+          // まず、適当なユーザーを検索
+          const searchRes = await fetch('/api/admin/users?search=');
+          const searchData = await searchRes.json();
+          
+          if (!searchData.users || searchData.users.length === 0) {
+            throw new Error('テスト用のユーザーが見つかりません。先にユーザーを作成してください。');
+          }
+          
+          const testUser = searchData.users[0]; // 最初のユーザーを使用
+          
+          // API リクエストを送信
+          const response = await fetch('/api/consult', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: message,
+              character: character,
+              userId: testUser.id,
+              clientHistory: [],
+            }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'API エラー');
+          }
+          
+          // トークン情報を表示
+          if (data.tokenUsage) {
+            const characterNames = {
+              'kaede': '楓（かえで）',
+              'yukino': '雪乃（ゆきの）',
+              'sora': '空（そら）',
+              'kaon': '花音（かおん）'
+            };
+            
+            const historyEntry = {
+              character: characterNames[character] || character,
+              message: message,
+              promptTokens: data.tokenUsage.prompt_tokens,
+              completionTokens: data.tokenUsage.completion_tokens,
+              totalTokens: data.tokenUsage.total_tokens,
+              provider: data.provider || data.tokenUsage.model || 'unknown',
+              timestamp: new Date().toLocaleString('ja-JP'),
+            };
+            
+            tokenHistory.unshift(historyEntry);
+            
+            // テーブルを更新
+            updateTokenHistoryTable();
+            updateTokenCostSummary();
+            
+            tokenTestStatus.style.background = 'rgba(0, 200, 120, 0.2)';
+            tokenTestStatus.style.borderLeft = '3px solid #90ffc7';
+            tokenTestStatus.innerHTML = `✅ <strong>テスト完了</strong><br>
+              入力トークン: ${data.tokenUsage.prompt_tokens} | 
+              出力トークン: ${data.tokenUsage.completion_tokens} | 
+              合計: ${data.tokenUsage.total_tokens} | 
+              プロバイダー: ${data.provider || data.tokenUsage.model}`;
+          } else {
+            tokenTestStatus.style.background = 'rgba(255, 179, 102, 0.2)';
+            tokenTestStatus.style.borderLeft = '3px solid #ffb366';
+            tokenTestStatus.textContent = '⚠️ トークン情報が取得できませんでした';
+          }
+        } catch (error) {
+          console.error('トークンテストエラー:', error);
+          tokenTestStatus.style.background = 'rgba(255, 107, 157, 0.2)';
+          tokenTestStatus.style.borderLeft = '3px solid #ff6b9d';
+          tokenTestStatus.textContent = `❌ エラー: ${error.message}`;
+        } finally {
+          tokenTestButton.disabled = false;
+          tokenTestButton.textContent = 'テスト実行';
+        }
+      });
+    }
+    
+    function updateTokenHistoryTable() {
+      if (tokenHistory.length === 0) {
+        tokenHistoryTableBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="padding: 20px; text-align: center; color: #9da2c6;">
+              テスト実行ボタンを押すとトークン使用量が表示されます
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tokenHistoryTableBody.innerHTML = tokenHistory.map(entry => `
+        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+          <td style="padding: 10px;">${entry.character}</td>
+          <td style="padding: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.message}</td>
+          <td style="padding: 10px; text-align: right; color: #90ffc7;">${entry.promptTokens.toLocaleString()}</td>
+          <td style="padding: 10px; text-align: right; color: #90ffc7;">${entry.completionTokens.toLocaleString()}</td>
+          <td style="padding: 10px; text-align: right; color: #d6c9ff; font-weight: 600;">${entry.totalTokens.toLocaleString()}</td>
+          <td style="padding: 10px;">${entry.provider}</td>
+          <td style="padding: 10px; font-size: 11px; color: #9da2c6;">${entry.timestamp}</td>
+        </tr>
+      `).join('');
+    }
+    
+    function updateTokenCostSummary() {
+      const totalPromptTokens = tokenHistory.reduce((sum, entry) => sum + entry.promptTokens, 0);
+      const totalCompletionTokens = tokenHistory.reduce((sum, entry) => sum + entry.completionTokens, 0);
+      const totalTokens = tokenHistory.reduce((sum, entry) => sum + entry.totalTokens, 0);
+      
+      // DeepSeek API の料金（2026年2月時点）
+      // 入力（キャッシュ未ヒット）: ¥42/1M tokens ($0.28/1M tokens)
+      // 出力: ¥63/1M tokens ($0.42/1M tokens)
+      const inputCostUSD = (totalPromptTokens / 1000000) * 0.28;
+      const outputCostUSD = (totalCompletionTokens / 1000000) * 0.42;
+      const totalCostUSD = inputCostUSD + outputCostUSD;
+      
+      const inputCostJPY = (totalPromptTokens / 1000000) * 42;
+      const outputCostJPY = (totalCompletionTokens / 1000000) * 63;
+      const totalCostJPY = inputCostJPY + outputCostJPY;
+      
+      const costSummary = document.getElementById('tokenCostSummary');
+      if (costSummary) {
+        costSummary.innerHTML = `
+          <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+            <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総入力トークン</div>
+            <div style="font-size: 20px; font-weight: 600; color: #90ffc7;">${totalPromptTokens.toLocaleString()}</div>
+          </div>
+          <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+            <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総出力トークン</div>
+            <div style="font-size: 20px; font-weight: 600; color: #90ffc7;">${totalCompletionTokens.toLocaleString()}</div>
+          </div>
+          <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+            <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">総トークン数</div>
+            <div style="font-size: 20px; font-weight: 600; color: #d6c9ff;">${totalTokens.toLocaleString()}</div>
+          </div>
+          <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+            <div style="font-size: 11px; color: #9da2c6; margin-bottom: 4px;">推定コスト</div>
+            <div style="font-size: 20px; font-weight: 600; color: #ffb366;">¥${totalCostJPY.toFixed(2)}</div>
+            <div style="font-size: 11px; color: #9da2c6; margin-top: 2px;">($${totalCostUSD.toFixed(6)})</div>
+          </div>
+        `;
+      }
+    }
     
     // ============================================
     // 修正要望パネル機能
